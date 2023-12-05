@@ -1,0 +1,27 @@
+#ifndef gribjump_gribjump_version_h
+#define gribjump_gribjump_version_h
+
+#define gribjump_VERSION_STR "@gribjump_VERSION_STR@"
+#define gribjump_VERSION     "@gribjump_VERSION@"
+
+#define gribjump_VERSION_MAJOR @gribjump_VERSION_MAJOR@
+#define gribjump_VERSION_MINOR @gribjump_VERSION_MINOR@
+#define gribjump_VERSION_PATCH @gribjump_VERSION_PATCH@
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+const char * gribjump_version();
+
+unsigned int gribjump_version_int();
+
+const char * gribjump_version_str();
+
+const char * gribjump_git_sha1();
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

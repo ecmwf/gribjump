@@ -1,0 +1,19 @@
+#include "gribjump_version.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+const char * gribjump_version()     { return gribjump_VERSION; }
+const char * gribjump_version_str() { return gribjump_VERSION_STR; }
+
+unsigned int gribjump_version_int()
+{
+  return 10000*gribjump_VERSION_MAJOR + 100*gribjump_VERSION_MINOR + 1*gribjump_VERSION_PATCH;
+}
+
+const char * gribjump_git_sha1() { return "@gribjump_GIT_SHA1@"; }
+
+#ifdef __cplusplus
+}
+#endif
