@@ -24,11 +24,11 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class LibGribjump : public eckit::system::Library {
+class LibGribJump : public eckit::system::Library {
 public:
-    LibGribjump();
+    LibGribJump();
 
-    static LibGribjump& instance();
+    static LibGribJump& instance();
 
 protected:
     virtual std::string version() const;

@@ -30,20 +30,20 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-REGISTER_LIBRARY(LibGribjump);
+REGISTER_LIBRARY(LibGribJump);
 
-LibGribjump::LibGribjump() : Library("gribjump") {}
+LibGribJump::LibGribJump() : Library("gribjump") {}
 
-LibGribjump& LibGribjump::instance() {
-    static LibGribjump libfdb;
+LibGribJump& LibGribJump::instance() {
+    static LibGribJump libfdb;
     return libfdb;
 }
 
-std::string LibGribjump::version() const {
+std::string LibGribJump::version() const {
     return gribjump_version_str();
 }
 
-std::string LibGribjump::gitsha1(unsigned int count) const {
+std::string LibGribJump::gitsha1(unsigned int count) const {
     std::string sha1(gribjump_git_sha1());
     if (sha1.empty()) {
         return "not available";

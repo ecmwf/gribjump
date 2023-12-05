@@ -13,19 +13,25 @@
 
 #include "gribjump/GribInfo.h"
 #include "eckit/io/DataHandle.h"
+#include "metkit/mars/MarsRequest.h"
 
 
 namespace gribjump {
 
 using PolyOutput = std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<std::bitset<64>>>>;
+using Range = std::tuple<size_t, size_t>;
+using PolyRequest = std::vector<std::tuple<metkit::mars::MarsRequest, std::vector<Range>>>;
 
 // Gribjump API
 class GribJump : public eckit::NonCopyable {
 public: 
     GribJump();
     ~GribJump();
-
-    PolyOutput directJump(eckit::DataHandle* handle, std::vector<std::tuple<size_t, size_t>> allRanges, JumpInfo info) const;
+    std::vector<std::vector<PolyOutput>> extractRemote(PolyRequest);
+    std::vector<std::vector<PolyOutput>> extract(PolyRequest);
+    std::vector<PolyOutput> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
+    
+    PolyOutput directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
 
     JumpInfo extractInfo(eckit::DataHandle* handle) const;
 

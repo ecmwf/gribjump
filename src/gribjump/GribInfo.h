@@ -19,14 +19,6 @@
 
 #include "metkit/codes/GribHandle.h"
 
-
-// Declare metkit::grib::GribHandle here to avoid including metkit/codes/GribHandle.h
-// namespace metkit {
-// namespace grib {
-// class GribHandle;
-// }
-// }
-
 namespace gribjump {
 
 class JumpHandle;
