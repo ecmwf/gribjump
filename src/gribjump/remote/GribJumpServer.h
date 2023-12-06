@@ -35,7 +35,7 @@ private:  // methods
 
 private:  // members
     eckit::net::NetService* svc_;
-    eckit::ThreadControler tcsvc_; // TODO: Is this necessary? Yes! Otherwise we don't call svc.run() for some reason
+    eckit::ThreadControler tcsvc_;
 };
 
 //-------------------------------------------------------------------------------------------------

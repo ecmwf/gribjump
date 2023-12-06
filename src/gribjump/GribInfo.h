@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#ifndef metkit_JumpInfo_H
-#define metkit_JumpInfo_H
+/// @author Christopher Bradley
+
+#pragma once
 
 #include <queue>
 #include "eckit/filesystem/PathName.h"
@@ -18,6 +19,8 @@
 #include "eckit/types/FixedString.h"
 
 #include "metkit/codes/GribHandle.h"
+
+#include "gribjump/ExtractionData.h"
 
 namespace gribjump {
 
@@ -33,7 +36,7 @@ public:
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
     double extractValue(const JumpHandle&, size_t index) const;
-    std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<std::bitset<64>>>> extractRanges(const JumpHandle&, std::vector<std::tuple<size_t, size_t>> ranges) const;
+    ExtractionResult extractRanges(const JumpHandle&, std::vector<std::tuple<size_t, size_t>> ranges) const;
     
     void print(std::ostream&) const;
 
@@ -95,5 +98,3 @@ private:
 
 } // namespace gribjump
 
-
-#endif

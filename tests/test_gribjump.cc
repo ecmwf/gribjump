@@ -475,7 +475,9 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
         // auto [actual, mask] = gribInfo.extractRanges(dataSource, ranges); // lets not use auto in the testing code
         std::vector<std::vector<double>> actual;
         std::vector<std::vector<std::bitset<64>>> mask;
-        std::tie(actual, mask) = gribInfo.extractRanges(dataSource, ranges);
+        ExtractionResult output = gribInfo.extractRanges(dataSource, ranges);
+        actual = output.getValues();
+        mask = output.getMask();
 
         EXPECT(actual.size() == expected.size());
         for (size_t ri = 0; ri < expected.size(); ri++) {

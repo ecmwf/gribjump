@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996-2013 ECMWF.
+ * (C) Copyright 1996- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -7,6 +7,8 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+
+/// @author Christopher Bradley
 
 #include <queue>
 #include <cmath> // isnan. Temp, only for debug, remove later.
@@ -230,7 +232,7 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
     }
 }
 
-std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<std::bitset<64>>>> 
+ExtractionResult
 JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size_t>> ranges) const {
     // NOTE: Ranges are treated as half-open intervals [start, end)
     
@@ -277,7 +279,7 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
             size_t size = std::get<1>(ranges[i]) - std::get<0>(ranges[i]);
             result[i].insert(result[i].end(), size, referenceValue_);
         }
-        return std::make_tuple(result, masks);
+        return ExtractionResult(result, masks);
     }
 
     // set bufferSize equal to minimum bytes that will hold the largest range.
@@ -313,7 +315,7 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
                 result[i].push_back(v);
             }
         }
-        return std::make_tuple(result, masks);
+        return ExtractionResult(result, masks);
     }
     // Flatten ranges into a list of edges.
     // e.g. range(1, 5), range(7, 10) range(10, 20), range(20, 30) -> edges(1, 5, 7, 30)
@@ -418,7 +420,7 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
         count += size;
     }
 
-    return std::make_tuple(result, masks);
+    return ExtractionResult(result, masks);
 }
 
 double JumpInfo::extractValue(const JumpHandle& f, size_t index) const {

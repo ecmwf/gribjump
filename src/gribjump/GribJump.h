@@ -8,30 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-#ifndef metkit_GribJump_H
-#define metkit_GribJump_H
+/// @author Christopher Bradley
+
+#pragma once
 
 #include "gribjump/GribInfo.h"
 #include "eckit/io/DataHandle.h"
 #include "metkit/mars/MarsRequest.h"
-
+#include "gribjump/ExtractionData.h"
 
 namespace gribjump {
 
-using PolyOutput = std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<std::bitset<64>>>>;
 using Range = std::tuple<size_t, size_t>;
-using PolyRequest = std::vector<std::tuple<metkit::mars::MarsRequest, std::vector<Range>>>;
 
 // Gribjump API
 class GribJump : public eckit::NonCopyable {
 public: 
     GribJump();
     ~GribJump();
-    std::vector<std::vector<PolyOutput>> extractRemote(PolyRequest);
-    std::vector<std::vector<PolyOutput>> extract(PolyRequest);
-    std::vector<PolyOutput> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
+    std::vector<std::vector<ExtractionResult>> extractRemote(std::vector<ExtractionRequest>);
+    std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>);
+    std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
     
-    PolyOutput directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
+    ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
 
     JumpInfo extractInfo(eckit::DataHandle* handle) const;
 
@@ -41,6 +40,4 @@ private:
     // std::map<Key, std::tuple<FieldLocation*, JumpInfo> > cache_; // not imp
 };
 
-
 } // namespace GribJump
-#endif // fdb5_gribjump_LibGribJump_H

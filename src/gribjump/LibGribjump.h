@@ -8,9 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Nov 2016
+/// @author Christopher Bradley
+/// @date   Dec 2023
 
 #pragma once
 

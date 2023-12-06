@@ -86,9 +86,6 @@ std::vector<std::vector<std::tuple<size_t, size_t>>> parseRangesFile(eckit::Path
 void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
     // Testing tool for extract / directJump functionality
 
-    using Range = std::tuple<size_t, size_t>;
-    using PolyRequest = std::vector<std::tuple<metkit::mars::MarsRequest, std::vector<Range>>>;
-
     bool raw = args.getBool("raw", false);
 
     // Build request(s) from input
@@ -121,14 +118,15 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
     ASSERT(requests.size() == allRanges.size());
 
 
-    PolyRequest polyRequest;
+    std::vector<gribjump::ExtractionRequest> polyRequest;
     for (size_t i = 0; i < requests.size(); i++) {
-        polyRequest.push_back(std::make_tuple(requests[i], allRanges[i]));
+        gribjump::ExtractionRequest exrequest(requests[i], allRanges[i]);
+        polyRequest.push_back(exrequest);
     }
 
     // Extract values
     gribjump::GribJump gj;
-    std::vector<std::vector<gribjump::PolyOutput>> output = gj.extract(polyRequest);
+    std::vector<std::vector<gribjump::ExtractionResult>> output = gj.extract(polyRequest);
 
     // Print extracted values
     eckit::Log::info() << "Extracted values:" << std::endl;
@@ -137,7 +135,9 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
         eckit::Log::info() << "  Number of fields: " << output[i].size() << std::endl;
         for (size_t j = 0; j < output[i].size(); j++) { // each field
             eckit::Log::info() << "  Field " << j << std::endl;
-            auto [values, mask] = output[i][j];
+            auto values = output[i][j].getValues();
+            auto mask = output[i][j].getMask();
+
             for (size_t k = 0; k < values.size(); k++) { // each range
                 eckit::Log::info() << "    Range " << k;
                 eckit::Log::info() << " (" << std::get<0>(allRanges[i][k]) << "-" << std::get<1>(allRanges[i][k]) << "): ";

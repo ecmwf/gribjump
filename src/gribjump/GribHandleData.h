@@ -8,8 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#ifndef metkit_JumpHandle_H
-#define metkit_JumpHandle_H
+/// @author Christopher Bradley
+
+#pragma once
 
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/GribInfo.h"
@@ -55,5 +56,3 @@ private:
 };
 
 } // namespace gribjump
-
-#endif

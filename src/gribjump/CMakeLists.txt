@@ -15,20 +15,23 @@ list( APPEND gribjump_srcs
 
     LibGribjump.cc 
     LibGribjump.h
+    gribjump_config.h.in
+    gribjump_version.c.in 
+    gribjump_version.h.in 
 
     GribHandleData.cc 
     GribHandleData.h
     GribInfo.cc
     GribInfo.h 
-    gribjump_config.h.in
-    gribjump_version.c.in 
-    gribjump_version.h.in 
     GribJump.cc 
     GribJump.h 
     GribJumpException.h 
+    ExtractionData.cc
+    ExtractionData.h
 
     remote/GribJumpServer.h
     remote/GribJumpService.h
+    remote/GribJumpUser.cc
     remote/GribJumpUser.h
 )
 

@@ -8,11 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Baudouin Raoult
-/// @author Tiago Quintino
-/// @date   Nov 2016
-
-// #include <algorithm>
+/// @author Christopher Bradley
 
 #include "gribjump/LibGribJump.h"
 

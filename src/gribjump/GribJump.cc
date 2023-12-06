@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+/// @author Christopher Bradley
+
 #include "eckit/log/Log.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
@@ -27,29 +29,13 @@ GribJump::GribJump() {}
 GribJump::~GribJump() {}
 
 
-PolyOutput polyOutputFromStream(eckit::Stream& s){
-    std::vector<std::vector<double>> values;
-    s >> values;
-    std::vector<std::vector<std::string>> bitsetStrings;
-    s >> bitsetStrings;
-    std::vector<std::vector<std::bitset<64>>> bitsets;
-    for (auto& v : bitsetStrings) {
-        std::vector<std::bitset<64>> bitset;
-        for (auto& b : v) {
-            bitset.push_back(std::bitset<64>(b));
-        }
-        bitsets.push_back(bitset);
-    }
-    return std::make_tuple(values, bitsets);
-}
-
-std::vector<std::vector<PolyOutput>> GribJump::extractRemote(PolyRequest polyRequest){
+std::vector<std::vector<ExtractionResult>> GribJump::extractRemote(std::vector<ExtractionRequest> polyRequest){
     // XXX
     // Placeholder function for remote forwarding of requests.
     // We probably want to use a factory to create a RemoteGribJump, and override the extract() function.
     // TODO, after config is implemented.
     // For now, rely on env vars.
-    std::vector<std::vector<PolyOutput>> result;
+    std::vector<std::vector<ExtractionResult>> result;
 
     eckit::Log::info() << "GribJump::extractRemote() called" << std::endl;
     std::string host = getenv("GRIBJUMP_REMOTE_HOST");
@@ -63,24 +49,19 @@ std::vector<std::vector<PolyOutput>> GribJump::extractRemote(PolyRequest polyReq
     stream << "EXTRACT";
     eckit::Log::info() << "sent: EXTRACT" << std::endl;
 
-    // stream << polyRequest; // <-- Would be nice to just do this.
     stream << polyRequest.size();
-    for (auto& [request, ranges] : polyRequest) {
-        stream << request;
-        stream << ranges.size();
-        for (auto& [start, end] : ranges) {
-            stream << start << end;
-        }
+    for (auto& req : polyRequest) {
+        stream << req;
         
         eckit::Log::info() << "sent request" << std::endl;
 
         // receive response
-        std::vector<PolyOutput> response;
+        std::vector<ExtractionResult> response;
         size_t nfields;
         stream >> nfields;
         eckit::Log::info() << "expecting " << nfields << " fields" << std::endl;
         for (size_t i = 0; i < nfields; i++) {
-            PolyOutput output = polyOutputFromStream(stream);
+            ExtractionResult output(stream);
             response.push_back(output);
         }
         result.push_back(response);
@@ -89,24 +70,23 @@ std::vector<std::vector<PolyOutput>> GribJump::extractRemote(PolyRequest polyReq
     return result;
 }
 
-std::vector<std::vector<PolyOutput>> GribJump::extract(PolyRequest polyRequest){
+std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> polyRequest){
     // XXX TEMP: check for GRIBJUMP_REMOTE, and if so call extractRemote()
     if (getenv("GRIBJUMP_REMOTE") != NULL) {
         return extractRemote(polyRequest);
     }
     
-    std::vector<std::vector<PolyOutput>> result;
-
-    for (auto& [request, ranges] : polyRequest) {
-        result.push_back(extract(request, ranges));
+    std::vector<std::vector<ExtractionResult>> result;
+    for (auto& exrequest : polyRequest) {
+        result.push_back(extract(exrequest.getRequest(), exrequest.getRanges()));
     }
     return result;
 }
 
-std::vector<PolyOutput> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::tuple<size_t, size_t>> ranges){
+std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::tuple<size_t, size_t>> ranges){
 
     const GribJump gj;
-    std::vector<PolyOutput>  result;
+    std::vector<ExtractionResult>  result;
     fdb5::FDB fdb;
     fdb5::ListIterator it = fdb.inspect(request); 
     fdb5::ListElement el;
@@ -123,7 +103,7 @@ std::vector<PolyOutput> GribJump::extract(const metkit::mars::MarsRequest reques
         eckit::Log::debug<LibGribJump>() << "GribJump::extract() key: " << key 
             << ", location: " << loc << ", info: " << info << std::endl;
 
-        PolyOutput v = gj.directJump(loc.dataHandle(), ranges, info);
+        ExtractionResult v = gj.directJump(loc.dataHandle(), ranges, info);
         result.push_back(v);
     }
 
@@ -134,7 +114,7 @@ std::vector<PolyOutput> GribJump::extract(const metkit::mars::MarsRequest reques
 // TODO : We can probably group requests by file, based on fdb.inspect fieldlocations
 // 
 
-PolyOutput GribJump::directJump(eckit::DataHandle* handle,
+ExtractionResult GribJump::directJump(eckit::DataHandle* handle,
     std::vector<std::tuple<size_t, size_t>> ranges,
     JumpInfo info) const {
     JumpHandle dataSource(handle);
@@ -147,46 +127,5 @@ JumpInfo GribJump::extractInfo(eckit::DataHandle* handle) const {
     JumpHandle dataSource(handle);
     return dataSource.extractInfo();
 }
-
-
-// std::vector<std::vector<metkit::gribjump::PolyOutput>> FDB::extract(const PolyRequest& polyRequest) {
-//     using namespace metkit::gribjump;
-    
-//     std::vector<std::vector<PolyOutput>> result;
-
-//     for (auto& [request, ranges] : polyRequest) {
-//         result.push_back(extract(request, ranges));
-//     }
-//     return result;
-// }
-
-// std::vector<metkit::gribjump::PolyOutput> FDB::extract(const metkit::mars::MarsRequest request, const std::vector<std::tuple<size_t, size_t>> ranges){
-//     using namespace metkit::gribjump;
-
-//     const GribJump gj;
-//     std::vector<PolyOutput>  result;
-
-//     ListIterator it = inspect(request);
-//     ListElement el;
-//     while (it.next(el)) {
-
-//         Key key = el.combinedKey();
-//         if(gj.isCached(key)){
-//             // todo ...
-//         }
-
-//         const FieldLocation& loc = el.location();
-//         JumpInfo info = gj.extractInfo(loc.dataHandle());
-
-//         eckit::Log::debug<LibFdb5>() << "FDB::extract() key: " << key 
-//             << ", location: " << loc << ", info: " << info << std::endl;
-
-//         PolyOutput v = gj.directJump(loc.dataHandle(), ranges, info);
-//         result.push_back(v);
-//     }
-
-//     return result;
-// }
-
 
 } // namespace GribJump
