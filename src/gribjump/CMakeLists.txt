@@ -18,6 +18,9 @@ list( APPEND gribjump_srcs
     gribjump_config.h.in
     gribjump_version.c.in 
     gribjump_version.h.in 
+    
+    gribjump_c.cc
+    gribjump_c.h
 
     GribHandleData.cc 
     GribHandleData.h

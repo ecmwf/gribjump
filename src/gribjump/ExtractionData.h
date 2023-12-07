@@ -31,8 +31,11 @@ public: // methods
     std::vector<std::vector<std::bitset<64>>> getMask() const {return mask_;}
 
 private: // methods
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o);
     void encode(eckit::Stream& s) const;
+    void print(std::ostream&) const;
+    friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o);
+    friend std::ostream& operator<<(std::ostream& s, const ExtractionResult& r);
+
 
 private: // members
     std::vector<std::vector<double>> values_;
@@ -51,8 +54,10 @@ public: // methods
     metkit::mars::MarsRequest getRequest() const {return request_;}
 
 private: // methods
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o);
+    void print(std::ostream&) const;
     void encode(eckit::Stream& s) const;
+    friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o);
+    friend std::ostream& operator<<(std::ostream& s, const ExtractionRequest& r);
 
 private: // members
     std::vector<Range> ranges_;

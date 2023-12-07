@@ -21,3 +21,8 @@ ecbuild_add_executable( TARGET   gj-dbgclient
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
     LIBS      gribjump
 )
+ecbuild_add_executable( TARGET   gj-testc
+    SOURCES   gj-test.c
+    INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    LIBS      gribjump
+)

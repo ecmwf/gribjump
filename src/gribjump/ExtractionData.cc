@@ -44,6 +44,27 @@ void ExtractionResult::encode(eckit::Stream& s) const {
         bitsetStrings.push_back(bitsetString);
     }
     s << bitsetStrings;
+    
+}
+void ExtractionResult::print(std::ostream& s) const {
+    s << "ExtractionResult[Values:[";
+    for (auto& v : values_) {
+        s << v << ", ";
+    }
+    s << "]; Masks:[";
+    for (auto& v : mask_) {
+        s << "[";
+        for (auto& b : v) {
+            s << std::hex << b.to_ullong() << std::dec << ", ";
+        }
+        s << "], ";
+    }
+    s << "]" << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& s, const ExtractionResult& o) {
+    o.print(s);
+    return s;
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
@@ -51,6 +72,7 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
     return s;
 }
 
+// ---------------------------------------------------------------------------------------------
 
 ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges): 
     request_(std::move(request)), 
@@ -59,7 +81,6 @@ ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vec
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s){
     request_ = metkit::mars::MarsRequest(s);
-    // s >> ranges_;
     size_t numRanges;
     s >> numRanges;
     for (size_t j = 0; j < numRanges; j++) {
@@ -76,12 +97,23 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
 
 void ExtractionRequest::encode(eckit::Stream& s) const {
     s << request_;
-    // s << ranges_;
     s << ranges_.size();
     for (auto& [start, end] : ranges_) {
         s << start << end;
     }
+}
 
+void ExtractionRequest::print(std::ostream& s) const {
+    s << "ExtractionRequest[Request: " << request_ << "; Ranges: ";
+    for (auto& [start, end] : ranges_) {
+        s << "(" << start << ", " << end << "), ";
+    }
+    s << "]" << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {
+    o.print(s);
+    return s;
 }
 
 } // namespace gribjump

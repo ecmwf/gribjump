@@ -36,6 +36,21 @@ public:
 
     bool isCached(std::string) const {return false;} // todo implement caching
 
+    // tmp
+    std::vector<int> testvec(){
+        // returns a vector of ints 
+        std::vector<int> v;
+        v.push_back(1);
+        v.push_back(2);
+        v.push_back(3);
+        v.push_back(4);
+        v.push_back(5);
+        return v;
+    }
+    void hello(){
+        std::cout << "hello" << std::endl;
+    }
+
 private:
     // std::map<Key, std::tuple<FieldLocation*, JumpInfo> > cache_; // not imp
 };

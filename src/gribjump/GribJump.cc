@@ -104,6 +104,11 @@ std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest 
             << ", location: " << loc << ", info: " << info << std::endl;
 
         ExtractionResult v = gj.directJump(loc.dataHandle(), ranges, info);
+
+        for (auto& val : v.getValues()) {
+            eckit::Log::debug<LibGribJump>() << "GribJump::extract() value: " << val << std::endl;
+        }
+
         result.push_back(v);
     }
 
