@@ -138,8 +138,8 @@ void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
             if (doRange_){
                 auto t0 = std::chrono::high_resolution_clock::now();
                 ExtractionResult r = gribInfo.extractRanges(dataSource, rangesVector_);
-                auto v = r.getValues();
-                auto mask = r.getMask();
+                auto v = r.values(); // TODO: Is this making a copy?
+                auto mask = r.mask(); // TODO: Is this making a copy?
                 auto t1 = std::chrono::high_resolution_clock::now();
                 timing.msgTimes.push_back(std::chrono::duration<double>(t1 - t0).count());
                 for (auto r : v){

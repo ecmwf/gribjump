@@ -38,7 +38,7 @@ int gribjump_delete_handle(gribjump_handle_t* handle) {
     return 0;
 }
 
-int gj_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr) {
+int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr) {
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
 
@@ -61,18 +61,58 @@ int gj_new_request(gribjump_extraction_request_t** request, const char* reqstr, 
     return 0;
 } 
 
-int extract(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t** results_array) {
+int gribjump_delete_request(gribjump_extraction_request_t* request) {
+    ASSERT(request);
+    delete request;
+    return 0;
+}
 
-    // For now, let's create a request here.
+int gribjump_new_result(gribjump_extraction_result_t** result) { // not sure if this is needed
+    // set to null
+    *result = nullptr;
+    eckit::Log::info() << "Creating result " << result << std::endl;
+    return 0;
+}
 
+int gribjump_result_values(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues){
+    // makes a copy of the values
+    ASSERT(result);
+    std::vector<std::vector<double>> vals = result->values();
+    *nrange = vals.size();
+    *values = new double*[*nrange];
+    *nvalues = new unsigned long[*nrange];
+    for (size_t i = 0; i < *nrange; i++) {
+        (*nvalues)[i] = vals[i].size();
+        (*values)[i] = new double[(*nvalues)[i]];
+        for (size_t j = 0; j < (*nvalues)[i]; j++) {
+            (*values)[i][j] = vals[i][j];
+        }
+    }
+    return 0;
+}
+
+int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues){
+    ASSERT(result);
+    result->values_ptr(values, nrange, nvalues);
+    return 0;
+}
+
+int gribjump_delete_result(gribjump_extraction_result_t* result) {
+    ASSERT(result);
+    eckit::Log::info() << "Deleting result " << result << std::endl;
+    delete result;
+    return 0;
+}
+
+int extract(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned short* nfields) {
     std::vector<ExtractionResult> results = handle->extract(request->getRequest(), request->getRanges());
 
-    size_t nfields = results.size();
+    *nfields = results.size();
+    *results_array = new gribjump_extraction_result_t*[*nfields];
 
-    results_array = new gribjump_extraction_result_t*[nfields];
-    for (size_t i = 0; i < nfields; i++) {
-        results_array[i] = new gribjump_extraction_result_t(results[i]);
-        eckit::Log::info() << "result " << i << ": " << results[i] << std::endl;
+    for (size_t i = 0; i < *nfields; i++) {
+        (*results_array)[i] = new gribjump_extraction_result_t(results[i]);
+        eckit::Log::info() << "Created result " << i << results[i] << std::endl;
     }
 
     return 0;
@@ -95,6 +135,7 @@ int gribjump_initialise() {
         eckit::Main::initialise(1, const_cast<char**>(argv));
         initialised = true;
     }
+    return 0;
 }
 
 } // extern "C"

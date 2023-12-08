@@ -135,8 +135,8 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
         eckit::Log::info() << "  Number of fields: " << output[i].size() << std::endl;
         for (size_t j = 0; j < output[i].size(); j++) { // each field
             eckit::Log::info() << "  Field " << j << std::endl;
-            auto values = output[i][j].getValues();
-            auto mask = output[i][j].getMask();
+            auto values = output[i][j].values(); // NOTE: Copies data?
+            auto mask = output[i][j].mask(); // NOTE: Copies data?
 
             for (size_t k = 0; k < values.size(); k++) { // each range
                 eckit::Log::info() << "    Range " << k;

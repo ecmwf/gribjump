@@ -476,8 +476,8 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
         std::vector<std::vector<double>> actual;
         std::vector<std::vector<std::bitset<64>>> mask;
         ExtractionResult output = gribInfo.extractRanges(dataSource, ranges);
-        actual = output.getValues();
-        mask = output.getMask();
+        actual = output.values();
+        mask = output.mask();
 
         EXPECT(actual.size() == expected.size());
         for (size_t ri = 0; ri < expected.size(); ri++) {
