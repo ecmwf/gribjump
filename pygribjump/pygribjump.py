@@ -112,24 +112,25 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(reqstr, list_to_rangestr(ranges)) for reqstr, ranges in polyrequest]
-
-        # TODO also masks...
+        requests = [ExtractionRequest(reqstr, ranges) for reqstr, ranges in polyrequest]
 
         if copy:
             # Copy values, allow original buffer to be garbage collected.
             # TODO For now, polytope will use this.
-            res = [
-                res.copy_values() for req in requests for res in self.extract_single(req)
+            out = [
+                res.copy_data() for req in requests for res in self.extract_single(req)
             ]
         else:
-            # Original buffer will persist until the ExtractionResult object is garbage collected.
+            # Return the ExtractionResult objects directly.
+            # Original values buffer will persist until the ExtractionResult object is garbage collected.
             # TODO Consider making this usable by polytope so that they don't copy data.
-            res = [
+            # It might make more sense for numpy to provide a buffer for C++ to fill, rather than
+            # the other way around.
+            out = [
                 self.extract_single(req) for req in requests
             ]
 
-        return res
+        return out
 
     def extract_str(self, reqstr, rangestr):
         return self.extract_single(ExtractionRequest(reqstr, rangestr))
@@ -166,12 +167,11 @@ class ExtractionRequest:
     ----------
     reqstr : str
         The request mars-retrieve string.
-    rangestr : str
-        The range string, formatted as a comma-separated list of ranges 
-        XXX TODO (for now, probably want to use list of tuples as input)
-        e.g. "1-5,10-15"
+    ranges : [(lo, hi), (lo, hi), ...]
+        The ranges to extract.
     """
-    def __init__(self, reqstr, rangestr):
+    def __init__(self, reqstr, ranges):
+        rangestr = list_to_rangestr(ranges)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
         c_rangestr = ffi.new("char[]", rangestr.encode())
@@ -198,8 +198,12 @@ class ExtractionResult:
 
         # self.__result = result_in # if using manual delete   
         self.__result = ffi.gc(result_in, lib.gribjump_delete_result)
+        self.__load_values()
+        self.__load_masks()
+        # both should equal the total number of ranges
+        assert(len(self.__values) == len(self.__masks)), "Mismatch between number of values and masks"
 
-        # TODO: Check if our values are still good after these go out of scope.
+    def __load_values(self):
         data = ffi.new('double***')
         nrange = ffi.new('unsigned long*')
         nvalues = ffi.new('unsigned long**')
@@ -208,8 +212,21 @@ class ExtractionResult:
         lib.gribjump_result_values_nocopy(self.__result, data, nrange, nvalues)
 
         # view each value array as a numpy array. Note that we're not copying the data here.
+        # Buffer will be garbage collected when the ExtractionResult object is garbage collected.
         self.__values = [
             np.frombuffer(ffi.buffer(data[0][i], nvalues[0][i]*ffi.sizeof('double')), dtype=np.float64, count=nvalues[0][i])
+            for i in range(nrange[0])
+        ]
+
+    def __load_masks(self):
+        masks = ffi.new('unsigned long long***')
+        nrange = ffi.new('unsigned long*')
+        nmasks = ffi.new('unsigned long**')
+
+        lib.gribjump_result_mask(self.__result, masks, nrange, nmasks)
+
+        self.__masks = [
+            np.frombuffer(ffi.buffer(masks[0][i], nmasks[0][i]*ffi.sizeof('unsigned long long')), dtype=np.uint64, count=nmasks[0][i])
             for i in range(nrange[0])
         ]
 
@@ -219,9 +236,23 @@ class ExtractionResult:
     def copy_values(self):
         return [v.copy() for v in self.__values]
     
+    def masks(self):
+        return self.__masks
+    
+    def copy_masks(self):
+        return [m.copy() for m in self.__masks]
+    
+    def copy_data(self):
+        return [(v.copy(), m.copy()) for v, m in zip(self.__values, self.__masks)]
+    
     def print_values(self):
         for v in self.__values:
             print(v)
+
+    def print_masks(self):
+        print("Masks:")
+        for m in self.__masks:
+            print([hex(x) for x in m])
 
 # utils
 def rangestr_to_list(rangestr):

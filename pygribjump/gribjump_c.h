@@ -21,6 +21,7 @@ int gribjump_delete_request(gribjump_extraction_request_t* request);
 int gribjump_new_result(gribjump_extraction_result_t** result);
 int gribjump_result_values(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues);
 int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues);
+int gribjump_result_mask(gribjump_extraction_result_t* result,  unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks);
 int gribjump_delete_result(gribjump_extraction_result_t* result);
 
 int gribjump_initialise();
