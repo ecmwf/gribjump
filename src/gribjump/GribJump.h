@@ -12,10 +12,12 @@
 
 #pragma once
 
-#include "gribjump/GribInfo.h"
+#include <unordered_set>
+
 #include "eckit/io/DataHandle.h"
-#include "metkit/mars/MarsRequest.h"
+#include "gribjump/GribInfo.h"
 #include "gribjump/ExtractionData.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 
@@ -35,6 +37,8 @@ public:
     JumpInfo extractInfo(eckit::DataHandle* handle) const;
 
     bool isCached(std::string) const {return false;} // todo implement caching
+
+    std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 
     // tmp
     std::vector<int> testvec(){

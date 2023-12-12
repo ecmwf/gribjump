@@ -19,7 +19,7 @@
 #include "gribjump/LibGribJump.h"
 
 #include "fdb5/api/FDB.h"
-
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 
 namespace gribjump {
@@ -131,6 +131,34 @@ ExtractionResult GribJump::directJump(eckit::DataHandle* handle,
 JumpInfo GribJump::extractInfo(eckit::DataHandle* handle) const {
     JumpHandle dataSource(handle);
     return dataSource.extractInfo();
+}
+
+std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
+// std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const fdb5::FDBToolRequest& request) {
+    // bare bones implementation: jut a wrapper around list.
+    // TODO: implement a proper axes function inside FDB.
+
+    // Note: This is likely to be removed from GribJump, and moved to FDB.
+    // Here for now to support polytope.
+
+    using namespace fdb5;
+
+    FDB fdb;
+    std::vector<FDBToolRequest> requests = FDBToolRequest::requestsFromString(request);
+    ASSERT(requests.size() == 1);
+    auto listIter = fdb.list(requests.front(), false);
+
+    std::map<std::string, std::unordered_set<std::string>> values;
+
+    ListElement elem;
+    while (listIter.next(elem)) {
+        for (const auto& key: elem.key()) {
+            for (const auto& param : key) {
+                values[param.first].insert(param.second);
+            }
+        }
+    }
+    return values;
 }
 
 } // namespace GribJump

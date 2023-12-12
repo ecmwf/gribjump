@@ -152,8 +152,17 @@ class GribJump:
         res = [
             ExtractionResult(resultarray[0][i]) for i in range(nfields[0])
         ]
-
         return res
+
+    def axes(self, requeststr):
+        # note old axes used a dict in. This is now a string.
+        newaxes = ffi.new('gj_axes_t**')
+        reqstr = ffi.new('const char[]', requeststr.encode('ascii'))
+        lib.gribjump_new_axes(newaxes, reqstr, self.__gribjump)
+        # TODO want to return a dict like:
+        # {key: [value1, value2, ...], ...}
+        # each key and value is a string
+        return
 
     @property
     def ctype(self):

@@ -136,6 +136,39 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t* request, g
     return 0;
 }
 
+struct gj_axes_t {
+public:
+    gj_axes_t(std::map<std::string, std::unordered_set<std::string>> values): values_(values) {}
+
+    void print() {
+        for (const auto& kv : values_) {
+            std::cout << kv.first << ": ";
+            for (const auto& v : kv.second) {
+                std::cout << v << ", ";
+            }
+            std::cout << std::endl;
+        }
+    }
+
+private:
+    std::map<std::string, std::unordered_set<std::string>> values_;
+};
+
+int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* gj) {
+    ASSERT(gj);
+    std::string reqstr_str(reqstr);
+    std::map<std::string, std::unordered_set<std::string>> values = gj->axes(reqstr_str);
+    *axes = new gj_axes_t(values);
+    (*axes)->print();
+    return 0;
+}
+
+int gribjump_delete_axes(gj_axes_t* axes) {
+    ASSERT(axes);
+    delete axes;
+    return 0;
+}
+
 /*
  * Initialise API
  * @note This is only required if being used from a context where Main()
