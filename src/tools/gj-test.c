@@ -22,7 +22,7 @@ int main() {
     gribjump_extraction_result_t** resultarray;
     unsigned short nfields;
 
-    int w = extract(gj, request, &resultarray, &nfields);
+    int w = extract_single(gj, request, &resultarray, &nfields);
 
     // print the values from resultarray
     printf("nfields = %d\n", nfields);

@@ -97,7 +97,7 @@ class GribJump:
         # Set free function
         self.__gribjump = ffi.gc(gribjump[0], lib.gribjump_delete_handle)
 
-    def extract(self, polyrequest, copy=True):
+    def extract(self, polyrequest, dump=True):
         """
         Parameters
         ----------
@@ -107,14 +107,51 @@ class GribJump:
             ...
         ]
 
-        copy : bool
+        dump : bool
             If true, copy the values into a new numpy array. Otherwise, the values will be
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
         requests = [ExtractionRequest(reqstr, ranges) for reqstr, ranges in polyrequest]
 
-        if copy:
+        # results_array contains values, for each field, for each request.
+        results_array = ffi.new('gribjump_extraction_result_t****')
+        nfields = ffi.new('unsigned short**')
+        nrequests = len(requests)
+        c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
+        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields)
+
+        if dump:
+            res = [
+                [ExtractionResult(results_array[0][i][j]).copy_data() for j in range(nfields[0][i])] for i in range(nrequests)
+            ]
+
+        else:
+            res = [
+                [ExtractionResult(results_array[0][i][j]) for j in range(nfields[0][i])] for i in range(nrequests)
+            ]
+        return res
+
+    def extract_singles(self, polyrequest, dump=True):
+        """
+        Carry out a series of single extractions, rather than a single polytope extraction.
+
+        Parameters
+        ----------
+        polyrequest : [
+            (req1_str, [(lo, hi), (lo, hi), ...])
+            (req2_str, [(lo, hi), (lo, hi), ...])
+            ...
+        ]
+
+        dump : bool
+            If true, copy the values into a new numpy array. Otherwise, the values will be
+            stored in the original buffer, and will be garbage collected when the result object
+            is garbage collected.
+        """
+        requests = [ExtractionRequest(reqstr, ranges) for reqstr, ranges in polyrequest]
+
+        if dump:
             # Copy values, allow original buffer to be garbage collected.
             # TODO For now, polytope will use this.
             out = [
@@ -148,7 +185,7 @@ class GribJump:
         resultarray = ffi.new('gribjump_extraction_result_t***')
         nfields = ffi.new('unsigned short*')
         
-        lib.extract(self.__gribjump, request.ctype, resultarray, nfields)
+        lib.extract_single(self.__gribjump, request.ctype, resultarray, nfields)
         res = [
             ExtractionResult(resultarray[0][i]) for i in range(nfields[0])
         ]
@@ -196,7 +233,7 @@ class ExtractionResult:
     A class taking owernship of the result of a GribJump extract on a field.
     Note that a single request may perform extractions on multiple fields, creating multiple
     ExtractionResult objects.
-    
+
     Parameters
     ----------
     result : gribjump_extraction_result_t*

@@ -31,26 +31,29 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
         GribJump gj;
 
         if (cmd == "EXTRACT"){
+            // create a vector of ExtractionRequests from the stream    
+            std::vector<ExtractionRequest> requests;
             size_t numRequests;
             s >> numRequests;
-            eckit::Log::info() << "Expecting " << numRequests << " requests" << std::endl;
             for (size_t i = 0; i < numRequests; i++) {
-                ExtractionRequest exrequest(s);
+                ExtractionRequest exrequest = ExtractionRequest(s);
+                requests.push_back(exrequest);
+            }
 
-                // todo: make the extract function take ExtractionRequest.
-                metkit::mars::MarsRequest request = exrequest.getRequest();
-                std::vector<Range> ranges = exrequest.getRanges();
+            eckit::Log::info() << "Received " << numRequests << " requests" << std::endl;
 
-                std::vector<ExtractionResult> output = gj.extract(request, ranges);
-                eckit::Log::info() << "Sending output" << std::endl;
-                
-                s << output.size();
-                for (auto& o : output) {
+            std::vector<std::vector<ExtractionResult>> output = gj.extract(requests);
+
+            eckit::Log::info() << "Extract finished. Sending results" << std::endl;
+            for (auto& vec : output) {
+                size_t nfields = vec.size();
+                s << nfields;
+                for (auto& o : vec) {
                     s << o;
                 }
             }
+            eckit::Log::info() << "Sent results" << std::endl;
 
-            eckit::Log::info() << "Finished." << std::endl;
         }
 
         else if (cmd == "AXES"){

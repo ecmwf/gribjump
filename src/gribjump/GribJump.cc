@@ -49,17 +49,18 @@ std::vector<std::vector<ExtractionResult>> GribJump::extractRemote(std::vector<E
     stream << "EXTRACT";
     eckit::Log::info() << "sent: EXTRACT" << std::endl;
 
-    stream << polyRequest.size();
+    size_t nRequests = polyRequest.size();
+    stream << nRequests;
     for (auto& req : polyRequest) {
         stream << req;
-        
-        eckit::Log::info() << "sent request" << std::endl;
+    }
+    eckit::Log::info() << "Sent " << nRequests << " requests" << std::endl;
 
-        // receive response
+    // receive response
+    for (size_t i = 0; i < nRequests; i++) {
         std::vector<ExtractionResult> response;
         size_t nfields;
         stream >> nfields;
-        eckit::Log::info() << "expecting " << nfields << " fields" << std::endl;
         for (size_t i = 0; i < nfields; i++) {
             ExtractionResult output(stream);
             response.push_back(output);
@@ -67,25 +68,59 @@ std::vector<std::vector<ExtractionResult>> GribJump::extractRemote(std::vector<E
         result.push_back(response);
     }
 
+    eckit::Log::info() << "All data received" << std::endl;
+
     return result;
 }
 
 std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> polyRequest){
+    eckit::Log::info() << "GribJump::extract() [batch] called" << std::endl;
     // XXX TEMP: check for GRIBJUMP_REMOTE, and if so call extractRemote()
     if (getenv("GRIBJUMP_REMOTE") != NULL) {
         return extractRemote(polyRequest);
     }
-    
-    std::vector<std::vector<ExtractionResult>> result;
-    for (auto& exrequest : polyRequest) {
-        result.push_back(extract(exrequest.getRequest(), exrequest.getRanges()));
+
+    // Batch!
+    fdb5::FDB fdb;
+
+    // Inspect requests and extract JumpInfo.
+    std::vector<std::vector<JumpInfo>> infos;
+    std::vector<std::vector<eckit::DataHandle*>> handles;
+    for (auto& req : polyRequest){
+        fdb5::ListIterator it = fdb.inspect(req.getRequest());
+        fdb5::ListElement el;
+        infos.push_back(std::vector<JumpInfo>());
+        handles.push_back(std::vector<eckit::DataHandle*>());
+        while (it.next(el)) {
+
+            fdb5::Key key = el.combinedKey();
+            const fdb5::FieldLocation& loc = el.location();
+            if(isCached(key)){
+                // todo ...
+            }
+            JumpInfo info = extractInfo(loc.dataHandle());
+            infos.back().push_back(info);
+            handles.back().push_back(loc.dataHandle());
+        }
     }
+
+    // <insert logic for grouping requests by file here and multithreading> Skip for now.
+
+    // Extract data from each handle
+    std::vector<std::vector<ExtractionResult>> result;
+    for (size_t i = 0; i < polyRequest.size(); i++) {
+        result.push_back(std::vector<ExtractionResult>());
+        for (size_t j = 0; j < infos[i].size(); j++) {
+            result.back().push_back(directJump(handles[i][j], polyRequest[i].getRanges(), infos[i][j]));
+        }
+    }
+
     return result;
 }
 
 std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::tuple<size_t, size_t>> ranges){
 
-    const GribJump gj;
+    // const GribJump gj;
     std::vector<ExtractionResult>  result;
     fdb5::FDB fdb;
     fdb5::ListIterator it = fdb.inspect(request); 
@@ -94,16 +129,16 @@ std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest 
 
         fdb5::Key key = el.combinedKey();
         const fdb5::FieldLocation& loc = el.location(); // Use the location or uri to check if cached.
-        if(gj.isCached(key)){
+        if(isCached(key)){
             // todo ...
         }
 
-        JumpInfo info = gj.extractInfo(loc.dataHandle());
+        JumpInfo info = extractInfo(loc.dataHandle());
 
         eckit::Log::debug<LibGribJump>() << "GribJump::extract() key: " << key 
             << ", location: " << loc << ", info: " << info << std::endl;
 
-        ExtractionResult v = gj.directJump(loc.dataHandle(), ranges, info);
+        ExtractionResult v = directJump(loc.dataHandle(), ranges, info);
 
         for (auto& val : v.values()) {
             eckit::Log::debug<LibGribJump>() << "GribJump::extract() value: " << val << std::endl;

@@ -31,11 +31,8 @@ private:
     GribJumpServerApp(const GribJumpServerApp&);
     // GribJumpServerApp& operator=(const GribJumpServerApp&); // This is left undefined on marsfs?
     virtual void run() override {
-        eckit::Log::info() << "pre unique" << std::endl;
         unique();
-        eckit::Log::info() << "post unique" << std::endl;
         for (;;) {
-            eckit::Log::status() << "Idle" << std::endl;
             ::sleep(10);
         }
     }

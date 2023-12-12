@@ -23,7 +23,6 @@ class GribJumpService : public eckit::net::NetService {
 
 public:  // methods
     GribJumpService(int port) : NetService(port) {
-        eckit::Log::info() << "GribJumpService::GribJumpService on port " << port << std::endl;
     };
     ~GribJumpService() {}
 
@@ -33,7 +32,6 @@ public:  // methods
 
 private:  // methods
     eckit::net::NetUser* newUser(eckit::net::TCPSocket& protocol) const override {
-        eckit::Log::info() << "GribJumpService::newUser" << std::endl;
         return new GribJumpUser(protocol);
     }
     std::string name() const override { return "gribjumpserver"; }

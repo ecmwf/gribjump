@@ -28,6 +28,7 @@ struct gribjump_extraction_request_t: public ExtractionRequest {
 };
 
 int gribjump_new_handle(gribjump_handle_t** handle) {
+    eckit::Log::info() << "C-API: Creating new gj handle " << handle << std::endl;
     *handle = new gribjump_handle_t();
     return 0;
 }
@@ -41,7 +42,8 @@ int gribjump_delete_handle(gribjump_handle_t* handle) {
 int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr) {
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
-
+    eckit::Log::info() << "C-API: Creating new gj request " << request << std::endl;
+    
     metkit::mars::MarsRequest mreq(metkit::mars::MarsRequest::parse(reqstr));
     std::cout << mreq << std::endl;
 
@@ -117,13 +119,14 @@ int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double**
 
 int gribjump_delete_result(gribjump_extraction_result_t* result) {
     ASSERT(result);
-    eckit::Log::info() << "Deleting result " << result << std::endl;
     delete result;
     return 0;
 }
 
-int extract(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned short* nfields) {
-    std::vector<ExtractionResult> results = handle->extract(request->getRequest(), request->getRanges());
+int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned short* nfields) {
+    eckit::Log::info() << "C-API: Extracting " << request->getRequest() << std::endl;
+    ExtractionRequest req = *request;
+    std::vector<ExtractionResult> results = handle->extract(std::vector<ExtractionRequest>{req})[0]; // XXX Bad, we do this because we are serving requests one at a time. Don't do this.
 
     *nfields = results.size();
     *results_array = new gribjump_extraction_result_t*[*nfields];
@@ -133,6 +136,26 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t* request, g
         eckit::Log::info() << "Created result " << i << results[i] << std::endl;
     }
 
+    return 0;
+}
+int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned short nrequests, gribjump_extraction_result_t**** results_array, unsigned short** nfields) {
+    eckit::Log::info() << "C-API: Extracting " << nrequests << " requests" << std::endl;
+    std::vector<ExtractionRequest> reqs;
+    for (size_t i = 0; i < nrequests; i++) {
+        reqs.push_back(*requests[i]);
+    }
+    std::vector<std::vector<ExtractionResult>> results = handle->extract(reqs);
+
+    *nfields = new unsigned short[nrequests];
+    *results_array = new gribjump_extraction_result_t**[nrequests];
+
+    for (size_t i = 0; i < nrequests; i++) {
+        (*nfields)[i] = results[i].size();
+        (*results_array)[i] = new gribjump_extraction_result_t*[(*nfields)[i]];
+        for (size_t j = 0; j < (*nfields)[i]; j++) {
+            (*results_array)[i][j] = new gribjump_extraction_result_t(results[i][j]);
+        }
+    }
     return 0;
 }
 
