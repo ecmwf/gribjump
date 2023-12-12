@@ -28,6 +28,11 @@ list( APPEND gribjump_srcs
     GribInfo.h 
     GribJump.cc 
     GribJump.h 
+    GribJumpBase.h
+    LocalGribJump.cc
+    LocalGribJump.h
+    GribJumpFactory.cc
+    GribJumpFactory.h
     GribJumpException.h 
     ExtractionData.cc
     ExtractionData.h
@@ -36,6 +41,8 @@ list( APPEND gribjump_srcs
     remote/GribJumpService.h
     remote/GribJumpUser.cc
     remote/GribJumpUser.h
+    remote/RemoteGribJump.cc
+    remote/RemoteGribJump.h
 )
 
 ecbuild_add_library(
