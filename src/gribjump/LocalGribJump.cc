@@ -46,7 +46,7 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
 
             fdb5::Key key = el.combinedKey();
             const fdb5::FieldLocation& loc = el.location();
-            if(isCached(key)){
+            if (isCached(key)){
                 // todo ...
             }
             JumpInfo info = extractInfo(loc.dataHandle());
@@ -74,7 +74,7 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     // const GribJump gj;
     std::vector<ExtractionResult>  result;
     fdb5::FDB fdb;
-    fdb5::ListIterator it = fdb.inspect(request); 
+    fdb5::ListIterator it = fdb.inspect(request);
     fdb5::ListElement el;
     while (it.next(el)) {
 
@@ -86,7 +86,7 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
 
         JumpInfo info = extractInfo(loc.dataHandle());
 
-        eckit::Log::debug<LibGribJump>() << "GribJump::extract() key: " << key 
+        eckit::Log::debug<LibGribJump>() << "GribJump::extract() key: " << key
             << ", location: " << loc << ", info: " << info << std::endl;
 
         ExtractionResult v = directJump(loc.dataHandle(), ranges, info);
@@ -101,8 +101,7 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     return result;
 }
 
-// TODO : We can probably group requests by file, based on fdb.inspect fieldlocations
-// 
+// TODO(Chris) : We can probably group requests by file, based on fdb.inspect fieldlocations
 
 ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
     std::vector<std::tuple<size_t, size_t>> ranges,
@@ -121,7 +120,7 @@ JumpInfo LocalGribJump::extractInfo(eckit::DataHandle* handle) const {
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
 // std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const fdb5::FDBToolRequest& request) {
     // bare bones implementation: jut a wrapper around list.
-    // TODO: implement a proper axes function inside FDB.
+    // TODO(Chris): implement a proper axes function inside FDB.
 
     // Note: This is likely to be removed from GribJump, and moved to FDB.
     // Here for now to support polytope.
@@ -137,7 +136,7 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
 
     ListElement elem;
     while (listIter.next(elem)) {
-        for (const auto& key: elem.key()) {
+        for (const auto& key : elem.key()) {
             for (const auto& param : key) {
                 values[param.first].insert(param.second);
             }

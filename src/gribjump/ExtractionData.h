@@ -25,15 +25,15 @@ class ExtractionResult  {
 public: // methods
     // NB Takes ownership of inputs
     ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
-    ExtractionResult(eckit::Stream& s);
+    explicit ExtractionResult(eckit::Stream& s);
 
     std::vector<std::vector<double>> values() const {return values_;}
     std::vector<std::vector<std::bitset<64>>> mask() const {return mask_;}
- 
+
     size_t nrange() const {return values_.size();}
     size_t nvalues(size_t i) const {return values_[i].size();}
 
-    
+
     // For exposing buffers to C
     // Use carefully, as the vector values_ still own the data.
     void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
@@ -56,7 +56,7 @@ class ExtractionRequest {
 public: // methods
     // NB Takes ownership of inputs
     ExtractionRequest(metkit::mars::MarsRequest, std::vector<Range>);
-    ExtractionRequest(eckit::Stream& s);
+    explicit ExtractionRequest(eckit::Stream& s);
 
     std::vector<Range> getRanges() const {return ranges_;}
     metkit::mars::MarsRequest getRequest() const {return request_;}

@@ -11,6 +11,8 @@
 /// @author Christopher Bradley
 
 #include <queue>
+#include <memory>
+#include <cassert>
 #include <cmath> // isnan. Temp, only for debug, remove later.
 #include "eckit/io/DataHandle.h"
 #include "eckit/utils/MD5.h"
@@ -73,7 +75,7 @@ static inline int count_bits(unsigned long long n) {
     if (POPCOUNT_AVAILABLE) {
         return __builtin_popcountll(n);
     }
-    // TODO: see also _mm_popcnt_u64 in <immintrin.h>, but not suitable for ARM
+    // TODO(Chris): see also _mm_popcnt_u64 in <immintrin.h>, but not suitable for ARM
     // fallback: lookup table
     return bits[n         & 0xffffu]
            +  bits[(n >> 16) & 0xffffu]
@@ -275,7 +277,7 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
     if (bitsPerValue_ == 0) {
         // XXX can constant fields have a bitmap? We explicitly assuming not. TODO handle constant fields with bitmaps
         // ASSERT(!offsetBeforeBitmap_);
-        for (size_t i=0; i<ranges.size(); ++i) {
+        for (size_t i = 0; i < ranges.size(); ++i) {
             size_t size = std::get<1>(ranges[i]) - std::get<0>(ranges[i]);
             result[i].insert(result[i].end(), size, referenceValue_);
         }
@@ -287,9 +289,9 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
     for (auto r : ranges) {
         size_t i0 = std::get<0>(r);
         size_t i1 = std::get<1>(r);
-        bufferSize = std::max(bufferSize, 1 + ((i1 - i0)*bitsPerValue_ + 7 )/8);
+        bufferSize = std::max(bufferSize, 1 + ((i1 - i0) * bitsPerValue_ + 7) / 8);
     }
-    
+
     if (!offsetBeforeBitmap_) {
         // no bitmap, just read the values
         std::unique_ptr<unsigned char[]> buf(new unsigned char[bufferSize]);
@@ -303,14 +305,14 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
             ASSERT(f.seek(offset) == offset);
 
             const long len = 1 + ((end - start)*(bitsPerValue_) + 7) / 8;
-            ASSERT (len <= bufferSize);
+            ASSERT(len <= bufferSize);
 
             ASSERT(f.read(buf.get(), len) == len);
             long bitp = (start * bitsPerValue_) % 8;
 
             for (size_t j = start; j < end; ++j) {
-                // TODO: array version of grib_decode_unsigned_long?
-                unsigned long p = grib_decode_unsigned_long(buf.get(), &bitp, bitsPerValue_); 
+                // TODO(Chris): array version of grib_decode_unsigned_long?
+                unsigned long p = grib_decode_unsigned_long(buf.get(), &bitp, bitsPerValue_);
                 double v = (p*binaryMultiplier_ + referenceValue_) * decimalMultiplier_;
                 result[i].push_back(v);
             }
@@ -358,7 +360,7 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
             bp += nWordsToSkip * nBits;
         }
         ASSERT(f.read(&n, nBytes) == nBytes);
-        // TODO: Endian check?
+        // TODO(Chris): Endian check?
         n = reverse_bytes(n);
         accumulateIndexes(n, count, newIndex, edges, inRange, bp);
     }
@@ -376,6 +378,8 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
         std::vector<std::bitset<64>>& mask = masks[ri];
         size_t maskCount = 0;
 
+        // TODO(maee): Make sure size is greater than 0, otherwise start will be uninitialized
+        assert(size > 0);
         for (size_t i = count; i < count + size; ++i) {
             start = newIndex[i];
             if (start != MISSING_INDEX) break;
@@ -397,7 +401,7 @@ JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size
         // Read data range into buffer
         const Offset offset = msgStartOffset_ + offsetBeforeData_ + start*bitsPerValue_/8;
         const long len = 1 + ((end + 1 - start)*bitsPerValue_ + 7) / 8;
-        ASSERT (len <= bufferSize);
+        ASSERT(len <= bufferSize);
         ASSERT(f.seek(offset) == offset);
         ASSERT(f.read(buf.get(), len) == len);
 

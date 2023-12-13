@@ -596,17 +596,17 @@ CASE( "test_metkit_gribjump_accedges1" ) {
             n = 0xFFFFFFFFFFFFFFFF;
             expected_n = {
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                21, 22, 23 ,24, 25, 26, 27, 28, 29, 30,
+                21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
                 32,
                 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
                 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64
             };
             expected_count = 64;
-        } 
+        }
         else {
             continue;
         }
-        
+
         // std::cout << "bitstring n: " << std::bitset<64>(n) << std::endl;
         size_t count = 0;
         edges.push(0);
@@ -614,10 +614,10 @@ CASE( "test_metkit_gribjump_accedges1" ) {
 
         edges.push(20);
         edges.push(30);
-        
+
         edges.push(31);
         edges.push(32);
-        
+
         edges.push(33);
         edges.push(44);
 
@@ -650,7 +650,7 @@ CASE( "test_metkit_gribjump_accedges1" ) {
             }
         }
 
-        EXPECT (expected_n.size() == n_index.size());
+        EXPECT(expected_n.size() == n_index.size());
         for (size_t i = 0; i < expected_n.size(); i++) {
             EXPECT(n_index[i] == expected_n[i]);
         }
@@ -678,19 +678,19 @@ CASE( "test_metkit_gribjump_accedges2" ) {
 
     // inter-word range
     edges.push(0);
-    edges.push(96); 
+    edges.push(96);
     // intra-word range
     edges.push(100);
     edges.push(120);
     // inter-word range, edge case
-    edges.push(191); 
+    edges.push(191);
     edges.push(193);
     // intra-word range, edge case
     edges.push(255);
     edges.push(256);
 
 
-    bool pushToggle = false; 
+    bool pushToggle = false;
     size_t bp = 0;
     size_t word = 0;
     while (!edges.empty()) {
@@ -707,7 +707,7 @@ CASE( "test_metkit_gribjump_accedges2" ) {
         60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
         79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 101,
         102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
-        117, 118, 119, 120, MASKED, 129, 192, 
+        117, 118, 119, 120, MASKED, 129, 192,
     };
     expected_count = 192;
 
@@ -734,7 +734,7 @@ CASE( "test_metkit_gribjump_accedges2" ) {
         }
     }
 
-    EXPECT (expected_n.size() == n_index.size());
+    EXPECT(expected_n.size() == n_index.size());
     for (size_t i = 0; i < expected_n.size(); i++) {
         EXPECT(n_index[i] == expected_n[i]);
     }

@@ -13,8 +13,8 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/gribjump_config.h
 list( APPEND gribjump_srcs
     ${CMAKE_CURRENT_BINARY_DIR}/gribjump_version.c
 
-    LibGribjump.cc 
-    LibGribjump.h
+    LibGribJump.cc 
+    LibGribJump.h
     gribjump_config.h.in
     gribjump_version.c.in 
     gribjump_version.h.in 

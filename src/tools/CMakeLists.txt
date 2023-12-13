@@ -4,7 +4,7 @@ ecbuild_add_executable( TARGET   gj-server
     LIBS      gribjump
 )
 
-ecbuild_add_executable( TARGET   grib-jump
+ecbuild_add_executable( TARGET   grib-jump2
     SOURCES   grib-jump.cc
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
     LIBS      gribjump

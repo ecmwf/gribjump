@@ -64,12 +64,12 @@ long JumpHandle::read(void* buffer, long len) const {
     return handle_->read(buffer, len);
 }
 
-eckit::Offset JumpHandle::position(){ 
+eckit::Offset JumpHandle::position(){
     open();
     return handle_->position();
 }
 
-eckit::Length JumpHandle::size(){ 
+eckit::Length JumpHandle::size(){
     open();
     return handle_->size();
 }

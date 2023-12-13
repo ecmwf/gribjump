@@ -16,7 +16,7 @@
 namespace gribjump {
 
 ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask): 
-    values_(std::move(values)), 
+    values_(std::move(values)),
     mask_(std::move(mask))
     {}
 
@@ -54,7 +54,6 @@ void ExtractionResult::encode(eckit::Stream& s) const {
         bitsetStrings.push_back(bitsetString);
     }
     s << bitsetStrings;
-    
 }
 
 void ExtractionResult::print(std::ostream& s) const {
@@ -85,8 +84,8 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 // ---------------------------------------------------------------------------------------------
 
-ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges): 
-    request_(std::move(request)), 
+ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges):
+    request_(std::move(request)),
     ranges_(std::move(ranges))
     {}
 

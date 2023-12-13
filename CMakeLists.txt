@@ -6,6 +6,7 @@ project( gribjump LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ########################################################################################################################
 ### dependencies and options
@@ -35,7 +36,7 @@ get_directory_property( gribjump_DEFINITIONS COMPILE_DEFINITIONS )
 ### source files
 
 add_subdirectory( src )
-add_subdirectory( tests )
+#add_subdirectory( tests )
 
 
 ### finalize

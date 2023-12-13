@@ -37,4 +37,4 @@ std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std:
     return internal_->axes(request);
 }
 
-} // namespace GribJump
+} // namespace gribjump

@@ -31,9 +31,9 @@ public:
 private:
     debugApp(const debugApp&);
 
-    virtual void run() override {
+    void run() override {
         eckit::Log::info() << "debug app running" << std::endl;
-        
+
         // connect to server
         eckit::net::TCPClient client;
         eckit::net::InstantTCPStream stream(client.connect("localhost", 9001));

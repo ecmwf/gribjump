@@ -30,7 +30,7 @@ public:
 private:
     GribJumpServerApp(const GribJumpServerApp&);
     // GribJumpServerApp& operator=(const GribJumpServerApp&); // This is left undefined on marsfs?
-    virtual void run() override {
+    void run() override {
         unique();
         for (;;) {
             ::sleep(10);

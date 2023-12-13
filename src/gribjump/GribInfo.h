@@ -31,17 +31,17 @@ class JumpInfo {
 public:
 
     JumpInfo();
-    JumpInfo(const metkit::grib::GribHandle& h);
+    explicit JumpInfo(const metkit::grib::GribHandle& h);
 
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
     double extractValue(const JumpHandle&, size_t index) const;
     ExtractionResult extractRanges(const JumpHandle&, std::vector<std::tuple<size_t, size_t>> ranges) const;
-    
+
     void print(std::ostream&) const;
 
     void toFile(eckit::PathName, bool);
-    void fromFile(eckit::PathName, uint16_t msg_id=0);
+    void fromFile(eckit::PathName, uint16_t msg_id = 0);
 
     unsigned long getNumberOfDataPoints() const { return numberOfDataPoints_; }
     unsigned long length() const { return totalLength_; }

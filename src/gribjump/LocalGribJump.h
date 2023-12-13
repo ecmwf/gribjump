@@ -17,12 +17,12 @@
 
 namespace gribjump {
 class LocalGribJump : public GribJumpBase {
-public: 
+public:
     LocalGribJump();
     ~LocalGribJump();
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
-    
+
     ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
 
     JumpInfo extractInfo(eckit::DataHandle* handle) const;

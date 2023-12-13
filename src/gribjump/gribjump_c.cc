@@ -55,7 +55,7 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
     eckit::Log::info() << "C-API: Creating new gj request " << request << std::endl;
-    
+
     metkit::mars::MarsRequest mreq(metkit::mars::MarsRequest::parse(reqstr));
     std::cout << mreq << std::endl;
 
@@ -73,7 +73,7 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     std::cout << **request << std::endl;
 
     return 0;
-} 
+}
 
 int gribjump_delete_request(gribjump_extraction_request_t* request) {
     ASSERT(request);
@@ -107,15 +107,18 @@ int gribjump_result_values(gribjump_extraction_result_t* result, double*** value
 
 int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks){
     // makes a copy of the mask, converting from bitset to uint64_t
-    // TODO: Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
+    // TODO(Chris): Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
     ASSERT(result);
     std::vector<std::vector<std::bitset<64>>> msk = result->mask();
     *nrange = msk.size();
-    *masks = new uint64_t*[*nrange];
+    static_assert(sizeof(unsigned long long) == sizeof(uint64_t), "unsigned long long and uint64_t are not the same size");
+
+    *masks = reinterpret_cast<unsigned long long**>(new uint64_t*[*nrange]);
     *nmasks = new unsigned long[*nrange];
     for (size_t i = 0; i < *nrange; i++) {
         (*nmasks)[i] = msk[i].size();
-        (*masks)[i] = new uint64_t[(*nmasks)[i]];
+        static_assert(sizeof(unsigned long long) == sizeof(uint64_t), "unsigned long long and uint64_t are not the same size");
+        (*masks)[i] = reinterpret_cast<unsigned long long*>(new uint64_t[(*nmasks)[i]]);
         for (size_t j = 0; j < (*nmasks)[i]; j++) {
             (*masks)[i][j] = msk[i][j].to_ullong();
         }
