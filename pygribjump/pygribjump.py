@@ -196,8 +196,12 @@ class GribJump:
         newaxes = ffi.new('gj_axes_t**')
         reqstr = ffi.new('const char[]', requeststr.encode('ascii'))
         return_axes = lib.gribjump_new_axes(newaxes, reqstr, self.__gribjump)
-        print("were here at some point?")
+        print("return_axes")
         print(return_axes)
+        print("newaxes")
+        print(newaxes)
+        print("reqstr")
+        print(reqstr)
         # TODO want to return a dict like:
         # {key: [value1, value2, ...], ...}
         # each key and value is a string
