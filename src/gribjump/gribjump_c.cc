@@ -14,6 +14,7 @@
 #include "gribjump/GribJump.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/StringTools.h"
+#include "metkit/mars/MarsParser.h"
 
 using namespace gribjump;
 
@@ -54,7 +55,13 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
     
-    metkit::mars::MarsRequest mreq(metkit::mars::MarsRequest::parse(reqstr));
+    // NB: Treat the requests as raw requests.
+    std::istringstream iss(reqstr);
+    metkit::mars::MarsParser parser(iss);
+    std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
+    ASSERT(requests.size() == 1);
+    metkit::mars::MarsRequest mreq(requests[0]);
+
     std::cout << mreq << std::endl;
 
     // Parse the ranges string
