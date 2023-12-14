@@ -202,8 +202,6 @@ class GribJump:
         print(newaxes)
         print("reqstr")
         print(reqstr)
-        axes = ffi.gc(return_axes)
-        print(axes)
         # TODO want to return a dict like:
         # {key: [value1, value2, ...], ...}
         # each key and value is a string
