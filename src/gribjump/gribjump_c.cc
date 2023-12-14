@@ -111,11 +111,11 @@ int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long lon
     ASSERT(result);
     std::vector<std::vector<std::bitset<64>>> msk = result->mask();
     *nrange = msk.size();
-    *masks = new uint64_t*[*nrange];
+    *masks = new unsigned long long*[*nrange];
     *nmasks = new unsigned long[*nrange];
     for (size_t i = 0; i < *nrange; i++) {
         (*nmasks)[i] = msk[i].size();
-        (*masks)[i] = new uint64_t[(*nmasks)[i]];
+        (*masks)[i] = new unsigned long long[(*nmasks)[i]];
         for (size_t j = 0; j < (*nmasks)[i]; j++) {
             (*masks)[i][j] = msk[i][j].to_ullong();
         }
