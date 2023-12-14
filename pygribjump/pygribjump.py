@@ -112,7 +112,7 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(reqstr, ranges) for reqstr, ranges in polyrequest]
+        requests = [ExtractionRequest(req, ranges) for req, ranges in polyrequest]
 
         # results_array contains values, for each field, for each request.
         results_array = ffi.new('gribjump_extraction_result_t****')
@@ -191,15 +191,26 @@ class GribJump:
         ]
         return res
 
-    def axes(self, requeststr):
+    def axes(self, req):
         # note old axes used a dict in. This is now a string.
+        requeststr = dic_to_request(req)
         newaxes = ffi.new('gj_axes_t**')
         reqstr = ffi.new('const char[]', requeststr.encode('ascii'))
         lib.gribjump_new_axes(newaxes, reqstr, self.__gribjump)
         # TODO want to return a dict like:
         # {key: [value1, value2, ...], ...}
         # each key and value is a string
-        return
+        keys = ffi.new('const char***')
+        size = ffi.new('unsigned long*')
+        lib.gribjump_axes_keys(newaxes[0], keys, size)
+        keys = [ffi.string(keys[0][i]).decode('ascii') for i in range(size[0])]
+        values = []
+        for key in keys:
+            values_out = ffi.new('const char***')
+            size = ffi.new('unsigned long*')
+            lib.gribjump_axes_values(newaxes[0], key.encode('ascii'), values_out, size)
+            values.append([ffi.string(values_out[0][i]).decode('ascii') for i in range(size[0])])
+        return dict(zip(keys, values))
 
     @property
     def ctype(self):
@@ -216,7 +227,8 @@ class ExtractionRequest:
     ranges : [(lo, hi), (lo, hi), ...]
         The ranges to extract.
     """
-    def __init__(self, reqstr, ranges):
+    def __init__(self, req, ranges):
+        reqstr = "retrieve,"+dic_to_request(req)
         rangestr = list_to_rangestr(ranges)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
@@ -312,3 +324,7 @@ def list_to_rangestr(ranges):
     Convert a list of ranges to a range string.
     """
     return ','.join(['-'.join(map(str, r)) for r in ranges])
+
+def dic_to_request(dic):
+    # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
+    return ','.join(['='.join([k, v]) for k, v in dic.items()])

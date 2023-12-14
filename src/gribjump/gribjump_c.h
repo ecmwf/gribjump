@@ -45,6 +45,8 @@ int gribjump_result_mask(gribjump_extraction_result_t* result,  unsigned long lo
 int gribjump_delete_result(gribjump_extraction_result_t* result);
 
 int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* gj);
+int gribjump_axes_keys(gj_axes_t* axes, const char*** keys_out, unsigned long* size);
+int gribjump_axes_values(gj_axes_t* axes, const char* key, const char*** values_out, unsigned long* size);
 int gribjump_delete_axes(gj_axes_t* axes);
 
 
