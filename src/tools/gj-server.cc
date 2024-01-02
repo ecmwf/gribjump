@@ -8,9 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-
-#pragma once
-
 #include "gribjump/remote/GribJumpServer.h"
 #include "eckit/runtime/Application.h"
 
@@ -49,3 +46,4 @@ int main(int argc, char** argv) {
     app.start();
     return 0;
 }
+

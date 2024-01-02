@@ -13,6 +13,7 @@
 #pragma once
 
 #include <unordered_set>
+#include <memory>
 
 #include "eckit/io/DataHandle.h"
 #include "gribjump/ExtractionData.h"
@@ -42,3 +43,4 @@ private:
   
 };
 } // namespace GribJump
+

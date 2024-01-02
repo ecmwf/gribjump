@@ -12,6 +12,7 @@
 
 #include <queue>
 #include <cmath> // isnan. Temp, only for debug, remove later.
+#include <memory>
 #include "eckit/io/DataHandle.h"
 #include "eckit/utils/MD5.h"
 #include "metkit/codes/GribAccessor.h"
@@ -479,3 +480,4 @@ double JumpInfo::readDataValue(const JumpHandle& f, size_t index) const {
 }
 
 } // namespace gribjump
+
