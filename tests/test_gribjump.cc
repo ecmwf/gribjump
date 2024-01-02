@@ -404,7 +404,7 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     EXPECT(gribInfo.ready());
     size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
     double epsilon = testData[i].epsilon;
-    
+
     // Query each single data point, and compare with expected value
     std::cout << "Testing " << testData[i].gribFileName << std::endl;
     EXPECT(numberOfDataPoints == testData[i].expectedData.size());

@@ -57,7 +57,11 @@ private:
     long          decimalScaleFactor_;
     unsigned long editionNumber_;
     unsigned long bitsPerValue_;
+    unsigned long ccsdsFlags_;
+    unsigned long ccsdsBlockSize_;
+    unsigned long ccsdsRsi_;
     unsigned long offsetBeforeData_;
+    unsigned long offsetAfterData_;
     unsigned long bitmapPresent_;
     unsigned long offsetBeforeBitmap_;
     unsigned long numberOfValues_;
@@ -78,6 +82,7 @@ private:
                                            sizeof(decimalScaleFactor_) + \
                                            sizeof(bitsPerValue_) + \
                                            sizeof(offsetBeforeData_) + \
+                                           sizeof(offsetAfterData_) + \
                                            sizeof(offsetBeforeBitmap_) + \
                                            sizeof(numberOfValues_) + \
                                            sizeof(numberOfDataPoints_) + \

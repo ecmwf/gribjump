@@ -34,6 +34,7 @@ list( APPEND gribjump_srcs
     GribJumpFactory.cc
     GribJumpFactory.h
     GribJumpException.h 
+    GribJumpDataAccessor.h
     ExtractionData.cc
     ExtractionData.h
 
@@ -66,5 +67,7 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
-
+        compressor_api
+        aec_compressor
+        ccsds_compressor
 )

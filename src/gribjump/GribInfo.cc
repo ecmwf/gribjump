@@ -21,6 +21,11 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"
 
+#include <compressor/compressor.h>
+//#include <compressor/simple_compressor.h>
+#include <compressor/ccsds_compressor.h>
+
+
 using namespace eckit;
 using namespace metkit::grib;
 
@@ -36,8 +41,12 @@ static GribAccessor<long>          bitmapPresent("bitmapPresent");
 static GribAccessor<long>          binaryScaleFactor("binaryScaleFactor");
 static GribAccessor<long>          decimalScaleFactor("decimalScaleFactor");
 static GribAccessor<unsigned long> bitsPerValue("bitsPerValue");
+static GribAccessor<unsigned long> ccsdsFlags("ccsdsFlags");
+static GribAccessor<unsigned long> ccsdsBlockSize("ccsdsBlockSize");
+static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi");
 static GribAccessor<double>        referenceValue("referenceValue");
 static GribAccessor<unsigned long> offsetBeforeData("offsetBeforeData");
+static GribAccessor<unsigned long> offsetAfterData("offsetAfterData");
 static GribAccessor<unsigned long> offsetBeforeBitmap("offsetBeforeBitmap");
 static GribAccessor<unsigned long> numberOfValues("numberOfValues");
 static GribAccessor<unsigned long> numberOfDataPoints("numberOfDataPoints");
@@ -111,8 +120,12 @@ void JumpInfo::update(const GribHandle& h) {
     binaryScaleFactor_  = binaryScaleFactor(h);
     decimalScaleFactor_ = decimalScaleFactor(h);
     bitsPerValue_       = bitsPerValue(h);
+    ccsdsFlags_         = ccsdsFlags(h);
+    ccsdsBlockSize_     = ccsdsBlockSize(h);
+    ccsdsRsi_           = ccsdsRsi(h);
     referenceValue_     = referenceValue(h);
     offsetBeforeData_   = offsetBeforeData(h);
+    offsetAfterData_    = offsetAfterData(h);
     numberOfDataPoints_ = numberOfDataPoints(h);
     numberOfValues_     = numberOfValues(h);
     sphericalHarmonics_ = sphericalHarmonics(h); // todo: make quiet
@@ -136,8 +149,12 @@ void JumpInfo::print(std::ostream& s) const {
     s << "binaryScaleFactor=" << binaryScaleFactor_ << ",";
     s << "decimalScaleFactor=" << decimalScaleFactor_ << ",";
     s << "bitsPerValue=" << bitsPerValue_ << ",";
+    s << "ccsdsFlags=" << ccsdsFlags_ << ",";
+    s << "ccsdsBlockSize=" << ccsdsBlockSize_ << ",";
+    s << "ccsdsRsi=" << ccsdsRsi_ << ",";
     s << "referenceValue=" << referenceValue_ << ",";
     s << "offsetBeforeData=" << offsetBeforeData_ << ",";
+    s << "offsetAfterData=" << offsetAfterData_ << ",";
     s << "numberOfDataPoints=" << numberOfDataPoints_ << ",";
     s << "numberOfValues=" << numberOfValues_ << ",";
     s << "offsetBeforeBitmap=" << offsetBeforeBitmap_ << ",";
@@ -163,8 +180,12 @@ void JumpInfo::toFile(eckit::PathName pathname, bool append){
     dh->write(&binaryScaleFactor_, sizeof(binaryScaleFactor_));
     dh->write(&decimalScaleFactor_, sizeof(decimalScaleFactor_));
     dh->write(&bitsPerValue_, sizeof(bitsPerValue_));
+    dh->write(&ccsdsFlags_, sizeof(ccsdsFlags_));
+    dh->write(&ccsdsBlockSize_, sizeof(ccsdsBlockSize_));
+    dh->write(&ccsdsRsi_, sizeof(ccsdsRsi_));
     dh->write(&referenceValue_, sizeof(referenceValue_));
     dh->write(&offsetBeforeData_, sizeof(offsetBeforeData_));
+    dh->write(&offsetAfterData_, sizeof(offsetAfterData_));
     dh->write(&numberOfDataPoints_, sizeof(numberOfDataPoints_));
     dh->write(&numberOfValues_, sizeof(numberOfValues_));
     dh->write(&offsetBeforeBitmap_, sizeof(offsetBeforeBitmap_));
@@ -195,8 +216,12 @@ void JumpInfo::fromFile(eckit::PathName pathname, uint16_t msg_id){
     dh->read(&binaryScaleFactor_, sizeof(binaryScaleFactor_));
     dh->read(&decimalScaleFactor_, sizeof(decimalScaleFactor_));
     dh->read(&bitsPerValue_, sizeof(bitsPerValue_));
+    dh->read(&ccsdsFlags_, sizeof(ccsdsFlags_));
+    dh->read(&ccsdsBlockSize_, sizeof(ccsdsBlockSize_));
+    dh->read(&ccsdsRsi_, sizeof(ccsdsRsi_));
     dh->read(&referenceValue_, sizeof(referenceValue_));
     dh->read(&offsetBeforeData_, sizeof(offsetBeforeData_));
+    dh->read(&offsetAfterData_, sizeof(offsetAfterData_));
     dh->read(&numberOfDataPoints_, sizeof(numberOfDataPoints_));
     dh->read(&numberOfValues_, sizeof(numberOfValues_));
     dh->read(&offsetBeforeBitmap_, sizeof(offsetBeforeBitmap_));
@@ -235,196 +260,277 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
 }
 
 ExtractionResult
-JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size_t>> ranges) const {
-    // NOTE: Ranges are treated as half-open intervals [start, end)
-    
+JumpInfo::extractRanges(const JumpHandle& f, std::vector<std::tuple<size_t, size_t>> intervals) const {
+
     ASSERT(!sphericalHarmonics_);
-    
-    // Sanity check ranges: Assert ranges are sorted and non-overlapping
-    size_t nValues = 0;
-    for (size_t i = 0; i < ranges.size(); ++i) {
-        const size_t start = std::get<0>(ranges[i]);
-        const size_t end = std::get<1>(ranges[i]);
-        ASSERT(start < end);
-        ASSERT(end <= numberOfDataPoints_);
-
-        // Assert no overlap with next range
-        if (i < ranges.size()-1) {
-            const size_t nextstart = std::get<0>(ranges[i+1]);
-            ASSERT(end <= nextstart);
-        }
-        nValues += end - start;
-    }
-
-    // construct vectors for result values and mask.
-    std::vector<std::vector<double>> result;
     std::vector<std::vector<std::bitset<64>>> masks;
-    constexpr size_t nBytes = sizeof(uint64_t);
-    constexpr size_t nBits = nBytes * 8;
-    for (auto r : ranges) {
-        const size_t size = std::get<1>(r) - std::get<0>(r);
-        result.push_back(std::vector<double>());
-        result.back().reserve(size);
 
-        std::vector<std::bitset<64>> mask;
-        mask.reserve(size/nBits + 1);
-        for (size_t i = 0; i < size/nBits + 1; ++i) {
-            mask.push_back(std::bitset<64>(0xffffffffffffffff));
-        }
-        masks.push_back(mask);
+    std::cerr << "flags = " << ccsdsFlags_ << std::endl;
+    std::cerr << "block size = " << ccsdsBlockSize_ << std::endl;
+    std::cerr << "rsi = " << ccsdsRsi_ << std::endl;
+    std::cerr << "binary scale factor = " << binaryScaleFactor_ << std::endl;
+    std::cerr << "decimal scale factor = " << decimalScaleFactor_ << std::endl;
+    std::cerr << "bits per value = " << bitsPerValue_ << std::endl;
+    std::cerr << "reference value = " << referenceValue_ << std::endl;
+    std::cerr << "offset before data = " << offsetBeforeData_ << std::endl;
+    std::cerr << "offset after data = " << offsetAfterData_ << std::endl;
+    std::cerr << "number of data points = " << numberOfDataPoints_ << std::endl;
+    std::cerr << "number of values = " << numberOfValues_ << std::endl;
+
+
+    std::vector<mc::Range> ranges;
+    std::transform(intervals.begin(), intervals.end(), std::back_inserter(ranges), [](auto interval){
+        auto [begin, end] = interval;
+        begin *= 8;
+        end *= 8;
+        //std::cout << "begin = " << begin << std::endl;
+        //std::cout << "end = " << end << std::endl;
+        return mc::Range{begin, end - begin + 1};
+    });
+
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, Range{offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
+    std::cout << "EOF = " << data_accessor->eof() << std::endl;
+    size_t eof = data_accessor->eof();
+    mc::CcsdsCompressor<double>::CompressedData encoded = data_accessor->read({0, eof});
+
+    assert(encoded.size() != 0);
+    if (encoded.size() == 0) {
+        std::cout << "encoded.size() == 0" << std::endl;
+        throw std::runtime_error("encoded.size() == 0");
+    }
+    else {
+        std::cout << "encoded.size() = " << encoded.size() << std::endl;
     }
 
-    if (bitsPerValue_ == 0) {
-        // XXX can constant fields have a bitmap? We explicitly assuming not. TODO handle constant fields with bitmaps
-        // ASSERT(!offsetBeforeBitmap_);
-        for (size_t i = 0; i < ranges.size(); ++i) {
-            size_t size = std::get<1>(ranges[i]) - std::get<0>(ranges[i]);
-            result[i].insert(result[i].end(), size, referenceValue_);
+    std::cout << "Decompressing " << numberOfValues_ << " values from " << offsetBeforeData_ << " to " << offsetAfterData_ << std::endl;
+    mc::CcsdsDecompressor<double> ccsds{};
+    ccsds
+        .flags(ccsdsFlags_)
+        .bits_per_sample(bitsPerValue_)
+        .block_size(ccsdsBlockSize_)
+        .rsi(ccsdsRsi_)
+        .reference_value(referenceValue_)
+        .binary_scale_factor(binaryScaleFactor_)
+        .decimal_scale_factor(decimalScaleFactor_);
+
+
+
+    ccsds.decode(encoded);
+
+    auto offsets = ccsds.offsets();
+    if (offsets) {
+        std::cout << "offsets = " << offsets->size() << std::endl;
+        for (size_t i = 0; i < offsets->size(); i++) {
+            std::cout << "offsets[" << i << "] = " << (*offsets)[i] << std::endl;
         }
-        return ExtractionResult(result, masks);
+        ccsds.offsets(offsets.value());
+    }
+    else {
+        std::cout << "offsets = None" << std::endl;
+        throw std::runtime_error("offsets is None");
     }
 
-    // set bufferSize equal to minimum bytes that will hold the largest range.
-    size_t bufferSize = 0;
-    for (auto r : ranges) {
-        size_t i0 = std::get<0>(r);
-        size_t i1 = std::get<1>(r);
-        bufferSize = std::max(bufferSize, 1 + ((i1 - i0) * bitsPerValue_ + 7) / 8);
-    }
-
-    if (!offsetBeforeBitmap_) {
-        // no bitmap, just read the values
-        std::unique_ptr<unsigned char[]> buf(new unsigned char[bufferSize]);
-
-        for (size_t i = 0; i < ranges.size(); ++i) {
-            const auto r = ranges[i];
-            const size_t start = std::get<0>(r);
-            const size_t end = std::get<1>(r);
-
-            const Offset offset = msgStartOffset_ + offsetBeforeData_  + start * bitsPerValue_ / 8;
-            ASSERT(f.seek(offset) == offset);
-
-            const long len = 1 + ((end - start)*(bitsPerValue_) + 7) / 8;
-            ASSERT(len <= bufferSize);
-
-            ASSERT(f.read(buf.get(), len) == len);
-            long bitp = (start * bitsPerValue_) % 8;
-
-            for (size_t j = start; j < end; ++j) {
-                // TODO(Chris): array version of grib_decode_unsigned_long?
-                unsigned long p = grib_decode_unsigned_long(buf.get(), &bitp, bitsPerValue_);
-                double v = (p*binaryMultiplier_ + referenceValue_) * decimalMultiplier_;
-                result[i].push_back(v);
-            }
-        }
-        return ExtractionResult(result, masks);
-    }
-    // Flatten ranges into a list of edges.
-    // e.g. range(1, 5), range(7, 10) range(10, 20), range(20, 30) -> edges(1, 5, 7, 30)
-    std::queue<size_t> edges;
-    edges.push(std::get<0>(ranges[0]));
-    size_t prevEnd = std::get<1>(ranges[0]);
-    for (size_t i = 1; i < ranges.size(); ++i) {
-        size_t start = std::get<0>(ranges[i]);
-        if (start != prevEnd) {
-            edges.push(prevEnd);
-            edges.push(start);
-        }
-        prevEnd = std::get<1>(ranges[i]);
-    }
-    edges.push(prevEnd);
-
-    size_t maxSep = std::get<0>(ranges[0]);
-    for (size_t i = 0; i < ranges.size()-1; ++i) {
-        maxSep = std::max(maxSep, (std::get<0>(ranges[i+1]) - std::get<1>(ranges[i])));
-    }
-    std::unique_ptr<uint64_t[]> bufskip(new uint64_t[maxSep/nBits + 1]);
-
-    // Read bitmap and find new indexes
-    uint64_t n;
-    std::vector<size_t> newIndex;
-    newIndex.reserve(nValues);
-    size_t bp = 0;
-    size_t count = 0;
-    bool inRange = false;
-    const Offset offset = msgStartOffset_ + offsetBeforeBitmap_;
-    ASSERT(f.seek(offset) == offset);
-    while (!edges.empty()) {
-        if (!inRange){
-            const size_t nWordsToSkip = (edges.front() - bp)/nBits;
-            const size_t nBytesToSkip = nWordsToSkip * nBytes;
-            ASSERT(f.read(bufskip.get(), nBytesToSkip) == nBytesToSkip);
-            for (size_t i = 0; i < nWordsToSkip; ++i) {
-                count += count_bits(bufskip[i]);
-            }
-            bp += nWordsToSkip * nBits;
-        }
-        ASSERT(f.read(&n, nBytes) == nBytes);
-        // TODO(Chris): Endian check?
-        n = reverse_bytes(n);
-        accumulateIndexes(n, count, newIndex, edges, inRange, bp);
-    }
-
-    // read the values
-    std::unique_ptr<unsigned char[]> buf(new unsigned char[bufferSize]);
-    count = 0;
-    for (size_t ri = 0; ri < ranges.size(); ++ri) {
-        // find index of first and final non-missing values in this range
-        const auto r = ranges[ri];
-        std::vector<double>& values = result[ri];
-        const size_t size = std::get<1>(r) - std::get<0>(r);
-        size_t start;
-        size_t end;
-        std::vector<std::bitset<64>>& mask = masks[ri];
-        size_t maskCount = 0;
-
-        // TODO(maee): Make sure size is greater than 0, otherwise start will be uninitialized
-        assert(size > 0);
-        for (size_t i = count; i < count + size; ++i) {
-            start = newIndex[i];
-            if (start != MISSING_INDEX) break;
-        }
-        if (start == MISSING_INDEX){
-            // all values in this range are missing
-            values.insert(values.end(), size, MISSING_VALUE);
-            for (size_t i = 0; i < size/nBits + 1; ++i) {
-                mask[i].reset();
-            }
-            count += size;
-            continue;
-        }
-        for (size_t i = count + size - 1; i >= count; --i) {
-            end = newIndex[i];
-            if (end != MISSING_INDEX) break;
-        }
-
-        // Read data range into buffer
-        const Offset offset = msgStartOffset_ + offsetBeforeData_ + start*bitsPerValue_/8;
-        const long len = 1 + ((end + 1 - start)*bitsPerValue_ + 7) / 8;
-        ASSERT(len <= bufferSize);
-        ASSERT(f.seek(offset) == offset);
-        ASSERT(f.read(buf.get(), len) == len);
-
-        // Decode values
-        long bitp = (start * bitsPerValue_) % 8;
-        for (size_t i = count; i < count + size; ++i) {
-            const size_t index = newIndex[i];
-            if (index == MISSING_INDEX){
-                values.push_back(MISSING_VALUE);
-                mask[maskCount/nBits].set(maskCount%nBits, 0);
-                ++maskCount;
-                continue;
-            }
-            // TODO: array version of grib_decode_unsigned_long?
-            const unsigned long p = grib_decode_unsigned_long(buf.get(), &bitp, bitsPerValue_); 
-            const double v = (p*binaryMultiplier_ + referenceValue_) * decimalMultiplier_;
-            values.push_back(v);
-            ++maskCount;
-        }
-        count += size;
+    std::vector<std::vector<double>> result;
+    mc::NumericDecompressor<double> *nd = &ccsds;
+    std::vector<mc::CcsdsDecompressor<double>::Values> doubles_list = ccsds.decode(data_accessor, ranges);
+    for (auto &doubles : doubles_list) {
+        std::vector<double> values((double*) doubles.data(), (double*) doubles.data() + doubles.size() / 8);
+        result.push_back(values);
     }
 
     return ExtractionResult(result, masks);
+
+
+
+//    // NOTE: Ranges are treated as half-open intervals [start, end)
+    
+//    ASSERT(!sphericalHarmonics_);
+    
+//    // Sanity check intervals: Assert intervals are sorted and non-overlapping
+//    size_t nValues = 0;
+//    for (size_t i = 0; i < intervals.size(); ++i) {
+//        const size_t start = std::get<0>(intervals[i]);
+//        const size_t end = std::get<1>(intervals[i]);
+//        ASSERT(start < end);
+//        ASSERT(end <= numberOfDataPoints_);
+
+//        // Assert no overlap with next interval
+//        if (i < intervals.size()-1) {
+//            const size_t nextstart = std::get<0>(intervals[i+1]);
+//            ASSERT(end <= nextstart);
+//        }
+//        nValues += end - start;
+//    }
+
+//    // construct vectors for result values and mask.
+//    std::vector<std::vector<double>> result;
+//    std::vector<std::vector<std::bitset<64>>> masks;
+//    constexpr size_t nBytes = sizeof(uint64_t);
+//    constexpr size_t nBits = nBytes * 8;
+//    for (auto r : intervals) {
+//        const size_t size = std::get<1>(r) - std::get<0>(r);
+//        result.push_back(std::vector<double>());
+//        result.back().reserve(size);
+
+//        std::vector<std::bitset<64>> mask;
+//        mask.reserve(size/nBits + 1);
+//        for (size_t i = 0; i < size/nBits + 1; ++i) {
+//            mask.push_back(std::bitset<64>(0xffffffffffffffff));
+//        }
+//        masks.push_back(mask);
+//    }
+
+//    if (bitsPerValue_ == 0) {
+//        // XXX can constant fields have a bitmap? We explicitly assuming not. TODO handle constant fields with bitmaps
+//        // ASSERT(!offsetBeforeBitmap_);
+//        for (size_t i = 0; i < intervals.size(); ++i) {
+//            size_t size = std::get<1>(intervals[i]) - std::get<0>(intervals[i]);
+//            result[i].insert(result[i].end(), size, referenceValue_);
+//        }
+//        return ExtractionResult(result, masks);
+//    }
+
+//    // set bufferSize equal to minimum bytes that will hold the largest interval.
+//    size_t bufferSize = 0;
+//    for (auto r : intervals) {
+//        size_t i0 = std::get<0>(r);
+//        size_t i1 = std::get<1>(r);
+//        bufferSize = std::max(bufferSize, 1 + ((i1 - i0) * bitsPerValue_ + 7) / 8);
+//    }
+
+//    if (!offsetBeforeBitmap_) {
+//        // no bitmap, just read the values
+//        std::unique_ptr<unsigned char[]> buf(new unsigned char[bufferSize]);
+
+//        for (size_t i = 0; i < intervals.size(); ++i) {
+//            const auto r = intervals[i];
+//            const size_t start = std::get<0>(r);
+//            const size_t end = std::get<1>(r);
+
+//            const Offset offset = msgStartOffset_ + offsetBeforeData_  + start * bitsPerValue_ / 8;
+//            ASSERT(f.seek(offset) == offset);
+
+//            const long len = 1 + ((end - start)*(bitsPerValue_) + 7) / 8;
+//            ASSERT(len <= bufferSize);
+
+//            ASSERT(f.read(buf.get(), len) == len);
+//            long bitp = (start * bitsPerValue_) % 8;
+
+//            for (size_t j = start; j < end; ++j) {
+//                // TODO(Chris): array version of grib_decode_unsigned_long?
+//                unsigned long p = grib_decode_unsigned_long(buf.get(), &bitp, bitsPerValue_);
+//                double v = (p*binaryMultiplier_ + referenceValue_) * decimalMultiplier_;
+//                result[i].push_back(v);
+//            }
+//        }
+//        return ExtractionResult(result, masks);
+//    }
+//    // Flatten intervals into a list of edges.
+//    // e.g. interval(1, 5), interval(7, 10) interval(10, 20), interval(20, 30) -> edges(1, 5, 7, 30)
+//    std::queue<size_t> edges;
+//    edges.push(std::get<0>(intervals[0]));
+//    size_t prevEnd = std::get<1>(intervals[0]);
+//    for (size_t i = 1; i < intervals.size(); ++i) {
+//        size_t start = std::get<0>(intervals[i]);
+//        if (start != prevEnd) {
+//            edges.push(prevEnd);
+//            edges.push(start);
+//        }
+//        prevEnd = std::get<1>(intervals[i]);
+//    }
+//    edges.push(prevEnd);
+
+//    size_t maxSep = std::get<0>(intervals[0]);
+//    for (size_t i = 0; i < intervals.size()-1; ++i) {
+//        maxSep = std::max(maxSep, (std::get<0>(intervals[i+1]) - std::get<1>(intervals[i])));
+//    }
+//    std::unique_ptr<uint64_t[]> bufskip(new uint64_t[maxSep/nBits + 1]);
+
+//    // Read bitmap and find new indexes
+//    uint64_t n;
+//    std::vector<size_t> newIndex;
+//    newIndex.reserve(nValues);
+//    size_t bp = 0;
+//    size_t count = 0;
+//    bool inRange = false;
+//    const Offset offset = msgStartOffset_ + offsetBeforeBitmap_;
+//    ASSERT(f.seek(offset) == offset);
+//    while (!edges.empty()) {
+//        if (!inRange){
+//            const size_t nWordsToSkip = (edges.front() - bp)/nBits;
+//            const size_t nBytesToSkip = nWordsToSkip * nBytes;
+//            ASSERT(f.read(bufskip.get(), nBytesToSkip) == nBytesToSkip);
+//            for (size_t i = 0; i < nWordsToSkip; ++i) {
+//                count += count_bits(bufskip[i]);
+//            }
+//            bp += nWordsToSkip * nBits;
+//        }
+//        ASSERT(f.read(&n, nBytes) == nBytes);
+//        // TODO(Chris): Endian check?
+//        n = reverse_bytes(n);
+//        accumulateIndexes(n, count, newIndex, edges, inRange, bp);
+//    }
+
+//    // read the values
+//    std::unique_ptr<unsigned char[]> buf(new unsigned char[bufferSize]);
+//    count = 0;
+//    for (size_t ri = 0; ri < intervals.size(); ++ri) {
+//        // find index of first and final non-missing values in this interval
+//        const auto r = intervals[ri];
+//        std::vector<double>& values = result[ri];
+//        const size_t size = std::get<1>(r) - std::get<0>(r);
+//        size_t start;
+//        size_t end;
+//        std::vector<std::bitset<64>>& mask = masks[ri];
+//        size_t maskCount = 0;
+
+//        // TODO(maee): Make sure size is greater than 0, otherwise start will be uninitialized
+//        assert(size > 0);
+//        for (size_t i = count; i < count + size; ++i) {
+//            start = newIndex[i];
+//            if (start != MISSING_INDEX) break;
+//        }
+//        if (start == MISSING_INDEX){
+//            // all values in this interval are missing
+//            values.insert(values.end(), size, MISSING_VALUE);
+//            for (size_t i = 0; i < size/nBits + 1; ++i) {
+//                mask[i].reset();
+//            }
+//            count += size;
+//            continue;
+//        }
+//        for (size_t i = count + size - 1; i >= count; --i) {
+//            end = newIndex[i];
+//            if (end != MISSING_INDEX) break;
+//        }
+
+//        // Read data interval into buffer
+//        const Offset offset = msgStartOffset_ + offsetBeforeData_ + start*bitsPerValue_/8;
+//        const long len = 1 + ((end + 1 - start)*bitsPerValue_ + 7) / 8;
+//        ASSERT(len <= bufferSize);
+//        ASSERT(f.seek(offset) == offset);
+//        ASSERT(f.read(buf.get(), len) == len);
+
+//        // Decode values
+//        long bitp = (start * bitsPerValue_) % 8;
+//        for (size_t i = count; i < count + size; ++i) {
+//            const size_t index = newIndex[i];
+//            if (index == MISSING_INDEX){
+//                values.push_back(MISSING_VALUE);
+//                mask[maskCount/nBits].set(maskCount%nBits, 0);
+//                ++maskCount;
+//                continue;
+//            }
+//            // TODO: array version of grib_decode_unsigned_long?
+//            const unsigned long p = grib_decode_unsigned_long(buf.get(), &bitp, bitsPerValue_); 
+//            const double v = (p*binaryMultiplier_ + referenceValue_) * decimalMultiplier_;
+//            values.push_back(v);
+//            ++maskCount;
+//        }
+//        count += size;
+//    }
+
+//    return ExtractionResult(result, masks);
 }
 
 double JumpInfo::extractValue(const JumpHandle& f, size_t index) const {
@@ -468,7 +574,7 @@ double JumpInfo::extractValue(const JumpHandle& f, size_t index) const {
 
 double JumpInfo::readDataValue(const JumpHandle& f, size_t index) const {
     // Read the data value at index.
-    
+
     // Seek to start of byte containing value and read.
     Offset offset = msgStartOffset_ + offsetBeforeData_  + index*bitsPerValue_/8;
     long len = 1 + (bitsPerValue_ + 7) / 8;
