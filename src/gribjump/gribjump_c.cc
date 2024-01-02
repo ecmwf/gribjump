@@ -14,6 +14,7 @@
 #include "gribjump/GribJump.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/StringTools.h"
+#include "metkit/mars/MarsParser.h"
 
 using namespace gribjump;
 
@@ -40,7 +41,6 @@ struct gribjump_extraction_request_t: public ExtractionRequest {
 };
 
 int gribjump_new_handle(gribjump_handle_t** handle) {
-    eckit::Log::info() << "C-API: Creating new gj handle " << handle << std::endl;
     *handle = new gribjump_handle_t();
     return 0;
 }
@@ -54,9 +54,14 @@ int gribjump_delete_handle(gribjump_handle_t* handle) {
 int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr) {
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
-    eckit::Log::info() << "C-API: Creating new gj request " << request << std::endl;
+    
+    // NB: Treat the requests as raw requests.
+    std::istringstream iss(reqstr);
+    metkit::mars::MarsParser parser(iss);
+    std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
+    ASSERT(requests.size() == 1);
+    metkit::mars::MarsRequest mreq(requests[0]);
 
-    metkit::mars::MarsRequest mreq(metkit::mars::MarsRequest::parse(reqstr));
     std::cout << mreq << std::endl;
 
     // Parse the ranges string
@@ -84,7 +89,6 @@ int gribjump_delete_request(gribjump_extraction_request_t* request) {
 int gribjump_new_result(gribjump_extraction_result_t** result) { // not sure if this is needed
     // set to null
     *result = nullptr;
-    eckit::Log::info() << "Creating result " << result << std::endl;
     return 0;
 }
 
@@ -111,14 +115,11 @@ int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long lon
     ASSERT(result);
     std::vector<std::vector<std::bitset<64>>> msk = result->mask();
     *nrange = msk.size();
-    static_assert(sizeof(unsigned long long) == sizeof(uint64_t), "unsigned long long and uint64_t are not the same size");
-
-    *masks = reinterpret_cast<unsigned long long**>(new uint64_t*[*nrange]);
+    *masks = new unsigned long long*[*nrange];
     *nmasks = new unsigned long[*nrange];
     for (size_t i = 0; i < *nrange; i++) {
         (*nmasks)[i] = msk[i].size();
-        static_assert(sizeof(unsigned long long) == sizeof(uint64_t), "unsigned long long and uint64_t are not the same size");
-        (*masks)[i] = reinterpret_cast<unsigned long long*>(new uint64_t[(*nmasks)[i]]);
+        (*masks)[i] = new unsigned long long[(*nmasks)[i]];
         for (size_t j = 0; j < (*nmasks)[i]; j++) {
             (*masks)[i][j] = msk[i][j].to_ullong();
         }
@@ -139,7 +140,6 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
 }
 
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned short* nfields) {
-    eckit::Log::info() << "C-API: Extracting " << request->getRequest() << std::endl;
     ExtractionRequest req = *request;
     std::vector<ExtractionResult> results = handle->extract(std::vector<ExtractionRequest>{req})[0]; // XXX Bad, we do this because we are serving requests one at a time. Don't do this.
 
@@ -148,13 +148,11 @@ int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* req
 
     for (size_t i = 0; i < *nfields; i++) {
         (*results_array)[i] = new gribjump_extraction_result_t(results[i]);
-        eckit::Log::info() << "Created result " << i << results[i] << std::endl;
     }
 
     return 0;
 }
 int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned short nrequests, gribjump_extraction_result_t**** results_array, unsigned short** nfields) {
-    eckit::Log::info() << "C-API: Extracting " << nrequests << " requests" << std::endl;
     std::vector<ExtractionRequest> reqs;
     for (size_t i = 0; i < nrequests; i++) {
         reqs.push_back(*requests[i]);
@@ -188,6 +186,28 @@ public:
         }
     }
 
+    void keys(const char ***keys_out, unsigned long* size) {
+        const char** keys = new const char*[values_.size()];
+        int i = 0;
+        for (const auto& v : values_) {
+            const auto& key = v.first;
+            keys[i++] = key.c_str();
+        }
+        *size = values_.size();
+        *keys_out = keys;
+    }
+
+    void values(const char* key, const char*** values_out, unsigned long* size) {
+        ASSERT(values_.find(key) != values_.end());
+        // Note its up to the caller to free the memory
+        const char** values = new const char*[values_[key].size()];
+        int i = 0;
+        for (const auto& value : values_[key]) {
+            values[i++] = value.c_str();
+        }
+        *size = values_[key].size();
+        *values_out = values;
+    }
 private:
     std::map<std::string, std::unordered_set<std::string>> values_;
 };
@@ -197,7 +217,18 @@ int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* g
     std::string reqstr_str(reqstr);
     std::map<std::string, std::unordered_set<std::string>> values = gj->axes(reqstr_str);
     *axes = new gj_axes_t(values);
-    (*axes)->print();
+    return 0;
+}
+
+int gribjump_axes_keys(gj_axes_t* axes, const char*** keys_out, unsigned long* size) {
+    ASSERT(axes);
+    axes->keys(keys_out, size);
+    return 0;
+}
+
+int gribjump_axes_values(gj_axes_t* axes, const char* key, const char*** values_out, unsigned long* size) {
+    ASSERT(axes);
+    axes->values(key, values_out, size);
     return 0;
 }
 

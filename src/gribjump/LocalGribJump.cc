@@ -54,6 +54,7 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
             handles.back().push_back(loc.dataHandle());
         }
     }
+    eckit::Log::info() << "GribInfos and DataHandles created." << std::endl;
 
     // <insert logic for grouping requests by file here and multithreading> Skip for now.
 
@@ -66,6 +67,7 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
         }
     }
 
+    eckit::Log::info() << "Ranges extracted." << std::endl;
     return result;
 }
 
@@ -128,7 +130,7 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     using namespace fdb5;
 
     FDB fdb;
-    std::vector<FDBToolRequest> requests = FDBToolRequest::requestsFromString(request);
+    std::vector<FDBToolRequest> requests = FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
     ASSERT(requests.size() == 1);
     auto listIter = fdb.list(requests.front(), false);
 
