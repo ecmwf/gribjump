@@ -32,6 +32,8 @@ public:
 
     JumpInfo();
     JumpInfo(const metkit::grib::GribHandle& h);
+    JumpInfo(eckit::Stream& s);
+
 
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
@@ -39,6 +41,7 @@ public:
     ExtractionResult extractRanges(const JumpHandle&, std::vector<std::tuple<size_t, size_t>> ranges) const;
     
     void print(std::ostream&) const;
+    void encode(eckit::Stream&) const;
 
     void toFile(eckit::PathName, bool);
     void fromFile(eckit::PathName, uint16_t msg_id=0);
@@ -93,6 +96,12 @@ private:
         f.print(s);
         return s;
     }
+
+    friend eckit::Stream& operator<<(eckit::Stream&s, const JumpInfo& f) {
+        f.encode(s);
+        return s;
+    }
+
 
 };
 

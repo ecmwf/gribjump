@@ -58,9 +58,7 @@ namespace gribjump
     std::vector<ExtractionResult> RemoteGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) {
         NOTIMP;
     }
-    bool RemoteGribJump::isCached(std::string) const {
-        NOTIMP;
-    }
+
     std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request) {
         NOTIMP;
     }

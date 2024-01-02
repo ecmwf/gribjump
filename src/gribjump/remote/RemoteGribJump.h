@@ -25,7 +25,6 @@ public:  // methods
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> polyRequest) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
-    bool isCached(std::string) const override;
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
     private:

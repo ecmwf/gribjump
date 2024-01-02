@@ -16,24 +16,26 @@ list( APPEND gribjump_srcs
     LibGribJump.cc
     LibGribJump.h
     gribjump_config.h.in
-    gribjump_version.c.in 
-    gribjump_version.h.in 
+    gribjump_version.c.in
+    gribjump_version.h.in
     
     gribjump_c.cc
     gribjump_c.h
 
-    GribHandleData.cc 
+    GribHandleData.cc
     GribHandleData.h
     GribInfo.cc
-    GribInfo.h 
-    GribJump.cc 
-    GribJump.h 
+    GribInfo.h
+    GribInfoCache.cc
+    GribInfoCache.h
+    GribJump.cc
+    GribJump.h
     GribJumpBase.h
     LocalGribJump.cc
     LocalGribJump.h
     GribJumpFactory.cc
     GribJumpFactory.h
-    GribJumpException.h 
+    GribJumpException.h
     ExtractionData.cc
     ExtractionData.h
 

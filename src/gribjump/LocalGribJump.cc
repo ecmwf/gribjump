@@ -14,6 +14,8 @@
 #include "eckit/log/Log.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
+#include "eckit/serialisation/FileStream.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -25,7 +27,37 @@
 #include "gribjump/LocalGribJump.h"
 namespace gribjump {
 
-LocalGribJump::LocalGribJump() {}
+LocalGribJump::LocalGribJump() {
+    // todo config...
+
+    if (!getenv("GRIBJUMP_CACHE_DIR")) {
+        eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
+        return;
+    }
+
+    eckit::PathName cacheDir(getenv("GRIBJUMP_CACHE_DIR"));
+    if (!cacheDir.exists()) {
+        eckit::Log::warning() << "GRIBJUMP_CACHE_DIR is set, but directory does not exist." << std::endl;
+        return;
+    }
+
+    eckit::Log::debug<LibGribJump>() << "GribJump is using cache" << std::endl;
+    cache_ = GribInfoCache(cacheDir);
+    cacheEnabled_ = true;
+
+    // eckit::PathName dir(getenv("GRIBJUMP_CACHE_DIR"));
+    // eckit::PathName path = dir / "gj.manifest";
+
+    // if (path.exists()){
+    //     eckit::FileStream s(path, "r");
+    //     s >> cachePaths_;
+    //     s.close();
+    //     cacheEnabled_ = true;
+    // }
+    // else {
+    //     eckit::Log::warning() << "GRIBJUMP_CACHE_DIR is set, but gj.manifest is not found." << std::endl;
+    // }
+}
 
 LocalGribJump::~LocalGribJump() {}
 
@@ -44,12 +76,9 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
         handles.push_back(std::vector<eckit::DataHandle*>());
         while (it.next(el)) {
 
-            fdb5::Key key = el.combinedKey();
             const fdb5::FieldLocation& loc = el.location();
-            if(isCached(key)){
-                // todo ...
-            }
-            JumpInfo info = extractInfo(loc.dataHandle());
+
+            JumpInfo info = extractInfo(loc);
             infos.back().push_back(info);
             handles.back().push_back(loc.dataHandle());
         }
@@ -80,16 +109,11 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     fdb5::ListElement el;
     while (it.next(el)) {
 
-        fdb5::Key key = el.combinedKey();
         const fdb5::FieldLocation& loc = el.location(); // Use the location or uri to check if cached.
-        if(isCached(key)){
-            // todo ...
-        }
 
-        JumpInfo info = extractInfo(loc.dataHandle());
+        JumpInfo info = extractInfo(loc);
 
-        eckit::Log::debug<LibGribJump>() << "GribJump::extract() key: " << key 
-            << ", location: " << loc << ", info: " << info << std::endl;
+        eckit::Log::debug<LibGribJump>() << ", location: " << loc << ", info: " << info << std::endl;
 
         ExtractionResult v = directJump(loc.dataHandle(), ranges, info);
 
@@ -104,7 +128,6 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
 }
 
 // TODO : We can probably group requests by file, based on fdb.inspect fieldlocations
-// 
 
 ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
     std::vector<std::tuple<size_t, size_t>> ranges,
@@ -115,13 +138,22 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
     return info.extractRanges(dataSource, ranges);
 }
 
-JumpInfo LocalGribJump::extractInfo(eckit::DataHandle* handle) const {
+bool LocalGribJump::isCached(std::string key) const {
+    NOTIMP;
+}
+
+JumpInfo LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
+    if (cacheEnabled_) {
+        if(cache_.contains(loc)) return cache_.get(loc);
+        eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss" << std::endl;
+    }
+
+    eckit::DataHandle* handle = loc.dataHandle();
     JumpHandle dataSource(handle);
     return dataSource.extractInfo();
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
-// std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const fdb5::FDBToolRequest& request) {
     // bare bones implementation: jut a wrapper around list.
     // TODO: implement a proper axes function inside FDB.
 
