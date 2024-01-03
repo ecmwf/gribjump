@@ -19,7 +19,7 @@
 namespace gribjump {
 class LocalGribJump : public GribJumpBase {
 public: 
-    LocalGribJump();
+    LocalGribJump(const Config& config);
     ~LocalGribJump();
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
@@ -36,9 +36,6 @@ public:
 
 private:
     GribInfoCache cache_;
-    // std::map<std::string, std::string> cachePaths_; // Maps fieldlocation to cache path
-    // std::map<eckit::PathName, GribInfoCache> caches_;
-    
     bool cacheEnabled_ = false;
 
 };

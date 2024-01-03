@@ -20,6 +20,7 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpBase.h"
 #include "metkit/mars/MarsRequest.h"
+#include "gribjump/Config.h"
 
 namespace gribjump {
 
@@ -40,6 +41,7 @@ public:
 
 private:
     std::unique_ptr<GribJumpBase> internal_;
+    Config config_;
   
 };
 } // namespace GribJump

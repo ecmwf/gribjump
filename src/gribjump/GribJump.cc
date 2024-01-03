@@ -18,11 +18,13 @@
 namespace gribjump {
 
 GribJump::GribJump(){
-    std::string name = "localgribjump";
-    if (getenv("GRIBJUMP_REMOTE") != NULL) {
-        name = "remotegribjump";
+    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
+        config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
+    } 
+    else {
+        eckit::Log::debug<LibGribJump>() << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
     }
-    internal_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(name));
+    internal_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(config_));
 }
 
 std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> requests) {

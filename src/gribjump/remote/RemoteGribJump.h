@@ -20,7 +20,7 @@ namespace gribjump {
 
 class RemoteGribJump : public GribJumpBase {
 public:  // methods
-    RemoteGribJump();
+    RemoteGribJump(const Config& config);
     ~RemoteGribJump();
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> polyRequest) override;

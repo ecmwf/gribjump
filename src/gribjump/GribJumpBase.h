@@ -12,20 +12,24 @@
 
 #pragma once
 
-#include "gribjump/ExtractionData.h"
-#include "eckit/memory/NonCopyable.h"
 #include <unordered_set>
+#include "eckit/memory/NonCopyable.h"
+#include "gribjump/ExtractionData.h"
+#include "gribjump/Config.h"
 
 namespace gribjump
 {
 
 class GribJumpBase : public eckit::NonCopyable {
 public:
-    GribJumpBase() {}
+    GribJumpBase(const Config& config): config_(config) {}
     virtual ~GribJumpBase() {}
     virtual std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) = 0;
     virtual std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) = 0;
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) = 0;
+
+private:
+    Config config_;
 };
 
 } // namespace gribjump

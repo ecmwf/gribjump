@@ -19,7 +19,7 @@ namespace gribjump {
 
 class GribJumpFactory {
 
-    virtual GribJumpBase *make() const = 0 ;
+    virtual GribJumpBase *make(const Config& config) const = 0 ;
 
 protected:
 
@@ -30,7 +30,7 @@ protected:
 
 public:
 
-    static GribJumpBase *build(const std::string &name);
+    static GribJumpBase *build(const Config& config);
 
 };
 
@@ -40,8 +40,8 @@ public:
 template< class T>
 class GribJumpBuilder : public GribJumpFactory {
 
-    virtual GribJumpBase *make() const override {
-        return new T();
+    virtual GribJumpBase *make(const Config& config) const override {
+        return new T(config);
     }
 
 public:

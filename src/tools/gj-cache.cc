@@ -19,6 +19,7 @@
 #include "gribjump/GribHandleData.h"
 #include "gribjump/GribInfoCache.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/Config.h"
 
 namespace gribjump {
 
@@ -38,17 +39,23 @@ private:
         // 2. For each fieldlocation, get the gribinfo
         // 3. Add each gribinfo to the cache object
         // 4. Write the cache object to disk
-        if (!getenv("GRIBJUMP_CACHE_DIR")) {
-            eckit::Log::error() << "GRIBJUMP_CACHE_DIR not set." << std::endl;
+
+        if (!getenv("GRIBJUMP_CONFIG_FILE")) {
+            eckit::Log::error() << "GRIBJUMP_CONFIG_FILE not set." << std::endl;
             return;
         }
+        
+        eckit::PathName configPath(getenv("GRIBJUMP_CONFIG_FILE"));
+        Config config(configPath);
 
-        eckit::PathName cacheDir(getenv("GRIBJUMP_CACHE_DIR"));
+        std::string str;
+        config.get("cache", str);
+        eckit::PathName cacheDir(str);
+
         if (!cacheDir.exists()) {
-            // create it
-            cacheDir.mkdir();
+            eckit::Log::error() << "Cache directory " << cacheDir << " does not exist." << std::endl;
+            return;
         }
-
 
         fdb5::FDB fdb;
         // hardcode yesterday's operational forecast, 1200, sfc fields for now (Tiago's Demo.)

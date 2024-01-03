@@ -27,17 +27,15 @@
 #include "gribjump/LocalGribJump.h"
 namespace gribjump {
 
-LocalGribJump::LocalGribJump() {
-    // todo config...
+LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 
-    if (!getenv("GRIBJUMP_CACHE_DIR")) {
+    std::string cacheDir;
+    if (!config.get("cache", cacheDir)) {
         eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
         return;
     }
-
-    eckit::PathName cacheDir(getenv("GRIBJUMP_CACHE_DIR"));
-    eckit::PathName manifestPath = cacheDir / "manifest.gj";
-    if (!cacheDir.exists() || !manifestPath.exists()) {
+    eckit::PathName manifestPath = eckit::PathName(cacheDir) / "manifest.gj";
+    if (!manifestPath.exists()) {
         eckit::Log::warning() << "Warning " << manifestPath << " does not exist." << std::endl;
         eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
         return;
