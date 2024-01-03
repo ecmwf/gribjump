@@ -24,7 +24,7 @@ GribInfoCache::~GribInfoCache() {}
 GribInfoCache::GribInfoCache(){}
 
 GribInfoCache::GribInfoCache(eckit::PathName dir) : cacheDir_(dir) {
-    eckit::PathName path = cacheDir_ / "gj.manifest";
+    const eckit::PathName path = cacheDir_ / "manifest.gj";
     ASSERT(path.exists());
     eckit::FileStream s(path, "r");
     s >> manifest_;
@@ -34,7 +34,7 @@ GribInfoCache::GribInfoCache(eckit::PathName dir) : cacheDir_(dir) {
 
 void GribInfoCache::preload() {
     for (auto& entry : manifest_) {
-        eckit::PathName infopath = entry.second;
+        const eckit::PathName infopath = entry.second;
         eckit::FileStream s(infopath, "r");
         std::map<std::string, JumpInfo> cache;
         s >> cache;
@@ -45,18 +45,17 @@ void GribInfoCache::preload() {
 
 bool GribInfoCache::contains(const fdb5::FieldLocation& loc) {
 
-    std::stringstream ss;
-    ss << loc;
-    std::string fieldloc = ss.str();
+    const std::string fdbfilename = loc.uri().path().baseName();
+    const std::string offset = std::to_string(loc.offset());  
+    const std::string key = fdbfilename + "." + offset;
 
     // Check if field in cache
-    if( cache_.count(fieldloc) != 0 ) {
+    if( cache_.count(key) != 0 ) {
         return true;
     }
 
     // Check if field's filename is in manifest
-    eckit::PathName fdbpath = loc.uri().path();
-    auto el = manifest_.find(fdbpath);
+    const auto el = manifest_.find(fdbfilename);
     if (el == manifest_.end()) {
         return false;
     }
@@ -76,17 +75,18 @@ bool GribInfoCache::contains(const fdb5::FieldLocation& loc) {
     cache_.merge(cache);
 
     // This can only happen if gribinfo file is somehow incomplete.
-    ASSERT(cache_.count(fieldloc) != 0);
+    ASSERT(cache_.count(key) != 0);
 
     return true;
 }
 
 const JumpInfo& GribInfoCache::get(const fdb5::FieldLocation& loc) {
     // NB: No checks, fails if not in cache. Assumes contains() has been called.
-    std::stringstream ss;
-    ss << loc;
-    std::string fieldloc = ss.str();
-    return cache_.at(fieldloc);
+    const std::string fdbfilename = loc.uri().path().baseName();
+    const std::string offset = std::to_string(loc.offset());  
+    const std::string key = fdbfilename + "." + offset;
+
+    return cache_.at(key);
 }
 
 void GribInfoCache::print(std::ostream& s) const {

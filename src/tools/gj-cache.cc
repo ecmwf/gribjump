@@ -25,7 +25,8 @@ namespace gribjump {
 
 class CacheTool : public eckit::Application {
 public:
-    CacheTool(int argc, char** argv) : Application(argc, argv) {}
+    CacheTool(int argc, char** argv) : Application(argc, argv) {
+    }
     ~CacheTool() {}
 
 private:
@@ -51,7 +52,7 @@ private:
 
         fdb5::FDB fdb;
         // hardcode yesterday's operational forecast, 1200, sfc fields for now (Tiago's Demo.)
-        std::vector<fdb5::FDBToolRequest> x = fdb5::FDBToolRequest::requestsFromString("levtype=sfc,time=1200,class=od,expver=0001,stream=oper,date=-1");
+        std::vector<fdb5::FDBToolRequest> x = fdb5::FDBToolRequest::requestsFromString("levtype=sfc,time=1200,class=od,expver=0001,stream=oper,date=-2");
 
         ASSERT(x.size() == 1);
 
@@ -65,13 +66,14 @@ private:
             eckit::DataHandle* handle = loc.dataHandle();
             JumpHandle dataSource(handle);
             JumpInfo info = dataSource.extractInfo();
-            std::stringstream ss;
-            ss << loc;
 
             // Fields in the same file share a cache on disk.
-            std::string fdbfilename = loc.uri().path();
-            caches[fdbfilename][ss.str()] = info;
+            std::string fdbfilename = loc.uri().path().baseName();
+            std::string offset = std::to_string(loc.offset());
+            std::string key = fdbfilename + "." + offset;
+            caches[fdbfilename][key] = info;
             nfields++;
+
         }
 
         eckit::Log::debug<LibGribJump>() << "Cached " << nfields << " fields in " <<  caches.size() << " files." << std::endl;
@@ -80,7 +82,7 @@ private:
         for (const auto& kv : caches) {
             const std::string& fieldfilename = kv.first;
             const std::map<std::string, JumpInfo>& cache = kv.second;
-            eckit::PathName cachepath = cacheDir / eckit::PathName::unique("gj");
+            eckit::PathName cachepath = cacheDir / eckit::PathName(fieldfilename + ".gj");
             eckit::FileStream s(cachepath, "w");
             s << cache;
             s.close();
@@ -88,7 +90,7 @@ private:
             manifest[fieldfilename] = cachepath;
         }
 
-        eckit::PathName manifestpath = cacheDir / eckit::PathName("gj.manifest");
+        eckit::PathName manifestpath = cacheDir / eckit::PathName("manifest.gj");
         eckit::FileStream s(manifestpath, "w");
         s << manifest;
         s.close();

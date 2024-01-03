@@ -36,8 +36,10 @@ LocalGribJump::LocalGribJump() {
     }
 
     eckit::PathName cacheDir(getenv("GRIBJUMP_CACHE_DIR"));
-    if (!cacheDir.exists()) {
-        eckit::Log::warning() << "GRIBJUMP_CACHE_DIR is set, but directory does not exist." << std::endl;
+    eckit::PathName manifestPath = cacheDir / "manifest.gj";
+    if (!cacheDir.exists() || !manifestPath.exists()) {
+        eckit::Log::warning() << "Warning " << manifestPath << " does not exist." << std::endl;
+        eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
         return;
     }
 
@@ -45,18 +47,6 @@ LocalGribJump::LocalGribJump() {
     cache_ = GribInfoCache(cacheDir);
     cacheEnabled_ = true;
 
-    // eckit::PathName dir(getenv("GRIBJUMP_CACHE_DIR"));
-    // eckit::PathName path = dir / "gj.manifest";
-
-    // if (path.exists()){
-    //     eckit::FileStream s(path, "r");
-    //     s >> cachePaths_;
-    //     s.close();
-    //     cacheEnabled_ = true;
-    // }
-    // else {
-    //     eckit::Log::warning() << "GRIBJUMP_CACHE_DIR is set, but gj.manifest is not found." << std::endl;
-    // }
 }
 
 LocalGribJump::~LocalGribJump() {}
