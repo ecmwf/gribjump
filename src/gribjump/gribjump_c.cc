@@ -70,7 +70,7 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     for (const auto& range : ranges) {
         std::vector<std::string> kv = eckit::StringTools::split("-", range);
         ASSERT(kv.size() == 2);
-        rangevec.push_back(std::make_tuple(std::stoi(kv[0]), std::stoi(kv[1])));
+        rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
     }
 
     *request = new gribjump_extraction_request_t(mreq, rangevec);

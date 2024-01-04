@@ -16,7 +16,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
 # TODO: these version requirements have been chosen arbitrarily...
-ecbuild_find_package( NAME eckit  VERSION 1.24.4 REQUIRED )
+#ecbuild_find_package( NAME compressor VERSION 0.0.1 REQUIRED )
+ecbuild_find_package( NAME libaec VERSION 1.1.1 REQUIRED )
+ecbuild_find_package( NAME eckit VERSION 1.24.4 REQUIRED )
 ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 ecbuild_find_package( NAME fdb5 VERSION 5.11 REQUIRED ) # TODO: Will have to support axes requests...
@@ -28,7 +30,11 @@ include(cmake/compiler_warnings.cmake) # optionally handle compiler specific war
 
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( ${gribjump_INCLUDE_DIRS} )
+include_directories( 
+  ${libaec_INCLUDE_DIRS}
+  ${gribjump_INCLUDE_DIRS}
+  ${compressor_DIR}/include
+  )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS}" )
 get_directory_property( gribjump_DEFINITIONS COMPILE_DEFINITIONS )
@@ -36,7 +42,7 @@ get_directory_property( gribjump_DEFINITIONS COMPILE_DEFINITIONS )
 ### source files
 
 add_subdirectory( src )
-#add_subdirectory( tests )
+add_subdirectory( tests )
 
 
 ### finalize

@@ -60,11 +60,7 @@ private:
 
 class GribJumpDataAccessor : public mc::DataAccessor {
 public:
-    GribJumpDataAccessor(const JumpHandle* jh, Range range) : jh_{jh}, range_{range} {
-    }
-
-    ~GribJumpDataAccessor() {
-    }
+    GribJumpDataAccessor(const JumpHandle* jh, mc::Range range) : jh_{jh}, range_{range} {}
 
     void write(const eckit::Buffer& buffer, const size_t offset) const override {
         throw std::runtime_error("Not implemented");
@@ -84,10 +80,9 @@ public:
         return data_start_offset_ + size_;
     }
 
-
 private:
     const JumpHandle* jh_;
-    Range range_;
+    mc::Range range_;
 };
 
 

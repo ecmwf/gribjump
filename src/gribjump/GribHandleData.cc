@@ -115,7 +115,7 @@ const JumpInfo& JumpHandle::extractInfo(){
 
     metkit::grib::GribHandle h(*handle_, initialPos);
     info_.update(h);
-    eckit::Offset endOfField = initialPos + eckit::Offset(info_.length());
+    //eckit::Offset endOfField = initialPos + eckit::Offset(info_.length());
     // ASSERT(seek(endOfField) == endOfField); // In anticipation of next call
     return info_;
 }

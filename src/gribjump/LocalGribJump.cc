@@ -71,7 +71,7 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     return result;
 }
 
-std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::tuple<size_t, size_t>> ranges){
+std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::pair<size_t, size_t>> ranges){
 
     // const GribJump gj;
     std::vector<ExtractionResult>  result;
@@ -106,7 +106,7 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
 // TODO(Chris) : We can probably group requests by file, based on fdb.inspect fieldlocations
 
 ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
-    std::vector<std::tuple<size_t, size_t>> ranges,
+    std::vector<std::pair<size_t, size_t>> ranges,
     JumpInfo info) const {
     JumpHandle dataSource(handle);
     info.setStartOffset(0); // Message starts at the beginning of the handle

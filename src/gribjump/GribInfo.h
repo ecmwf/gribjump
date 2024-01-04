@@ -21,8 +21,12 @@
 #include "metkit/codes/GribHandle.h"
 
 #include "gribjump/ExtractionData.h"
+#include "gribjump/Bitmap.h"
+#include "gribjump/Values.h"
+#include "gribjump/Interval.h"
 
 namespace gribjump {
+
 
 class JumpHandle;
 void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &n_index, std::queue<size_t> &edges, bool&, size_t&);
@@ -36,7 +40,7 @@ public:
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
     double extractValue(const JumpHandle&, size_t index) const;
-    ExtractionResult extractRanges(const JumpHandle&, std::vector<std::tuple<size_t, size_t>> ranges) const;
+    ExtractionResult extractRanges(const JumpHandle&, std::vector<std::pair<size_t, size_t>> ranges) const;
 
     void print(std::ostream&) const;
 
@@ -93,6 +97,13 @@ private:
                                            sizeof(decimalMultiplier_) + \
                                            sizeof(md5GridSection_) + \
                                            sizeof(packingType_);
+
+
+    Bitmap get_bitmap(const JumpHandle& f) const;
+    std::pair<std::vector<Interval>, std::vector<Bitmap>> calculate_intervals(const std::vector<Interval>&, const Bitmap&) const;
+
+    std::vector<Values> get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const;
+    std::vector<Values> get_simple_values(const JumpHandle& f, const std::vector<Interval> &intervals) const;
 
     friend std::ostream& operator<<(std::ostream& s, const JumpInfo& f) {
         f.print(s);

@@ -23,7 +23,7 @@
 
 namespace gribjump {
 
-using Interval = std::tuple<size_t, size_t>;
+using Interval = std::pair<size_t, size_t>;
 
 // Gribjump API
 
