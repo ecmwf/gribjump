@@ -40,6 +40,12 @@ public:
 
     void print(std::ostream& s) const;
 
+    // Manifest maintenance
+    bool lookup(const std::string& fdbfilename) const;
+    void append(const std::string& fdbfilename, const std::string& gribinfofilename);
+    void removeOld(int days);
+    void dump() const;
+
 private:
 
     eckit::PathName cacheDir_;
@@ -51,6 +57,5 @@ private:
     std::map<std::string, JumpInfo> cache_;
 
 };
-
 
 }  // namespace gribjump
