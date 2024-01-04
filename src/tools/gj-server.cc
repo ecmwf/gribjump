@@ -21,7 +21,7 @@ namespace gribjump {
 
 class GribJumpServerApp : public eckit::Application, public GribJumpServer {
 public:
-    GribJumpServerApp(int argc, char** argv) : Application(argc, argv), GribJumpServer(eckit::net::Port("gribjumpserver", 9001)){}
+    GribJumpServerApp(int argc, char** argv) : Application(argc, argv), GribJumpServer(eckit::net::Port("gribjumpserver", std::stoi(getenv("GRIBJUMP_SERVER_PORT")))){}
     ~GribJumpServerApp() {}
 
 private:
@@ -42,6 +42,7 @@ private:
 
 int main(int argc, char** argv) {
     eckit::Log::info() << "Starting gribjump server" << std::endl;
+    ASSERT(getenv("GRIBJUMP_SERVER_PORT"));
     gribjump::GribJumpServerApp app(argc, argv);
     app.start();
     return 0;
