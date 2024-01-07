@@ -33,14 +33,21 @@ private:
 
     virtual void run() override {
         eckit::Log::info() << "debug app running" << std::endl;
-        
-        // connect to server
-        eckit::net::TCPClient client;
-        eckit::net::InstantTCPStream stream(client.connect("localhost", 9001));
-        eckit::Log::info() << "connected" << std::endl;
 
-        stream << "EXTRACT";
-        eckit::Log::info() << "sent: EXTRACT" << std::endl;
+
+        gribjump::GribJump gj;
+
+        std::string request = "class=od,type=fc,stream=oper,expver=0001,levtype=sfc,date=20240101";
+        std::map<std::string, std::unordered_set<std::string>>  output = gj.axes(request);
+
+        // print output
+        for (auto const& [key, val] : output) {
+            std::cout << key << ": ";
+            for (auto const& v : val) {
+                std::cout << v << ", ";
+            }
+            std::cout << std::endl;
+        }
 
     }
 };
