@@ -16,6 +16,7 @@
 #include "eckit/net/TCPStream.h"
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -51,27 +52,36 @@ LocalGribJump::~LocalGribJump() {}
 
 std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
     eckit::Log::info() << "GribJump::extract() [batch] called" << std::endl;
+    eckit::Timer timer;
+    timer.stop();
 
     fdb5::FDB fdb;
 
     // Inspect requests and extract JumpInfo.
     std::vector<std::vector<JumpInfo>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
+
     for (auto& req : polyRequest){
+
+        timer.start();
         fdb5::ListIterator it = fdb.inspect(req.getRequest());
+        timer.stop();
+        stats_.addInspect(timer);
+
         fdb5::ListElement el;
         infos.push_back(std::vector<JumpInfo>());
         handles.push_back(std::vector<eckit::DataHandle*>());
         while (it.next(el)) {
 
             const fdb5::FieldLocation& loc = el.location();
-
+            timer.start();
             JumpInfo info = extractInfo(loc);
+            timer.stop();
+            stats_.addInfo(timer);
             infos.back().push_back(info);
             handles.back().push_back(loc.dataHandle());
         }
     }
-    eckit::Log::info() << "GribInfos and DataHandles created." << std::endl;
 
     // <insert logic for grouping requests by file here and multithreading> Skip for now.
 
@@ -80,11 +90,14 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     for (size_t i = 0; i < polyRequest.size(); i++) {
         result.push_back(std::vector<ExtractionResult>());
         for (size_t j = 0; j < infos[i].size(); j++) {
+            timer.start();
             result.back().push_back(directJump(handles[i][j], polyRequest[i].getRanges(), infos[i][j]));
+            timer.stop();
+            stats_.addExtract(timer);
         }
     }
 
-    eckit::Log::info() << "Ranges extracted." << std::endl;
+    stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: ");
     return result;
 }
 

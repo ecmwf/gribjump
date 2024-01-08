@@ -10,6 +10,8 @@
 
 /// @author Christopher Bradley
 
+#include "eckit/log/Timer.h"
+
 #include "gribjump/GribJump.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/GribJumpFactory.h"
@@ -28,15 +30,24 @@ GribJump::GribJump(){
 }
 
 std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> requests) {
-    return internal_->extract(requests);
+    eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
+    auto out = internal_->extract(requests);
+    timer.report();
+    return out;
 }
 
 std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges){
-    return internal_->extract(request, ranges);
+    eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
+    auto out = internal_->extract(request, ranges);
+    timer.report();
+    return out;
 }
 
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
-    return internal_->axes(request);
+    eckit::Timer timer("GribJump::axes API",eckit::Log::debug<LibGribJump>());
+    auto out = internal_->axes(request);
+    timer.report();
+    return out;
 }
 
 } // namespace GribJump

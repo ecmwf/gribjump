@@ -40,6 +40,8 @@ list( APPEND gribjump_srcs
     GribJumpException.h
     ExtractionData.cc
     ExtractionData.h
+    Stats.cc
+    Stats.h
 
     remote/GribJumpServer.h
     remote/GribJumpService.h
