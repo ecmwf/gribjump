@@ -38,6 +38,7 @@ class GJExtractTool : public fdb5::FDBTool {
     virtual int numberOfPositionalArguments() const { return 2; }
   public:
     GJExtractTool(int argc, char **argv): fdb5::FDBTool(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<bool>("print", "Prints the results"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
         options_.push_back(
                     new eckit::option::SimpleOption<bool>("statistics",
@@ -87,6 +88,7 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
     // Testing tool for extract / directJump functionality
 
     bool raw = args.getBool("raw", false);
+    bool printout = args.getBool("print", true);
 
     // Build request(s) from input
     std::ifstream in(args(0).c_str());
@@ -128,7 +130,10 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
     gribjump::GribJump gj;
     std::vector<std::vector<gribjump::ExtractionResult>> output = gj.extract(polyRequest);
 
+
     // Print extracted values
+    if (!printout) return;
+    
     eckit::Log::info() << "Extracted values:" << std::endl;
     for (size_t i = 0; i < output.size(); i++) { // each request
         eckit::Log::info() << "Request " << i << ": " << requests[i] << std::endl;

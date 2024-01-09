@@ -18,19 +18,16 @@ namespace gribjump {
 // depending on whether the environment variable GRIBJUMP_REMOTE is set.
 
 class GribJumpFactory {
-
-    virtual GribJumpBase *make() const = 0;
+    virtual GribJumpBase *make(const Config& config) const = 0;
 
 protected:
-
     explicit GribJumpFactory(const std::string &);
     virtual ~GribJumpFactory();
 
     std::string name_;
 
 public:
-
-    static GribJumpBase *build(const std::string &name);
+    static GribJumpBase *build(const Config& config);
 
 };
 
@@ -39,9 +36,8 @@ public:
 
 template< class T>
 class GribJumpBuilder : public GribJumpFactory {
-
-    GribJumpBase *make() const override {
-        return new T();
+    GribJumpBase *make(const Config& config) const override {
+        return new T(config);
     }
 
 public:

@@ -13,21 +13,25 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/gribjump_config.h
 list( APPEND gribjump_srcs
     ${CMAKE_CURRENT_BINARY_DIR}/gribjump_version.c
 
-    LibGribJump.cc 
+    LibGribJump.cc
     LibGribJump.h
     gribjump_config.h.in
-    gribjump_version.c.in 
-    gribjump_version.h.in 
-    
+    gribjump_version.c.in
+    gribjump_version.h.in
+
     gribjump_c.cc
     gribjump_c.h
 
-    GribHandleData.cc 
+    Config.cc
+    Config.h
+    GribHandleData.cc
     GribHandleData.h
     GribInfo.cc
-    GribInfo.h 
-    GribJump.cc 
-    GribJump.h 
+    GribInfo.h
+    GribInfoCache.cc
+    GribInfoCache.h
+    GribJump.cc
+    GribJump.h
     GribJumpBase.h
     LocalGribJump.cc
     LocalGribJump.h
@@ -37,6 +41,8 @@ list( APPEND gribjump_srcs
     GribJumpDataAccessor.h
     ExtractionData.cc
     ExtractionData.h
+    Stats.cc
+    Stats.h
 
     remote/GribJumpServer.h
     remote/GribJumpService.h

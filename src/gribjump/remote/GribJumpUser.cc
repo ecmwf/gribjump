@@ -10,8 +10,8 @@
 
 /// @author Christopher Bradley
 
-# include "gribjump/remote/GribJumpUser.h"
-
+#include "gribjump/remote/GribJumpUser.h"
+#include "eckit/log/Timer.h"
 namespace gribjump {
 
 GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol){}
@@ -21,6 +21,7 @@ GribJumpUser::~GribJumpUser() {}
 void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
     // NB: Use EITHER s OR in/out, not both. We use s.
     // TODO: Monitor?
+    eckit::Timer timer("GribJumpUser::serve");
 
     eckit::Log::info() << "Serving new connection" << std::endl;
 
@@ -40,11 +41,13 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
                 requests.push_back(exrequest);
             }
 
-            eckit::Log::info() << "Received " << numRequests << " requests" << std::endl;
+            std::stringstream ss;
+            ss << "Received " << numRequests << " requests";
+            timer.report(ss.str());
 
             std::vector<std::vector<ExtractionResult>> output = gj.extract(requests);
 
-            eckit::Log::info() << "Extract finished. Sending results" << std::endl;
+            timer.report("Extract finished. Sending results");
             for (auto& vec : output) {
                 size_t nfields = vec.size();
                 s << nfields;
@@ -52,12 +55,38 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
                     s << o;
                 }
             }
-            eckit::Log::info() << "Sent results" << std::endl;
+            timer.report("Results sent");
 
         }
 
         else if (cmd == "AXES"){
-            throw eckit::SeriousBug("AXES still to do...", Here());
+            timer.report("Received AXES request");
+
+            std::string request;
+            s >> request;
+            std::map<std::string, std::unordered_set<std::string>> axes = gj.axes(request);
+
+            timer.report("AXES finished. Sending results");
+            size_t naxes = axes.size();
+            s << naxes;
+            for (auto& pair : axes) {
+                s << pair.first;
+                size_t n = pair.second.size();
+                s << n;
+                for (auto& val : pair.second) {
+                    s << val;
+                }
+            }
+            timer.report("Axes sent");
+
+            // print the axes we sent
+            for (auto& pair : axes) {
+                eckit::Log::info() << pair.first << ": ";
+                for (auto& val : pair.second) {
+                    eckit::Log::info() << val << ", ";
+                }
+                eckit::Log::info() << std::endl;
+            }
         }
 
         else {
@@ -77,7 +106,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
         }
     }
 
-    eckit::Log::info() << "Closing connection" << std::endl;
+    timer.report("Closing connection");
 }
 
 }  // namespace gribjump

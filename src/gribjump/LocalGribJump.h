@@ -14,25 +14,29 @@
 
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribInfo.h"
+#include "gribjump/GribInfoCache.h"
 
 namespace gribjump {
 class LocalGribJump : public GribJumpBase {
 public:
-    LocalGribJump();
+    explicit LocalGribJump(const Config& config);
     ~LocalGribJump();
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
 
     ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
 
-    JumpInfo extractInfo(eckit::DataHandle* handle) const;
+    // JumpInfo extractInfo(eckit::DataHandle* handle) const;
+    JumpInfo extractInfo(const fdb5::FieldLocation& loc);
 
-    bool isCached(std::string) const override {return false;} // not imp
+    bool isCached(std::string) const;
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
 
 private:
-    // std::map<Key, std::tuple<FieldLocation*, JumpInfo> > cache_; // not imp
+    GribInfoCache cache_;
+    bool cacheEnabled_ = false;
+
 };
 } // namespace gribjump

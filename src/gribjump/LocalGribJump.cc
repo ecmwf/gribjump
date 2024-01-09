@@ -14,6 +14,9 @@
 #include "eckit/log/Log.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
+#include "eckit/serialisation/FileStream.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/Timer.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -25,36 +28,59 @@
 #include "gribjump/LocalGribJump.h"
 namespace gribjump {
 
-LocalGribJump::LocalGribJump() {}
+LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
+
+    std::string cacheDir;
+    if (!config.get("cache", cacheDir)) {
+        eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
+        return;
+    }
+    eckit::PathName manifestPath = eckit::PathName(cacheDir) / "manifest.gj";
+    if (!manifestPath.exists()) {
+        eckit::Log::warning() << "Warning " << manifestPath << " does not exist." << std::endl;
+        eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
+        return;
+    }
+
+    eckit::Log::debug<LibGribJump>() << "GribJump is using cache" << std::endl;
+    cache_ = GribInfoCache(cacheDir);
+    cacheEnabled_ = true;
+
+}
 
 LocalGribJump::~LocalGribJump() {}
 
 std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
     eckit::Log::info() << "GribJump::extract() [batch] called" << std::endl;
+    eckit::Timer timer;
+    timer.stop();
 
     fdb5::FDB fdb;
 
     // Inspect requests and extract JumpInfo.
     std::vector<std::vector<JumpInfo>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
+
     for (auto& req : polyRequest){
+
+        timer.start();
         fdb5::ListIterator it = fdb.inspect(req.getRequest());
+        timer.stop();
+        stats_.addInspect(timer);
+
         fdb5::ListElement el;
         infos.push_back(std::vector<JumpInfo>());
         handles.push_back(std::vector<eckit::DataHandle*>());
         while (it.next(el)) {
-
-            fdb5::Key key = el.combinedKey();
             const fdb5::FieldLocation& loc = el.location();
-            if (isCached(key)){
-                // todo ...
-            }
-            JumpInfo info = extractInfo(loc.dataHandle());
+            timer.start();
+            JumpInfo info = extractInfo(loc);
+            timer.stop();
+            stats_.addInfo(timer);
             infos.back().push_back(info);
             handles.back().push_back(loc.dataHandle());
         }
     }
-    eckit::Log::info() << "GribInfos and DataHandles created." << std::endl;
 
     // <insert logic for grouping requests by file here and multithreading> Skip for now.
 
@@ -63,11 +89,14 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     for (size_t i = 0; i < polyRequest.size(); i++) {
         result.push_back(std::vector<ExtractionResult>());
         for (size_t j = 0; j < infos[i].size(); j++) {
+            timer.start();
             result.back().push_back(directJump(handles[i][j], polyRequest[i].getRanges(), infos[i][j]));
+            timer.stop();
+            stats_.addExtract(timer);
         }
     }
 
-    eckit::Log::info() << "Ranges extracted." << std::endl;
+    stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: ");
     return result;
 }
 
@@ -80,16 +109,11 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     fdb5::ListElement el;
     while (it.next(el)) {
 
-        fdb5::Key key = el.combinedKey();
         const fdb5::FieldLocation& loc = el.location(); // Use the location or uri to check if cached.
-        if(isCached(key)){
-            // todo ...
-        }
 
-        JumpInfo info = extractInfo(loc.dataHandle());
+        JumpInfo info = extractInfo(loc);
 
-        eckit::Log::debug<LibGribJump>() << "GribJump::extract() key: " << key
-            << ", location: " << loc << ", info: " << info << std::endl;
+        eckit::Log::debug<LibGribJump>() << ", location: " << loc << ", info: " << info << std::endl;
 
         ExtractionResult v = directJump(loc.dataHandle(), ranges, info);
 
@@ -114,13 +138,22 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
     return info.extractRanges(dataSource, ranges);
 }
 
-JumpInfo LocalGribJump::extractInfo(eckit::DataHandle* handle) const {
+bool LocalGribJump::isCached(std::string key) const {
+    NOTIMP;
+}
+
+JumpInfo LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
+    if (cacheEnabled_) {
+        if(cache_.contains(loc)) return cache_.get(loc);
+        eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss" << std::endl;
+    }
+
+    eckit::DataHandle* handle = loc.dataHandle();
     JumpHandle dataSource(handle);
     return dataSource.extractInfo();
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
-// std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const fdb5::FDBToolRequest& request) {
     // bare bones implementation: jut a wrapper around list.
     // TODO(Chris): implement a proper axes function inside FDB.
 

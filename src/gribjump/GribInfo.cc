@@ -16,6 +16,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <cmath> // isnan. Temp, only for debug, remove later.
+#include <memory>
 #include "eckit/io/DataHandle.h"
 #include "eckit/utils/MD5.h"
 #include "metkit/codes/GribAccessor.h"
@@ -193,6 +194,56 @@ void JumpInfo::update(const GribHandle& h) {
     decimalMultiplier_ = grib_power(-decimalScaleFactor_, 10);
 }
 
+JumpInfo::JumpInfo(eckit::Stream& s) {
+    s >> version_;
+    if (version_ != currentVersion_) {
+        std::stringstream ss;
+        ss << "Bad JumpInfo version found:";
+        ss << "Expected " << +currentVersion_ << ", found " << +version_ << std::endl;
+        throw JumpException(ss.str(), Here());
+    }
+    s >> editionNumber_;
+    s >> binaryScaleFactor_;
+    s >> decimalScaleFactor_;
+    s >> bitsPerValue_;
+    s >> referenceValue_;
+    s >> offsetBeforeData_;
+    s >> numberOfDataPoints_;
+    s >> numberOfValues_;
+    s >> offsetBeforeBitmap_;
+    s >> sphericalHarmonics_;
+    s >> binaryMultiplier_;
+    s >> decimalMultiplier_;
+    s >> totalLength_;
+    s >> msgStartOffset_;
+    std::string md5;
+    std::string packing;
+    s >> md5;
+    s >> packing;
+    md5GridSection_ = md5;
+    packingType_ = packing;
+
+}
+
+void JumpInfo::encode(eckit::Stream& s) const {
+    s << currentVersion_;
+    s << editionNumber_;
+    s << binaryScaleFactor_;
+    s << decimalScaleFactor_;
+    s << bitsPerValue_;
+    s << referenceValue_;
+    s << offsetBeforeData_;
+    s << numberOfDataPoints_;
+    s << numberOfValues_;
+    s << offsetBeforeBitmap_;
+    s << sphericalHarmonics_;
+    s << binaryMultiplier_;
+    s << decimalMultiplier_;
+    s << totalLength_;
+    s << msgStartOffset_;
+    s << md5GridSection_ ;
+    s << packingType_;
+}
 
 void JumpInfo::print(std::ostream& s) const {
     s << "JumpInfo[";
@@ -221,8 +272,9 @@ void JumpInfo::print(std::ostream& s) const {
     s << std::endl;
 }
 
+void JumpInfo::toFile(eckit::PathName pathname, bool append){
+    // TODO: Replace this to use encode.
 
-void JumpInfo::toFile(eckit::PathName pathname, bool append) {
     std::unique_ptr<DataHandle> dh(pathname.fileHandle());
     version_ = currentVersion_;
 
@@ -253,7 +305,9 @@ void JumpInfo::toFile(eckit::PathName pathname, bool append) {
 }
 
 
-void JumpInfo::fromFile(eckit::PathName pathname, uint16_t msg_id) {
+void JumpInfo::fromFile(eckit::PathName pathname, uint16_t msg_id){
+    // TODO: Replace this to use the Stream constructor.
+
     std::unique_ptr<DataHandle> dh(pathname.fileHandle());
 
     dh->openForRead();
@@ -542,3 +596,4 @@ double JumpInfo::readDataValue(const JumpHandle& f, size_t index) const {
 }
 
 } // namespace gribjump
+
