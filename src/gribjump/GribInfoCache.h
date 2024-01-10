@@ -35,23 +35,13 @@ public:
     // Get gribinfo from memory
     const JumpInfo& get(const fdb5::FieldLocation& loc);
 
-    // Preload all gribinfos listed in manifest into memory
-    void preload();
-
     void print(std::ostream& s) const;
-
-    // Manifest maintenance
-    bool lookup(const std::string& fdbfilename) const;
-    void append(const std::string& fdbfilename, const std::string& gribinfofilename);
-    void removeOld(int days);
-    void dump() const;
 
 private:
 
     eckit::PathName cacheDir_;
     
     // fieldlocation's fdb filename -> gribinfo filename
-    std::map<std::string, std::string> manifest_; 
 
     // fieldlocation's full name -> gribinfo
     std::map<std::string, JumpInfo> cache_;

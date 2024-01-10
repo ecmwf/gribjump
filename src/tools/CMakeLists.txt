@@ -28,8 +28,8 @@ ecbuild_add_executable( TARGET   gj-testc
     LIBS      gribjump
 )
 
-ecbuild_add_executable( TARGET   gj-cache
-    SOURCES   gj-cache.cc
+ecbuild_add_executable( TARGET   gribinfo-fromfile
+    SOURCES   infofromfile.cc
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
     LIBS      gribjump
 )
