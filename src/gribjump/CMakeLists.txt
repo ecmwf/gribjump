@@ -74,7 +74,7 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
-        /usr/local/apps/aec/1.1.1/lib64/libaec.so
+        ${libaec_LIBRARIES}
         compressor_api
         aec_compressor
         ccsds_compressor
