@@ -24,8 +24,6 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"
 
-#include <compressor/compressor.h>
-#include <compressor/range.h>
 #include <compressor/simple_compressor.h>
 #include <compressor/ccsds_compressor.h>
 

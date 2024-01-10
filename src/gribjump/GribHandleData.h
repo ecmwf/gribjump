@@ -14,7 +14,7 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/GribInfo.h"
-#include <compressor/compressor.h>
+#include <compressor.h>
 
 namespace eckit {
 class DataHandle;
