@@ -34,8 +34,7 @@ set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINA
 include_directories( 
   ${libaec_INCLUDE_DIRS}
   ${gribjump_INCLUDE_DIRS}
-  ${compressor_DIR}/include
-  #${compressor_INCLUDE_DIRS} // TODO: this is not working yet
+  ${compressor_INCLUDE_DIRS}
   )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS}" )
