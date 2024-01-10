@@ -29,9 +29,20 @@
 #include <compressor/simple_compressor.h>
 #include <compressor/ccsds_compressor.h>
 
+
+using namespace eckit;
+using namespace metkit::grib;
+
+extern "C" {
+    unsigned long grib_decode_unsigned_long(const unsigned char* p, long* offset, int bits);
+    double grib_power(long s, long n);
+}
+
+namespace gribjump {
+
 // Convert ranges to intervals
 // TODO(maee): Simplification: Switch to intervals or ranges
-std::vector<mc::Range> to_ranges(std::vector<Interval> const& intervals) {
+std::vector<mc::Range> to_ranges(const std::vector<Interval>& intervals) {
     std::vector<mc::Range> ranges;
     std::transform(intervals.begin(), intervals.end(), std::back_inserter(ranges), [](auto interval){
         auto [begin, end] = interval;
@@ -51,33 +62,21 @@ bool check_intervals(const std::vector<Interval>& intervals) {
 }
 
 
-std::vector<std::bitset<64>> to_bitset(Bitmap const& bitmap) {
-    std::vector<std::bitset<64>> mask;
-    uint64_t b = 0;
-    for (size_t i = 0; i < bitmap.size() / 64; ++i) {
-        for (size_t j = 0; j < 64; ++j) {
-            b |= bitmap[i * 64 + j];
+std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
+    const size_t size = bitmap.size();
+    std::vector<std::bitset<64>> masks;
+    for (size_t i = 0; i < size / 64 + 1; i++) {
+        std::bitset<64> mask64;
+        for (size_t j = 0; j < 64; j++) {
+            if (i * 64 + j < size) {
+                mask64[j] = bitmap[i * 64 + j] > 0;
+            }
         }
-        mask.push_back(std::bitset<64>(b));
+        masks.push_back(mask64);
     }
-    b = 0;
-    for (size_t j = 0; j < bitmap.size() % 64; ++j) {
-        b |= bitmap[bitmap.size() / 64 + j] << j;
-    }
-    mask.push_back(std::bitset<64>(b));
-    return mask;
+    return masks;
 }
 
-
-using namespace eckit;
-using namespace metkit::grib;
-
-extern "C" {
-    unsigned long grib_decode_unsigned_long(const unsigned char* p, long* offset, int bits);
-    double grib_power(long s, long n);
-}
-
-namespace gribjump {
 
 static GribAccessor<long>          editionNumber("editionNumber");
 static GribAccessor<long>          bitmapPresent("bitmapPresent");
@@ -110,19 +109,19 @@ static int bits[65536] = {
 #include "metkit/pointdb/bits.h"
 };
 
-// clang, gcc 10+
-#if defined(__has_builtin)
-    #if __has_builtin(__builtin_popcountll)
-        #define POPCOUNT_AVAILABLE 1
-    #else
-        #define POPCOUNT_AVAILABLE 0
-    #endif
-// gcc 3.4+
-#elif defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4))
-    #define POPCOUNT_AVAILABLE 1
-#else
-    #define POPCOUNT_AVAILABLE 0
-#endif
+//// clang, gcc 10+
+//#if defined(__has_builtin)
+//    #if __has_builtin(__builtin_popcountll)
+//        #define POPCOUNT_AVAILABLE 1
+//    #else
+//        #define POPCOUNT_AVAILABLE 0
+//    #endif
+//// gcc 3.4+
+//#elif defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4))
+//    #define POPCOUNT_AVAILABLE 1
+//#else
+//    #define POPCOUNT_AVAILABLE 0
+//#endif
 
 
 //static inline int count_bits(unsigned long long n) {
@@ -382,6 +381,10 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
 
     mc::CcsdsDecompressor<double> ccsds{};
+
+    // TODO(maee): (IMPORTANT!!!) get offsets from the GribInfo object
+    //std::vector<size_t> offsets = ...
+
     ccsds
         .flags(ccsdsFlags_)
         .bits_per_sample(bitsPerValue_)
@@ -390,44 +393,29 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
         .reference_value(referenceValue_)
         .binary_scale_factor(binaryScaleFactor_)
         .decimal_scale_factor(decimalScaleFactor_);
+        //.offsets(offsets);
 
-    // TODO(maee): (IMPORTANT!!!) get offsets from metadata
+    // WORKAROUND:
+    // Try to get offsets from the data by decoding the entire message
+    // TODO(maee): remove this workaround when we have offsets in the GribInfo object
+    if (!ccsds.offsets()){
+        auto encoded = data_accessor->read({0, data_accessor->eof()});
 
-    // WORKAROUND: no offsets found, try to get them from the data
-    // TODO(maee): remove this workaround
-    auto offsets = ccsds.offsets();
-    if (!offsets) {
-        size_t eof = data_accessor->eof();
-        auto encoded = data_accessor->read({0, eof});
-
-        if (encoded.size() == 0) {
-            std::cerr << "encoded.size() == 0" << std::endl;
+        if (encoded.size() == 0)
             throw std::runtime_error("encoded.size() == 0");
-        }
 
-        ccsds.decode(encoded);
-        offsets = ccsds.offsets();
+        ccsds.decode(encoded); // Decoding the entire message to get offsets
 
-        if (!offsets) {
-            std::cerr << "offsets = None" << std::endl;
-            throw std::runtime_error("offsets is None");
-        }
+        if (!ccsds.offsets())
+            throw std::runtime_error("No offsets found in the data");
     } // WORKAROUND
 
-    auto doubles_list = ccsds.decode(data_accessor, ranges);
-
-    // TODO(maee): Optimize: Copying Decompressor::Values to GribJump::Values can be avoided
-    std::vector<Values> result;
-    for (auto &doubles : doubles_list) {
-        Values values((double*) doubles.data(), (double*) doubles.data() + doubles.size());
-        result.push_back(values);
-    }
-
-    return result;
+    return ccsds.decode(data_accessor, ranges);
 }
 
 
 std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
+    // TODO(maee): Optimize this
     auto ranges = to_ranges(intervals);
 
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
@@ -439,16 +427,7 @@ std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::
         .binary_scale_factor(binaryScaleFactor_)
         .decimal_scale_factor(decimalScaleFactor_);
 
-    auto doubles_list = simple.decode(data_accessor, ranges);
-
-    // TODO(maee): Optimize: Copying Decompressor::Values to GribJump::Values can be avoided
-    std::vector<Values> result;
-    for (auto &doubles : doubles_list) {
-        Values values((double*) doubles.data(), (double*) doubles.data() + doubles.size());
-        result.push_back(values);
-    }
-
-    return result;
+    return simple.decode(data_accessor, ranges);
 }
 
 
@@ -512,10 +491,6 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
         return a.begin < b.begin;
     });
 
-    std::sort(intervals_and_gaps.begin(), intervals_and_gaps.end(), [](const auto& a, const auto& b) {
-        return a.begin < b.begin;
-    });
-
     for (size_t i = 1; i < intervals_and_gaps.size(); i++) {
         intervals_and_gaps[i].missing_cum = intervals_and_gaps[i-1].missing_cum + intervals_and_gaps[i-1].missing;
     }
@@ -533,9 +508,10 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
 }
 
 
-ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, std::vector<Interval> intervals) const {
+ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
     ASSERT(check_intervals(intervals));
     ASSERT(!sphericalHarmonics_);
+
     std::vector<std::vector<std::bitset<64>>> all_masks;
     std::vector<Values> all_values;
 

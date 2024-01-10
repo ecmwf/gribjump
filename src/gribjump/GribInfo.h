@@ -30,6 +30,7 @@ namespace gribjump {
 
 class JumpHandle;
 void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &n_index, std::queue<size_t> &edges, bool&, size_t&);
+std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap);
 
 class JumpInfo {
 public:
@@ -41,7 +42,7 @@ public:
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
     double extractValue(const JumpHandle&, size_t index) const;
-    ExtractionResult extractRanges(const JumpHandle&, std::vector<std::pair<size_t, size_t>> ranges) const;
+    ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
 
     void print(std::ostream&) const;
     void encode(eckit::Stream&) const;

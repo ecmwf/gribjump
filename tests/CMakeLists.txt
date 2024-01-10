@@ -1,8 +1,8 @@
-#if( NOT EXISTS "${CMAKE_BINARY_DIR}/data" )
-#  execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink"
-#    "${CMAKE_SOURCE_DIR}/data"
-#    "${CMAKE_BINARY_DIR}/data" )
-#endif()
+if( NOT EXISTS "${CMAKE_BINARY_DIR}/data" )
+  execute_process( COMMAND "${CMAKE_COMMAND}" "-E" "create_symlink"
+    "${CMAKE_SOURCE_DIR}/data"
+    "${CMAKE_BINARY_DIR}/data" )
+endif()
 
 list( APPEND gribjump_test_data_files
 const.grib

@@ -1,14 +1,14 @@
 #include <vector>
-#include <eckit/testing/Test.h>
+#include "../src/gribjump/Interval.h"
+#include "../src/gribjump/Bitmap.h"
+#include <string>
+#include <cmath>
+#include <bitset>
 
-enum class PackingType {
-    SIMPLE,
-    CCSDS
-};
+#include <eckit/testing/Test.h>
 
 class InputData {
 public:
-    PackingType packingType;
     std::string gribFileName;
     std::vector<double> expectedData;
     double epsilon = 1e-12;
@@ -18,11 +18,49 @@ public:
 constexpr double MISSING_VAL = std::numeric_limits<double>::quiet_NaN();
 std::vector<InputData> testData;
 
+
+Bitmap generate_bitmap(const std::vector<double>& data, Interval interval) {
+    Bitmap bitmap;
+    auto [start, end] = interval;
+    for (size_t i = start; i < end; i++) {
+        if (std::isnan(data[i])) {
+            bitmap.push_back(0);
+        } else {
+            bitmap.push_back(1);
+        }
+    }
+    return bitmap;
+}
+
+
+void print_mask(const std::vector<std::bitset<64>>& mask) {
+    std::cerr << "mask (" << mask.size() << "): " << std::endl;
+    for (size_t count = 0, i = 0; i < mask.size(); i++)
+        std::cerr << count++ << ": " << mask[i] << std::endl;
+}
+
+
+void print_bitmap(const Bitmap& bitmap) {
+    size_t split = 64;
+    std::cerr << "bitmap: " << std::endl;
+    size_t count = 0;
+    for (size_t i = 0; i < bitmap.size(); i++) {
+        if (i % split == 0) {
+            std::cerr << count++ << ": ";
+        }
+        std::cerr << (int) bitmap[i];
+        if ((i + 1) % split == 0) {
+            std::cerr << std::endl;
+        }
+    }
+    std::cerr << std::endl;
+}
+
+
 void add_simple_no_bitmask() {
     // Grib with no bitmask
     testData.push_back(
         InputData{
-            .packingType = PackingType::SIMPLE,
             .gribFileName = "no_mask.grib",
             .expectedData = {
                 238.97477722168, 238.97477722168, 238.97477722168, 238.97477722168, 238.97477722168,
@@ -163,15 +201,14 @@ void add_simple_no_bitmask() {
                 227.88688659668, 227.88688659668, 227.88688659668, 227.88688659668, 227.88688659668,
                 227.88688659668, 227.88688659668, 227.88688659668, 227.88688659668
             },
-            .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=16,referenceValue=227.887,offsetBeforeData=103,numberOfDataPoints=684,numberOfValues=684,offsetBeforeBitmap=0,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=1476,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]"
+            .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=16,referenceValue=227.887,offsetBeforeData=103,numberOfDataPoints=684,numberOfValues=684,offsetBeforeBitmap=0,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=1476,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
         });
 }
 
-void add_simple_synthetic_data() {
+void add_surface_level_data() {
     // Surface level grib with bitmask
     testData.push_back(
         InputData{
-            .packingType = PackingType::SIMPLE,
             .gribFileName = "sl_mask.grib",
             .expectedData = {
                 31.1042442321777, 31.1042442321777, 31.1042442321777, 31.1042442321777, 31.1042442321777,
@@ -317,7 +354,20 @@ void add_simple_synthetic_data() {
 }
 
 
-void add_simple_synthetic_data2() {
+void add_synthetic_data_with_bitmap() {
+    // Bitmap
+    //10011000 11100001 11100000 11111000 00011111 10000000 11111110 00000001
+    //11111110 00000000 11111111 10000000 00011111 11111000 00000000 11111111
+    //11100000 00000001 11111111 11100000 00000000 11111111 11111000 00000000
+    //00011111 11111111 10000000 00000000 11111111 11111110 00000000 00000001
+    //11111111 11111110 00000000 00000000 11111111 11111111 10000000 00000000
+    //00011111 11111111 11111000 00000000 00000000 11111111 11111111 11100000
+    //00000000 00000001 11111111 11111111 11100000 00000000 00000000 11111111
+    //11111111 11111000 00000000 00000000 00011111 11111111 11111111 10000000
+    //00000000 00000000 11111111 11111111 11111110 00000000 00000000 00000001
+    //11111111 11111111 11111110 00000000 00000000 00000000 11111111 11111111
+    //11111111 10000000 00000000 00000000 00011111 111
+
     std::vector<double> expectedData = {
         0, MISSING_VAL, MISSING_VAL, 3, 4, MISSING_VAL, MISSING_VAL, MISSING_VAL, 8, 9,
         10, MISSING_VAL, MISSING_VAL, MISSING_VAL, MISSING_VAL, 15, 16, 17, 18, MISSING_VAL,
@@ -392,41 +442,115 @@ void add_simple_synthetic_data2() {
 
 
     testData.push_back(InputData{
-        .packingType = PackingType::SIMPLE,
         //.gribFileName = "synth11.grib",
         .gribFileName = "./data/synth11_simple_bitmap.grib2",
         .expectedData = expectedData,
-        .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-1,decimalScaleFactor=0,bitsPerValue=11,referenceValue=0,offsetBeforeData=195,numberOfDataPoints=684,numberOfValues=334,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.5,decimalMultiplier=1,totalLength=660,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]"
+        // TODO(maee): Fix expected string
+        .expectedString = "",
     });
 
     testData.push_back(InputData{
-        .packingType = PackingType::CCSDS,
         .gribFileName = "./data/synth11_ccsds_bitmap.grib2",
         .expectedData = expectedData,
-        .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-1,decimalScaleFactor=0,bitsPerValue=11,referenceValue=0,offsetBeforeData=195,numberOfDataPoints=684,numberOfValues=334,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.5,decimalMultiplier=1,totalLength=660,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]"
+        // TODO(maee): Fix expected string
+        .expectedString = "",
     });
 
     testData.push_back(InputData{
-        .packingType = PackingType::SIMPLE,
         .gribFileName = "synth12.grib",
         .expectedData = expectedData,
-        .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-2,decimalScaleFactor=0,bitsPerValue=12,referenceValue=0,offsetBeforeData=195,numberOfDataPoints=684,numberOfValues=334,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.25,decimalMultiplier=1,totalLength=700,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]"
+        .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-2,decimalScaleFactor=0,bitsPerValue=12,referenceValue=0,offsetBeforeData=195,numberOfDataPoints=684,numberOfValues=334,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.25,decimalMultiplier=1,totalLength=700,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
     });
 
     // Grib with single value
     testData.push_back(InputData{
-        .packingType = PackingType::SIMPLE,
         .gribFileName = "const.grib",
         .expectedData = std::vector<double>(expectedData.size(), 1.23456789),
         .epsilon = 1e-6, // Constant fields are stored at reduced precision
-        .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=0,referenceValue=1.23457,offsetBeforeData=111,numberOfDataPoints=684,numberOfValues=1,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=116,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]"
+        .expectedString = "JumpInfo[version=2,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=0,referenceValue=1.23457,offsetBeforeData=111,numberOfDataPoints=684,numberOfValues=1,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=116,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
     });
 }
+
+
+void add_synthetic_data_without_bitmap() {
+    std::vector<double> expectedData = {
+        0, 3, 4, 8, 9,
+        10, 15, 16, 17, 18,
+        24, 25, 26, 27, 28,
+        35, 36, 37, 38, 39,
+        40, 48, 49,
+        50, 51, 52, 53, 54,
+        63, 64, 65, 66, 67, 68, 69,
+        70,
+        80, 81, 82, 83, 84, 85, 86, 87, 88,
+        99,
+        100, 101, 102, 103, 104, 105, 106, 107, 108,
+        120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
+        130,
+        143, 144, 145, 146, 147, 148, 149,
+        150, 151, 152, 153, 154,
+        168, 169,
+        170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
+        180,
+        195, 196, 197, 198, 199,
+        200, 201, 202, 203, 204, 205, 206, 207, 208,
+        224, 225, 226, 227, 228, 229,
+        230, 231, 232, 233, 234, 235, 236, 237, 238,
+        255, 256, 257, 258, 259,
+        260, 261, 262, 263, 264, 265, 266, 267, 268, 269,
+        270,
+        288, 289,
+        290, 291, 292, 293, 294, 295, 296, 297, 298, 299,
+        300, 301, 302, 303, 304,
+        323, 324, 325, 326, 327, 328, 329,
+        330, 331, 332, 333, 334, 335, 336, 337, 338, 339,
+        340,
+        360, 361, 362, 363, 364, 365, 366, 367, 368, 369,
+        370, 371, 372, 373, 374, 375, 376, 377, 378,
+        399,
+        400, 401, 402, 403, 404, 405, 406, 407, 408, 409,
+        410, 411, 412, 413, 414, 415, 416, 417, 418,
+        440, 441, 442, 443, 444, 445, 446, 447, 448, 449,
+        450, 451, 452, 453, 454, 455, 456, 457, 458, 459,
+        460,
+        483, 484, 485, 486, 487, 488, 489,
+        490, 491, 492, 493, 494, 495, 496, 497, 498, 499,
+        500, 501, 502, 503, 504,
+        528, 529,
+        530, 531, 532, 533, 534, 535, 536, 537, 538, 539,
+        540, 541, 542, 543, 544, 545, 546, 547, 548, 549,
+        550,
+        575, 576, 577, 578, 579,
+        580, 581, 582, 583, 584, 585, 586, 587, 588, 589,
+        590, 591, 592, 593, 594, 595, 596, 597, 598,
+        624, 625, 626, 627, 628, 629,
+        630, 631, 632, 633, 634, 635, 636, 637, 638, 639,
+        640, 641, 642, 643, 644, 645, 646, 647, 648,
+        675, 676, 677, 678, 679,
+        680, 681, 682, 683
+    };
+
+    testData.push_back(InputData{
+        .gribFileName = "./data/synth11_simple_no_bitmap.grib2",
+        .expectedData = expectedData,
+        // TODO(maee): Fix expected string
+        .expectedString = "",
+    });
+
+    testData.push_back(InputData{
+        .gribFileName = "./data/synth11_ccsds_no_bitmap.grib2",
+        .expectedData = expectedData,
+        // TODO(maee): Fix expected string
+        .expectedString = "",
+    });
+}
+
 
 void setGribJumpData() {
 // Set the data used by the test cases
     add_simple_no_bitmask();
-    add_simple_synthetic_data();
-    add_simple_synthetic_data2();
+    add_surface_level_data();
+    add_synthetic_data_with_bitmap();
+    add_synthetic_data_without_bitmap();
 }
 

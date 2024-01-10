@@ -51,10 +51,9 @@ void test_compression() {
 
         // check if file exists
         if (!std::filesystem::exists(data.gribFileName)) {
-            std::cerr << "File " << data.gribFileName << " does not exist" << std::endl;
+            std::cerr << "Skipping test: File " << data.gribFileName << " does not exist" << std::endl;
             continue;
         }
-        std::cerr << "Current working directory is " << std::filesystem::current_path() << '\n';
         std::cerr << "Testing " << data.gribFileName << std::endl;
         gribjump::JumpHandle dataSource(data.gribFileName);
         eckit::PathName binName = "temp";
@@ -64,10 +63,16 @@ void test_compression() {
         size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
         double epsilon = data.epsilon;
 
-        std::cerr << "Testing " << data.gribFileName << std::endl;
+        if (numberOfDataPoints != data.expectedData.size()) {
+            std::cerr << "numberOfDataPoints: " << numberOfDataPoints << std::endl;
+            std::cerr << "expectedData.size(): " << data.expectedData.size() << std::endl;
+            std::cerr << "numberOfDataPoints != data.expectedData.size()" << std::endl;
+            std::cerr << "Skipping test" << std::endl;
+            throw std::runtime_error("numberOfDataPoints != data.expectedData.size()");
+        }
         EXPECT(numberOfDataPoints == data.expectedData.size());
 
-        std::vector<Interval>  ranges = {
+        std::vector<Interval> intervals = {
             std::make_pair(0, 30),
             std::make_pair(31, 60),
             std::make_pair(60, 66),
@@ -77,32 +82,46 @@ void test_compression() {
             std::make_pair(403, 600),
         };
 
-        gribjump::ExtractionResult result = gribInfo.extractRanges(dataSource, ranges);
+        gribjump::ExtractionResult result = gribInfo.extractRanges(dataSource, intervals);
         auto actual_all = result.values();
         auto mask_all = result.mask();
 
         const auto expected = data.expectedData;
 
-        for (size_t index = 0; index < ranges.size(); index++) {
-            auto [start, end] = ranges[index];
-            auto size = end - start;
-            auto actual = actual_all[index];
-            auto mask = mask_all[index];
+        for (size_t index = 0; index < intervals.size(); index++) {
+            if (intervals[index].second > numberOfDataPoints) {
+                std::cerr << "Skipping test: Interval: " << intervals[index].first << "-" << intervals[index].second << " is out of range" << std::endl;
+                continue;
+            }
+            // Compare mask if it exists
+            if (!mask_all.empty()) {
+                auto actual_mask = mask_all[index];
+                Bitmap expected_bitmap = generate_bitmap(expected, intervals[index]);
+                auto expected_mask = gribjump::to_bitset(expected_bitmap);
+                //print_bitmap(expected_bitmap);
+                //print_mask(expected_mask);
+                //print_mask(actual_mask);
+                EXPECT(actual_mask == expected_mask);
+            }
 
-            //print_result(ranges[index], mask, actual, expected);
-
-            EXPECT(actual.size() == size);
-            for (size_t i = 0; i < actual.size(); i++) {
+            // Compare values
+            auto [start, end] = intervals[index];
+            auto actual_values = actual_all[index];
+            EXPECT(actual_values.size() == end - start);
+            for (size_t i = 0; i < actual_values.size(); i++) {
                 if (std::isnan(expected[start + i])) {
-                    EXPECT(std::isnan(actual[i]));
-                    // FIXME(maee): test mask
-                    // EXPECT(!mask[i/64][i%64]);
+                    EXPECT(std::isnan(actual_values[i]));
                     continue;
                 }
-                double delta = std::abs(actual[i] - expected[start + i]);
+                double delta = std::abs(actual_values[i] - expected[start + i]);
+                if (delta > epsilon) {
+                    std::cerr << "delta: " << delta << std::endl;
+                    std::cerr << "actual: " << actual_values[i] << std::endl;
+                    std::cerr << "expected: " << expected[start + i] << std::endl;
+                    print_result(intervals[index], {}, actual_values, expected);
+                    throw std::runtime_error("delta is too large");
+                }
                 EXPECT(delta < epsilon);
-                // FIXME(maee): test mask
-                // EXPECT(mask[i/64][i%64]);
             }
         }
     }

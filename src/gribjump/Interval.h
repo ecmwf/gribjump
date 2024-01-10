@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <vector>
 
 // NOTE: Ranges are treated as half-open intervals [start, end)
