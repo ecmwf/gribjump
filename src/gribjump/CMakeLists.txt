@@ -50,6 +50,24 @@ list( APPEND gribjump_srcs
     remote/GribJumpUser.h
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
+
+    compression/NumericCompressor.cc
+    compression/NumericCompressor.h
+    compression/Range.h
+    compression/Range.cc
+    compression/DataAccessor.h
+    compression/DataAccessor.cc
+
+    compression/compressors/Aec.cc
+    compression/compressors/Aec.h
+    compression/compressors/Simple.cc
+    compression/compressors/Simple.h
+    compression/compressors/Ccsds.cc
+    compression/compressors/Ccsds.h
+
+    compression/compressors/algorithms/SimplePacking.h
+    compression/compressors/algorithms/LibEccodes.h
+    compression/compressors/algorithms/LibEccodes.cc
 )
 
 ecbuild_add_library(
@@ -74,8 +92,5 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
-        ${libaec_LIBRARIES}
-        compressor_api
-        aec_compressor
-        ccsds_compressor
+        ${AEC_LIBRARIES}
 )

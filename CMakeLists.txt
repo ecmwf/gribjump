@@ -16,9 +16,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
 # TODO: these version requirements have been chosen arbitrarily...
-#ecbuild_find_package( NAME simple_packing VERSION 0.0.1 REQUIRED ) # TODO: this is not working yet
-ecbuild_find_package( NAME libaec VERSION 1.1.1 REQUIRED )
-#ecbuild_find_package( NAME compressor VERSION 0.0.1 REQUIRED ) # TODO: this is not working yet
+#find_package( AEC REQUIRED )
+ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED )
 ecbuild_find_package( NAME eckit VERSION 1.24.4 REQUIRED )
 ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
@@ -32,9 +31,9 @@ include(cmake/compiler_warnings.cmake) # optionally handle compiler specific war
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
 include_directories( 
-  ${libaec_INCLUDE_DIRS}
+  ${AEC_INCLUDE_DIRS}
   ${gribjump_INCLUDE_DIRS}
-  ${compressor_INCLUDE_DIRS}
+  ${eckit_INCLUDE_DIRS}
   )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS}" )
