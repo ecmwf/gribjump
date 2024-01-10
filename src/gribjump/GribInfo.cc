@@ -24,8 +24,8 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"
 
-#include <compressor/simple_compressor.h>
-#include <compressor/ccsds_compressor.h>
+#include <compressors/simple_compressor.h>
+#include <compressors/ccsds_compressor.h>
 
 
 using namespace eckit;
