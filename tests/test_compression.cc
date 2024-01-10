@@ -47,8 +47,6 @@ void print_result(const Interval& interval, const std::vector<std::bitset<64>>& 
 
 void test_compression() {
     for (const auto& data : testData) {
-        // print current working directory using STL
-
         // check if file exists
         if (!std::filesystem::exists(data.gribFileName)) {
             std::cerr << "Skipping test: File " << data.gribFileName << " does not exist" << std::endl;

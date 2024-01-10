@@ -63,7 +63,7 @@ bool check_intervals(const std::vector<Interval>& intervals) {
 std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
     const size_t size = bitmap.size();
     std::vector<std::bitset<64>> masks;
-    for (size_t i = 0; i < size / 64 + 1; i++) {
+    for (size_t i = 0; i < (size + 63) / 64; i++) {
         std::bitset<64> mask64;
         for (size_t j = 0; j < 64; j++) {
             if (i * 64 + j < size) {
@@ -72,6 +72,7 @@ std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
         }
         masks.push_back(mask64);
     }
+    assert(masks.size() == (size + 63) / 64);
     return masks;
 }
 
@@ -376,7 +377,7 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
 std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
     auto ranges = to_ranges(intervals);
 
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
 
     mc::CcsdsDecompressor<double> ccsds{};
 
@@ -416,7 +417,7 @@ std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::
     // TODO(maee): Optimize this
     auto ranges = to_ranges(intervals);
 
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
 
     mc::SimpleDecompressor<double> simple{};
     simple
@@ -434,6 +435,12 @@ std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::
 Bitmap JumpInfo::get_bitmap(const JumpHandle& f) const {
     eckit::Offset offset = msgStartOffset_ + offsetBeforeBitmap_;
     auto bitmapSize = (numberOfDataPoints_ + 7) / 8;
+
+    if (bitmapSize == 0)
+        return Bitmap{};
+
+    if (bitsPerValue_ == 0)
+        return Bitmap(numberOfDataPoints_, true);
 
     eckit::Buffer binaryBitmap(numberOfDataPoints_);
     if (f.seek(offset) != offset)
@@ -523,6 +530,10 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
         std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_values), [this](const auto& interval) {
             return Values(interval.second - interval.first, referenceValue_);
         });
+        std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
+            return to_bitset(std::vector(interval.second - interval.first, true));
+        });
+        return ExtractionResult(all_values, all_masks);
     }
 
     std::vector<Values> (JumpInfo::*get_values)(const JumpHandle&, const std::vector<Interval> &) const;
@@ -536,6 +547,9 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
 
     if (!offsetBeforeBitmap_) { // no bitmap
         all_values = (this->*get_values)(f, intervals);
+        std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
+            return to_bitset(std::vector(interval.second - interval.first, true));
+        });
     }
     else { // bitmap
         auto bitmap = get_bitmap(f);

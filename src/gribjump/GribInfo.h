@@ -88,6 +88,9 @@ private:
                                            sizeof(binaryScaleFactor_) + \
                                            sizeof(decimalScaleFactor_) + \
                                            sizeof(bitsPerValue_) + \
+                                           sizeof(ccsdsFlags_) + \
+                                           sizeof(ccsdsBlockSize_) + \
+                                           sizeof(ccsdsRsi_) + \
                                            sizeof(offsetBeforeData_) + \
                                            sizeof(offsetAfterData_) + \
                                            sizeof(offsetBeforeBitmap_) + \
