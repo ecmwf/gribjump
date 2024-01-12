@@ -399,7 +399,7 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
     // Try to get offsets from the data by decoding the entire message
     // TODO(maee): remove this workaround when we have offsets in the GribInfo object
     if (!ccsds.offsets()){
-        ccsds.n_elems(numberOfDataPoints_);
+        ccsds.n_elems(numberOfValues_);
 
         auto encoded = data_accessor->read({0, data_accessor->eof()});
 
@@ -407,6 +407,11 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
             throw std::runtime_error("encoded.size() == 0");
 
         ccsds.decode(encoded); // Decoding the entire message to get offsets
+
+        //auto offsets = ccsds.offsets().value();
+        //size_t expected_number_of_offsets = numberOfValues_ / (ccsdsRsi_ * ccsdsBlockSize_) + 1;
+        //if (offsets.size() != expected_number_of_offsets)
+        //    throw std::runtime_error("Expected " + std::to_string(expected_number_of_offsets) + " offsets, found " + std::to_string(offsets.size()));
     } // WORKAROUND
 
     return ccsds.decode(data_accessor, ranges);

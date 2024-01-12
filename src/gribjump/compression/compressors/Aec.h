@@ -151,7 +151,7 @@ public:
     strm.flags = flags_;
     strm.avail_in  = encoded.size();
     strm.next_in   = reinterpret_cast<const unsigned char*>(encoded.data());
-    strm.avail_out = decoded.size();
+    strm.avail_out = decoded.size() * sizeof(ValueType);
     strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
 
     //print_aec_stream_info(&strm, "Decompressing");
@@ -174,7 +174,6 @@ public:
       throw std::runtime_error("Error getting offsets");
 
     //print_aec_stream_info(&strm, "Decompressing");
-    //print_binary("decode_d      ", encoded.data(), encoded.size());
 
     if (aec_decode_end(&strm) != AEC_OK)
       throw std::runtime_error("Error ending decoder");
@@ -192,7 +191,6 @@ public:
       throw std::runtime_error("bits_per_sample must be between 1 and 16 for 2-byte types");
     if (sizeof(ValueType) == 4 && !(bits_per_sample_ > 16 && bits_per_sample_ <= 32))
       throw std::runtime_error("bits_per_sample must be between 1 and 32 for 4-byte types");
-
 
     if (offsets_.empty())
       throw std::runtime_error("No offsets found");
@@ -225,9 +223,10 @@ public:
     size_t end_offset_bytes = end_idx >= offsets_.size() ? accessor->eof() : (offsets_[end_idx] + 7) / 8;
     //(end_offset + 7) / 8;
 
+    std::vector<size_t> new_offsets_tmp;
+    std::copy(offsets_.begin() + start_idx, offsets_.end(), std::back_inserter(new_offsets_tmp));
     std::vector<size_t> new_offsets;
-    std::copy(offsets_.begin() + start_idx, offsets_.end(), std::back_inserter(new_offsets));
-    std::transform(new_offsets.begin(), new_offsets.end(), new_offsets.begin(), [start_offset_bits] (size_t offset) {
+    std::transform(new_offsets_tmp.begin(), new_offsets_tmp.end(), std::back_inserter(new_offsets), [start_offset_bits] (size_t offset) {
       // Offsets are counted in bits
       // Shift offsets in new_offsets so that they are valid for the data read by the accessor
       return offset - (start_offset_bits >> 3 << 3);
@@ -242,7 +241,7 @@ public:
 
     strm.avail_in  = encoded.size();
     strm.next_in   = reinterpret_cast<const unsigned char*>(encoded.data());
-    strm.avail_out = decoded.size();
+    strm.avail_out = decoded.size() * sizeof(ValueType);
     strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
 
     //print_aec_stream_info(&strm, "Decompressing");
