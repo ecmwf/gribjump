@@ -88,7 +88,7 @@ public:
     strm.avail_out       = out_buf.size();
     strm.next_out        = reinterpret_cast<unsigned char*>(out_buf.data());
 
-    print_aec_stream_info(&strm, "Compressing");
+    //print_aec_stream_info(&strm, "Compressing");
 
     if (aec_encode_init(&strm) != AEC_OK)
       throw std::runtime_error("Error initializing encoder");
@@ -253,6 +253,9 @@ public:
     size_t new_offset_bytes = range_offset_bytes - rsi_size_bytes * start_idx;
     size_t new_size_bytes = range_size_bytes;
     int i = 0;
+
+    if (new_offsets.empty())
+      throw std::runtime_error("AEC offsets list is empty");
 
     if ((err = aec_decode_range(&strm, new_offsets.data(), new_offsets.size(), new_offset_bytes, new_size_bytes)) != AEC_OK) {
       std::cout << "ERROR: " << err << std::endl;

@@ -166,7 +166,6 @@ public:
     auto dscale = codes_power<double>(decimal_scale_factor_, -10);
     auto flags = modify_aec_flags(flags_);
 
-
     size_t nbytes = (bits_per_sample_ + 7) / 8;
     if (nbytes == 3)
       nbytes = 4;

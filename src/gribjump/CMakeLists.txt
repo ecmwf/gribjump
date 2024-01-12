@@ -51,12 +51,10 @@ list( APPEND gribjump_srcs
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
 
-    compression/NumericCompressor.cc
     compression/NumericCompressor.h
     compression/Range.h
     compression/Range.cc
     compression/DataAccessor.h
-    compression/DataAccessor.cc
 
     compression/compressors/Aec.cc
     compression/compressors/Aec.h
