@@ -26,22 +26,10 @@ namespace test {
 void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     EXPECT(gribInfo.ready());
     size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
-    double epsilon = testData[i].epsilon;
+    double epsilon = simplePackedData[i].epsilon;
 
-    // Query each single data point, and compare with expected value
-    std::cout << "Testing " << testData[i].gribFileName << std::endl;
-    EXPECT(numberOfDataPoints == testData[i].expectedData.size());
-
-    // TODO(maee): Chris, this is not working, please review
-    //for (size_t index = 0; index < numberOfDataPoints; index++) {
-    //    double v = gribInfo.extractValue(dataSource, index);
-    //    if (std::isnan(testData[i].expectedData[index]) ) {
-    //        EXPECT(std::isnan(v));
-    //        continue;
-    //    }
-    //    double delta = std::abs(v - testData[i].expectedData[index]);
-    //    EXPECT(delta < epsilon);
-    //}
+    std::cout << "Testing " << simplePackedData[i].gribFileName << std::endl;
+    EXPECT(numberOfDataPoints == simplePackedData[i].expectedData.size());
     // Range of ranges, all at once. Note ranges must not overlap.
 
     std::vector<std::vector<Interval> > rangesVector;
@@ -92,7 +80,7 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
         for (const auto& range : ranges) {
             std::vector<double> expectedRange;
             for (size_t index = std::get<0>(range); index < std::get<1>(range); index++) {
-                expectedRange.push_back(testData[i].expectedData[index]);
+                expectedRange.push_back(simplePackedData[i].expectedData[index]);
             }
             expected.push_back(expectedRange);
         }
@@ -127,8 +115,8 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
 CASE( "test_metkit_gribjump_extract" ) {
     // loop through the test cases, ensure metadata is extracted correctly
     eckit::PathName binName = "temp";
-    for (int i=0; i < testData.size(); i++) {
-        JumpHandle dataSource(testData[i].gribFileName);
+    for (int i=0; i < simplePackedData.size(); i++) {
+        JumpHandle dataSource(simplePackedData[i].gribFileName);
         JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
 
         std::ostringstream out;
@@ -136,8 +124,7 @@ CASE( "test_metkit_gribjump_extract" ) {
         std::string s = out.str();
         s.erase(s.size()-1); // remove newline
 
-        // Check s against expected string testData[i].expectedString
-        EXPECT(s == testData[i].expectedString);
+        EXPECT(s == simplePackedData[i].expectedString);
     }
 
     // delete the temporary file
@@ -147,9 +134,9 @@ CASE( "test_metkit_gribjump_extract" ) {
 CASE( "test_metkit_gribjump_query" ) {
     eckit::PathName binName = "temp";
     // loop through the test cases
-    for (int i = 0; i < testData.size(); i++) {
+    for (int i = 0; i < simplePackedData.size(); i++) {
         // Extract
-        JumpHandle dataSource(testData[i].gribFileName);
+        JumpHandle dataSource(simplePackedData[i].gribFileName);
         JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
         doTest(i, gribInfo, dataSource);
     }
@@ -163,8 +150,8 @@ CASE( "test_metkit_gribjump_query_multimsg" ) {
     // gives the same result as reading from the individual files
 
     std::ofstream f("combine.grib", std::ios::binary);
-    for (int i = 0; i < testData.size(); i++) {
-        std::ifstream testFileStream(testData[i].gribFileName, std::ios::binary);
+    for (int i = 0; i < simplePackedData.size(); i++) {
+        std::ifstream testFileStream(simplePackedData[i].gribFileName, std::ios::binary);
         f << testFileStream.rdbuf();
         // add some junk between some of the files (as long as its not the string GRIB)
         if (i == 1 || i == 3)  f << "junky junk";
@@ -178,7 +165,7 @@ CASE( "test_metkit_gribjump_query_multimsg" ) {
     JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
 
     // loop through the test cases
-    for (int i = 0; i < testData.size(); i++) {
+    for (int i = 0; i < simplePackedData.size(); i++) {
         gribInfo.fromFile(binName, i);
         doTest(i, gribInfo, dataSource);
     }
