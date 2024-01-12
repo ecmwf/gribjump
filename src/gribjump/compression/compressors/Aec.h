@@ -151,7 +151,7 @@ public:
     strm.flags = flags_;
     strm.avail_in  = encoded.size();
     strm.next_in   = reinterpret_cast<const unsigned char*>(encoded.data());
-    strm.avail_out = decoded.size() * sizeof(ValueType);
+    strm.avail_out = decoded.size();
     strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
 
     //print_aec_stream_info(&strm, "Decompressing");
@@ -257,11 +257,9 @@ public:
     if (new_offsets.empty())
       throw std::runtime_error("AEC offsets list is empty");
 
-    if ((err = aec_decode_range(&strm, new_offsets.data(), new_offsets.size(), new_offset_bytes, new_size_bytes)) != AEC_OK) {
-      std::cout << "ERROR: " << err << std::endl;
-      print_aec_stream_info(&strm, "ERROR decode");
+    if ((err = aec_decode_range(&strm, new_offsets.data(), new_offsets.size(), new_offset_bytes, new_size_bytes)) != AEC_OK)
       throw std::runtime_error("Error decoding buffer");
-    }
+
     //print_aec_stream_info(&strm, "Decompressing");
     //print_binary("decode_range_d", decoded.data(), decoded.size());
 

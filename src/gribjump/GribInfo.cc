@@ -376,7 +376,7 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
 
 std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
     auto ranges = to_ranges(intervals);
-    auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, msgStartOffset_ + offsetAfterData_ - offsetBeforeData_ + 1};
+    auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1};
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, data_range);
 
     mc::CcsdsDecompressor<double> ccsds{};
@@ -398,7 +398,6 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
     // Try to get offsets from the data by decoding the entire message
     // TODO(maee): remove this workaround when we have offsets in the GribInfo object
     if (!ccsds.offsets()){
-        std::cout << "WORKAROUND: No offsets found in the GribInfo object. Using offsets from the data." << std::endl;
         ccsds.n_elems(numberOfDataPoints_);
 
         auto encoded = data_accessor->read({0, data_accessor->eof()});
