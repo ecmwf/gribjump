@@ -51,7 +51,7 @@ private: // members
     eckit::PathName timingFname_;
     std::vector<size_t> msgids_;
     size_t singleIndex_;
-    std::vector<std::tuple<size_t, size_t>> rangesVector_;
+    std::vector<std::pair<size_t, size_t>> rangesVector_;
 };
 
 void GribJumpTool::usage(const std::string &tool) const {
@@ -107,7 +107,7 @@ void GribJumpTool::init(const eckit::option::CmdArgs& args) {
         std::cout << "Query range(s): ";
         for (int i = 1; i < args.count(); i+=2){
             std::cout << args(i) << "-" << args(i+1) << ", ";
-            rangesVector_.push_back({std::make_tuple(std::stoi(args(i)), std::stoi(args(i+1)))});
+            rangesVector_.push_back({std::make_pair(std::stoi(args(i)), std::stoi(args(i+1)))});
         }
         std::cout << std::endl;
     }
