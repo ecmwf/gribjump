@@ -376,6 +376,7 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
 
 std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
     auto ranges = to_ranges(intervals);
+
     auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1};
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, data_range);
 

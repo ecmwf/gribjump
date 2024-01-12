@@ -184,7 +184,6 @@ public:
   }
 
 
-
   Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override
   {
     if (sizeof(ValueType) == 1 && !(bits_per_sample_ > 0 && bits_per_sample_ <= 8))
@@ -243,7 +242,7 @@ public:
 
     strm.avail_in  = encoded.size();
     strm.next_in   = reinterpret_cast<const unsigned char*>(encoded.data());
-    strm.avail_out = decoded.size() * sizeof(ValueType);
+    strm.avail_out = decoded.size();
     strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
 
     //print_aec_stream_info(&strm, "Decompressing");

@@ -192,6 +192,9 @@ public:
 
 
   Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override {
+    if (range.second == 0)
+      return Values{};
+
     size_t simple_nbytes = (bits_per_sample_ + 7) / 8;
     if (simple_nbytes == 3)
       simple_nbytes = 4;
