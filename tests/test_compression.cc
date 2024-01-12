@@ -46,12 +46,9 @@ void print_result(const Interval& interval, const std::vector<std::bitset<64>>& 
 
 
 void test_compression() {
+       // TODO(maee): Use expected string in these tests
+
     for (const auto& data : testData) {
-        // check if file exists
-        if (!std::filesystem::exists(data.gribFileName)) {
-            std::cerr << "Skipping test: File " << data.gribFileName << " does not exist" << std::endl;
-            continue;
-        }
         std::cerr << "Testing " << data.gribFileName << std::endl;
         gribjump::JumpHandle dataSource(data.gribFileName);
         eckit::PathName binName = "temp";
