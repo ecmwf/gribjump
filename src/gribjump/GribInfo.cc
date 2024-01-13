@@ -376,8 +376,7 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
 
 std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
     auto ranges = to_ranges(intervals);
-
-    auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1};
+    auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_};
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, data_range);
 
     mc::CcsdsDecompressor<double> ccsds{};
@@ -401,7 +400,7 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
     if (!ccsds.offsets()){
         ccsds.n_elems(numberOfValues_);
 
-        auto encoded = data_accessor->read({0, data_accessor->eof()});
+        auto encoded = data_accessor->read();
 
         if (encoded.size() == 0)
             throw std::runtime_error("encoded.size() == 0");
@@ -409,7 +408,7 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
         ccsds.decode(encoded); // Decoding the entire message to get offsets
 
         //auto offsets = ccsds.offsets().value();
-        //size_t expected_number_of_offsets = numberOfValues_ / (ccsdsRsi_ * ccsdsBlockSize_) + 1;
+        //size_t expected_number_of_offsets = (numberOfValues_ + (ccsdsRsi_ * ccsdsBlockSize_) - 1) / (ccsdsRsi_ * ccsdsBlockSize_);
         //if (offsets.size() != expected_number_of_offsets)
         //    throw std::runtime_error("Expected " + std::to_string(expected_number_of_offsets) + " offsets, found " + std::to_string(offsets.size()));
     } // WORKAROUND
@@ -422,7 +421,7 @@ std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::
     // TODO(maee): Optimize this
     auto ranges = to_ranges(intervals);
 
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_ + 1});
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_});
 
     mc::SimpleDecompressor<double> simple{};
     simple
@@ -521,6 +520,11 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
 ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
     ASSERT(check_intervals(intervals));
     ASSERT(!sphericalHarmonics_);
+    // TODO(maee): do we need this check?
+    //for (const auto& i : intervals) {
+    //    ASSERT(i.first < i.second);
+    //    ASSERT(i.second <= numberOfDataPoints_);
+    //}
 
     std::vector<std::vector<std::bitset<64>>> all_masks;
     std::vector<Values> all_values;

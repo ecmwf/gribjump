@@ -111,12 +111,14 @@ public:
     constexpr size_t chunk_nvals = 8;
     size_t new_offset = offset / chunk_nvals * chunk_nvals;
     size_t end = offset + size;
-    size_t new_size = (end + (chunk_nvals - 1)) / chunk_nvals * chunk_nvals;
+    size_t new_end = (end + (chunk_nvals - 1)) / chunk_nvals * chunk_nvals;
+    size_t new_size = new_end - new_offset;
     Range inclusive_range{new_offset, new_size};
 
     params.n_vals = new_size;
 
-    Range data_range{bin_pos<ValueType>(new_offset, bits_per_value_), bin_pos<ValueType>(new_size, bits_per_value_)};
+    size_t last_pos = std::min(bin_pos<ValueType>(new_size, bits_per_value_), accessor->eof() - bin_pos<ValueType>(new_offset, bits_per_value_));
+    Range data_range{bin_pos<ValueType>(new_offset, bits_per_value_), last_pos};
     eckit::Buffer compressed = accessor->read(data_range);
 
     typename SP::Buffer data{(unsigned char*) compressed.data(), (unsigned char*) compressed.data() + data_range.second};

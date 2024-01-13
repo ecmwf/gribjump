@@ -14,6 +14,7 @@ class DataAccessor {
 public:
     virtual void write(const eckit::Buffer& buffer, const size_t offset) const = 0;
     virtual eckit::Buffer read(const Range& range) const = 0;
+    virtual eckit::Buffer read() const = 0;
     virtual size_t eof() const = 0;
 };
 
@@ -33,6 +34,20 @@ public:
         const auto [offset, size] = range;
         eckit::Buffer buf(size);
         ifs_.seekg(offset, std::ios::beg);
+        ifs_.read(reinterpret_cast<char*>(buf.data()), size);
+        if (!ifs_) {
+            std::cerr << "Error: only " << ifs_.gcount() << " could be read" << std::endl;
+            throw std::runtime_error("Error reading file");
+        }
+        assert(size != 0);
+        return eckit::Buffer{buf.data(), size};
+    }
+
+    eckit::Buffer read() const override {
+        ifs_.seekg(0, std::ios::end);
+        size_t size = ifs_.tellg();
+        ifs_.seekg(0, std::ios::beg);
+        eckit::Buffer buf(size);
         ifs_.read(reinterpret_cast<char*>(buf.data()), size);
         if (!ifs_) {
             std::cerr << "Error: only " << ifs_.gcount() << " could be read" << std::endl;
@@ -66,6 +81,10 @@ public:
             throw std::runtime_error("Out of range");
         }
         return eckit::Buffer{reinterpret_cast<const char*>(buf_.data()) + offset, size};
+    }
+
+    eckit::Buffer read() const override {
+        return eckit::Buffer{buf_.data(), buf_.size()};
     }
 
     size_t eof() const override {

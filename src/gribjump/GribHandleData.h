@@ -60,7 +60,7 @@ private:
 
 class GribJumpDataAccessor : public mc::DataAccessor {
 public:
-    GribJumpDataAccessor(const JumpHandle* jh, mc::Range range) : jh_{jh}, range_{range} {}
+    GribJumpDataAccessor(const JumpHandle* jh, mc::Range range) : jh_{jh}, data_section_range_{range} {}
 
     void write(const eckit::Buffer& buffer, const size_t offset) const override {
         throw std::runtime_error("Not implemented");
@@ -69,20 +69,27 @@ public:
     eckit::Buffer read(const mc::Range& range) const override {
         const auto [offset, size] = range;
         eckit::Buffer buf(size);
-        const auto [data_start_offset_, size_] = range_;
-        jh_->seek(data_start_offset_ + offset);
-        jh_->read(reinterpret_cast<char*>(buf.data()), size);
+        const auto [data_section_offset, data_section_size] = data_section_range_;
+        if (offset + size > data_section_size)
+            throw std::runtime_error("Read access outside data section: " + std::to_string(offset) + " + " + std::to_string(size) + " > " + std::to_string(data_section_size));
+        if (jh_->seek(data_section_offset + offset) != (eckit::Offset) (data_section_offset + offset))
+            throw std::runtime_error("Failed to seek to offset in grib file");
+        if (jh_->read(reinterpret_cast<char*>(buf.data()), size) != size)
+            throw std::runtime_error("Failed to read from grib file");
         return buf;
     }
 
+    eckit::Buffer read() const override {
+        return read({0, data_section_range_.second});
+    }
+
     size_t eof() const override {
-        const auto [data_start_offset_, size_] = range_;
-        return data_start_offset_ + size_;
+        return data_section_range_.second;
     }
 
 private:
     const JumpHandle* jh_;
-    mc::Range range_;
+    mc::Range data_section_range_;
 };
 
 

@@ -67,7 +67,7 @@ void test_compression() {
         }
         EXPECT(numberOfDataPoints == data.expectedData.size());
 
-        std::vector<Interval> intervals = {
+        std::vector<Interval> all_intervals = {
             std::make_pair(0, 30),
             std::make_pair(31, 60),
             std::make_pair(60, 66),
@@ -77,6 +77,11 @@ void test_compression() {
             std::make_pair(403, 600),
         };
 
+        std::vector<Interval> intervals;
+        std::copy_if(all_intervals.begin(), all_intervals.end(), std::back_inserter(intervals), [&](const auto& interval) {
+            return interval.second <= numberOfDataPoints && interval.first < interval.second;
+        });
+
         gribjump::ExtractionResult result = gribInfo.extractRanges(dataSource, intervals);
         auto actual_all = result.values();
         auto mask_all = result.mask();
@@ -84,10 +89,6 @@ void test_compression() {
         const auto expected = data.expectedData;
 
         for (size_t index = 0; index < intervals.size(); index++) {
-            if (intervals[index].second > numberOfDataPoints) {
-                std::cerr << "Skipping test: Interval: " << intervals[index].first << "-" << intervals[index].second << " is out of range" << std::endl;
-                continue;
-            }
             // Compare mask if it exists
             if (!mask_all.empty()) {
                 auto actual_mask = mask_all[index];
