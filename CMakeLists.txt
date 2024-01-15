@@ -15,13 +15,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-# TODO: these version requirements have been chosen arbitrarily...
-#find_package( AEC REQUIRED )
 ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED )
-ecbuild_find_package( NAME eckit VERSION 1.24.4 REQUIRED )
-ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
+ecbuild_find_package( NAME eckit VERSION 1.25.2 REQUIRED )
+ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
-ecbuild_find_package( NAME fdb5 VERSION 5.11 REQUIRED ) # TODO: Will have to support axes requests...
+ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED ) # TODO: Will have to support axes requests...
 
 ########################################################################################################################
 # contents
