@@ -112,7 +112,7 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     std::cout << std::endl;
 
 }
-CASE( "test_metkit_gribjump_extract" ) {
+CASE( "test_gribjump_extract" ) {
     // loop through the test cases, ensure metadata is extracted correctly
     eckit::PathName binName = "temp";
     for (int i=0; i < simplePackedData.size(); i++) {
@@ -131,7 +131,7 @@ CASE( "test_metkit_gribjump_extract" ) {
     eckit::PathName(binName).unlink();
 }
 
-CASE( "test_metkit_gribjump_query" ) {
+CASE( "test_gribjump_query" ) {
     eckit::PathName binName = "temp";
     // loop through the test cases
     for (int i = 0; i < simplePackedData.size(); i++) {
@@ -145,7 +145,7 @@ CASE( "test_metkit_gribjump_query" ) {
     eckit::PathName(binName).unlink();
 }
 
-CASE( "test_metkit_gribjump_query_multimsg" ) {
+CASE( "test_gribjump_query_multimsg" ) {
     // concatenate each test file into one big file, and check that reading from that file
     // gives the same result as reading from the individual files
 
@@ -166,7 +166,7 @@ CASE( "test_metkit_gribjump_query_multimsg" ) {
 
     // loop through the test cases
     for (int i = 0; i < simplePackedData.size(); i++) {
-        gribInfo.fromFile(binName, i);
+        gribInfo = JumpInfo::fromFile(binName, i);
         doTest(i, gribInfo, dataSource);
     }
 
@@ -174,7 +174,8 @@ CASE( "test_metkit_gribjump_query_multimsg" ) {
     eckit::PathName(binName).unlink();
 }
 
-CASE( "test_metkit_gribjump_accedges1" ) {
+// XXX I don't believe the below code is used anywhere anymore, so we are testing unused code.
+CASE( "test_gribjump_accedges1" ) {
     // unit test for accumulateIndexes function
     // Testing handling of single words
     size_t MASKED = -1;
@@ -270,7 +271,7 @@ CASE( "test_metkit_gribjump_accedges1" ) {
     }
 }
 
-CASE( "test_metkit_gribjump_accedges2" ) {
+CASE( "test_gribjump_accedges2" ) {
     // unit test for accumulateIndexes function
     // Testing handling of multiple words
 

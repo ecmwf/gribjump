@@ -18,6 +18,7 @@
 #include <cmath> // isnan. Temp, only for debug, remove later.
 #include <memory>
 #include "eckit/io/DataHandle.h"
+#include "eckit/serialisation/FileStream.h"
 #include "eckit/utils/MD5.h"
 #include "metkit/codes/GribAccessor.h"
 #include "gribjump/GribHandleData.h"
@@ -49,7 +50,6 @@ std::vector<mc::Range> to_ranges(const std::vector<Interval>& intervals) {
     return ranges;
 }
 
-
 // Check that intervals are sorted and non-overlapping
 bool check_intervals(const std::vector<Interval>& intervals) {
     std::vector<char> check;
@@ -58,7 +58,6 @@ bool check_intervals(const std::vector<Interval>& intervals) {
     });
     return std::all_of(check.begin(), check.end(), [](char c) { return c; });
 }
-
 
 std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
     const size_t size = bitmap.size();
@@ -75,7 +74,6 @@ std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
     assert(masks.size() == (size + 63) / 64);
     return masks;
 }
-
 
 static GribAccessor<long>          editionNumber("editionNumber");
 static GribAccessor<long>          bitmapPresent("bitmapPresent");
@@ -108,50 +106,34 @@ static int bits[65536] = {
 #include "metkit/pointdb/bits.h"
 };
 
-//// clang, gcc 10+
-//#if defined(__has_builtin)
-//    #if __has_builtin(__builtin_popcountll)
-//        #define POPCOUNT_AVAILABLE 1
-//    #else
-//        #define POPCOUNT_AVAILABLE 0
-//    #endif
-//// gcc 3.4+
-//#elif defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4))
-//    #define POPCOUNT_AVAILABLE 1
-//#else
-//    #define POPCOUNT_AVAILABLE 0
-//#endif
+JumpInfo JumpInfo::fromFile(const eckit::PathName& path, uint16_t msg_id) {
+    // File has a vector of offsets to each info object.
+    // Read the offsets, then read the msg_id'th info object.
+
+    JumpInfo info;
+    eckit::FileStream f(path, "r");
+    size_t n;
+    f >> n;
+    for (size_t i = 0; i < n; i++) {
+        JumpInfo info(f);
+        if (i == msg_id) {
+            f.close();
+            return info;
+        }
+    }
+    f.close();
+
+    // hit eof without returning
+    std::stringstream ss;
+    ss << "msg_id " << msg_id << " not found in file " << path;
+    throw JumpException(ss.str(), Here());
+}
+
+JumpInfo::JumpInfo():version_(currentVersion_), numberOfValues_(0)
+ {}
 
 
-//static inline int count_bits(unsigned long long n) {
-//    if (POPCOUNT_AVAILABLE) {
-//        return __builtin_popcountll(n);
-//    }
-//    // TODO(Chris): see also _mm_popcnt_u64 in <immintrin.h>, but not suitable for ARM
-//    // fallback: lookup table
-//    return bits[n         & 0xffffu]
-//           +  bits[(n >> 16) & 0xffffu]
-//           +  bits[(n >> 32) & 0xffffu]
-//           +  bits[(n >> 48) & 0xffffu];
-//}
-
-
-//static inline uint64_t reverse_bytes(uint64_t n) {
-//    return ((n & 0x00000000000000FF) << 56) |
-//           ((n & 0x000000000000FF00) << 40) |
-//           ((n & 0x0000000000FF0000) << 24) |
-//           ((n & 0x00000000FF000000) << 8) |
-//           ((n & 0x000000FF00000000) >> 8) |
-//           ((n & 0x0000FF0000000000) >> 24) |
-//           ((n & 0x00FF000000000000) >> 40) |
-//           ((n & 0xFF00000000000000) >> 56);
-//}
-
-
-JumpInfo::JumpInfo():numberOfValues_(0) {}
-
-
-JumpInfo::JumpInfo(const GribHandle& h):numberOfValues_(0) {
+JumpInfo::JumpInfo(const GribHandle& h):version_(currentVersion_), numberOfValues_(0) {
     update(h);
 }
 
@@ -178,8 +160,14 @@ void JumpInfo::update(const GribHandle& h) {
     totalLength_        = totalLength(h);
     md5GridSection_     = md5GridSection(h);
     packingType_        = packingType(h);
-    bitmapPresent_ = bitmapPresent(h);
 
+    if (!(packingType_ == "grid_ccsds" || packingType_ == "grid_simple")) {
+        std::stringstream ss;
+        ss << "Unsupported packing type: " << packingType_;
+        throw JumpException(ss.str(), Here());
+    }
+
+    bitmapPresent_ = bitmapPresent(h);
     constexpr size_t offsetToBitmap = 6;
     if (bitmapPresent_) {
         offsetBeforeBitmap_ = editionNumber_ == 1? offsetBeforeBitmap(h) : offsetBSection6(h) + offsetToBitmap;
@@ -206,6 +194,7 @@ JumpInfo::JumpInfo(eckit::Stream& s) {
     s >> bitsPerValue_;
     s >> referenceValue_;
     s >> offsetBeforeData_;
+    s >> offsetAfterData_;
     s >> numberOfDataPoints_;
     s >> numberOfValues_;
     s >> offsetBeforeBitmap_;
@@ -220,7 +209,10 @@ JumpInfo::JumpInfo(eckit::Stream& s) {
     s >> packing;
     md5GridSection_ = md5;
     packingType_ = packing;
-
+    s >> ccsdsFlags_;
+    s >> ccsdsBlockSize_;
+    s >> ccsdsRsi_;
+    s >> ccsdsOffsets_;
 }
 
 void JumpInfo::encode(eckit::Stream& s) const {
@@ -231,6 +223,7 @@ void JumpInfo::encode(eckit::Stream& s) const {
     s << bitsPerValue_;
     s << referenceValue_;
     s << offsetBeforeData_;
+    s << offsetAfterData_;
     s << numberOfDataPoints_;
     s << numberOfValues_;
     s << offsetBeforeBitmap_;
@@ -239,8 +232,41 @@ void JumpInfo::encode(eckit::Stream& s) const {
     s << decimalMultiplier_;
     s << totalLength_;
     s << msgStartOffset_;
-    s << md5GridSection_ ;
+    s << md5GridSection_;
     s << packingType_;
+    s << ccsdsFlags_;
+    s << ccsdsBlockSize_;
+    s << ccsdsRsi_;
+    s << ccsdsOffsets_;
+}
+
+size_t JumpInfo::streamSize() const {
+    size_t size = 0;
+    size += sizeof(version_);
+    size += sizeof(editionNumber_);
+    size += sizeof(binaryScaleFactor_);
+    size += sizeof(decimalScaleFactor_);
+    size += sizeof(bitsPerValue_);
+    size += sizeof(referenceValue_);
+    size += sizeof(offsetBeforeData_);
+    size += sizeof(numberOfDataPoints_);
+    size += sizeof(numberOfValues_);
+    size += sizeof(offsetBeforeBitmap_);
+    size += sizeof(sphericalHarmonics_);
+    size += sizeof(binaryMultiplier_);
+    size += sizeof(decimalMultiplier_);
+    size += sizeof(totalLength_);
+    size += sizeof(msgStartOffset_);
+    size += md5GridSection_.size();
+    size += packingType_.size();
+    size += sizeof(ccsdsFlags_);
+    size += sizeof(ccsdsBlockSize_);
+    size += sizeof(ccsdsRsi_);
+    size += sizeof(size_t) * ccsdsOffsets_.size();
+    // Assert that the type of elements in ccsdsOffsets_ is size_t.
+    // As this may change in the future.
+    static_assert(std::is_same_v<decltype(ccsdsOffsets_)::value_type, size_t>);
+    return size;
 }
 
 void JumpInfo::print(std::ostream& s) const {
@@ -269,80 +295,6 @@ void JumpInfo::print(std::ostream& s) const {
     s << "]";
     s << std::endl;
 }
-
-void JumpInfo::toFile(eckit::PathName pathname, bool append){
-    // TODO: Replace this to use encode.
-
-    std::unique_ptr<DataHandle> dh(pathname.fileHandle());
-    version_ = currentVersion_;
-
-    append ? dh->openForAppend(0) : dh->openForWrite(0);
-
-    dh->write(&version_, sizeof(version_));
-    dh->write(&editionNumber_, sizeof(editionNumber_));
-    dh->write(&binaryScaleFactor_, sizeof(binaryScaleFactor_));
-    dh->write(&decimalScaleFactor_, sizeof(decimalScaleFactor_));
-    dh->write(&bitsPerValue_, sizeof(bitsPerValue_));
-    dh->write(&ccsdsFlags_, sizeof(ccsdsFlags_));
-    dh->write(&ccsdsBlockSize_, sizeof(ccsdsBlockSize_));
-    dh->write(&ccsdsRsi_, sizeof(ccsdsRsi_));
-    dh->write(&referenceValue_, sizeof(referenceValue_));
-    dh->write(&offsetBeforeData_, sizeof(offsetBeforeData_));
-    dh->write(&offsetAfterData_, sizeof(offsetAfterData_));
-    dh->write(&numberOfDataPoints_, sizeof(numberOfDataPoints_));
-    dh->write(&numberOfValues_, sizeof(numberOfValues_));
-    dh->write(&offsetBeforeBitmap_, sizeof(offsetBeforeBitmap_));
-    dh->write(&sphericalHarmonics_, sizeof(sphericalHarmonics_));
-    dh->write(&binaryMultiplier_, sizeof(binaryMultiplier_));
-    dh->write(&decimalMultiplier_, sizeof(decimalMultiplier_));
-    dh->write(&totalLength_, sizeof(totalLength_));
-    dh->write(&msgStartOffset_, sizeof(msgStartOffset_));
-    dh->write(md5GridSection_.data(), md5GridSection_.size());
-    dh->write(packingType_.data(), packingType_.size());
-    dh->close();
-}
-
-
-void JumpInfo::fromFile(eckit::PathName pathname, uint16_t msg_id){
-    // TODO: Replace this to use the Stream constructor.
-
-    std::unique_ptr<DataHandle> dh(pathname.fileHandle());
-
-    dh->openForRead();
-    dh->seek(msg_id*metadataSize);
-    // make sure we aren't reading past the end of the file
-    ASSERT(dh->position() + eckit::Offset(metadataSize) <= dh->size());
-    dh->read(&version_, sizeof(version_));
-    if (version_ != currentVersion_) {
-        std::stringstream ss;
-        ss << "Bad JumpInfo version found in " << pathname;
-        dh->close();
-        throw JumpException(ss.str(), Here());
-    }
-    dh->read(&editionNumber_, sizeof(editionNumber_));
-    dh->read(&binaryScaleFactor_, sizeof(binaryScaleFactor_));
-    dh->read(&decimalScaleFactor_, sizeof(decimalScaleFactor_));
-    dh->read(&bitsPerValue_, sizeof(bitsPerValue_));
-    dh->read(&ccsdsFlags_, sizeof(ccsdsFlags_));
-    dh->read(&ccsdsBlockSize_, sizeof(ccsdsBlockSize_));
-    dh->read(&ccsdsRsi_, sizeof(ccsdsRsi_));
-    dh->read(&referenceValue_, sizeof(referenceValue_));
-    dh->read(&offsetBeforeData_, sizeof(offsetBeforeData_));
-    dh->read(&offsetAfterData_, sizeof(offsetAfterData_));
-    dh->read(&numberOfDataPoints_, sizeof(numberOfDataPoints_));
-    dh->read(&numberOfValues_, sizeof(numberOfValues_));
-    dh->read(&offsetBeforeBitmap_, sizeof(offsetBeforeBitmap_));
-    dh->read(&sphericalHarmonics_, sizeof(sphericalHarmonics_));
-    dh->read(&binaryMultiplier_, sizeof(binaryMultiplier_));
-    dh->read(&decimalMultiplier_, sizeof(decimalMultiplier_));
-    dh->read(&totalLength_, sizeof(totalLength_));
-    dh->read(&msgStartOffset_, sizeof(msgStartOffset_));
-    dh->read(md5GridSection_.data(), md5GridSection_.size());
-    dh->read(packingType_.data(), packingType_.size());
-    dh->close();
-
-}
-
 
 // n: 64-bit word from bitmap
 // count: number of set bits in previous words
@@ -373,6 +325,26 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
     }
 }
 
+void JumpInfo::updateCcsdsOffsets(const JumpHandle& f){
+    if (packingType_ != "grid_ccsds") return;
+
+    auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_};
+
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, data_range);
+    mc::CcsdsDecompressor<double> ccsds{};
+    
+    // Try to get offsets from the data by decoding the entire message
+    ccsds.n_elems(numberOfValues_);
+
+    auto encoded = data_accessor->read();
+    if (encoded.size() == 0)
+        throw std::runtime_error("encoded.size() == 0");
+
+    ccsds.decode(encoded); // Decoding the entire message to get offsets
+
+    ccsdsOffsets_ = ccsds.offsets().value();
+
+}
 
 std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
     auto ranges = to_ranges(intervals);
@@ -381,8 +353,8 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
 
     mc::CcsdsDecompressor<double> ccsds{};
 
-    // TODO(maee): (IMPORTANT!!!) get offsets from the GribInfo object
-    //std::vector<size_t> offsets = ...
+    // We assume offsets have already been read by now.
+    ASSERT(ccsdsOffsets_.size() > 0);
 
     ccsds
         .flags(ccsdsFlags_)
@@ -391,31 +363,11 @@ std::vector<Values> JumpInfo::get_ccsds_values(const JumpHandle& f, const std::v
         .rsi(ccsdsRsi_)
         .reference_value(referenceValue_)
         .binary_scale_factor(binaryScaleFactor_)
-        .decimal_scale_factor(decimalScaleFactor_);
-        //.offsets(offsets);
-
-    // WORKAROUND:
-    // Try to get offsets from the data by decoding the entire message
-    // TODO(maee): remove this workaround when we have offsets in the GribInfo object
-    if (!ccsds.offsets()){
-        ccsds.n_elems(numberOfValues_);
-
-        auto encoded = data_accessor->read();
-
-        if (encoded.size() == 0)
-            throw std::runtime_error("encoded.size() == 0");
-
-        ccsds.decode(encoded); // Decoding the entire message to get offsets
-
-        //auto offsets = ccsds.offsets().value();
-        //size_t expected_number_of_offsets = (numberOfValues_ + (ccsdsRsi_ * ccsdsBlockSize_) - 1) / (ccsdsRsi_ * ccsdsBlockSize_);
-        //if (offsets.size() != expected_number_of_offsets)
-        //    throw std::runtime_error("Expected " + std::to_string(expected_number_of_offsets) + " offsets, found " + std::to_string(offsets.size()));
-    } // WORKAROUND
+        .decimal_scale_factor(decimalScaleFactor_)
+        .offsets(ccsdsOffsets_);
 
     return ccsds.decode(data_accessor, ranges);
 }
-
 
 std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::vector<Interval> &intervals) const {
     // TODO(maee): Optimize this
@@ -432,7 +384,6 @@ std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::
 
     return simple.decode(data_accessor, ranges);
 }
-
 
 // Read the entire bitmap from a GRIB file
 // TODO(maee): optimization: read only the bitmap for the requested interval
@@ -460,7 +411,6 @@ Bitmap JumpInfo::get_bitmap(const JumpHandle& f) const {
 
     return bitmap;
 }
-
 
 // Recalculate intervals using the bitmap
 // This is necessary because data section does not contain missing values
@@ -515,7 +465,6 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
 
     return std::make_pair(new_intervals, new_interval_bitmaps);
 }
-
 
 ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
     ASSERT(check_intervals(intervals));
@@ -581,16 +530,6 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
     return ExtractionResult(all_values, all_masks);
 }
 
-
-// TODO(maee): For testing purposes (can be removed?)
-double JumpInfo::extractValue(const JumpHandle& f, size_t index) const {
-    throw std::runtime_error("not implemented");
-}
-
-// TODO(maee): For testing purposes (can be removed?)
-double JumpInfo::readDataValue(const JumpHandle& f, size_t index) const {
-    throw std::runtime_error("not implemented");
-}
 
 } // namespace gribjump
 

@@ -16,6 +16,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/serialisation/FileStream.h"
 #include "metkit/codes/GribHandle.h"
 #include "gribjump/GribHandleData.h"
 #include "gribjump/GribInfo.h"
@@ -87,36 +88,43 @@ const JumpInfo& JumpHandle::extractInfoFromFile(eckit::PathName& outName){
 
     // extract metadata from each message to a binary file
     eckit::Offset offset = 0;
+    std::vector<JumpInfo> infos;
     for (size_t i = 0; i < n; i++) {
         open();
         metkit::grib::GribHandle h(*handle_, offset);
-        info_.update(h);
+        JumpInfo info;
+        info.update(h);
         unsigned long fp = handle_->position();
-        info_.setStartOffset(fp - info_.length());
+        info.setStartOffset(fp - info.length());
         offset = handle_->position();
-        info_.toFile(outName, i!=0);
+        info.updateCcsdsOffsets(*this); // XXX Pretty inelgeant. Honestly all of this is.
+        infos.push_back(info);
 
         // XXX: On linux, fp is wrong if handle is not closed and reopened.
         close();
     }
+    
+    eckit::FileStream out(outName, "w");
+    size_t nInfo = infos.size();
+    out << nInfo;
+    for (const auto& info : infos) {
+        out << info;
+        std::cout << "Wrote info to file: " << info << std::endl;
+    }
+    out.close();
+
+    info_ = infos.back(); // by default. XXX Do we still need this? It's ugly.
     return info_;
 }
 
 const JumpInfo& JumpHandle::extractInfo(){
     // Note: Requires handle at start of message, and will advance handle to end of message.
     open();
-
-    // Explicitly check we are at beginning of GRIB message
     eckit::Offset initialPos = handle_->position();
-    // char buffer[4]; // todo: avoid the rewind. move this logic outside. wip.
-    // ASSERT(read(buffer, 4) == 4);
-    // ASSERT(strncmp(buffer, "GRIB", 4) == 0);
-    // ASSERT(seek(initialPos) == initialPos);
-
     metkit::grib::GribHandle h(*handle_, initialPos);
     info_.update(h);
-    //eckit::Offset endOfField = initialPos + eckit::Offset(info_.length());
-    // ASSERT(seek(endOfField) == endOfField); // In anticipation of next call
+    info_.setStartOffset(0);
+    info_.updateCcsdsOffsets(*this); 
     return info_;
 }
 

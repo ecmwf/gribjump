@@ -95,22 +95,15 @@ void GribJumpTool::init(const eckit::option::CmdArgs& args) {
 
     if (!doQuery_) return;
 
-    if (args.count() == 2){
-        doRange_ = false;
-        std::cout << "Query single point" << std::endl;
-        std::cout << "index: " << args(1) << std::endl;
-        singleIndex_ = std::stoi(args(1));
-    } else {
-        doRange_ = true;
-        // note ranges must have a start and end
-        ASSERT(args.count() % 2 == 1);
-        std::cout << "Query range(s): ";
-        for (int i = 1; i < args.count(); i+=2){
-            std::cout << args(i) << "-" << args(i+1) << ", ";
-            rangesVector_.push_back({std::make_pair(std::stoi(args(i)), std::stoi(args(i+1)))});
-        }
-        std::cout << std::endl;
+    doRange_ = true;
+    // note ranges must have a start and end
+    ASSERT(args.count() % 2 == 1);
+    std::cout << "Query range(s): ";
+    for (int i = 1; i < args.count(); i+=2){
+        std::cout << args(i) << "-" << args(i+1) << ", ";
+        rangesVector_.push_back({std::make_pair(std::stoi(args(i)), std::stoi(args(i+1)))});
     }
+    std::cout << std::endl;
 }
 
 void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
@@ -131,7 +124,7 @@ void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
     if (doQuery_){
         for (auto msg : msgids_){
             std::cout << "Grib file: " << gribFileName_ << ", jump info file: " << binFileName_ << ", msg id: " << msg << std::endl;
-            gribInfo.fromFile(binFileName_, msg);
+            gribInfo = JumpInfo::fromFile(binFileName_, msg);
         
             ASSERT(gribInfo.ready());
 
@@ -149,12 +142,6 @@ void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
                     }
                     std::cout << std::endl;
                 }
-            }
-            else{
-                size_t index = std::stoi(args(1));
-                std::cout << "Query index " << index << " in " << gribFileName_ << std::endl;
-                double v = gribInfo.extractValue(dataSource, index);
-                std::cout << "Value: " << v << std::endl;
             }
         }
     }
