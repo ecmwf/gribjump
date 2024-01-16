@@ -7,6 +7,7 @@ synth11.grib
 synth12.grib
 synth11_ccsds_bitmap.grib2
 synth11_ccsds_no_bitmap.grib2
+extract_ranges.grib
 )
 
 list( APPEND gribjump_test_O1280_data_files
@@ -39,6 +40,14 @@ ecbuild_add_test( TARGET    "gribjump_test_gribjump"
 
 ecbuild_add_test( TARGET    "gribjump_test_compression"
     SOURCES   "test_compression.cc"
+    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT   "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS      gribjump)
+
+ecbuild_add_test( TARGET "gribjump_test_api"
+    SOURCES   "test_api.cc"
     INCLUDES  "${ECKIT_INCLUDE_DIRS}"
     ENVIRONMENT   "${gribjump_env}"
     TEST_DEPENDS gribjump_test_data_files
