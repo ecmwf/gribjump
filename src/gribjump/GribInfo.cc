@@ -332,8 +332,14 @@ void JumpInfo::updateCcsdsOffsets(const JumpHandle& f){
 
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, data_range);
     mc::CcsdsDecompressor<double> ccsds{};
-    
-    // Try to get offsets from the data by decoding the entire message
+    ccsds
+        .flags(ccsdsFlags_)
+        .bits_per_sample(bitsPerValue_)
+        .block_size(ccsdsBlockSize_)
+        .rsi(ccsdsRsi_)
+        .reference_value(referenceValue_)
+        .binary_scale_factor(binaryScaleFactor_)
+        .decimal_scale_factor(decimalScaleFactor_);
     ccsds.n_elems(numberOfValues_);
 
     auto encoded = data_accessor->read();
