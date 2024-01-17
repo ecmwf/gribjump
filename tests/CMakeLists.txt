@@ -8,6 +8,7 @@ synth12.grib
 synth11_ccsds_bitmap.grib2
 synth11_ccsds_no_bitmap.grib2
 extract_ranges.grib
+schema
 )
 
 list( APPEND gribjump_test_O1280_data_files
