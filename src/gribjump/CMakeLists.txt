@@ -85,7 +85,7 @@ ecbuild_add_library(
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 
     PUBLIC_LIBS
-        stdc++fs
+    #stdc++fs
         fdb5
         metkit
         eckit
