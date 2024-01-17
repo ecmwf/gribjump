@@ -31,9 +31,8 @@ public:
 private:
     debugApp(const debugApp&);
 
-    virtual void run() override {
+    void run() override {
         eckit::Log::info() << "debug app running" << std::endl;
-
 
         gribjump::GribJump gj;
 

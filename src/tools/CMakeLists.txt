@@ -5,10 +5,10 @@ ecbuild_add_executable( TARGET   gj-server
 )
 
 ecbuild_add_executable( TARGET   grib-jump
-    SOURCES   grib-jump.cc
-    INCLUDES  ${ECKIT_INCLUDE_DIRS}
-    LIBS      gribjump
-)
+  SOURCES   grib-jump.cc
+  INCLUDES  ${ECKIT_INCLUDE_DIRS}
+  LIBS      gribjump
+    )
 
 ecbuild_add_executable( TARGET   gj-extract
     SOURCES   gj-extract.cc

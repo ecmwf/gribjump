@@ -70,7 +70,7 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     for (const auto& range : ranges) {
         std::vector<std::string> kv = eckit::StringTools::split("-", range);
         ASSERT(kv.size() == 2);
-        rangevec.push_back(std::make_tuple(std::stoi(kv[0]), std::stoi(kv[1])));
+        rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
     }
 
     *request = new gribjump_extraction_request_t(mreq, rangevec);
@@ -78,7 +78,7 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     std::cout << **request << std::endl;
 
     return 0;
-} 
+}
 
 int gribjump_delete_request(gribjump_extraction_request_t* request) {
     ASSERT(request);
@@ -111,7 +111,7 @@ int gribjump_result_values(gribjump_extraction_result_t* result, double*** value
 
 int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks){
     // makes a copy of the mask, converting from bitset to uint64_t
-    // TODO: Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
+    // TODO(Chris): Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
     ASSERT(result);
     std::vector<std::vector<std::bitset<64>>> msk = result->mask();
     *nrange = msk.size();

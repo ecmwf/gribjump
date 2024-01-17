@@ -50,4 +50,4 @@ std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std:
     return out;
 }
 
-} // namespace GribJump
+} // namespace gribjump

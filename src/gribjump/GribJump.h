@@ -24,7 +24,7 @@
 
 namespace gribjump {
 
-using Range = std::tuple<size_t, size_t>;
+using Interval = std::pair<size_t, size_t>;
 
 // Gribjump API
 
@@ -35,14 +35,12 @@ public:
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> requests);
 
-    std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
+    std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Interval> ranges);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 
 private:
     std::unique_ptr<GribJumpBase> internal_;
     Config config_;
-  
 };
-} // namespace GribJump
-
+} // namespace gribjump

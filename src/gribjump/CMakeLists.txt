@@ -18,7 +18,7 @@ list( APPEND gribjump_srcs
     gribjump_config.h.in
     gribjump_version.c.in
     gribjump_version.h.in
-    
+
     gribjump_c.cc
     gribjump_c.h
 
@@ -37,7 +37,8 @@ list( APPEND gribjump_srcs
     LocalGribJump.h
     GribJumpFactory.cc
     GribJumpFactory.h
-    GribJumpException.h
+    GribJumpException.h 
+    GribJumpDataAccessor.h
     ExtractionData.cc
     ExtractionData.h
     Stats.cc
@@ -49,6 +50,22 @@ list( APPEND gribjump_srcs
     remote/GribJumpUser.h
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
+
+    compression/NumericCompressor.h
+    compression/Range.h
+    compression/Range.cc
+    compression/DataAccessor.h
+
+    compression/compressors/Aec.cc
+    compression/compressors/Aec.h
+    compression/compressors/Simple.cc
+    compression/compressors/Simple.h
+    compression/compressors/Ccsds.cc
+    compression/compressors/Ccsds.h
+
+    compression/compressors/algorithms/SimplePacking.h
+    compression/compressors/algorithms/LibEccodes.h
+    compression/compressors/algorithms/LibEccodes.cc
 )
 
 ecbuild_add_library(
@@ -68,9 +85,10 @@ ecbuild_add_library(
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 
     PUBLIC_LIBS
+        stdc++fs
         fdb5
         metkit
         eckit
         eckit_option
-
+        ${AEC_LIBRARIES}
 )

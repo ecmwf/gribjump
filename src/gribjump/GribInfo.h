@@ -21,39 +21,46 @@
 #include "metkit/codes/GribHandle.h"
 
 #include "gribjump/ExtractionData.h"
+#include "gribjump/Bitmap.h"
+#include "gribjump/Values.h"
+#include "gribjump/Interval.h"
 
 namespace gribjump {
 
+
 class JumpHandle;
 void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &n_index, std::queue<size_t> &edges, bool&, size_t&);
+std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap);
 
 class JumpInfo {
 public:
 
-    JumpInfo();
-    JumpInfo(const metkit::grib::GribHandle& h);
-    JumpInfo(eckit::Stream& s);
+    static JumpInfo fromFile(const eckit::PathName& path, uint16_t msg_id = 0);
 
+    JumpInfo();
+    explicit JumpInfo(const metkit::grib::GribHandle& h);
+    explicit JumpInfo(eckit::Stream& s);
 
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
-    double extractValue(const JumpHandle&, size_t index) const;
-    ExtractionResult extractRanges(const JumpHandle&, std::vector<std::tuple<size_t, size_t>> ranges) const;
-    
+    ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
+
     void print(std::ostream&) const;
     void encode(eckit::Stream&) const;
 
-    void toFile(eckit::PathName, bool);
-    void fromFile(eckit::PathName, uint16_t msg_id=0);
+    size_t streamSize() const;
 
     unsigned long getNumberOfDataPoints() const { return numberOfDataPoints_; }
     unsigned long length() const { return totalLength_; }
     void setStartOffset(eckit::Offset offset) { msgStartOffset_ = offset; }
 
-private:
-    double readDataValue(const JumpHandle&, size_t) const;
+    void updateCcsdsOffsets(const JumpHandle& f);
+    std::vector<size_t> getCcsdsOffsets() const { return ccsdsOffsets_; }
+    std::string getPackingType() const { return packingType_; }
 
-    static constexpr uint8_t currentVersion_ = 2;
+private:
+
+    static constexpr uint8_t currentVersion_ = 3;
     uint8_t version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
@@ -61,6 +68,7 @@ private:
     unsigned long editionNumber_;
     unsigned long bitsPerValue_;
     unsigned long offsetBeforeData_;
+    unsigned long offsetAfterData_;
     unsigned long bitmapPresent_;
     unsigned long offsetBeforeBitmap_;
     unsigned long numberOfValues_;
@@ -74,23 +82,17 @@ private:
     double binaryMultiplier_; // = 2^binaryScaleFactor_
     double decimalMultiplier_; // = 10^-decimalScaleFactor_
 
-    static constexpr size_t metadataSize = sizeof(version_) + \
-                                           sizeof(editionNumber_) + \
-                                           sizeof(referenceValue_) + \
-                                           sizeof(binaryScaleFactor_) + \
-                                           sizeof(decimalScaleFactor_) + \
-                                           sizeof(bitsPerValue_) + \
-                                           sizeof(offsetBeforeData_) + \
-                                           sizeof(offsetBeforeBitmap_) + \
-                                           sizeof(numberOfValues_) + \
-                                           sizeof(numberOfDataPoints_) + \
-                                           sizeof(totalLength_) + \
-                                           sizeof(msgStartOffset_) + \
-                                           sizeof(sphericalHarmonics_) + \
-                                           sizeof(binaryMultiplier_) + \
-                                           sizeof(decimalMultiplier_) + \
-                                           sizeof(md5GridSection_) + \
-                                           sizeof(packingType_);
+    unsigned long ccsdsFlags_;
+    unsigned long ccsdsBlockSize_;
+    unsigned long ccsdsRsi_;
+    std::vector<size_t> ccsdsOffsets_;
+
+
+    Bitmap get_bitmap(const JumpHandle& f) const;
+    std::pair<std::vector<Interval>, std::vector<Bitmap>> calculate_intervals(const std::vector<Interval>&, const Bitmap&) const;
+
+    std::vector<Values> get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const;
+    std::vector<Values> get_simple_values(const JumpHandle& f, const std::vector<Interval> &intervals) const;
 
     friend std::ostream& operator<<(std::ostream& s, const JumpInfo& f) {
         f.print(s);
@@ -101,7 +103,6 @@ private:
         f.encode(s);
         return s;
     }
-
 
 };
 
