@@ -27,23 +27,6 @@ GribInfoCache::GribInfoCache(){}
 
 GribInfoCache::GribInfoCache(eckit::PathName dir) : cacheDir_(dir) {
     ASSERT(cacheDir_.exists());
-    const eckit::PathName path = cacheDir_ / "manifest.gj";
-    if(path.exists()){
-        eckit::FileStream s(path, "r");
-        s >> manifest_;
-        s.close();
-    }
-}
-
-void GribInfoCache::preload() {
-    for (auto& entry : manifest_) {
-        const eckit::PathName infopath = cacheDir_ / entry.second;
-        eckit::FileStream s(infopath, "r");
-        std::map<std::string, JumpInfo> cache;
-        s >> cache;
-        s.close();
-        cache_.merge(cache);
-    }
 }
 
 bool GribInfoCache::contains(const fdb5::FieldLocation& loc) {
@@ -57,20 +40,14 @@ bool GribInfoCache::contains(const fdb5::FieldLocation& loc) {
         return true;
     }
 
-    // Check if field's filename is in manifest
-    const auto el = manifest_.find(fdbfilename);
-    if (el == manifest_.end()) {
-        return false;
-    }
-
     // Check if gribinfo cache file exists (i.e. manifest is not stale)
-    eckit::PathName infopath = cacheDir_ / el->second;
+    eckit::PathName infopath = cacheDir_ / fdbfilename + ".gj";
     if (!infopath.exists()) {
         return false;
     }
 
-    // This field is in the cache, but not in memory. Load it.
-    eckit::Log::debug<LibGribJump>() << "Merging " << infopath << " with cache" << std::endl;
+    // Field should be cached on disk, but is not in memory.
+    eckit::Log::debug<LibGribJump>() << "Loading " << infopath << " into cache" << std::endl;
     eckit::FileStream s(infopath, "r");
     std::map<std::string, JumpInfo> cache;
     s >> cache;
@@ -96,10 +73,6 @@ void GribInfoCache::print(std::ostream& s) const {
     // Print the manifest, then the cache
     s << "GribInfoCache[";
     s << "cacheDir=" << cacheDir_ << std::endl;
-    s << "#entries=" << manifest_.size() << std::endl;
-    for (auto& entry : manifest_) {
-        s << entry.first << " -> " << entry.second << std::endl;
-    }
     s << "cache=" << std::endl;
     for (auto& entry : cache_) {
         s << entry.first << " -> " << entry.second << std::endl;
@@ -107,48 +80,5 @@ void GribInfoCache::print(std::ostream& s) const {
     s << "]";
 }
 
-void GribInfoCache::removeOld(int Ndays){
-    // remove entries in manifest older than Ndays
-    // and delete the corresponding gribinfo files.
-
-    eckit::Date now(eckit::TimeStamp("%Y-%m-%d"));
-    std::vector<std::string> toRemove;
-
-    for (auto& entry : manifest_) {
-        // Get date from filename
-        std::string timestamp = entry.second.substr(0, 10);
-        eckit::Date date(timestamp);
-
-        if (now - date > Ndays) {
-            eckit::PathName infopath = cacheDir_ / entry.second;
-            toRemove.push_back(entry.first);
-        }
-    }
-
-    for (auto& key : toRemove) {
-        eckit::PathName infopath = cacheDir_ / manifest_.at(key);
-        // Paranoia: ensure the file ends with .gj before deleting.
-        ASSERT(infopath.baseName().extension() == ".gj");
-        infopath.unlink();
-        manifest_.erase(key);
-        eckit::Log::debug<LibGribJump>() << "Removed " << infopath << " from manifest" << std::endl;
-    }
-}
-
-void GribInfoCache::dump() const{
-    // Dump the manifest to disk, overwriting the old one.
-    eckit::PathName manifestpath = cacheDir_ / "manifest.gj";
-    eckit::FileStream s(manifestpath, "w");
-    s << manifest_;
-    s.close();
-}
-
-bool GribInfoCache::lookup(const std::string& fdbfilename) const{
-    // Check if field's filename is in manifest
-    return manifest_.count(fdbfilename) != 0;
-}
-void GribInfoCache::append(const std::string& fdbfilename, const std::string& gribinfofilename){
-    manifest_[fdbfilename] = gribinfofilename;
-}
 
 }  // namespace gribjump

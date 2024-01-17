@@ -29,8 +29,6 @@ public:
     // JumpInfo extractInfo(eckit::DataHandle* handle) const;
     JumpInfo extractInfo(const fdb5::FieldLocation& loc);
 
-    bool isCached(std::string) const;
-
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
 

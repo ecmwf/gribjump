@@ -35,12 +35,6 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
         eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
         return;
     }
-    eckit::PathName manifestPath = eckit::PathName(cacheDir) / "manifest.gj";
-    if (!manifestPath.exists()) {
-        eckit::Log::warning() << "Warning " << manifestPath << " does not exist." << std::endl;
-        eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
-        return;
-    }
 
     eckit::Log::debug<LibGribJump>() << "GribJump is using cache" << std::endl;
     cache_ = GribInfoCache(cacheDir);
@@ -138,14 +132,10 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
     return info.extractRanges(dataSource, ranges);
 }
 
-bool LocalGribJump::isCached(std::string key) const {
-    NOTIMP;
-}
-
 JumpInfo LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
     if (cacheEnabled_) {
         if(cache_.contains(loc)) return cache_.get(loc);
-        eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss" << std::endl;
+        eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << loc.uri().path().baseName() << std::endl;
     }
 
     eckit::DataHandle* handle = loc.dataHandle();
