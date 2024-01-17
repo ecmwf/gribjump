@@ -94,9 +94,12 @@ void test_compression() {
                 auto actual_mask = mask_all[index];
                 Bitmap expected_bitmap = generate_bitmap(expected, intervals[index]);
                 auto expected_mask = gribjump::to_bitset(expected_bitmap);
-                //print_bitmap(expected_bitmap);
-                //print_mask(expected_mask);
-                //print_mask(actual_mask);
+                std::cerr << "expected_bitmap: " << std::endl;
+                print_bitmap(expected_bitmap);
+                std::cerr << "expected_mask: " << std::endl;
+                print_mask(expected_mask);
+                std::cerr << "actual_mask: " << std::endl;
+                print_mask(actual_mask);
                 EXPECT(actual_mask == expected_mask);
             }
 

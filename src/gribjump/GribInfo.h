@@ -27,6 +27,15 @@
 
 namespace gribjump {
 
+struct ReducedBitmap {
+    size_t chunkSize;
+    std::vector<size_t> cumSum;
+    std::vector<Interval> point_intervals;
+    std::vector<Interval> value_intervals;
+    std::vector<Interval> chunk_idx_intervals;
+    std::vector<Bitmap> bitmaps;
+};
+
 
 class JumpHandle;
 void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &n_index, std::queue<size_t> &edges, bool&, size_t&);
@@ -89,7 +98,10 @@ private:
 
 
     Bitmap get_bitmap(const JumpHandle& f) const;
+    ReducedBitmap get_reduced_bitmap(const JumpHandle& f, const std::vector<Interval>& intervals, std::vector<size_t> countMissings, size_t chunkSize) const;
     std::pair<std::vector<Interval>, std::vector<Bitmap>> calculate_intervals(const std::vector<Interval>&, const Bitmap&) const;
+    std::pair<std::vector<Interval>, std::vector<Bitmap>> calculate_intervals(const JumpHandle& f, const std::vector<Interval>& intervals, std::vector<size_t> countMissings, size_t chunkSize) const;
+
 
     std::vector<Values> get_ccsds_values(const JumpHandle& f, const std::vector<Interval> &intervals) const;
     std::vector<Values> get_simple_values(const JumpHandle& f, const std::vector<Interval> &intervals) const;
