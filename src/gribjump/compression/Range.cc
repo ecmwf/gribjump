@@ -40,7 +40,9 @@ std::ostream& operator<<(std::ostream& os, const mc::RangeBucket& range)
 mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r)
 {
     const mc::Range sub_range{r};
-    const auto [srb, sre] = begin_end(sub_range);
+    const auto [srb_tmp, sre_tmp] = begin_end(sub_range);
+    auto srb = srb_tmp; // not necessary in C++20
+    auto sre = sre_tmp; // not necessary in C++20
 
     auto r1 = std::find_if(buckets.begin(), buckets.end(), [&](const auto bucket){
         const auto [bucket_range, _] = bucket;
