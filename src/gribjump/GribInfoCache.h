@@ -23,14 +23,12 @@ namespace gribjump {
 class GribInfoCache {
 
 public:
-    GribInfoCache();
-    GribInfoCache(eckit::PathName dir);
 
-    ~GribInfoCache();
+    static GribInfoCache& instance();
 
-    // Check if fieldlocation is in memory OR on disk (via manifest)
-    // Will add to memory if not already there
     bool contains(const fdb5::FieldLocation& loc);
+
+    void insert(const fdb5::FieldLocation& loc, const JumpInfo& info);
 
     // Get gribinfo from memory
     const JumpInfo& get(const fdb5::FieldLocation& loc);
@@ -39,13 +37,19 @@ public:
 
 private:
 
+    GribInfoCache();
+
+    ~GribInfoCache();
+
+private:
+
+    mutable std::mutex mutex_;
+
     eckit::PathName cacheDir_;
-    
-    // fieldlocation's fdb filename -> gribinfo filename
 
-    // fieldlocation's full name -> gribinfo
-    std::map<std::string, JumpInfo> cache_;
+    std::map<std::string, JumpInfo> cache_; //< map fieldlocation's full name to gribinfo
 
+    bool cacheEnabled_ = false;
 };
 
 }  // namespace gribjump

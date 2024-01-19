@@ -35,8 +35,7 @@ public:
 
 
 private:
-    GribInfoCache cache_; // I DONT THINK MY CACHE IS THREAD SAFE!!!
-    bool cacheEnabled_ = false;
+    // GribInfoCache cache_; 
 
 };
 } // namespace gribjump

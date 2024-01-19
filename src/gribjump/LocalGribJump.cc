@@ -29,18 +29,8 @@
 #include "gribjump/LocalGribJump.h"
 namespace gribjump {
 
+// cache is now a singleton
 LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
-
-    std::string cacheDir;
-    if (!config.get("cache", cacheDir)) {
-        LOG_DEBUG_LIB(LibGribJump) << "GribJump not using cache" << std::endl;
-        return;
-    }
-
-    LOG_DEBUG_LIB(LibGribJump) << "GribJump is using cache" << std::endl;
-    cache_ = GribInfoCache(cacheDir);
-    cacheEnabled_ = true;
-
 }
 
 LocalGribJump::~LocalGribJump() {}
@@ -131,14 +121,17 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
 }
 
 JumpInfo LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
-    if (cacheEnabled_) {
-        if(cache_.contains(loc)) return cache_.get(loc);
-        eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << loc.uri().path().baseName() << std::endl;
-    }
+    GribInfoCache& cache = GribInfoCache::instance();
+    if(cache.contains(loc)) return cache.get(loc);
+    
+    eckit::PathName file = loc.uri().path().baseName();
+    eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << file << std::endl;
 
     eckit::DataHandle* handle = loc.dataHandle();
     JumpHandle dataSource(handle);
-    return dataSource.extractInfo();
+    JumpInfo info = dataSource.extractInfo();
+    cache.insert(loc, info);
+    return info;
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {

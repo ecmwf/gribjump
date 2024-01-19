@@ -40,7 +40,7 @@ public:
     }
 
     void notify() {
-        std::unique_lock<std::mutex> lk(m_);
+        std::lock_guard<std::mutex> lk(m_);
         counter_++;
         cv_.notify_one();
     }
