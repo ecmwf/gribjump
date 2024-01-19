@@ -23,7 +23,9 @@ public:
     ~LocalGribJump();
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
-
+    
+    std::vector<std::vector<ExtractionResult>> extractMultithread(std::vector<ExtractionRequest> polyRequest);
+    
     ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
 
     // JumpInfo extractInfo(eckit::DataHandle* handle) const;
@@ -33,7 +35,7 @@ public:
 
 
 private:
-    GribInfoCache cache_;
+    GribInfoCache cache_; // I DONT THINK MY CACHE IS THREAD SAFE!!!
     bool cacheEnabled_ = false;
 
 };

@@ -39,6 +39,8 @@ public:
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 
+    void stats() {internal_->stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: "); }
+
 private:
     std::unique_ptr<GribJumpBase> internal_;
     Config config_;

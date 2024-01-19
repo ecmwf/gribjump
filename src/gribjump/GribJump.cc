@@ -37,9 +37,9 @@ std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<Extract
 }
 
 std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges){
-    eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
+    // eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
     auto out = internal_->extract(request, ranges);
-    timer.report();
+    // timer.report();
     return out;
 }
 

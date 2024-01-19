@@ -16,6 +16,7 @@
 #include "eckit/net/TCPStream.h"
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/container/Queue.h"
 #include "eckit/log/Timer.h"
 
 #include "fdb5/api/FDB.h"
@@ -32,11 +33,11 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 
     std::string cacheDir;
     if (!config.get("cache", cacheDir)) {
-        eckit::Log::debug<LibGribJump>() << "GribJump not using cache" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "GribJump not using cache" << std::endl;
         return;
     }
 
-    eckit::Log::debug<LibGribJump>() << "GribJump is using cache" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "GribJump is using cache" << std::endl;
     cache_ = GribInfoCache(cacheDir);
     cacheEnabled_ = true;
 
@@ -50,8 +51,6 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     timer.stop();
 
     fdb5::FDB fdb;
-
-    // Inspect requests and extract JumpInfo.
     std::vector<std::vector<JumpInfo>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
 
@@ -76,8 +75,6 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
         }
     }
 
-    // <insert logic for grouping requests by file here and multithreading> Skip for now.
-
     // Extract data from each handle
     std::vector<std::vector<ExtractionResult>> result;
     for (size_t i = 0; i < polyRequest.size(); i++) {
@@ -95,25 +92,26 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
 }
 
 std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::pair<size_t, size_t>> ranges){
-
-    // const GribJump gj;
     std::vector<ExtractionResult>  result;
     fdb5::FDB fdb;
+    eckit::Timer timer;
     fdb5::ListIterator it = fdb.inspect(request);
+    timer.stop();
+    stats_.addInspect(timer);
     fdb5::ListElement el;
     while (it.next(el)) {
 
         const fdb5::FieldLocation& loc = el.location(); // Use the location or uri to check if cached.
-
+        
+        timer.start();
         JumpInfo info = extractInfo(loc);
+        timer.stop();
+        stats_.addInfo(timer);
 
-        eckit::Log::debug<LibGribJump>() << ", location: " << loc << ", info: " << info << std::endl;
-
+        timer.start();
         ExtractionResult v = directJump(loc.dataHandle(), ranges, info);
-
-        for (auto& val : v.values()) {
-            eckit::Log::debug<LibGribJump>() << "GribJump::extract() value: " << val << std::endl;
-        }
+        timer.stop();
+        stats_.addExtract(timer);
 
         result.push_back(v);
     }

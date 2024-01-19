@@ -55,9 +55,12 @@ class ExtractionRequest {
 
 public: // methods
     // NB Takes ownership of inputs
+    ExtractionRequest();
     ExtractionRequest(metkit::mars::MarsRequest, std::vector<Range>);
     explicit ExtractionRequest(eckit::Stream& s);
 
+    std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
+    std::vector<ExtractionRequest> split(const std::string& key) const;
     std::vector<Range> getRanges() const {return ranges_;}
     metkit::mars::MarsRequest getRequest() const {return request_;}
 

@@ -17,6 +17,7 @@
 #include "gribjump/ExtractionData.h"
 #include "gribjump/Config.h"
 #include "gribjump/Stats.h"
+#include "gribjump/LibGribJump.h"
 
 namespace gribjump
 {
@@ -28,7 +29,7 @@ public:
     virtual std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) = 0;
     virtual std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) = 0;
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) = 0;
-
+    // void stats() {stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: "); }
     Stats stats_;
 private:
     Config config_;

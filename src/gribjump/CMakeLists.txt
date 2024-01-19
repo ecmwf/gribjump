@@ -50,6 +50,10 @@ list( APPEND gribjump_srcs
     remote/GribJumpUser.h
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
+    remote/WorkItem.cc
+    remote/WorkItem.h
+    remote/WorkQueue.cc
+    remote/WorkQueue.h
 
     compression/NumericCompressor.h
     compression/Range.h

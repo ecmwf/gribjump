@@ -94,12 +94,6 @@ void Stats::reportTimeStats(std::ostream& out, const std::string& title, size_t 
         }
 
         out << indent << title << std::setw(WIDTH - title.length()) 
-            // << " total: " << sum_times << " s"
-            // << ", mean: " << average << " s"
-            // << ", std: " << stdDeviation << " s"
-            // << ", min: " << min << " s"
-            // << ", max: " << max << " s" << std::endl;
-        // we want each entry to have the same width, and we want to use scientific notation
             << std::scientific << std::setprecision(3)
             << " total: " << std::setw(10) << sum_times << " s"
             << ", mean: " << std::setw(10) << average << " s"
@@ -107,16 +101,13 @@ void Stats::reportTimeStats(std::ostream& out, const std::string& title, size_t 
             << ", min: " << std::setw(10) << min << " s"
             << ", max: " << std::setw(10) << max << " s"
             << ". (count: " << std::setw(10) << count << ")" << std::endl;
-
-
-            
     }
 }
 
 void Stats::report(std::ostream& out, const char* prefix) const {
     reportTimeStats(out, "Inspect time ", countInspects_, elaspedInspects_, elaspedInspectsSquared_, minInspects_, maxInspects_, prefix);
-    reportTimeStats(out, "Extraction time", countExtract_, elapsedExtract_, elapsedExtractSquared_, minExtract_, maxExtract_, prefix);
     reportTimeStats(out, "Info time", countInfos_, elapsedInfos_, elapsedInfosSquared_, minInfos_, maxInfos_, prefix);
+    reportTimeStats(out, "Extraction time", countExtract_, elapsedExtract_, elapsedExtractSquared_, minExtract_, maxExtract_, prefix);
 }
 
 } // namespace gribjump

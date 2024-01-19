@@ -10,8 +10,14 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/remote/GribJumpUser.h"
+
 #include "eckit/log/Timer.h"
+#include "eckit/system/ResourceUsage.h"
+
+#include "gribjump/remote/GribJumpUser.h"
+#include "gribjump/LibGribJump.h"
+#include "gribjump/remote/ClientRequest.h"
+
 namespace gribjump {
 
 GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol){}
@@ -29,39 +35,14 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
         std::string cmd;
         s >> cmd;
         eckit::Log::info() << "Received cmd: " << cmd << std::endl;
-        GribJump gj;
 
         if (cmd == "EXTRACT"){
-            // create a vector of ExtractionRequests from the stream    
-            std::vector<ExtractionRequest> requests;
-            size_t numRequests;
-            s >> numRequests;
-            for (size_t i = 0; i < numRequests; i++) {
-                ExtractionRequest exrequest = ExtractionRequest(s);
-                requests.push_back(exrequest);
-            }
-
-            std::stringstream ss;
-            ss << "Received " << numRequests << " requests";
-            timer.report(ss.str());
-
-            std::vector<std::vector<ExtractionResult>> output = gj.extract(requests);
-
-            timer.report("Extract finished. Sending results");
-            for (auto& vec : output) {
-                size_t nfields = vec.size();
-                s << nfields;
-                for (auto& o : vec) {
-                    s << o;
-                }
-            }
-            timer.report("Results sent");
-
+            extract(s);
         }
 
         else if (cmd == "AXES"){
             timer.report("Received AXES request");
-
+            GribJump gj;
             std::string request;
             s >> request;
             std::map<std::string, std::unordered_set<std::string>> axes = gj.axes(request);
@@ -93,7 +74,6 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
             throw eckit::SeriousBug("Unknown command " + cmd, Here());
         }
     }
-    
     catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
         eckit::Log::error() << "** Exception is handled" << std::endl;
@@ -107,6 +87,20 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
     }
 
     timer.report("Closing connection");
+}
+
+void GribJumpUser::extract(eckit::Stream& s){
+    eckit::Timer timer("GribJumpUser::extract");
+
+    ClientRequest clientRequest(s);
+    clientRequest.doWork();
+    
+    timer.report("Extract finished. Sending results");
+    clientRequest.replyToClient();
+    
+    timer.report("Results sent");
+
+    LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;
 }
 
 }  // namespace gribjump

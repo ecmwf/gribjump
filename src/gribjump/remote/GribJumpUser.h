@@ -30,6 +30,7 @@ public:
 
 private:  // methods
     virtual void serve(eckit::Stream& s, std::istream& in, std::ostream& out);
+    void extract(eckit::Stream& s);
 
 private:  // members
 };
