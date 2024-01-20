@@ -8,16 +8,19 @@
  * does it submit to any jurisdiction.
  */
 
+#include <chrono>
+#include <fstream>
+
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/value/Value.h"
+#include "eckit/utils/StringTools.h"
+
 #include "metkit/tool/MetkitTool.h"
+
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribHandleData.h"
-#include <chrono>
-#include <fstream>
-#include "eckit/utils/StringTools.h"
-// using namespace metkit;
+
 using namespace gribjump;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -107,6 +110,7 @@ void GribJumpTool::init(const eckit::option::CmdArgs& args) {
 }
 
 void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
+    
     auto startTime = std::chrono::high_resolution_clock::now();
     Timing timing;
     JumpInfo gribInfo;

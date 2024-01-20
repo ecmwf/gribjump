@@ -17,7 +17,7 @@
 #include "eckit/option/SimpleOption.h"
 #include "eckit/value/Value.h"
 #include "eckit/utils/StringTools.h"
-
+#include "eckit/io/Offset.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -57,34 +57,15 @@ void FileCacher::execute(const eckit::option::CmdArgs &args) {
     // 3. Write the GribInfos to disk, with a filename based on the input filename.
 
     eckit::PathName fdbfilename(args(0));
-    std::vector<std::string> offsets = eckit::StringTools::split(",", args(1));
 
-    std::map<std::string, JumpInfo>infos;
-    int nfields = 0;
-
-    eckit::DataHandle* handle = fdbfilename.fileHandle();
-    JumpHandle dataSource(handle);
-
-    for (const auto& offset : offsets) {
-        size_t off = std::stoll(offset);
-        dataSource.seek(off);
-        JumpInfo info = dataSource.extractInfo();
-        std::string key = fdbfilename.baseName() + "." + offset;
-        infos[key] = info;
-        nfields++;
+    // convert offsets to vector of offsets
+    std::vector<std::string> offsets_str = eckit::StringTools::split(",", args(1));    
+    std::vector<eckit::Offset> offsets(offsets.size());
+    for (size_t i = 0; i < offsets.size(); i++) {
+        offsets[i] = std::stoll(offsets_str[i]);
     }
-    eckit::PathName outdir = args.getString("outdir", ".");
 
-    const std::string infosfilename = fdbfilename.baseName() + ".gj";
-    const eckit::PathName cachepath = outdir/infosfilename;
-    eckit::FileStream s(cachepath, "w");
-    s << infos;
-    s.close();
-
-    eckit::Log::debug<LibGribJump>() << "Generated GribInfo for " << nfields << " new fields in " << cachepath << std::endl;
-
-    ASSERT(nfields == offsets.size());
-
+    GribInfoCache::instance().scan(fdbfilename, offsets);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

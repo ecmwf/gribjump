@@ -10,97 +10,139 @@
 
 /// @author Christopher Bradley
 
+#include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
+#include "eckit/log/Plural.h"
+
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/GribJumpFactory.h"
-#include "eckit/log/Timer.h"
 
+namespace gribjump {
 
-namespace gribjump
-{
+RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
+    if (!config.get("host", host_))
+        throw eckit::UserError("RemoteGribJump requires host to be set in config", Here());
+    
+    if (!config.get("port", port_))
+        throw eckit::UserError("RemoteGribJump requires port to be set in config", Here());
+}
 
-    RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
-        if (!config.get("host", host_))
-            throw eckit::UserError("RemoteGribJump requires host to be set in config", Here());
-        
-        if (!config.get("port", port_))
-            throw eckit::UserError("RemoteGribJump requires port to be set in config", Here());
+RemoteGribJump::~RemoteGribJump() {}
+
+size_t RemoteGribJump::scan(const metkit::mars::MarsRequest request) {
+    size_t count = 0;
+    NOTIMP;
+    return count;
+}
+
+size_t RemoteGribJump::scan(std::vector<ExtractionRequest> polyRequest) {
+    eckit::Timer timer("RemoteGribJump::scan()");
+
+    // connect to server
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    timer.report("Connection established");
+
+    stream << "SCAN";
+
+    size_t nRequests = polyRequest.size();
+    stream << nRequests;
+    for (auto& req : polyRequest) {
+        stream << req;
     }
-    RemoteGribJump::~RemoteGribJump() {}
 
-    std::vector<std::vector<ExtractionResult>> RemoteGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
-        eckit::Timer timer("RemoteGribJump::extract()");
-        std::vector<std::vector<ExtractionResult>> result;
+    std::stringstream ss;
+    ss << "Sent " << nRequests << " requests";
+    timer.report(ss.str());
 
-        // connect to server
-        eckit::net::TCPClient client;
-        eckit::net::InstantTCPStream stream(client.connect(host_, port_));
-        timer.report("Connection established");
+    // receive responses
+    size_t count = 0;
+    for (size_t i = 0; i < nRequests; i++) {
+        size_t nfiles;
+        stream >> nfiles;
+        eckit::Log::info() << "Scanned " << eckit::Plural(nfiles, "file") << std::endl;
+        count += nfiles;
+    }
 
-        stream << "EXTRACT";
+    timer.report("Scans complete");
+    return count;
+}
 
-        size_t nRequests = polyRequest.size();
-        stream << nRequests;
-        for (auto& req : polyRequest) {
-            stream << req;
+std::vector<std::vector<ExtractionResult>> RemoteGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
+    eckit::Timer timer("RemoteGribJump::extract()");
+    std::vector<std::vector<ExtractionResult>> result;
+
+    // connect to server
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    timer.report("Connection established");
+
+    stream << "EXTRACT";
+
+    size_t nRequests = polyRequest.size();
+    stream << nRequests;
+    for (auto& req : polyRequest) {
+        stream << req;
+    }
+
+    std::stringstream ss;
+    ss << "Sent " << nRequests << " requests";
+    timer.report(ss.str());
+
+    // receive response
+    for (size_t i = 0; i < nRequests; i++) {
+        std::vector<ExtractionResult> response;
+        size_t nfields;
+        stream >> nfields;
+        for (size_t i = 0; i < nfields; i++) {
+            ExtractionResult output(stream);
+            response.push_back(output);
         }
+        result.push_back(response);
+    }
+    timer.report("All data recieved");
+    return result;
+}
 
-        std::stringstream ss;
-        ss << "Sent " << nRequests << " requests";
-        timer.report(ss.str());
+std::vector<ExtractionResult> RemoteGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) {
+    NOTIMP;
+}
 
-        // receive response
-        for (size_t i = 0; i < nRequests; i++) {
-            std::vector<ExtractionResult> response;
-            size_t nfields;
-            stream >> nfields;
-            for (size_t i = 0; i < nfields; i++) {
-                ExtractionResult output(stream);
-                response.push_back(output);
-            }
-            result.push_back(response);
+std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request) {
+    eckit::Timer timer("RemoteGribJump::axes()");
+    std::map<std::string, std::unordered_set<std::string>> result;   
+
+    // connect to server
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    timer.report("Connection established");
+
+    stream << "AXES";
+    stream << request;  
+    timer.report("Request sent");
+
+    // receive response
+    size_t nAxes;
+    stream >> nAxes;
+    for (size_t i = 0; i < nAxes; i++) {
+        std::string axisName;
+        stream >> axisName;
+        size_t nVals;
+        stream >> nVals;
+        std::unordered_set<std::string> vals;
+        for (size_t j = 0; j < nVals; j++) {
+            std::string val;
+            stream >> val;
+            vals.insert(val);
         }
-        timer.report("All data recieved");
-        return result;
-    }
-    std::vector<ExtractionResult> RemoteGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) {
-        NOTIMP;
-    }
-
-    std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request) {
-        eckit::Timer timer("RemoteGribJump::axes()");
-        std::map<std::string, std::unordered_set<std::string>> result;   
-
-        // connect to server
-        eckit::net::TCPClient client;
-        eckit::net::InstantTCPStream stream(client.connect(host_, port_));
-        timer.report("Connection established");
-
-        stream << "AXES";
-        stream << request;  
-        timer.report("Request sent");
-
-        // receive response
-        size_t nAxes;
-        stream >> nAxes;
-        for (size_t i = 0; i < nAxes; i++) {
-            std::string axisName;
-            stream >> axisName;
-            size_t nVals;
-            stream >> nVals;
-            std::unordered_set<std::string> vals;
-            for (size_t j = 0; j < nVals; j++) {
-                std::string val;
-                stream >> val;
-                vals.insert(val);
-            }
-            result[axisName] = vals;
-        }        
-        timer.report("Axes received");
+        result[axisName] = vals;
+    }        
+    timer.report("Axes received");
 
 
-        return result;
-    }
+    return result;
+}
 
-static GribJumpBuilder<RemoteGribJump> builder("remotegribjump");
+static GribJumpBuilder<RemoteGribJump> builder("remote");
     
 } // namespace gribjump

@@ -33,6 +33,7 @@ list( APPEND gribjump_srcs
     GribJump.cc
     GribJump.h
     GribJumpBase.h
+    GribJumpBase.cc
     LocalGribJump.cc
     LocalGribJump.h
     GribJumpFactory.cc
@@ -44,6 +45,12 @@ list( APPEND gribjump_srcs
     Stats.cc
     Stats.h
 
+    remote/Request.h
+    remote/Request.cc
+    remote/ExtractRequest.h
+    remote/ExtractRequest.cc
+    remote/ScanRequest.h
+    remote/ScanRequest.cc
     remote/GribJumpServer.h
     remote/GribJumpService.h
     remote/GribJumpUser.cc
@@ -89,7 +96,6 @@ ecbuild_add_library(
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 
     PUBLIC_LIBS
-    #stdc++fs
         fdb5
         metkit
         eckit

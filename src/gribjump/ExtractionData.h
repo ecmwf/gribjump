@@ -9,11 +9,13 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #pragma once
 
 #include <bitset>
 #include <vector>
+
 #include "eckit/serialisation/Stream.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -23,7 +25,7 @@ namespace gribjump {
 
 class ExtractionResult  {
 public: // methods
-    // NB Takes ownership of inputs
+
     ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
     explicit ExtractionResult(eckit::Stream& s);
 
@@ -32,7 +34,6 @@ public: // methods
 
     size_t nrange() const {return values_.size();}
     size_t nvalues(size_t i) const {return values_[i].size();}
-
 
     // For exposing buffers to C
     // Use carefully, as the vector values_ still own the data.
@@ -54,7 +55,7 @@ private: // members
 class ExtractionRequest {
 
 public: // methods
-    // NB Takes ownership of inputs
+
     ExtractionRequest();
     ExtractionRequest(metkit::mars::MarsRequest, std::vector<Range>);
     explicit ExtractionRequest(eckit::Stream& s);

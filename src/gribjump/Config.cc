@@ -14,12 +14,12 @@
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
 
-namespace gribjump
-{   
-    Config::Config(){
-        // default config
-        set("type", "local");
+namespace gribjump {   
+
+    Config::Config() {
+        set("type", "local"); // default config
     }
+
     Config::Config(const eckit::PathName path):eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {}
 
 } // namespace gribjump

@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <fstream>
 
+#include "eckit/config/Resource.h"
 #include "eckit/net/Port.h"
 
 namespace gribjump {
@@ -21,12 +22,15 @@ namespace gribjump {
 
 class GribJumpServerApp : public eckit::Application, public GribJumpServer {
 public:
-    GribJumpServerApp(int argc, char** argv) : Application(argc, argv), GribJumpServer(eckit::net::Port("gribjumpserver", std::stoi(getenv("GRIBJUMP_SERVER_PORT")))){}
+    GribJumpServerApp(int argc, char** argv) : 
+        Application(argc, argv), 
+        GribJumpServer(eckit::net::Port("gribJumpServer", eckit::Resource<int>("GRIBJUMP_SERVER_PORT", 9777)))
+        {}
+
     ~GribJumpServerApp() {}
 
 private:
     GribJumpServerApp(const GribJumpServerApp&);
-    // GribJumpServerApp& operator=(const GribJumpServerApp&); // This is left undefined on marsfs?
     void run() override {
         unique();
         for (;;) {
@@ -42,7 +46,6 @@ private:
 
 int main(int argc, char** argv) {
     eckit::Log::info() << "Starting gribjump server" << std::endl;
-    ASSERT(getenv("GRIBJUMP_SERVER_PORT"));
     gribjump::GribJumpServerApp app(argc, argv);
     app.start();
     return 0;

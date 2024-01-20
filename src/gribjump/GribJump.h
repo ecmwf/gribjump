@@ -12,37 +12,51 @@
 
 #pragma once
 
-#include <unordered_set>
+#include <cstddef>
+#include <string>
+#include <vector>
 #include <memory>
+#include <unordered_set>
 
 #include "eckit/io/DataHandle.h"
+
+#include "metkit/mars/MarsRequest.h"
+
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribInfo.h"
-#include "gribjump/GribJumpBase.h"
-#include "metkit/mars/MarsRequest.h"
 #include "gribjump/Config.h"
+#include "gribjump/GribJumpBase.h"
 
 namespace gribjump {
 
-using Interval = std::pair<size_t, size_t>;
+class GribJumpBase;
 
-// Gribjump API
+typedef std::pair<size_t, size_t> Range;
+
+/// GribJump high-level API
 
 class GribJump {
 public:
+    
     GribJump();
-    ~GribJump() {}
+    
+    ~GribJump();
+
+    size_t scan(const metkit::mars::MarsRequest request);
+    size_t scan(std::vector<ExtractionRequest> requests);
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> requests);
 
-    std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Interval> ranges);
+    std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 
-    void stats() {internal_->stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: "); }
+    void stats();
 
 private:
-    std::unique_ptr<GribJumpBase> internal_;
+    std::unique_ptr<GribJumpBase> impl_;
     Config config_;
+
 };
+
 } // namespace gribjump

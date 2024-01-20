@@ -9,30 +9,20 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
+
 
 #include "gribjump/remote/WorkItem.h"
-#include "gribjump/remote/ClientRequest.h"
+#include "gribjump/remote/ExtractRequest.h"
 
 namespace gribjump {
-                // WorkItem w(exrequest, result, &cv, &m, &counter);
 
-WorkItem::WorkItem(): rr_(nullptr) {}
-WorkItem::WorkItem(RequestResult& rr): rr_(&rr) {}
+WorkItem::WorkItem(): task_(nullptr) {}
+WorkItem::WorkItem(Task* task): task_(task) {}
 
 void WorkItem::run(GribJump& gj) {
-    ASSERT(rr_);
-    std::vector<ExtractionResult> results = gj.extract(rr_->request().getRequest(), rr_->request().getRanges());
-    rr_->storeResults(results);
-    rr_->notify();
-}
-
-RequestResult::RequestResult(ExtractionRequest& request, ClientRequest* clientRequest): 
-    request_(request), clientRequest_(clientRequest) {
-        ASSERT(clientRequest_);
-    }
-
-void RequestResult::notify() {
-    clientRequest_->notify();
+    if(!task_) return;
+    task_->execute(gj);
 }
 
 }  // namespace gribjump

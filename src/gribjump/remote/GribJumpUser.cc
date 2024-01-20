@@ -9,14 +9,15 @@
  */
 
 /// @author Christopher Bradley
-
+/// @author Tiago Quintino
 
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/LibGribJump.h"
-#include "gribjump/remote/ClientRequest.h"
+#include "gribjump/remote/ExtractRequest.h"
+#include "gribjump/remote/ScanRequest.h"
 
 namespace gribjump {
 
@@ -25,54 +26,13 @@ GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol){
 GribJumpUser::~GribJumpUser() {}
 
 void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
-    // NB: Use EITHER s OR in/out, not both. We use s.
-    // TODO: Monitor?
+
     eckit::Timer timer("GribJumpUser::serve");
 
     eckit::Log::info() << "Serving new connection" << std::endl;
 
     try {
-        std::string cmd;
-        s >> cmd;
-        eckit::Log::info() << "Received cmd: " << cmd << std::endl;
-
-        if (cmd == "EXTRACT"){
-            extract(s);
-        }
-
-        else if (cmd == "AXES"){
-            timer.report("Received AXES request");
-            GribJump gj;
-            std::string request;
-            s >> request;
-            std::map<std::string, std::unordered_set<std::string>> axes = gj.axes(request);
-
-            timer.report("AXES finished. Sending results");
-            size_t naxes = axes.size();
-            s << naxes;
-            for (auto& pair : axes) {
-                s << pair.first;
-                size_t n = pair.second.size();
-                s << n;
-                for (auto& val : pair.second) {
-                    s << val;
-                }
-            }
-            timer.report("Axes sent");
-
-            // print the axes we sent
-            for (auto& pair : axes) {
-                eckit::Log::info() << pair.first << ": ";
-                for (auto& val : pair.second) {
-                    eckit::Log::info() << val << ", ";
-                }
-                eckit::Log::info() << std::endl;
-            }
-        }
-
-        else {
-            throw eckit::SeriousBug("Unknown command " + cmd, Here());
-        }
+        handle_client(s, timer);
     }
     catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
@@ -85,22 +45,99 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
             eckit::Log::error() << "** Exception is ignored" << std::endl;
         }
     }
+        
+    LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;
 
     timer.report("Closing connection");
 }
 
-void GribJumpUser::extract(eckit::Stream& s){
-    eckit::Timer timer("GribJumpUser::extract");
+void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
+    std::string request;
+    s >> request;
+    if (request == "EXTRACT") {
+        extract(s, timer);
+    }
+    else if (request == "AXES") {
+        axes(s, timer);
+    }
+    else if (request == "SCAN") {
+        scan(s, timer);
+    }
+    else {
+        throw eckit::SeriousBug("Unknown request type: " + request);
+    }
+}
 
-    ClientRequest clientRequest(s);
-    clientRequest.doWork();
+void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
     
-    timer.report("Extract finished. Sending results");
-    clientRequest.replyToClient();
-    
-    timer.report("Results sent");
+    timer.report("SCAN request received ...");
 
-    LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;
+    ScanRequest request(s);
+    request.enqueueTasks();
+
+    timer.report("SCAN tasks enqueued. Waiting for completion ...");
+
+    request.waitForTasks();
+
+    timer.report("SCAN tasks finished. Sending results ...");
+
+    request.replyToClient();
+    
+    timer.report("SCAN finished. Sending number of files per request ...");
+
+    s << 0;
+
+    timer.report("SCAN results sent");
+}
+
+void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
+    
+    timer.report("AXES request received ...");
+
+    GribJump gj;
+    std::string request;
+    s >> request;
+    std::map<std::string, std::unordered_set<std::string>> axes = gj.axes(request);
+
+    timer.report("AXES finished. Sending results");
+    size_t naxes = axes.size();
+    s << naxes;
+    for (auto& pair : axes) {
+        s << pair.first;
+        size_t n = pair.second.size();
+        s << n;
+        for (auto& val : pair.second) {
+            s << val;
+        }
+    }
+    timer.report("Axes sent");
+
+    // print the axes we sent
+    for (auto& pair : axes) {
+        eckit::Log::info() << pair.first << ": ";
+        for (auto& val : pair.second) {
+            eckit::Log::info() << val << ", ";
+        }
+        eckit::Log::info() << std::endl;
+    }
+}
+
+void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){
+
+    timer.report("EXTRACT request received ...");
+
+    ExtractRequest request(s);
+    request.enqueueTasks();
+
+    timer.report("EXTRACT tasks enqueued. Waiting for completion ...");
+
+    request.waitForTasks();
+
+    timer.report("EXTRACT tasks finished. Sending results ...");
+
+    request.replyToClient();
+    
+    timer.report("EXTRACT results sent");
 }
 
 }  // namespace gribjump

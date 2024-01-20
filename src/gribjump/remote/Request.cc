@@ -9,38 +9,39 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
-#pragma once
+#include "eckit/log/Log.h"
 
-#include <memory>
+#include "gribjump/LibGribJump.h"
+#include "gribjump/remote/Request.h"
 
-#include "eckit/net/NetUser.h"
-#include "eckit/serialisation/Stream.h"
-
-#include "gribjump/GribJump.h"
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class GribJumpUser : public eckit::net::NetUser {
-public:
-    GribJumpUser(eckit::net::TCPSocket& protocol);
+Task::Task() {}
 
-    ~GribJumpUser();
-
-private:  // methods
-
-    virtual void serve(eckit::Stream& s, std::istream& in, std::ostream& out);
-
-    void handle_client(eckit::Stream& s, eckit::Timer& timer);
-
-    void extract(eckit::Stream& s, eckit::Timer& timer);
-    void axes(eckit::Stream& s, eckit::Timer& timer);
-    void scan(eckit::Stream& s, eckit::Timer& timer);
-
-private:  // members
-};
+Task::~Task() {}
 
 //----------------------------------------------------------------------------------------------------------------------
+
+Request::Request(eckit::Stream& stream) : client_(stream) {    
+}
+
+Request::~Request() {}
+
+void Request::notify() {
+    std::lock_guard<std::mutex> lock(m_);
+    counter_++;
+    cv_.notify_one();
+}
+
+void Request::waitForTasks() {
+    ASSERT(ntasks_ > 0);
+    LOG_DEBUG_LIB(LibGribJump) << "Waiting for tasks ..." << std::endl;
+    std::unique_lock<std::mutex> lock(m_);
+    cv_.wait(lock, [&]{return counter_ == ntasks_;});
+}
 
 }  // namespace gribjump

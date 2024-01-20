@@ -8,29 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#pragma once
-
-#include "gribjump/GribJump.h"
-#include "gribjump/remote/Request.h"
+#include "gribjump/GribJumpBase.h"
+#include "gribjump/LibGribJump.h"
+#include "GribJumpBase.h"
 
 namespace gribjump {
 
-class Task;
+GribJumpBase::GribJumpBase(const Config &config)
+{
+}
 
-class WorkItem {
-public:
+GribJumpBase::~GribJumpBase()
+{
+}
 
-    WorkItem();
-    WorkItem(Task* task);
+void GribJumpBase::stats()
+{
+    stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: ");
+}
 
-    void run(GribJump& gj);
-
-private:
-
-    Task* task_;
-};
-
-}  // namespace gribjump
+} // namespace gribjump

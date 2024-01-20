@@ -43,7 +43,7 @@ GribJumpFactory::~GribJumpFactory() {
 }
 
 GribJumpBase* GribJumpFactory::build(const Config &config) {
-    std::string name = config.getString("type") + "gribjump";
+    std::string name = config.getString("type");
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 

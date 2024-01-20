@@ -12,7 +12,6 @@
 
 #pragma once
 
-// #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/config/LocalConfiguration.h"
 
 

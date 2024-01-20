@@ -13,20 +13,23 @@
 #pragma once
 
 #include <thread>
+
 #include "eckit/container/Queue.h"
+
 #include "gribjump/ExtractionData.h"
 #include "gribjump/remote/WorkItem.h"
 
 namespace gribjump {
 
-// singleton
 class WorkQueue : private eckit::NonCopyable {
 public:
-    static WorkQueue& instance();
 
-    WorkQueue();
+    static WorkQueue& instance(); // singleton
 
     void push(WorkItem& item);
+
+protected:
+    WorkQueue();
 
 private:
     eckit::Queue<WorkItem> queue_;

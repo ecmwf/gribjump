@@ -19,8 +19,13 @@
 namespace gribjump {
 class LocalGribJump : public GribJumpBase {
 public:
+
     explicit LocalGribJump(const Config& config);
     ~LocalGribJump();
+
+    size_t scan(const metkit::mars::MarsRequest) override;
+    size_t scan(std::vector<ExtractionRequest>) override;
+
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
     
@@ -32,10 +37,6 @@ public:
     JumpInfo extractInfo(const fdb5::FieldLocation& loc);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
-
-
-private:
-    // GribInfoCache cache_; 
 
 };
 } // namespace gribjump

@@ -82,7 +82,7 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
     return s;
 }
 
-// ---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges):
     ranges_(std::move(ranges)),
