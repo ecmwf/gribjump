@@ -13,6 +13,7 @@
 #pragma once
 
 #include <queue>
+
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
@@ -27,10 +28,12 @@
 
 namespace gribjump {
 
-
 class JumpHandle;
+
 void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &n_index, std::queue<size_t> &edges, bool&, size_t&);
 std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap);
+
+//----------------------------------------------------------------------------------------------------------------------
 
 class JumpInfo {
 public:
@@ -38,11 +41,13 @@ public:
     static JumpInfo fromFile(const eckit::PathName& path, uint16_t msg_id = 0);
 
     JumpInfo();
+
     explicit JumpInfo(const metkit::grib::GribHandle& h);
     explicit JumpInfo(eckit::Stream& s);
 
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
+
     ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
 
     void print(std::ostream&) const;
@@ -104,6 +109,33 @@ private:
         return s;
     }
 
+}; 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class JumpInfoHandle {
+public: // methods
+
+    JumpInfoHandle() : info_(nullptr) {}
+
+    explicit JumpInfoHandle(JumpInfo* info) : info_(info) {
+        ASSERT(info_);
+    }
+    explicit JumpInfoHandle(eckit::Stream& s) : info_(new JumpInfo(s)) {}
+    
+    JumpInfo* get() { return info_; }
+
+    JumpInfo* operator->() { return info_; }
+
+private: // members
+
+    JumpInfo* info_; //< not owned
+
+private: // methods
+    friend eckit::Stream& operator<<(eckit::Stream&s, const JumpInfoHandle& h) {
+        h.info_->encode(s);
+        return s;
+    }
 };
 
 } // namespace gribjump

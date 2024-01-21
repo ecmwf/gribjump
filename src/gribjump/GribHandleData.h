@@ -32,8 +32,9 @@ public:
 
     ~JumpHandle();
 
-    const JumpInfo& extractInfoFromFile(eckit::PathName&);
-    const JumpInfo& extractInfo();
+    JumpInfo extractInfoFromFile(eckit::PathName&);
+    JumpInfo* extractInfo();
+
     eckit::Offset position();
     eckit::Length size();
     eckit::Offset seek(const eckit::Offset&) const;
@@ -44,8 +45,6 @@ private:
     bool ownsHandle_;
     mutable bool opened_;
     eckit::PathName path_;
-
-    mutable JumpInfo info_;
 
     virtual long read(void*, long) const;
     virtual void print(std::ostream& s) const;

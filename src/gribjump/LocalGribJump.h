@@ -31,12 +31,12 @@ public:
     
     std::vector<std::vector<ExtractionResult>> extractMultithread(std::vector<ExtractionRequest> polyRequest);
     
-    ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
+    ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfoHandle info) const;
 
-    // JumpInfo extractInfo(eckit::DataHandle* handle) const;
-    JumpInfo extractInfo(const fdb5::FieldLocation& loc);
+    JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
 };
+
 } // namespace gribjump

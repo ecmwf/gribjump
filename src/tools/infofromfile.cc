@@ -60,7 +60,7 @@ void FileCacher::execute(const eckit::option::CmdArgs &args) {
 
     // convert offsets to vector of offsets
     std::vector<std::string> offsets_str = eckit::StringTools::split(",", args(1));    
-    std::vector<eckit::Offset> offsets(offsets.size());
+    std::vector<eckit::Offset> offsets(offsets_str.size());
     for (size_t i = 0; i < offsets.size(); i++) {
         offsets[i] = std::stoll(offsets_str[i]);
     }

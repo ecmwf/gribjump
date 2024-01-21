@@ -26,6 +26,18 @@ namespace gribjump {
 
 class GribInfoCache {
 
+private: // types
+
+    typedef std::map<off_t, JumpInfoHandle> infocache_t; //< map fieldlocation's to gribinfo
+
+    struct InfoCache {
+        std::recursive_mutex mutex_; //< mutex for infocache_        
+        infocache_t infocache_;      //< map offsets in file to gribinfo
+    };
+
+    typedef std::string filename_t;               //< key is fieldlocation's path basename
+    typedef std::map<filename_t, InfoCache*> cache_t; //< map fieldlocation's to gribinfo
+
 public:
 
     static GribInfoCache& instance();
@@ -33,38 +45,46 @@ public:
     /// @brief Scans grib file and populates cache
     /// @param path full path to grib file
     /// @param offsets list of offsets to at which GribInfo should be extracted
-    static void scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+    void scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
 
     bool contains(const fdb5::FieldLocation& loc);
 
-    void insert(const fdb5::FieldLocation& loc, const JumpInfo& info);
+    /// Inserts a JumpInfo entry
+    /// @param loc field location
+    /// @param info JumpInfo to insert, takes ownership
+    void insert(const fdb5::FieldLocation& loc, JumpInfo* info);
 
-    /// Get gribinfo from memory cache
-    /// Assumes contains() has been called
-    /// @return JumpInfo
-    const JumpInfo& get(const fdb5::FieldLocation& loc);
+    /// Get JumpInfo from memory cache
+    /// @return JumpInfo, null if not found
+    JumpInfo* get(const fdb5::FieldLocation& loc);
 
     void print(std::ostream& s) const;
 
     bool enabled() const { return cacheEnabled_; }
 
-private:
+private: // methods
 
     GribInfoCache();
 
     ~GribInfoCache();
 
-    eckit::PathName infoFilePath(const eckit::PathName& path) const;
+    InfoCache& getFileCache(const filename_t& f);
 
-private:
+    eckit::PathName cacheFilePath(const eckit::PathName& path) const;
 
-    typedef std::string key_t; //< key is fieldlocation's path and offset
-    typedef std::map<key_t, JumpInfo> cache_t; //< map fieldlocation's to gribinfo
+    /// Inserts a JumpInfo entry
+    /// @param f filename
+    /// @param offset offset in file
+    /// @param info JumpInfo to insert, takes ownership
+    void insert(const filename_t& f, off_t offset, JumpInfo* info);
 
-    mutable std::mutex mutex_; //< mutex for cache_
+    bool loadIntoCache(const eckit::PathName& cachePath, InfoCache& cache);
+
+private: // members
 
     eckit::PathName cacheDir_;
 
+    mutable std::mutex mutex_; //< mutex for cache_
     cache_t cache_;
 
     bool cacheEnabled_ = false;
