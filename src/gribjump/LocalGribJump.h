@@ -24,7 +24,10 @@ public:
     explicit LocalGribJump(const Config& config);
     ~LocalGribJump();
 
+    /// @brief Scans the full grib file, looking for GRIB messages and populates cache
+    /// @param path full path to grib file
     size_t scan(const eckit::PathName& path) override;
+
     size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;

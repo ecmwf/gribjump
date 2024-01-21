@@ -11,6 +11,9 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
+#include "eckit/log/Log.h"
+#include "eckit/log/Plural.h"
+
 #include "gribjump/remote/ExtractRequest.h"
 #include "gribjump/remote/WorkQueue.h"
 
@@ -75,7 +78,10 @@ void ExtractRequest::replyToClient() {
 
     reportErrors();
 
+    eckit::Timer timer;
+
     size_t nReq = 0;
+    size_t nValues = 0;
     for (size_t group : requestGroups_){
         size_t nfieldsInOriginalReq = 0;
         for (size_t i = 0; i < group; i++) {
@@ -85,11 +91,22 @@ void ExtractRequest::replyToClient() {
         for (size_t i = 0; i < group; i++) {
             const std::vector<ExtractionResult>& results = tasks_[nReq]->results();
             for (auto& result : results) {
+                for (size_t i = 0; i < result.nrange(); i++) {
+                    nValues += result.nvalues(i);
+                }
                 client_ << result;
             }
             nReq++;
         }
     }
+
+    timer.stop();
+
+    double rate = nValues / timer.elapsed();
+    double byterate = rate * sizeof(double) / 1024.0; // KiB/sec
+
+    eckit::Log::info() << "ExtractRequest sent " << eckit::Plural(nValues,"value") << " @ " << rate << " values/s " << byterate << "KiB/s" << std::endl;
+
     ASSERT(nReq == tasks_.size());
 }
 

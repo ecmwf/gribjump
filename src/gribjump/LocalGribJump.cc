@@ -38,7 +38,10 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 LocalGribJump::~LocalGribJump() {}
 
 size_t LocalGribJump::scan(const eckit::PathName& path) {
-    NOTIMP;
+    JumpHandle dataSource(path);
+    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
+    GribInfoCache::instance().insert(path, infos);
+    return infos.size();
 }
 
 size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
@@ -83,7 +86,7 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
     for (const auto& file : files) {
         eckit::PathName path = file.first;
         if(byfiles) {
-            GribInfoCache::instance().scan(path);
+            scan(path);
         }
         else {
             GribInfoCache::instance().scan(path, *file.second);

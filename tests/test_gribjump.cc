@@ -114,10 +114,10 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
 }
 CASE( "test_gribjump_extract" ) {
     // loop through the test cases, ensure metadata is extracted correctly
-    eckit::PathName binName = "temp";
     for (int i=0; i < simplePackedData.size(); i++) {
         JumpHandle dataSource(simplePackedData[i].gribFileName);
-        JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
+        std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
+        JumpInfo gribInfo = *infos.back();
 
         std::ostringstream out;
         gribInfo.print(out);
@@ -127,22 +127,21 @@ CASE( "test_gribjump_extract" ) {
         EXPECT(s == simplePackedData[i].expectedString);
     }
 
-    // delete the temporary file
-    eckit::PathName(binName).unlink();
 }
 
 CASE( "test_gribjump_query" ) {
-    eckit::PathName binName = "temp";
     // loop through the test cases
     for (int i = 0; i < simplePackedData.size(); i++) {
-        // Extract
         JumpHandle dataSource(simplePackedData[i].gribFileName);
-        JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
+        std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
+        JumpInfo gribInfo = *infos.back();
+        
         doTest(i, gribInfo, dataSource);
+        
+        for(auto info : infos) {
+            delete info;
+        }
     }
-
-    // delete the temporary file
-    eckit::PathName(binName).unlink();
 }
 
 CASE( "test_gribjump_query_multimsg" ) {
@@ -162,16 +161,22 @@ CASE( "test_gribjump_query_multimsg" ) {
     eckit::PathName fname("combine.grib");
     JumpHandle dataSource(fname);
     eckit::PathName binName = "temp";
-    JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
+    
+    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
+    write_jumpinfos_to_file(infos, binName);
 
     // loop through the test cases
     for (int i = 0; i < simplePackedData.size(); i++) {
-        gribInfo = JumpInfo::fromFile(binName, i);
+        JumpInfo gribInfo = JumpInfo::fromFile(binName, i);
         doTest(i, gribInfo, dataSource);
     }
 
-    // delete the temporary file
-    eckit::PathName(binName).unlink();
+    for(auto info : infos) {
+        delete info;
+    }
+
+    // remove the temporary file
+    binName.unlink();
 }
 
 // XXX I don't believe the below code is used anywhere anymore, so we are testing unused code.

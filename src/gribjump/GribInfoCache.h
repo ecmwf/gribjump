@@ -47,9 +47,8 @@ public:
     /// @param offsets list of offsets to at which GribInfo should be extracted
     void scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
 
-    /// @brief Scans the full grib file, looking for GRIB messages and populates cache
-    /// @param path full path to grib file
-    void scan(const eckit::PathName& path);
+    /// @brief Inserts JumpInfos associated to the path
+    void insert(const eckit::PathName& path, const std::vector<JumpInfo*>& infos);
 
     bool contains(const fdb5::FieldLocation& loc);
 

@@ -58,6 +58,8 @@ public:
 
     unsigned long getNumberOfDataPoints() const { return numberOfDataPoints_; }
     unsigned long length() const { return totalLength_; }
+
+    eckit::Offset offset() const { return msgStartOffset_; }
     void setStartOffset(eckit::Offset offset) { msgStartOffset_ = offset; }
 
     void updateCcsdsOffsets(const JumpHandle& f);
@@ -67,7 +69,7 @@ public:
 private:
 
     static constexpr uint8_t currentVersion_ = 3;
-    uint8_t version_;
+    uint8_t       version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
     long          decimalScaleFactor_;

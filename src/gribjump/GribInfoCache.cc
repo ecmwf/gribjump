@@ -145,13 +145,39 @@ JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
     return nullptr;
 }
 
-void GribInfoCache::scan(const eckit::PathName& path) {
+void GribInfoCache::insert(const eckit::PathName& path, const std::vector<JumpInfo*>& infos) {
     // this will be executed in parallel so we dont lock main mutex_ here
     // we will rely on each method to lock mutex when needed
 
     if (!cacheEnabled_) return;
 
-    NOTIMP;
+    auto base = path.baseName();
+    auto cachePath = cacheFilePath(base);
+
+    // if cache exists load so we can merge with memory cache
+    InfoCache& filecache = getFileCache(base);
+    bool loaded = loadIntoCache(cachePath, filecache); 
+
+    std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
+    infocache_t& cache = filecache.infocache_;
+    for (auto info : infos) {
+        off_t offset = info->offset();
+        cache.insert(std::make_pair(offset, JumpInfoHandle(info)));
+    }
+
+    // create a unique filename for the cache file before (atomically) moving it into place
+
+    eckit::PathName uniqPath = eckit::PathName::unique(cachePath);
+
+    LOG_DEBUG_LIB(LibGribJump) << "Writing GribInfo to temporary file " << uniqPath << std::endl;
+    eckit::FileStream s(uniqPath, "w");
+    s << cache;
+    s.close();
+
+    // atomically move the file into place
+    eckit::PathName::rename(uniqPath, cachePath);
+
+    LOG_DEBUG_LIB(LibGribJump) << "Inserted GribInfo for " << infos.size() << " new fields in " << cachePath << std::endl;
 }
 
 
