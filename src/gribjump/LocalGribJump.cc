@@ -37,64 +37,62 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 
 LocalGribJump::~LocalGribJump() {}
 
-size_t LocalGribJump::scan(const metkit::mars::MarsRequest request) {
+size_t LocalGribJump::scan(const eckit::PathName& path) {
+    NOTIMP;
+}
 
-    fdb5::FDBToolRequest fdbreq(request);
+size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
 
     fdb5::FDB fdb;
-    auto listIter = fdb.list(fdbreq, false);
-
-    std::map<std::string, std::unordered_set<std::string>> values;
 
     size_t count = 0;
 
     std::map< std::string, std::vector<eckit::Offset>* > files;
 
-    fdb5::ListElement elem;
-    while (listIter.next(elem)) {
-        
-        count++;
-        
-        const fdb5::FieldLocation& loc = elem.location();
+    for (auto& request : requests) {
+        LOG_DEBUG_LIB(LibGribJump) << "Processing rquest: " << request << std::endl;
 
-        LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
+        fdb5::FDBToolRequest fdbreq(request);
+        auto listIter = fdb.list(fdbreq, false);
 
-        eckit::PathName path = loc.uri().path();
+        fdb5::ListElement elem;
+        while (listIter.next(elem)) {
+            
+            count++;
+            
+            const fdb5::FieldLocation& loc = elem.location();
 
-        auto it = files.find(path);
-        if(it == files.end()) {
-            auto v = new std::vector<eckit::Offset>();
-            v->reserve(1024);
-            files[path] = v;
+            LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
+
+            eckit::PathName path = loc.uri().path();
+
+            if(!byfiles) {
+                auto it = files.find(path);
+                if(it == files.end()) {
+                    auto v = new std::vector<eckit::Offset>();
+                    v->reserve(1024);
+                    files[path] = v;
+                }
+                else {
+                    it->second->push_back(loc.offset());
+                }
+            }
         }
-        else {
-            it->second->push_back(loc.offset());
-        }
-
-        // eckit::Length length = loc.length();
-        // eckit::PathName file = loc.uri().path().baseName();
-        // for (const auto& key : elem.key()) {
-        //     for (const auto& param : key) {
-        //         values[param.first].insert(param.second);
-        //         std::cout << param.first << " : " << param.second << std::endl;
-        //     }
-        // }
     }
 
     for (const auto& file : files) {
         eckit::PathName path = file.first;
-        GribInfoCache::instance().scan(path, *file.second);
-        delete file.second;
+        if(byfiles) {
+            GribInfoCache::instance().scan(path);
+        }
+        else {
+            GribInfoCache::instance().scan(path, *file.second);
+            delete file.second;
+        }
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Found " << files.size() << " files" << std::endl;
 
-    return count;
-}
-
-size_t LocalGribJump::scan(std::vector<ExtractionRequest> requests) {
-    size_t count = 0;
-    NOTIMP;
     return count;
 }
 

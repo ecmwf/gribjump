@@ -25,7 +25,7 @@ class ExtractRequest;
 class ExtractTask : public Task {
 public: 
     
-    ExtractTask(size_t id, ExtractionRequest& request, ExtractRequest* ExtractRequest);
+    ExtractTask(size_t id, ExtractRequest* clientRequest, ExtractionRequest& request);
 
     virtual ~ExtractTask();
 
@@ -33,14 +33,9 @@ public:
     
     void execute(GribJump& gj) override;
 
-    void notify() override;
-
-    void notifyError(const std::string& s) override;
-
 private:
     ExtractionRequest request_;
     std::vector<ExtractionResult> results_;
-    ExtractRequest* clientRequest_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

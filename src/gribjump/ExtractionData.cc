@@ -103,28 +103,25 @@ ExtractionRequest::ExtractionRequest(eckit::Stream& s){
 
 std::vector<ExtractionRequest> ExtractionRequest::split(const std::string& key) const {
 
-    if (!request_.has(key)) {
-        return std::vector<ExtractionRequest>{*this};
-    }
+    std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
 
-    const std::vector<std::string> values = request_.values(key);
     std::vector<ExtractionRequest> requests;
-
-
-    for (auto& value : values) {
-        metkit::mars::MarsRequest newRequest = request_;
-        newRequest.setValue(key, value);
-        requests.push_back(ExtractionRequest(newRequest, ranges_));
+    requests.reserve(reqs.size());
+    for (auto& r : reqs) {
+        requests.push_back(ExtractionRequest(r, ranges_));
     }
-
     return requests;
 }
 
 std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string>& keys) const {
+    
+    std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
+
     std::vector<ExtractionRequest> requests;
-
-    NOTIMP;
-
+    requests.reserve(reqs.size());
+    for (auto& r : reqs) {
+        requests.push_back(ExtractionRequest(r, ranges_));
+    }
     return requests;
 }
 

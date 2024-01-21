@@ -42,10 +42,14 @@ public:
 
     static GribInfoCache& instance();
 
-    /// @brief Scans grib file and populates cache
+    /// @brief Scans grib file at provided offsets and populates cache
     /// @param path full path to grib file
     /// @param offsets list of offsets to at which GribInfo should be extracted
     void scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+
+    /// @brief Scans the full grib file, looking for GRIB messages and populates cache
+    /// @param path full path to grib file
+    void scan(const eckit::PathName& path);
 
     bool contains(const fdb5::FieldLocation& loc);
 

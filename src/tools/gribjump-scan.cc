@@ -42,6 +42,8 @@ class GribJumpScanTool : public fdb5::FDBTool {
   public:
     GribJumpScanTool(int argc, char **argv): fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("files", "Scan by files (default: true)"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("ranges", "Uses requests which  (default: false)"));
     }
 
 };
@@ -49,7 +51,9 @@ class GribJumpScanTool : public fdb5::FDBTool {
 void GribJumpScanTool::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <mars request file>" << std::endl
-                       << "       " << tool << " --raw <mars request file>" << std::endl;
+                       << "       " << tool << " --raw <mars request file>" << std::endl
+                       << "       " << tool << " --files <mars request file>" << std::endl
+                       ;
 
     fdb5::FDBTool::usage(tool);
 }
@@ -57,6 +61,7 @@ void GribJumpScanTool::usage(const std::string &tool) const {
 void GribJumpScanTool::execute(const eckit::option::CmdArgs &args) {
 
     bool raw = args.getBool("raw", false);
+    bool files = args.getBool("files", false);
 
     // Build request(s) from input
     std::ifstream in(args(0).c_str());
@@ -76,16 +81,9 @@ void GribJumpScanTool::execute(const eckit::option::CmdArgs &args) {
         requests = expand.expand(parsedRequests);
     }
 
-
-    std::vector<gribjump::Range> one = { Range(1, 2)};
-    std::vector<gribjump::ExtractionRequest> polyRequest;
-    for (size_t i = 0; i < requests.size(); i++) {
-        gribjump::ExtractionRequest exrequest(requests[i], one);
-        polyRequest.push_back(exrequest);
-    }
-
     gribjump::GribJump gj;
-    gj.scan(polyRequest);
+
+    gj.scan(requests, files);
 }
 
 int main(int argc, char **argv) {

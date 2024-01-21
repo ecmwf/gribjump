@@ -16,23 +16,12 @@
 
 namespace gribjump {
 
-ExtractTask::ExtractTask(size_t id, ExtractionRequest& request, ExtractRequest* clientRequest): Task(id),
-    request_(request), clientRequest_(clientRequest) 
-{
-    ASSERT(clientRequest_);
+ExtractTask::ExtractTask(size_t id, ExtractRequest* clientRequest, ExtractionRequest& request): Task(id, clientRequest),
+    request_(request) {
 }
 
 ExtractTask::~ExtractTask() {
 }
-
-void ExtractTask::notify() {
-    clientRequest_->notify(id());
-}
-
-void ExtractTask::notifyError(const std::string& s) {
-    clientRequest_->notifyError(id(), s);
-}
-
 
 void ExtractTask::execute(GribJump& gj) {
     std::vector<ExtractionResult> results = gj.extract(request_.getRequest(), request_.getRanges());
@@ -47,14 +36,19 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
     size_t numRequests;
     client_ >> numRequests;
 
+    LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: numRequests = " << numRequests << std::endl;
+
     // flat vector of tasks, one per split request
     for (size_t i = 0; i < numRequests; i++) {
 
         const ExtractionRequest baseRequest = ExtractionRequest(client_);
-        std::vector<ExtractionRequest> splitRequests = baseRequest.split("number"); // todo: date, time.
+
+        std::vector<std::string> split_keys = { "date", "time", "number" };
+        std::vector<ExtractionRequest> splitRequests = baseRequest.split( split_keys );
 
         for (size_t j = 0; j < splitRequests.size(); j++) {
-            tasks_.emplace_back(new ExtractTask(j, splitRequests[j], this));
+            LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: split request " << splitRequests[j].getRequest() << std::endl;
+            tasks_.emplace_back(new ExtractTask(j, this, splitRequests[j]));
         }
         requestGroups_.push_back(splitRequests.size());
     }

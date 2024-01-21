@@ -13,31 +13,55 @@
 
 #pragma once
 
+#include <cstddef>
+
+#include "eckit/filesystem/PathName.h"
+
+#include "metkit/mars/MarsRequest.h"
+
 #include "gribjump/remote/Request.h"
 
 namespace gribjump {
-
-class ScanRequest;
     
+//----------------------------------------------------------------------------------------------------------------------
+
 class ScanTask : public Task {
 public: 
     
-    ScanTask(size_t id, ExtractionRequest& request, ScanRequest* clientRequest);
+    ScanTask(size_t id, Request* clientRequest);
 
     virtual ~ScanTask();
     
     size_t result() { return result_; }
 
+protected:
+    size_t result_ = 0;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ScanMARSTask : public ScanTask {
+public: 
+    
+    ScanMARSTask(size_t id, Request* clientRequest, const metkit::mars::MarsRequest& request);
+    
     void execute(GribJump& gj) override;
 
-    void notify() override;
+private:
+    metkit::mars::MarsRequest request_;
+};
 
-    void notifyError(const std::string&) override;
+//----------------------------------------------------------------------------------------------------------------------
+
+class ScanFileTask : public ScanTask {
+public: 
+    
+    ScanFileTask(size_t id, Request* clientRequest, const eckit::PathName& path);
+    
+    void execute(GribJump& gj) override;
 
 private:
-    size_t result_ = 0;
-    ExtractionRequest request_;
-    ScanRequest* clientRequest_;
+    eckit::PathName file_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -55,7 +79,7 @@ public:
 
 private:
     std::vector<ScanTask*> tasks_;
-    std::vector<size_t> requestGroups_;
+
 };
 
 } // namespace gribjump

@@ -33,16 +33,16 @@ GribJump::GribJump(){
 GribJump::~GribJump() {
 }
 
-size_t GribJump::scan(const metkit::mars::MarsRequest request) {
+size_t GribJump::scan(const eckit::PathName& path) {
     eckit::Timer timer("Gribjump::scan API", eckit::Log::debug<LibGribJump>());
-    size_t ret = impl_->scan(request);
+    size_t ret = impl_->scan(path);
     timer.report();
     return ret;
 }
 
-size_t GribJump::scan(std::vector<ExtractionRequest> requests) {
+size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
     eckit::Timer timer("Gribjump::scan API", eckit::Log::debug<LibGribJump>());
-    size_t ret = impl_->scan(requests);
+    size_t ret = impl_->scan(requests, byfiles);
     timer.report();
     return ret;
 }

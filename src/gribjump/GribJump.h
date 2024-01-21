@@ -43,8 +43,8 @@ public:
     
     ~GribJump();
 
-    size_t scan(const metkit::mars::MarsRequest request);
-    size_t scan(std::vector<ExtractionRequest> requests);
+    size_t scan(const eckit::PathName& path);
+    size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false);
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> requests);
 

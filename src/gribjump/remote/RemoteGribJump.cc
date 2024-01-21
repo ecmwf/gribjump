@@ -29,13 +29,11 @@ RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
 
 RemoteGribJump::~RemoteGribJump() {}
 
-size_t RemoteGribJump::scan(const metkit::mars::MarsRequest request) {
-    size_t count = 0;
+size_t RemoteGribJump::scan(const eckit::PathName& path) {
     NOTIMP;
-    return count;
 }
 
-size_t RemoteGribJump::scan(std::vector<ExtractionRequest> polyRequest) {
+size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
     eckit::Timer timer("RemoteGribJump::scan()");
 
     // connect to server
@@ -44,10 +42,11 @@ size_t RemoteGribJump::scan(std::vector<ExtractionRequest> polyRequest) {
     timer.report("Connection established");
 
     stream << "SCAN";
+    stream << byfiles;
 
-    size_t nRequests = polyRequest.size();
+    size_t nRequests = requests.size();
     stream << nRequests;
-    for (auto& req : polyRequest) {
+    for (auto& req : requests) {
         stream << req;
     }
 

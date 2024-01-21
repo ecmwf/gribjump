@@ -21,9 +21,19 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Task::Task(size_t taskid) : taskid_(taskid) {}
+Task::Task(size_t taskid, Request* r) : taskid_(taskid), clientRequest_(r) {
+    ASSERT(clientRequest_);
+}
 
 Task::~Task() {}
+
+void Task::notify() {
+    clientRequest_->notify(id());
+}
+
+void Task::notifyError(const std::string& s) {
+    clientRequest_->notifyError(id(), s);
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

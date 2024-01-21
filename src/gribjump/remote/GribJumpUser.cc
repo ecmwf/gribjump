@@ -73,6 +73,7 @@ void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
     timer.report("SCAN request received ...");
 
     ScanRequest request(s);
+
     request.enqueueTasks();
 
     timer.report("SCAN tasks enqueued. Waiting for completion ...");

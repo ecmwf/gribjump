@@ -23,6 +23,8 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class Request;
+
 /// Unit of work to be executed in a worker thread
 /// Wrapped by WorkItem
 class Task {
@@ -34,7 +36,7 @@ public:
         FAILED = 2
     };
 
-    Task(size_t);
+    Task(size_t, Request* r);
 
     virtual ~Task();
 
@@ -44,13 +46,14 @@ public:
     virtual void execute(GribJump& gj) = 0;
 
     /// notifies the completion of the task
-    virtual void notify() = 0;
+    virtual void notify();
 
     /// notifies the error in execution of the task
-    virtual void notifyError(const std::string& s) = 0;
+    virtual void notifyError(const std::string& s);
 
 private:
     size_t taskid_; //< Task id within parent request
+    Request* clientRequest_; //< Parent request
 };
 
 //----------------------------------------------------------------------------------------------------------------------

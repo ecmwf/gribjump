@@ -145,6 +145,16 @@ JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
     return nullptr;
 }
 
+void GribInfoCache::scan(const eckit::PathName& path) {
+    // this will be executed in parallel so we dont lock main mutex_ here
+    // we will rely on each method to lock mutex when needed
+
+    if (!cacheEnabled_) return;
+
+    NOTIMP;
+}
+
+
 void GribInfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offs) {
 
     // this will be executed in parallel so we dont lock main mutex_ here
