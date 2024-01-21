@@ -28,8 +28,9 @@ public:
 
     void run(GribJump& gj);
 
-private:
+    void error(const std::string& s);
 
+private:
     Task* task_;
 };
 

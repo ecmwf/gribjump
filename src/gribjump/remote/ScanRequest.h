@@ -22,7 +22,7 @@ class ScanRequest;
 class ScanTask : public Task {
 public: 
     
-    ScanTask(ExtractionRequest& request, ScanRequest* clientRequest);
+    ScanTask(size_t id, ExtractionRequest& request, ScanRequest* clientRequest);
 
     virtual ~ScanTask();
     
@@ -32,10 +32,12 @@ public:
 
     void notify() override;
 
+    void notifyError(const std::string&) override;
+
 private:
+    size_t result_ = 0;
     ExtractionRequest request_;
     ScanRequest* clientRequest_;
-    size_t result_ = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

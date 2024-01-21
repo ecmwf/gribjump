@@ -25,4 +25,9 @@ void WorkItem::run(GribJump& gj) {
     task_->execute(gj);
 }
 
+void WorkItem::error(const std::string& s) {
+    if(!task_) return;
+    task_->notifyError(s);
+}
+
 }  // namespace gribjump

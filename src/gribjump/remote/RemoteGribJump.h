@@ -20,7 +20,7 @@ namespace gribjump {
 
 class RemoteGribJump : public GribJumpBase {
 
-public:  // methods
+public: // methods
 
     RemoteGribJump(const Config& config);
     ~RemoteGribJump();
@@ -32,6 +32,10 @@ public:  // methods
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
     
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
+
+protected: // methods
+
+    bool receiveErrors(eckit::Stream& stream);
 
 private: // members
     int port_;

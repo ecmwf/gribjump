@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #include "eckit/log/Timer.h"
 

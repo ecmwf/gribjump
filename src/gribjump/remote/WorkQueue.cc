@@ -29,13 +29,25 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] {
+
             LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " starting" << std::endl;
             GribJump gj = GribJump(); // one per thread
+            
             for (;;) {
                 WorkItem item;
                 queue_.pop(item);
                 LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " new job" << std::endl;
-                item.run(gj);
+                try {
+                    item.run(gj);
+                }
+                catch (const std::exception& e) {
+                    LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " exception: " << e.what() << std::endl;
+                    item.error(e.what());
+                }
+                catch (...) {
+                    LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " unknown exception" << std::endl;
+                    item.error("Unknown exception");
+                }
             }
         });
     }

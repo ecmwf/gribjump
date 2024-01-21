@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #include <queue>
 #include <memory>
@@ -17,10 +18,13 @@
 #include <unordered_map>
 #include <cmath> // isnan. Temp, only for debug, remove later.
 #include <memory>
+
 #include "eckit/io/DataHandle.h"
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/utils/MD5.h"
+
 #include "metkit/codes/GribAccessor.h"
+
 #include "gribjump/GribHandleData.h"
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"

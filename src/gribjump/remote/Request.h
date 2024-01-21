@@ -28,21 +28,35 @@ namespace gribjump {
 class Task {
 public:
 
-    Task();
+    enum Status {
+        DONE = 0,
+        PENDING = 1,
+        FAILED = 2
+    };
+
+    Task(size_t);
 
     virtual ~Task();
+
+    size_t id() const { return taskid_; }
 
     /// executes the task to completion
     virtual void execute(GribJump& gj) = 0;
 
     /// notifies the completion of the task
     virtual void notify() = 0;
+
+    /// notifies the error in execution of the task
+    virtual void notifyError(const std::string& s) = 0;
+
+private:
+    size_t taskid_; //< Task id within parent request
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
 class Request {
-public:
+public: // methods
 
     Request(eckit::Stream& stream);
 
@@ -59,16 +73,27 @@ public:
 
     /// Notify that a task has been completed
     /// potentially completing all the work for this request
-    virtual void notify();
+    virtual void notify(size_t taskid);
 
-protected: 
-    
-    int ntasks_  = 0; // must be set by derived class
-    int counter_ = 0; // should be incremented by notify()
-    
+    /// Notify that a task has finished with error
+    /// potentially completing all the work for this request
+    virtual void notifyError(size_t taskid, const std::string& s);
+
+protected: // methods
+
+    void reportErrors();
+
+protected: // members
+
+    int counter_ = 0;  //< incremented by notify() or notifyError()
+
     std::mutex m_;
     std::condition_variable cv_;
+
+    std::vector<size_t> taskStatus_; //< stores tasks status, must be initialised by derived class
     
+    std::vector<std::string> errors_; //< stores error messages, empty if no errors
+
     eckit::Stream& client_;
 };
 

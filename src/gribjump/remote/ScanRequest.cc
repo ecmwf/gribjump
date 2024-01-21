@@ -16,7 +16,7 @@
 
 namespace gribjump {
 
-ScanTask::ScanTask(ExtractionRequest& request, ScanRequest* clientRequest): 
+ScanTask::ScanTask(size_t id, ExtractionRequest& request, ScanRequest* clientRequest): Task(id),
     request_(request), clientRequest_(clientRequest) 
 {
     ASSERT(clientRequest_);
@@ -26,7 +26,11 @@ ScanTask::~ScanTask() {
 }
 
 void ScanTask::notify() {
-    clientRequest_->notify();
+    clientRequest_->notify(id());
+}
+
+void ScanTask::notifyError(const std::string& s) {
+    clientRequest_->notifyError(id(), s);
 }
 
 void ScanTask::execute(GribJump& gj) {
@@ -47,12 +51,12 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
         std::vector<ExtractionRequest> splitRequests = baseRequest.split("number"); // todo: date, time.
 
         for (size_t j = 0; j < splitRequests.size(); j++) {
-            tasks_.emplace_back(new ScanTask(splitRequests[j], this));
+            tasks_.emplace_back(new ScanTask(j, splitRequests[j], this));
         }
         requestGroups_.push_back(splitRequests.size());
     }
 
-    ntasks_ = tasks_.size();
+    taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
 }
 
 ScanRequest::~ScanRequest() {
@@ -71,6 +75,9 @@ void ScanRequest::enqueueTasks() {
 }
 
 void ScanRequest::replyToClient() {
+
+    reportErrors();
+
     size_t nScannedFiles = 0;
     for (size_t i = 0; i < tasks_.size(); i++) {
         nScannedFiles += tasks_[i]->result();

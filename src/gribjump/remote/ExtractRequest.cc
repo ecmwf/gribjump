@@ -16,7 +16,7 @@
 
 namespace gribjump {
 
-ExtractTask::ExtractTask(ExtractionRequest& request, ExtractRequest* clientRequest): 
+ExtractTask::ExtractTask(size_t id, ExtractionRequest& request, ExtractRequest* clientRequest): Task(id),
     request_(request), clientRequest_(clientRequest) 
 {
     ASSERT(clientRequest_);
@@ -26,8 +26,13 @@ ExtractTask::~ExtractTask() {
 }
 
 void ExtractTask::notify() {
-    clientRequest_->notify();
+    clientRequest_->notify(id());
 }
+
+void ExtractTask::notifyError(const std::string& s) {
+    clientRequest_->notifyError(id(), s);
+}
+
 
 void ExtractTask::execute(GribJump& gj) {
     std::vector<ExtractionResult> results = gj.extract(request_.getRequest(), request_.getRanges());
@@ -49,12 +54,12 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         std::vector<ExtractionRequest> splitRequests = baseRequest.split("number"); // todo: date, time.
 
         for (size_t j = 0; j < splitRequests.size(); j++) {
-            tasks_.emplace_back(new ExtractTask(splitRequests[j], this));
+            tasks_.emplace_back(new ExtractTask(j, splitRequests[j], this));
         }
         requestGroups_.push_back(splitRequests.size());
     }
 
-    ntasks_ = tasks_.size();
+    taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
 }
 
 ExtractRequest::~ExtractRequest() {
@@ -72,7 +77,10 @@ void ExtractRequest::enqueueTasks() {
     }
 }
 
-void ExtractRequest::replyToClient() {        
+void ExtractRequest::replyToClient() {       
+
+    reportErrors();
+
     size_t nReq = 0;
     for (size_t group : requestGroups_){
         size_t nfieldsInOriginalReq = 0;

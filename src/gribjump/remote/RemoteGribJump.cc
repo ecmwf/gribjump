@@ -56,6 +56,9 @@ size_t RemoteGribJump::scan(std::vector<ExtractionRequest> polyRequest) {
     timer.report(ss.str());
 
     // receive responses
+
+    bool error = receiveErrors(stream);
+
     size_t count = 0;
     for (size_t i = 0; i < nRequests; i++) {
         size_t nfiles;
@@ -90,6 +93,9 @@ std::vector<std::vector<ExtractionResult>> RemoteGribJump::extract(std::vector<E
     timer.report(ss.str());
 
     // receive response
+
+    bool error = receiveErrors(stream);
+
     for (size_t i = 0; i < nRequests; i++) {
         std::vector<ExtractionResult> response;
         size_t nfields;
@@ -122,6 +128,9 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     timer.report("Request sent");
 
     // receive response
+
+    bool error = receiveErrors(stream);
+
     size_t nAxes;
     stream >> nAxes;
     for (size_t i = 0; i < nAxes; i++) {
@@ -139,8 +148,18 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     }        
     timer.report("Axes received");
 
-
     return result;
+}
+
+bool RemoteGribJump::receiveErrors(eckit::Stream& stream) {
+    size_t nErrors;
+    stream >> nErrors;
+    for (size_t i = 0; i < nErrors; i++) {
+        std::string error;
+        stream >> error;
+        eckit::Log::error() << error << std::endl;
+    }
+    return nErrors > 0;
 }
 
 static GribJumpBuilder<RemoteGribJump> builder("remote");

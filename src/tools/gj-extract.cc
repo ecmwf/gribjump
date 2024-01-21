@@ -49,8 +49,7 @@ class GJExtractTool : public fdb5::FDBTool {
 void GJExtractTool::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <mars request file> <ranges file>" << std::endl
-                       << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl
-                       << "       " << tool << " --scan <mars request file>" << std::endl;
+                       << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl;
 
     fdb5::FDBTool::usage(tool);
 }
