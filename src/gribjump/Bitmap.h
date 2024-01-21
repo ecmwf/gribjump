@@ -2,4 +2,6 @@
 
 #include <vector>
 
-using Bitmap = std::vector<bool>;
+using BitmapValueType = char;
+using Bitmap = std::vector<BitmapValueType>;
+//using Bitmap = std::vector<bool>;

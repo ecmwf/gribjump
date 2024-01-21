@@ -64,6 +64,7 @@ public:
     void setStartOffset(eckit::Offset offset) { msgStartOffset_ = offset; }
 
     void updateCcsdsOffsets(const JumpHandle& f);
+    void updateMissingValues(const JumpHandle& f);
     std::vector<size_t> getCcsdsOffsets() const { return ccsdsOffsets_; }
     std::string getPackingType() const { return packingType_; }
 
@@ -95,6 +96,8 @@ private:
     unsigned long ccsdsBlockSize_;
     unsigned long ccsdsRsi_;
     std::vector<size_t> ccsdsOffsets_;
+    size_t chunkSizeN_;
+    std::vector<size_t> countMissings_;
 
 
     Bitmap get_bitmap(const JumpHandle& f) const;

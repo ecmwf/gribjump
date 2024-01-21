@@ -98,6 +98,7 @@ const JumpInfo& JumpHandle::extractInfoFromFile(eckit::PathName& outName){
         info.setStartOffset(fp - info.length());
         offset = handle_->position();
         info.updateCcsdsOffsets(*this); // XXX Pretty inelgeant. Honestly all of this is.
+        info.updateMissingValues(*this); // XXX Pretty inelgeant. Honestly all of this is.
         infos.push_back(info);
 
         // XXX: On linux, fp is wrong if handle is not closed and reopened.
@@ -124,7 +125,8 @@ const JumpInfo& JumpHandle::extractInfo(){
     metkit::grib::GribHandle h(*handle_, initialPos);
     info_.update(h);
     info_.setStartOffset(0);
-    info_.updateCcsdsOffsets(*this); 
+    info_.updateCcsdsOffsets(*this);
+    info_.updateMissingValues(*this);
     return info_;
 }
 
