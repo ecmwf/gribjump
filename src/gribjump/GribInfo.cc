@@ -93,7 +93,7 @@ static GribAccessor<unsigned long> offsetAfterData("offsetAfterData");
 static GribAccessor<unsigned long> offsetBeforeBitmap("offsetBeforeBitmap");
 static GribAccessor<unsigned long> numberOfValues("numberOfValues");
 static GribAccessor<unsigned long> numberOfDataPoints("numberOfDataPoints");
-static GribAccessor<long>          sphericalHarmonics("sphericalHarmonics");
+static GribAccessor<long>          sphericalHarmonics("sphericalHarmonics", true);
 static GribAccessor<unsigned long> totalLength("totalLength");
 static GribAccessor<unsigned long> offsetBSection6("offsetBSection6");
 static GribAccessor<std::string> md5GridSection("md5GridSection");
