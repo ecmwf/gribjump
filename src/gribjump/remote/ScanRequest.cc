@@ -114,7 +114,9 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
         size_t count = 0;
         for (size_t i = 0; i < numRequests; i++) {
             metkit::mars::MarsRequest base = metkit::mars::MarsRequest(client_);
-            std::vector< metkit::mars::MarsRequest > splits = base.split("number"); // todo: date, time.
+
+            std::vector<std::string> split_keys = { "date", "time", "number" };
+            std::vector< metkit::mars::MarsRequest > splits = base.split(split_keys);
 
             for (size_t j = 0; j < splits.size(); j++) {
                 tasks_.emplace_back(new ScanMARSTask(count, this, splits[j]));
