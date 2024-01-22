@@ -20,12 +20,14 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/container/Queue.h"
 #include "eckit/log/Timer.h"
+#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "gribjump/GribHandleData.h"
 #include "gribjump/GribJump.h"
+#include "gribjump/FDBService.h"
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LocalGribJump.h"
@@ -46,7 +48,8 @@ size_t LocalGribJump::scan(const eckit::PathName& path) {
 
 size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
 
-    fdb5::FDB fdb;
+    eckit::AutoLock<FDBService> lock(FDBService::instance());
+    fdb5::FDB& fdb = FDBService::instance().fdb();
 
     size_t count = 0;
 
@@ -104,7 +107,9 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     eckit::Timer timer;
     timer.stop();
 
-    fdb5::FDB fdb;
+    eckit::AutoLock<FDBService> lock(FDBService::instance());
+    fdb5::FDB& fdb = FDBService::instance().fdb();
+
     std::vector<std::vector<JumpInfoHandle>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
 
@@ -146,9 +151,14 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
 }
 
 std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::pair<size_t, size_t>> ranges){
+
     std::vector<ExtractionResult>  result;
-    fdb5::FDB fdb;
     eckit::Timer timer;
+
+    eckit::AutoLock<FDBService> lock(FDBService::instance());
+    fdb5::FDB& fdb = FDBService::instance().fdb();
+
+
     fdb5::ListIterator it = fdb.inspect(request);
     timer.stop();
     stats_.addInspect(timer);
@@ -210,7 +220,10 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
 
     using namespace fdb5;
 
-    FDB fdb;
+    eckit::AutoLock<FDBService> lock(FDBService::instance());
+    fdb5::FDB& fdb = FDBService::instance().fdb();
+
+
     std::vector<FDBToolRequest> requests = FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
     ASSERT(requests.size() == 1);
     auto listIter = fdb.list(requests.front(), false);
