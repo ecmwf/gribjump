@@ -14,7 +14,7 @@
 #pragma once
 
 #include <mutex>
-
+#include <condition_variable>
 #include "eckit/serialisation/Stream.h"
 
 #include "gribjump/GribJump.h"
