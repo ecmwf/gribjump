@@ -56,10 +56,11 @@ public:
     /// @param loc field location
     /// @param info JumpInfo to insert, takes ownership
     void insert(const fdb5::FieldLocation& loc, JumpInfo* info);
-
+    void insert(const eckit::URI& uri, const eckit::Offset offset, JumpInfo* info);
     /// Get JumpInfo from memory cache
     /// @return JumpInfo, null if not found
     JumpInfo* get(const fdb5::FieldLocation& loc);
+    JumpInfo* get(const eckit::URI& uri, const eckit::Offset offset);
 
     void print(std::ostream& s) const;
 

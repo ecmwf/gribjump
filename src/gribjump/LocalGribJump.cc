@@ -99,6 +99,24 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
     return count;
 }
 
+std::vector<ExtractionResult> LocalGribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
+    std::vector<ExtractionResult> result;
+    for(auto& uri : uris){
+        eckit::Offset offset = std::stoll(uri.fragment());
+        JumpInfoHandle info = extractInfo(uri, offset);
+
+        result.push_back(directJump(uri, offset, ranges, info));
+
+        // eckit::DataHandle* handle = uri.newReadHandle(); // TODO: for now. See also uri.newReadHandle with offsets.
+        // JumpHandle dataSource(handle);
+        // info->setStartOffset(offset);
+        // ASSERT(info->ready());
+        // result.push_back(info->extractRanges(dataSource, ranges));
+    }
+
+    return result;
+}
+
 std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
     eckit::Log::info() << "GribJump::extract() [batch] called" << std::endl;
     eckit::Timer timer;
@@ -173,11 +191,15 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     return result;
 }
 
-// TODO(Chris) : We can probably group requests by file, based on fdb.inspect fieldlocations
+ExtractionResult LocalGribJump::directJump(eckit::URI uri, eckit::Offset offset, std::vector<Range> ranges, JumpInfoHandle info) const {
+    eckit::DataHandle* handle = uri.newReadHandle(); // TODO: for now. See also uri.newReadHandle with offsets, to avoid reopening the file.
+    JumpHandle dataSource(handle);
+    info->setStartOffset(offset); // Message starts at the beginning of the handle
+    ASSERT(info->ready());
+    return info->extractRanges(dataSource, ranges);
+}
 
-ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
-    std::vector<std::pair<size_t, size_t>> ranges,
-    JumpInfoHandle info) const {
+ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std::vector<Range> ranges, JumpInfoHandle info) const {
     JumpHandle dataSource(handle);
     info->setStartOffset(0); // Message starts at the beginning of the handle
     ASSERT(info->ready());
@@ -185,6 +207,7 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle,
 }
 
 JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
+    // TODO: Assuming it works correctly, can call extractInfo(loc.uri(), loc.offset()) instead.
     
     GribInfoCache& cache = GribInfoCache::instance();
 
@@ -201,6 +224,23 @@ JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
     return JumpInfoHandle(info);
 }
 
+JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Offset& offset) {
+    
+    GribInfoCache& cache = GribInfoCache::instance();
+
+    JumpInfo* pinfo = cache.get(uri, offset);
+    if (pinfo) return JumpInfoHandle(pinfo);
+    
+    std::string f = uri.path().baseName();
+    eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
+
+    eckit::DataHandle* handle = uri.path().fileHandle();
+    JumpHandle dataSource(handle);
+    JumpInfo* info = dataSource.extractInfo();
+    cache.insert(uri, offset, info); // takes ownership of info
+    return JumpInfoHandle(info);
+}
+
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
     // bare bones implementation: jut a wrapper around list.
     // TODO(Chris): implement a proper axes function inside FDB.
@@ -209,7 +249,6 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     // Here for now to support polytope.
 
     using namespace fdb5;
-
     FDB fdb;
     std::vector<FDBToolRequest> requests = FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
     ASSERT(requests.size() == 1);

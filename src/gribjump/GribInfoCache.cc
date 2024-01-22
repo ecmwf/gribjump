@@ -78,6 +78,11 @@ void GribInfoCache::insert(const fdb5::FieldLocation& loc, JumpInfo* info) {
     insert(loc.uri().path().baseName(), loc.offset(), info);
 }
 
+void GribInfoCache::insert(const eckit::URI& uri, const eckit::Offset offset, JumpInfo* info) {
+    if (!cacheEnabled_) return;
+    insert(uri.path().baseName(), offset, info);
+}
+
 GribInfoCache::InfoCache&  GribInfoCache::getFileCache(const filename_t& f) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = cache_.find(f);
@@ -118,11 +123,43 @@ bool GribInfoCache::loadIntoCache(const eckit::PathName& cachePath, GribInfoCach
 JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
     
     if (!cacheEnabled_) return nullptr;
+    return get(loc.uri(), loc.offset());
 
-    filename_t f = loc.uri().path().baseName();
+    // filename_t f = loc.uri().path().baseName();
+    // off_t offset = loc.offset();
+
+
+    // InfoCache& filecache = getFileCache(f);
+
+
+    // // return it in memory cache
+    // {   
+    //     std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
+    //     auto it = filecache.infocache_.find(offset);
+    //     if(it != filecache.infocache_.end()) return it->second.get();
+    // }
+    
+    // // cache miss, load cache file into memory, maybe it has info for this field
+    // eckit::PathName cachePath = cacheFilePath(loc.uri().path());
+    // bool loaded = loadIntoCache(cachePath, filecache); 
+
+    // // somthing was loaded, check if it contains the field we want
+    // if(loaded) {
+    //     std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
+    //     auto it = filecache.infocache_.find(offset);
+    //     if(it != filecache.infocache_.end()) return it->second.get();
+    //     LOG_DEBUG_LIB(LibGribJump) << "GribInfoCache file " << cachePath << " does not contain JumpInfo for field at offset " << offset << std::endl;
+    // }
+
+    // return nullptr;
+}
+
+JumpInfo* GribInfoCache::get(const eckit::URI& uri, const eckit::Offset offset) {
+    
+    if (!cacheEnabled_) return nullptr;
+
+    filename_t f = uri.path().baseName();
     InfoCache& filecache = getFileCache(f);
-
-    off_t offset = loc.offset();
 
     // return it in memory cache
     {   
@@ -132,7 +169,7 @@ JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
     }
     
     // cache miss, load cache file into memory, maybe it has info for this field
-    eckit::PathName cachePath = cacheFilePath(loc.uri().path());
+    eckit::PathName cachePath = cacheFilePath(uri.path());
     bool loaded = loadIntoCache(cachePath, filecache); 
 
     // somthing was loaded, check if it contains the field we want
