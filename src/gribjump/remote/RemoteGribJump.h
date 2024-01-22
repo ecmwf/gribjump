@@ -19,17 +19,27 @@
 namespace gribjump {
 
 class RemoteGribJump : public GribJumpBase {
-public:  // methods
+
+public: // methods
+
     RemoteGribJump(const Config& config);
     ~RemoteGribJump();
 
+    size_t scan(const eckit::PathName& path) override;
+    size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
+    
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> polyRequest) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
+    
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
-    private:
-    std::string host_;
+protected: // methods
+
+    bool receiveErrors(eckit::Stream& stream);
+
+private: // members
     int port_;
+    std::string host_;
 };
 
 

@@ -13,7 +13,9 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
+
 #include "gribjump/GribInfo.h"
+
 #include "compression/NumericCompressor.h"
 
 namespace eckit {
@@ -32,8 +34,9 @@ public:
 
     ~JumpHandle();
 
-    const JumpInfo& extractInfoFromFile(eckit::PathName&);
-    const JumpInfo& extractInfo();
+    std::vector<JumpInfo*> extractInfoFromFile();
+    JumpInfo* extractInfo();
+
     eckit::Offset position();
     eckit::Length size();
     eckit::Offset seek(const eckit::Offset&) const;
@@ -45,8 +48,6 @@ private:
     mutable bool opened_;
     eckit::PathName path_;
 
-    mutable JumpInfo info_;
-
     virtual long read(void*, long) const;
     virtual void print(std::ostream& s) const;
 
@@ -57,6 +58,9 @@ private:
     friend class GribJumpDataAccessor;
 };
 
+void write_jumpinfos_to_file(const std::vector<JumpInfo*> infos, const eckit::PathName& path);
+
+//----------------------------------------------------------------------------------------------------------------------
 
 class GribJumpDataAccessor : public mc::DataAccessor {
 public:

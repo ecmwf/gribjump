@@ -9,13 +9,14 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #include "eckit/log/Timer.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/GribJumpFactory.h"
-
+#include "gribjump/GribJumpBase.h"
 
 namespace gribjump {
 
@@ -24,30 +25,51 @@ GribJump::GribJump(){
         config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
     } 
     else {
-        eckit::Log::debug<LibGribJump>() << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
     }
-    internal_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(config_));
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(config_));
+}
+
+GribJump::~GribJump() {
+}
+
+size_t GribJump::scan(const eckit::PathName& path) {
+    eckit::Timer timer("Gribjump::scan API", eckit::Log::debug<LibGribJump>());
+    size_t ret = impl_->scan(path);
+    timer.report();
+    return ret;
+}
+
+size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+    eckit::Timer timer("Gribjump::scan API", eckit::Log::debug<LibGribJump>());
+    size_t ret = impl_->scan(requests, byfiles);
+    timer.report();
+    return ret;
 }
 
 std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> requests) {
-    eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
-    auto out = internal_->extract(requests);
+    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
+    auto out = impl_->extract(requests);
     timer.report();
     return out;
 }
 
 std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges){
-    eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
-    auto out = internal_->extract(request, ranges);
-    timer.report();
+    // eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
+    auto out = impl_->extract(request, ranges);
+    // timer.report();
     return out;
 }
 
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
     eckit::Timer timer("GribJump::axes API",eckit::Log::debug<LibGribJump>());
-    auto out = internal_->axes(request);
+    auto out = impl_->axes(request);
     timer.report();
     return out;
+}
+
+void GribJump::stats() {
+    impl_->stats();
 }
 
 } // namespace gribjump

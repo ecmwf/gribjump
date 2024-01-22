@@ -52,8 +52,9 @@ void test_compression() {
         std::cerr << "Testing " << data.gribFileName << std::endl;
         gribjump::JumpHandle dataSource(data.gribFileName);
         eckit::PathName binName = "temp";
-        gribjump::JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);
+        std::vector<gribjump::JumpInfo*> infos = dataSource.extractInfoFromFile();
 
+        gribjump::JumpInfo gribInfo = *infos.back();
         EXPECT(gribInfo.ready());
         size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
         double epsilon = data.epsilon;

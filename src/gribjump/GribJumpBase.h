@@ -9,29 +9,42 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #pragma once
 
 #include <unordered_set>
+
 #include "eckit/memory/NonCopyable.h"
+
 #include "gribjump/ExtractionData.h"
 #include "gribjump/Config.h"
 #include "gribjump/Stats.h"
+#include "gribjump/LibGribJump.h"
 
-namespace gribjump
-{
+namespace gribjump {
 
 class GribJumpBase : public eckit::NonCopyable {
 public:
-    GribJumpBase(const Config& config): config_(config) {}
-    virtual ~GribJumpBase() {}
+    
+    GribJumpBase(const Config& config);
+    
+    virtual ~GribJumpBase();
+
+    size_t virtual scan(const eckit::PathName& path) = 0;
+    virtual size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) = 0;
+
     virtual std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) = 0;
     virtual std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) = 0;
+    
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) = 0;
+    
+    virtual void stats();
+
+protected: // members
 
     Stats stats_;
-private:
-    Config config_;
+
 };
 
 } // namespace gribjump

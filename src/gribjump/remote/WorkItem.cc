@@ -9,17 +9,25 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
-#include "gribjump/Config.h"
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/filesystem/PathName.h"
 
-namespace gribjump {   
+#include "gribjump/remote/WorkItem.h"
+#include "gribjump/remote/ExtractRequest.h"
 
-    Config::Config() {
-        set("type", "local"); // default config
-    }
+namespace gribjump {
 
-    Config::Config(const eckit::PathName path):eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {}
+WorkItem::WorkItem(): task_(nullptr) {}
+WorkItem::WorkItem(Task* task): task_(task) {}
 
-} // namespace gribjump
+void WorkItem::run(GribJump& gj) {
+    if(!task_) return;
+    task_->execute(gj);
+}
+
+void WorkItem::error(const std::string& s) {
+    if(!task_) return;
+    task_->notifyError(s);
+}
+
+}  // namespace gribjump

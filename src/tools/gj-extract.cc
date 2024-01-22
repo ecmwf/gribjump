@@ -48,13 +48,14 @@ class GJExtractTool : public fdb5::FDBTool {
 
 void GJExtractTool::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " request.mars ranges.file" << std::endl
-                       << "       " << tool << " --raw request.mars ranges.file" << std::endl;
+                       << "Usage: " << tool << " <mars request file> <ranges file>" << std::endl
+                       << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl;
 
     fdb5::FDBTool::usage(tool);
 }
 
 std::vector<std::vector<std::pair<size_t, size_t>>> parseRangesFile(eckit::PathName fname){
+    
     // plain text file with the following format:
     //      10-20, 30-40
     //      10-20, 60-70, 80-90

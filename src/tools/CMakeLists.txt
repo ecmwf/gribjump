@@ -33,3 +33,9 @@ ecbuild_add_executable( TARGET   gribinfo-fromfile
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
     LIBS      gribjump
 )
+
+ecbuild_add_executable( TARGET   gribjump-scan
+    SOURCES   gribjump-scan.cc
+    INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    LIBS      gribjump
+)

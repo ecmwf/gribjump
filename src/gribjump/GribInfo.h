@@ -9,10 +9,12 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #pragma once
 
 #include <queue>
+
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
@@ -36,10 +38,12 @@ struct ReducedBitmap {
     std::vector<Bitmap> bitmaps;
 };
 
-
 class JumpHandle;
+
 void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &n_index, std::queue<size_t> &edges, bool&, size_t&);
 std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap);
+
+//----------------------------------------------------------------------------------------------------------------------
 
 class JumpInfo {
 public:
@@ -47,12 +51,14 @@ public:
     static JumpInfo fromFile(const eckit::PathName& path, uint16_t msg_id = 0);
 
     JumpInfo();
+
     explicit JumpInfo(const metkit::grib::GribHandle& h);
     explicit JumpInfo(eckit::Stream& s);
 
     bool ready() const { return numberOfValues_ > 0; }
     void update(const metkit::grib::GribHandle& h);
-    ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
+
+    ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges);
 
     void print(std::ostream&) const;
     void encode(eckit::Stream&) const;
@@ -61,6 +67,8 @@ public:
 
     unsigned long getNumberOfDataPoints() const { return numberOfDataPoints_; }
     unsigned long length() const { return totalLength_; }
+
+    eckit::Offset offset() const { return msgStartOffset_; }
     void setStartOffset(eckit::Offset offset) { msgStartOffset_ = offset; }
 
     void updateCcsdsOffsets(const JumpHandle& f);
@@ -71,7 +79,7 @@ public:
 private:
 
     static constexpr uint8_t currentVersion_ = 3;
-    uint8_t version_;
+    uint8_t       version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
     long          decimalScaleFactor_;
@@ -96,6 +104,7 @@ private:
     unsigned long ccsdsBlockSize_;
     unsigned long ccsdsRsi_;
     std::vector<size_t> ccsdsOffsets_;
+    size_t nChunks_ = 100;
     size_t chunkSizeN_;
     std::vector<size_t> countMissings_;
 
@@ -119,6 +128,33 @@ private:
         return s;
     }
 
+}; 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class JumpInfoHandle {
+public: // methods
+
+    JumpInfoHandle() : info_(nullptr) {}
+
+    explicit JumpInfoHandle(JumpInfo* info) : info_(info) {
+        ASSERT(info_);
+    }
+    explicit JumpInfoHandle(eckit::Stream& s) : info_(new JumpInfo(s)) {}
+    
+    JumpInfo* get() { return info_; }
+
+    JumpInfo* operator->() { return info_; }
+
+private: // members
+
+    JumpInfo* info_; //< not owned
+
+private: // methods
+    friend eckit::Stream& operator<<(eckit::Stream&s, const JumpInfoHandle& h) {
+        h.info_->encode(s);
+        return s;
+    }
 };
 
 } // namespace gribjump

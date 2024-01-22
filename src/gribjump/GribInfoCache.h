@@ -9,43 +9,88 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #pragma once
 
 #include <map>
+
 #include "eckit/serialisation/Stream.h"
 #include "eckit/filesystem/URI.h"
+
 #include "fdb5/database/FieldLocation.h"
+
 #include "gribjump/GribInfo.h"
 
 namespace gribjump {
 
 class GribInfoCache {
 
+private: // types
+
+    typedef std::map<off_t, JumpInfoHandle> infocache_t; //< map fieldlocation's to gribinfo
+
+    struct InfoCache {
+        std::recursive_mutex mutex_; //< mutex for infocache_        
+        infocache_t infocache_;      //< map offsets in file to gribinfo
+    };
+
+    typedef std::string filename_t;               //< key is fieldlocation's path basename
+    typedef std::map<filename_t, InfoCache*> cache_t; //< map fieldlocation's to gribinfo
+
 public:
-    GribInfoCache();
-    GribInfoCache(eckit::PathName dir);
 
-    ~GribInfoCache();
+    static GribInfoCache& instance();
 
-    // Check if fieldlocation is in memory OR on disk (via manifest)
-    // Will add to memory if not already there
+    /// @brief Scans grib file at provided offsets and populates cache
+    /// @param path full path to grib file
+    /// @param offsets list of offsets to at which GribInfo should be extracted
+    void scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+
+    /// @brief Inserts JumpInfos associated to the path
+    void insert(const eckit::PathName& path, const std::vector<JumpInfo*>& infos);
+
     bool contains(const fdb5::FieldLocation& loc);
 
-    // Get gribinfo from memory
-    const JumpInfo& get(const fdb5::FieldLocation& loc);
+    /// Inserts a JumpInfo entry
+    /// @param loc field location
+    /// @param info JumpInfo to insert, takes ownership
+    void insert(const fdb5::FieldLocation& loc, JumpInfo* info);
+
+    /// Get JumpInfo from memory cache
+    /// @return JumpInfo, null if not found
+    JumpInfo* get(const fdb5::FieldLocation& loc);
 
     void print(std::ostream& s) const;
 
-private:
+    bool enabled() const { return cacheEnabled_; }
+
+private: // methods
+
+    GribInfoCache();
+
+    ~GribInfoCache();
+
+    InfoCache& getFileCache(const filename_t& f);
+
+    eckit::PathName cacheFilePath(const eckit::PathName& path) const;
+
+    /// Inserts a JumpInfo entry
+    /// @param f filename
+    /// @param offset offset in file
+    /// @param info JumpInfo to insert, takes ownership
+    void insert(const filename_t& f, off_t offset, JumpInfo* info);
+
+    bool loadIntoCache(const eckit::PathName& cachePath, InfoCache& cache);
+
+private: // members
 
     eckit::PathName cacheDir_;
-    
-    // fieldlocation's fdb filename -> gribinfo filename
 
-    // fieldlocation's full name -> gribinfo
-    std::map<std::string, JumpInfo> cache_;
+    mutable std::mutex mutex_; //< mutex for cache_
+    cache_t cache_;
 
+    bool cacheEnabled_ = false;
 };
 
 }  // namespace gribjump

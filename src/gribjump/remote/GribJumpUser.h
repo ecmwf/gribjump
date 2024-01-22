@@ -29,7 +29,14 @@ public:
     ~GribJumpUser();
 
 private:  // methods
+
     virtual void serve(eckit::Stream& s, std::istream& in, std::ostream& out);
+
+    void handle_client(eckit::Stream& s, eckit::Timer& timer);
+
+    void extract(eckit::Stream& s, eckit::Timer& timer);
+    void axes(eckit::Stream& s, eckit::Timer& timer);
+    void scan(eckit::Stream& s, eckit::Timer& timer);
 
 private:  // members
 };

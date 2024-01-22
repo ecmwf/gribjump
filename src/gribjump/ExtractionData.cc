@@ -82,12 +82,13 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
     return s;
 }
 
-// ---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges):
     ranges_(std::move(ranges)),
     request_(std::move(request))
     {}
+ExtractionRequest::ExtractionRequest(){}
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s){
     request_ = metkit::mars::MarsRequest(s);
@@ -98,6 +99,30 @@ ExtractionRequest::ExtractionRequest(eckit::Stream& s){
         s >> start >> end;
         ranges_.push_back(std::make_pair(start, end));
     }
+}
+
+std::vector<ExtractionRequest> ExtractionRequest::split(const std::string& key) const {
+
+    std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
+
+    std::vector<ExtractionRequest> requests;
+    requests.reserve(reqs.size());
+    for (auto& r : reqs) {
+        requests.push_back(ExtractionRequest(r, ranges_));
+    }
+    return requests;
+}
+
+std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string>& keys) const {
+    
+    std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
+
+    std::vector<ExtractionRequest> requests;
+    requests.reserve(reqs.size());
+    for (auto& r : reqs) {
+        requests.push_back(ExtractionRequest(r, ranges_));
+    }
+    return requests;
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
@@ -118,7 +143,7 @@ void ExtractionRequest::print(std::ostream& s) const {
     for (auto& [start, end] : ranges_) {
         s << "(" << start << ", " << end << "), ";
     }
-    s << "]" << std::endl;
+    s << "]";
 }
 
 std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {

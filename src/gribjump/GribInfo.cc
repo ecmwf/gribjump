@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #include <queue>
 #include <chrono>
@@ -18,10 +19,13 @@
 #include <unordered_map>
 #include <cmath> // isnan. Temp, only for debug, remove later.
 #include <memory>
+
 #include "eckit/io/DataHandle.h"
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/utils/MD5.h"
+
 #include "metkit/codes/GribAccessor.h"
+
 #include "gribjump/GribHandleData.h"
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"
@@ -145,16 +149,16 @@ static GribAccessor<long>          bitmapPresent("bitmapPresent");
 static GribAccessor<long>          binaryScaleFactor("binaryScaleFactor");
 static GribAccessor<long>          decimalScaleFactor("decimalScaleFactor");
 static GribAccessor<unsigned long> bitsPerValue("bitsPerValue");
-static GribAccessor<unsigned long> ccsdsFlags("ccsdsFlags");
-static GribAccessor<unsigned long> ccsdsBlockSize("ccsdsBlockSize");
-static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi");
+static GribAccessor<unsigned long> ccsdsFlags("ccsdsFlags", true);
+static GribAccessor<unsigned long> ccsdsBlockSize("ccsdsBlockSize", true);
+static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi", true);
 static GribAccessor<double>        referenceValue("referenceValue");
 static GribAccessor<unsigned long> offsetBeforeData("offsetBeforeData");
 static GribAccessor<unsigned long> offsetAfterData("offsetAfterData");
 static GribAccessor<unsigned long> offsetBeforeBitmap("offsetBeforeBitmap");
 static GribAccessor<unsigned long> numberOfValues("numberOfValues");
 static GribAccessor<unsigned long> numberOfDataPoints("numberOfDataPoints");
-static GribAccessor<long>          sphericalHarmonics("sphericalHarmonics");
+static GribAccessor<long>          sphericalHarmonics("sphericalHarmonics", true);
 static GribAccessor<unsigned long> totalLength("totalLength");
 static GribAccessor<unsigned long> offsetBSection6("offsetBSection6");
 static GribAccessor<std::string> md5GridSection("md5GridSection");
@@ -194,11 +198,10 @@ JumpInfo JumpInfo::fromFile(const eckit::PathName& path, uint16_t msg_id) {
     throw JumpException(ss.str(), Here());
 }
 
-JumpInfo::JumpInfo():version_(currentVersion_), numberOfValues_(0)
- {}
+JumpInfo::JumpInfo():version_(currentVersion_), numberOfValues_(0) {
+}
 
-
-JumpInfo::JumpInfo(const GribHandle& h):version_(currentVersion_), numberOfValues_(0) {
+JumpInfo::JumpInfo(const GribHandle& h) : version_(currentVersion_), numberOfValues_(0) {
     update(h);
 }
 

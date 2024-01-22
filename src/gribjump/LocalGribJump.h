@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #pragma once
 
@@ -19,22 +20,27 @@
 namespace gribjump {
 class LocalGribJump : public GribJumpBase {
 public:
+
     explicit LocalGribJump(const Config& config);
     ~LocalGribJump();
+
+    /// @brief Scans the full grib file, looking for GRIB messages and populates cache
+    /// @param path full path to grib file
+    size_t scan(const eckit::PathName& path) override;
+
+    size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
+
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
+    
+    std::vector<std::vector<ExtractionResult>> extractMultithread(std::vector<ExtractionRequest> polyRequest);
+    
+    ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfoHandle info) const;
 
-    ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
-
-    // JumpInfo extractInfo(eckit::DataHandle* handle) const;
-    JumpInfo extractInfo(const fdb5::FieldLocation& loc);
+    JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
-
-private:
-    GribInfoCache cache_;
-    bool cacheEnabled_ = false;
-
 };
+
 } // namespace gribjump

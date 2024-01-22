@@ -8,7 +8,6 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <filesystem>
 
 #include <cmath>
 
@@ -16,6 +15,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/filesystem/LocalPathName.h"
 
 #include "fdb5/api/FDB.h"
 
@@ -49,7 +49,8 @@ const std::vector<double> testdata = {
 CASE( "test_gribjump_api_extract" ) {
 
     // current directory, base is cwd
-    std::string s = std::filesystem::current_path().string();
+    std::string s = eckit::LocalPathName::cwd();
+
     eckit::TmpDir tmpdir(s.c_str());
     tmpdir.mkdir();
 

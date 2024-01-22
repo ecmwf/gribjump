@@ -78,7 +78,8 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
     eckit::PathName binName = "temp";
     JumpHandle dataSource(gribname);
     std::cout << "Made JumpHandle" << std::endl;
-    JumpInfo gribInfo = dataSource.extractInfoFromFile(binName);  
+    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();  
+    JumpInfo gribInfo = *infos.back();
     std::cout << "Made JumpInfo" << std::endl;
     EXPECT(gribInfo.getNumberOfDataPoints() == expectedNumberOfValues);
 
@@ -161,11 +162,11 @@ CASE( "test_ceil_O1280" ) {
 CASE( "test_ceil_offsets" ) {
     // this is grid_ccsds, grib 2, with bitmask.
     eckit::PathName gribname = "ceil_O1280.grib";
-    eckit::PathName outname = "temp";
     JumpHandle dataSource(gribname);
     std::cout << "Made JumpHandle" << std::endl;
-    JumpInfo gribInfo = dataSource.extractInfoFromFile(outname);
+    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
 
+    JumpInfo gribInfo = *infos.back();
 
     // NOTE: These offsets were originally obtained from GribInfo
     // TODO: Verify they are correct with an independent tool...

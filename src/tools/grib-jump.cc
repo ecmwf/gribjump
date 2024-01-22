@@ -8,16 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
+#include <chrono>
+#include <fstream>
+
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/value/Value.h"
+#include "eckit/utils/StringTools.h"
+#include "eckit/serialisation/FileStream.h"
+
 #include "metkit/tool/MetkitTool.h"
+
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribHandleData.h"
-#include <chrono>
-#include <fstream>
-#include "eckit/utils/StringTools.h"
-// using namespace metkit;
+
 using namespace gribjump;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -107,21 +111,27 @@ void GribJumpTool::init(const eckit::option::CmdArgs& args) {
 }
 
 void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
+    
     auto startTime = std::chrono::high_resolution_clock::now();
     Timing timing;
-    JumpInfo gribInfo;
     JumpHandle dataSource(gribFileName_);
 
     if (doExtract_) {
         std::cout << "Build jump info from " << gribFileName_ << std::endl;
         auto t0 = std::chrono::high_resolution_clock::now();
-        gribInfo = dataSource.extractInfoFromFile(binFileName_);
+        std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
         auto t1 = std::chrono::high_resolution_clock::now();
         timing.extractTime = std::chrono::duration<double>(t1 - t0).count();
-        std::cout << gribInfo << std::endl;
+
+        for(auto info : infos) {
+            std::cout << *info << std::endl;
+        }
+
+        write_jumpinfos_to_file(infos, binFileName_);
     }
 
     if (doQuery_){
+        JumpInfo gribInfo;
         for (auto msg : msgids_){
             std::cout << "Grib file: " << gribFileName_ << ", jump info file: " << binFileName_ << ", msg id: " << msg << std::endl;
             gribInfo = JumpInfo::fromFile(binFileName_, msg);

@@ -16,6 +16,7 @@
 #include "eckit/net/NetService.h"
 #include "eckit/thread/ThreadControler.h"
 #include "gribjump/remote/GribJumpService.h"
+#include "gribjump/remote/WorkQueue.h"
 
 namespace gribjump {
 
@@ -26,6 +27,7 @@ class GribJumpServer : private eckit::NonCopyable {
 public:
     GribJumpServer(int port): svc_(new GribJumpService(port)), tcsvc_(svc_) {
         std::cout << "Starting GribJumpServer on port " << port << std::endl;
+        WorkQueue::instance(); // start the work queue
         tcsvc_.start();
     }
     ~GribJumpServer() {}

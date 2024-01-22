@@ -12,15 +12,28 @@
 
 #pragma once
 
-#include "eckit/config/LocalConfiguration.h"
+#include <thread>
 
+#include "eckit/container/Queue.h"
+
+#include "gribjump/ExtractionData.h"
+#include "gribjump/remote/WorkItem.h"
 
 namespace gribjump {
 
-class Config : public eckit::LocalConfiguration {
+class WorkQueue : private eckit::NonCopyable {
 public:
-    Config();
-    Config(const eckit::PathName);
+
+    static WorkQueue& instance(); // singleton
+
+    void push(WorkItem& item);
+
+protected:
+    WorkQueue();
+
+private:
+    eckit::Queue<WorkItem> queue_;
+    std::vector<std::thread> workers_;
 };
 
-} // namespace gribjump
+}  // namespace gribjump

@@ -8,18 +8,25 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Tiago Quintino
 
-#include "gribjump/Config.h"
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/filesystem/PathName.h"
+#include "gribjump/GribJumpBase.h"
+#include "gribjump/LibGribJump.h"
+#include "GribJumpBase.h"
 
-namespace gribjump {   
+namespace gribjump {
 
-    Config::Config() {
-        set("type", "local"); // default config
-    }
+GribJumpBase::GribJumpBase(const Config &config)
+{
+}
 
-    Config::Config(const eckit::PathName path):eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {}
+GribJumpBase::~GribJumpBase()
+{
+}
+
+void GribJumpBase::stats()
+{
+    stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: ");
+}
 
 } // namespace gribjump
