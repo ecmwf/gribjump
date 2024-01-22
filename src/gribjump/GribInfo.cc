@@ -12,7 +12,6 @@
 /// @author Tiago Quintino
 
 #include <queue>
-#include <chrono>
 #include <memory>
 #include <numeric>
 #include <cassert>
@@ -57,15 +56,15 @@ std::vector<mc::Range> to_ranges(const std::vector<Interval>& intervals) {
 }
 
 // Check that intervals are sorted and non-overlapping
-bool check_intervals(const std::vector<Interval>& intervals) {
+bool check_intervals(const std::vector<Interval>& intervals, size_t max) {
     std::vector<char> check;
-    std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(check), [](const auto& a, const auto& b) {
-        return a.second <= b.first;
-    });
+    std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(check), [&](const auto& a, const auto& b) {
+        return (a.first <= b.second) && b.second <= max;
+ });
     return std::all_of(check.begin(), check.end(), [](char c) { return c; });
 }
 
-std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
+std::vector<std::bitset<64>> to_bitset(const std::vector<char>& bitmap) {
     const size_t size = bitmap.size();
     std::vector<std::bitset<64>> masks;
     for (size_t i = 0; i < (size + 63) / 64; i++) {
@@ -80,67 +79,6 @@ std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
     assert(masks.size() == (size + 63) / 64);
     return masks;
 }
-
-
-Bitmap bin_to_bitmap_64(const eckit::Buffer& binaryBitmap)
-{
-    size_t nFullBuckets = binaryBitmap.size() / sizeof(uint64_t);
-    size_t lastBucket = binaryBitmap.size() % sizeof(uint64_t);
-
-    Bitmap bitmap(binaryBitmap.size() * 8);
-    const uint64_t* bitmap_raw = reinterpret_cast<const uint64_t*>(binaryBitmap.data());
-
-    size_t j;
-    uint64_t b64;
-    uint64_t b64_tmp;
-    for (j = 0; j < nFullBuckets; ++j) {
-        b64 = bitmap_raw[j];
-        if constexpr (BYTE_ORDER == LITTLE_ENDIAN) {
-            b64 = __builtin_bswap64(b64);
-            //b64 = ((b64_tmp & 0x00000000FFFFFFFF) << 32) | ((b64_tmp & 0xFFFFFFFF00000000) >> 32);
-            //b64 = ((b64_tmp & 0x0000FFFF0000FFFF) << 16) | ((b64_tmp & 0xFFFF0000FFFF0000) >> 16);
-            //b64 = ((b64_tmp & 0x00FF00FF00FF00FF) << 8)  | ((b64_tmp & 0xFF00FF00FF00FF00) >> 8);
-        }
-
-        for (size_t i = 0; i < 64; ++i) {
-            bitmap[j * 64 + i] = (b64 >> (63 - i)) & 1;
-        }
-    }
-
-    if (lastBucket > 0) {
-        b64 = bitmap_raw[nFullBuckets];
-        if constexpr (BYTE_ORDER == LITTLE_ENDIAN) {
-            b64 = __builtin_bswap64(b64);
-            //b64 = ((b64_tmp & 0x00000000FFFFFFFF) << 32) | ((b64_tmp & 0xFFFFFFFF00000000) >> 32);
-            //b64 = ((b64_tmp & 0x0000FFFF0000FFFF) << 16) | ((b64_tmp & 0xFFFF0000FFFF0000) >> 16);
-            //b64 = ((b64_tmp & 0x00FF00FF00FF00FF) << 8)  | ((b64_tmp & 0xFF00FF00FF00FF00) >> 8);
-        }
-        for (size_t i = 0; i < lastBucket * 8; ++i) {
-            bitmap[nFullBuckets * 64 + i] = (b64 >> (63 - i)) & 1;
-        }
-    }
-    return bitmap;
-}
-
-
-Bitmap bin_to_bitmap_8(const eckit::Buffer& binaryBitmap)
-{
-    size_t nFullBuckets = binaryBitmap.size();
-
-    Bitmap bitmap(binaryBitmap.size() * 8);
-    const uint8_t* bitmap_raw = reinterpret_cast<const uint8_t*>(binaryBitmap.data());
-
-    size_t j;
-    for (j = 0; j < nFullBuckets; ++j) {
-        const uint8_t b8 = bitmap_raw[j];
-        for (size_t i = 0; i < 8; ++i) {
-            bitmap[j * 8 + i] = b8 >> (7 - i) & 1;
-        }
-    }
-
-    return bitmap;
-}
-
 
 
 
@@ -401,7 +339,6 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
 }
 
 void JumpInfo::updateCcsdsOffsets(const JumpHandle& f){
-    std::cerr << "WARNING: compute Offsets from data" << std::endl;
     if (packingType_ != "grid_ccsds") return;
 
     auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_};
@@ -429,24 +366,18 @@ void JumpInfo::updateCcsdsOffsets(const JumpHandle& f){
 
 
 void JumpInfo::updateMissingValues(const JumpHandle& f) {
-    std::cerr << "WARNING: compute missing values from data" << std::endl;
-    auto bitmap = get_bitmap(f);
-    size_t nChunks = 60;
-    size_t chunkSizeN = (bitmap.size() + nChunks - 1) / nChunks;
-
-    nChunks = (bitmap.size() + chunkSizeN - 1) / chunkSizeN;
-
-    std::vector<Bitmap> bitmapChunks;
-    for (size_t i = 0; i < nChunks; i++) {
-        size_t begin = i * chunkSizeN;
-        size_t end = std::min(bitmap.size(), (i + 1) * chunkSizeN);
-        assert(end <= numberOfDataPoints_);
-        bitmapChunks.push_back(Bitmap{bitmap.begin() + begin, bitmap.begin() + end});
+    if (bitsPerValue_ == 0) // constant field
+        return;
+    if (!offsetBeforeBitmap_) { // no bitmap
+        return;
     }
-
-    std::transform(bitmapChunks.begin(), bitmapChunks.end(), std::back_inserter(countMissings_), [](const auto& chunk) {
-        return std::count(chunk.begin(), chunk.end(), false);
-    });
+    else { // bitmap
+        size_t nChunks = 60;
+        auto bitmap_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeBitmap_, (numberOfDataPoints_ + 7) / 8});
+        auto bitmap = Bitmap(bitmap_accessor, numberOfDataPoints_, nChunks);
+        chunkSizeN_ = bitmap.chunk_size();
+        countMissings_ = bitmap.countMissingsInChunks();
+    }
 }
 
 
@@ -489,257 +420,10 @@ std::vector<Values> JumpInfo::get_simple_values(const JumpHandle& f, const std::
     return simple.decode(data_accessor, ranges);
 }
 
-// Read the entire bitmap from a GRIB file
-// TODO(maee): optimization: read only the bitmap for the requested interval
-Bitmap JumpInfo::get_bitmap(const JumpHandle& f) const {
-    eckit::Offset offset = msgStartOffset_ + offsetBeforeBitmap_;
-    auto bitmapSize = (numberOfDataPoints_ + 7) / 8;
-
-    if (bitmapSize == 0)
-        return Bitmap{};
-
-    if (bitsPerValue_ == 0)
-        return Bitmap(numberOfDataPoints_, true);
-
-    eckit::Buffer binaryBitmap(numberOfDataPoints_);
-    if (f.seek(offset) != offset)
-        throw std::runtime_error("Bitmap seek failed");
-
-    if (f.read(binaryBitmap, bitmapSize) != bitmapSize)
-        throw std::runtime_error("Bitmap read failed");
-
-    Bitmap bitmap;
-    for (size_t i = 0; i < numberOfDataPoints_; i++) {
-        bitmap.push_back(binaryBitmap[i / 8] & (1 << (7 - i % 8)));
-    }
-
-    return bitmap;
-}
-
-
-class BitmapInfo {
-public:
-    BitmapInfo(const std::vector<size_t>& countMissingsBeforeChunk,
-               const mc::Range& requestedRangeBits,
-               const mc::Range& bucketRangeBits,
-               const Bitmap& bucketBitmap,
-               size_t chunkSizeN) :
-        requestedRangeBits_{requestedRangeBits},
-        bucketRangeBits_{bucketRangeBits},
-        bucketBitmap_{bucketBitmap},
-        chunkSizeN_{chunkSizeN},
-        countMissingsBeforeChunk_{countMissingsBeforeChunk}
-    {}
-
-    size_t get_chunk_idx(size_t pos) {
-        return pos / chunkSizeN_;
-    }
-
-
-    size_t count_missings(size_t pos, size_t bucket_pos, size_t chunk_size) {
-        size_t chunk_idx = get_chunk_idx(pos);
-        size_t bucket_idx = get_chunk_idx(bucket_pos);
-        assert(bucket_pos % chunk_size == 0);
-
-        size_t offset = (chunk_idx - bucket_idx) * chunk_size;
-        size_t size = pos % chunk_size;
-
-        //std::cerr << "bitmap: " << std::endl;
-        //for (const auto& b : bucketBitmap_) {
-        //    std::cerr << b << "";
-        //}
-        //std::cerr << std::endl;
-
-        //std::cerr << "pos: " << pos << std::endl;
-        //std::cerr << "chunk_idx: " << chunk_idx << std::endl;
-        //std::cerr << "bucket_idx: " << bucket_idx << std::endl;
-        //std::cerr << "chunk_size: " << chunk_size << std::endl;
-        //std::cerr << "offset: " << offset << std::endl;
-        //std::cerr << "size: " << size << std::endl;
-        //std::cerr << "bucketRangeBits_: " << bucketRangeBits_.first << " " << bucketRangeBits_.second << std::endl;
-        //std::cerr << "bucketBitmap_.size(): " << bucketBitmap_.size() << std::endl;
-        //std::cerr << "countMissingsBeforeChunk_[chunk_idx]: " << countMissingsBeforeChunk_[chunk_idx] << std::endl;
-        //std::cerr << "std::count(bucketBitmap_.begin() + offset, bucketBitmap_.begin() + offset + size, false): " << std::count(bucketBitmap_.begin() + offset, bucketBitmap_.begin() + offset + size, false) << std::endl;
-
-        assert(offset <= bucketBitmap_.size() + 1);
-        assert(size <= bucketBitmap_.size());
-
-        size_t n =
-            countMissingsBeforeChunk_[chunk_idx] +
-            std::count(bucketBitmap_.begin() + offset, bucketBitmap_.begin() + offset + size, false);
-
-        //std::cerr << "count_missings: " << n << std::endl;
-
-        return n;
-    }
-
-    Interval get_new_interval() {
-        const auto [requestedOffsetBits, requestedSizeBits] = requestedRangeBits_;
-        const auto [bucketOffsetBits, _] = bucketRangeBits_;
-
-        //std::cerr << "requestedRange_: " << requestedRangeBits_.first << " " << requestedRangeBits_.second << std::endl;
-        size_t countMissingBeforeStart = count_missings(requestedOffsetBits, bucketOffsetBits, chunkSizeN_);
-        size_t countMissingBeforeEnd = count_missings(requestedOffsetBits + requestedSizeBits, bucketOffsetBits, chunkSizeN_);
-
-        Range newIntervalBits{requestedOffsetBits - countMissingBeforeStart, requestedOffsetBits + requestedSizeBits - countMissingBeforeEnd};
-
-        //std::cerr << "requestedRange_: " << requestedRangeBits_.first << " " << requestedRangeBits_.second << std::endl;
-        //std::cerr << "new interval: " << newIntervalBits.first << " " << newIntervalBits.second << std::endl;
-        assert(newIntervalBits.second - newIntervalBits.first <= requestedSizeBits);
-        return newIntervalBits;
-    }
-
-    Bitmap get_new_bitmap() {
-        const auto [requestedOffsetBits, requestedSizeBits] = requestedRangeBits_;
-        size_t chunkOffsetIdx = requestedOffsetBits / chunkSizeN_;
-        size_t chunkSizeIdx = (requestedSizeBits + chunkSizeN_ - 1) / chunkSizeN_;
-        auto [bucketOffsetBits, bucketSizeBits] = bucketRangeBits_;
-        size_t bucketOffsetIdx = bucketOffsetBits / chunkSizeN_;
-        auto chunkOffsetN = (chunkOffsetIdx - bucketOffsetIdx) * chunkSizeN_;
-
-        auto startN = chunkOffsetN + requestedOffsetBits % chunkSizeN_;
-        auto endN = startN + requestedSizeBits;
-
-        return Bitmap{bucketBitmap_.begin() + startN, bucketBitmap_.begin() + endN};
-    }
-
-private:
-    mc::Range requestedRangeBits_;
-    mc::Range bucketRangeBits_;
-    Bitmap bucketBitmap_;
-    size_t chunkSizeN_;
-    std::vector<size_t> countMissingsBeforeChunk_;
-};
-
-
-
-
-// Read the entire bitmap from a GRIB file
-// TODO(maee): optimization: read only the bitmap for the requested interval
-std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_intervals(const JumpHandle& f, const std::vector<Interval>& intervals, std::vector<size_t> countMissingsBeforeChunk, size_t chunkSizeN) const {
-    eckit::Offset offset = msgStartOffset_ + offsetBeforeBitmap_;
-    auto maxBitmapSizeBytes = (numberOfDataPoints_ + 7) / 8;
-
-    std::shared_ptr<GribJumpDataAccessor> accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{offset, maxBitmapSizeBytes});
-
-    // Convert Intervals to Ranges
-    std::vector<mc::Range> requestedRangesBits;
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(requestedRangesBits), [](const auto& interval) {
-        auto [begin, end] = interval;
-        return mc::Range{begin, end - begin};
-    });
-
-
-    std::unordered_map<Range, std::pair<Range, std::shared_ptr<Bitmap>>> ranges_map;
-
-    // Combine chunkRangesIdx
-    // find which sub_ranges are in which buckets
-    mc::RangeBuckets bucketsBits;
-    for (const auto& requestedRangeBits : requestedRangesBits) {
-        bucketsBits << requestedRangeBits;
-    }
-
-    // precise chorno timer
-    static double timer_sum = 0.0;
-    static double io_sum = 0.0;
-
-    // Read chunks
-    // inverse buckets and associate data with chunkRangesIdx
-    for (const auto& [bitmapRangeBits, bitmapSubRangesBits] : bucketsBits) {
-        // print subranges
-        std::cerr << "bitmap Interval:" << std::endl;
-        std::cerr << "\t" << bitmapRangeBits.first << " " << bitmapRangeBits.second + bitmapRangeBits.first << std::endl;
-        //std::cerr << "bitmab Sub-Intervals: " << std::endl;
-        //for (const auto& bitmapSubRangeBits : bitmapSubRangesBits) {
-        //    std::cerr << "\tSubinterval: " << bitmapSubRangeBits.first << " " << bitmapSubRangeBits.second  + bitmapSubRangeBits.first<< std::endl;
-        //}
-        //std::cerr << std::endl;
-
-        auto [binaryBitmapOffsetBits, binaryBitmapSizeBits] = bitmapRangeBits;
-        auto bitmapOffsetBits = binaryBitmapOffsetBits / chunkSizeN * chunkSizeN;
-        auto bitmapOffsetBytes = bitmapOffsetBits / 8;
-        auto bitmapOffsetDiffBits = bitmapOffsetBits - bitmapOffsetBytes * 8;
-
-
-        size_t chunkStartIdx = binaryBitmapOffsetBits / chunkSizeN;
-        size_t chunkStartBytes = chunkStartIdx * chunkSizeN / 8;
-        size_t diffStartBits = binaryBitmapOffsetBits - chunkStartBytes * 8;
-
-        size_t chunkEndIdx = (binaryBitmapOffsetBits + binaryBitmapSizeBits + chunkSizeN - 1) / chunkSizeN;
-        size_t chunkEndBytes = (chunkEndIdx * chunkSizeN + 7) / 8;
-
-        size_t diffEndBits = 0;
-
-        if (chunkEndBytes > accessor->eof()) {
-            chunkEndBytes = accessor->eof();
-        }
-
-        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-        auto alignedBucketRangeBytes = mc::Range{chunkStartBytes, chunkEndBytes - chunkStartBytes};
-
-        auto binaryBucketBitmap = accessor->read(alignedBucketRangeBytes);
-
-        std::chrono::high_resolution_clock::time_point start_io = std::chrono::high_resolution_clock::now();
-        //Bitmap bitmap_tmp = bin_to_bitmap_64(binaryBucketBitmap);
-        Bitmap bitmap_tmp = bin_to_bitmap_8(binaryBucketBitmap);
-        std::chrono::high_resolution_clock::time_point end_io = std::chrono::high_resolution_clock::now();
-        io_sum += std::chrono::duration_cast<std::chrono::milliseconds>(end_io - start_io).count();
-
-        // Fix bitmap size
-        auto bitmap = std::make_shared<Bitmap>(
-            Bitmap{
-                bitmap_tmp.begin() + bitmapOffsetDiffBits,
-                bitmap_tmp.begin() + bitmapOffsetDiffBits + binaryBitmapSizeBits + binaryBitmapOffsetBits});
-
-        // print bitmap
-        //std::cerr << "Created bitmap interval: " << std::endl;
-        //std::cerr << "\t" << bitmapOffsetBits << " " << bitmapOffsetBits + bitmapRangeBits.second << std::endl;
-        for (const auto& bitmapSubRangeBits : bitmapSubRangesBits) {
-            ranges_map[bitmapSubRangeBits] = std::make_pair(Range{bitmapOffsetBits, bitmapRangeBits.second}, bitmap);
-        }
-        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-        timer_sum += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        std::cerr 
-            << "\tread bitmap took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " \\ " << timer_sum << " milliseconds" << std::endl
-            << "\tio took " << std::chrono::duration_cast<std::chrono::milliseconds>(end_io - start_io).count() << " \\ " << io_sum << " milliseconds" << std::endl;
-
-    }
-
-
-    // Compute Intervals
-    // assign data to chunkRangesBits
-    std::vector<Bitmap> bitmaps;
-    std::vector<Interval> new_intervals;
-    for (size_t i = 0; i < ranges_map.size(); ++i) {
-
-    //BitmapInfo(const std::vector<size_t>& countMissingsBeforeChunk,
-    //           const mc::Range& requestedRangeBits,
-    //           const mc::Range& bucketRangeBits,
-    //           const Bitmap& bucketBitmap,
-    //           size_t chunkSizeN) :
-
-        BitmapInfo bitmapInfo(
-            countMissingsBeforeChunk,
-            requestedRangesBits[i],
-            ranges_map[requestedRangesBits[i]].first,
-            *ranges_map[requestedRangesBits[i]].second,
-            chunkSizeN);
-        new_intervals.push_back(bitmapInfo.get_new_interval());
-        bitmaps.push_back(bitmapInfo.get_new_bitmap());
-    }
-
-    assert(bitmaps.size() == new_intervals.size());
-
-    return std::make_pair(new_intervals, bitmaps);
-}
-
-
-
-
 
 
 ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
-    ASSERT(check_intervals(intervals));
+    ASSERT(check_intervals(intervals, numberOfDataPoints_));
     ASSERT(!sphericalHarmonics_);
     // TODO(maee): do we need this check?
     //for (const auto& i : intervals) {
@@ -761,7 +445,7 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
             return Values(interval.second - interval.first, referenceValue_);
         });
         std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-            return to_bitset(std::vector<BitmapValueType>(interval.second - interval.first, true));
+            return to_bitset(std::vector<char>(interval.second - interval.first, true));
         });
         return ExtractionResult(all_values, all_masks);
     }
@@ -778,70 +462,46 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
     if (!offsetBeforeBitmap_) { // no bitmap
         all_values = (this->*get_values)(f, intervals);
         std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-            return to_bitset(std::vector<BitmapValueType>(interval.second - interval.first, true));
+            return to_bitset(std::vector<char>(interval.second - interval.first, true));
         });
     }
     else { // bitmap
-        std::vector<size_t> countMissingsBeforeChunk;
-        size_t chunkSizeN = chunkSizeN_;
-
-        countMissingsBeforeChunk.push_back(0);
+        std::vector<size_t> countMissingsBeforeChunk{0};
+        assert(countMissings_.size() > 0);
         std::partial_sum(countMissings_.begin(), countMissings_.end(), std::back_inserter(countMissingsBeforeChunk));
 
-        //std::cerr << "countMissingsBeforeChunk: ";
-        //for (const auto& i : countMissingsBeforeChunk) {
-        //    std::cerr << i << " ";
-        //}
-        //std::cerr << std::endl;
+        std::shared_ptr<mc::DataAccessor> bitmap_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeBitmap_, (numberOfDataPoints_ + 7) / 8});
+        Bitmap bitmap{bitmap_accessor, numberOfDataPoints_, intervals, countMissingsBeforeChunk, chunkSizeN_};
 
-        std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now();
-        auto [new_intervals, new_bitmaps] = calculate_intervals(f, intervals, countMissingsBeforeChunk, chunkSizeN);
-        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-        std::cerr << "calculate_intervals took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds" << std::endl;
+        std::vector<Interval> new_intervals;
+        for (size_t i = 0; i < intervals.size(); ++i) {
+            auto [begin, end] = intervals[i];
+            auto shift_begin = bitmap.countMissingsBeforePos(begin);
+            auto shift_end = bitmap.countMissingsBeforePos(end);
+            new_intervals.push_back({begin - shift_begin, end - shift_end});
+            assert(new_intervals.back().first <= new_intervals.back().second);
+        }
+        ASSERT(check_intervals(new_intervals, numberOfValues_));
 
         auto all_decoded_values = (this->*get_values)(f, new_intervals);
-        // print decoded values
-        //std::cerr << "decoded values: ";
-        //for (const auto& values : all_decoded_values) {
-        //    for (const auto& v : values) {
-        //        std::cerr << v << " ";
-        //    }
-        //}
-        //std::cerr << std::endl;
-
-        assert(new_bitmaps.size() == new_intervals.size());
 
         for (size_t i = 0; i < intervals.size(); ++i) {
+            auto decoded_values = all_decoded_values[i];
+            const auto& [begin, end] = intervals[i];
+
             Values values;
-            auto test_bitmap = new_bitmaps[i];
-            auto test_interval = new_intervals[i];
-
-            size_t nNonMissing = std::count(test_bitmap.begin(), test_bitmap.end(), true);
-            if (nNonMissing != test_interval.second - test_interval.first) {
-                std::cerr << "nNonMissing (Bitmap): " << nNonMissing << " test_bitmap_size: " << test_bitmap.size() << " ";
-                for (const auto& b : test_bitmap) {
-                    std::cerr << b << "";
-                }
-                std::cerr << std::endl;
-                std::cerr << "nNonMissing (NewInternval): " << test_interval.second - test_interval.first << " ";
-                std::cerr << " range: " << test_interval.first << " " << test_interval.second << std::endl;
-                throw std::runtime_error("nNonMissing (Bitmap) != nNonMissing (NewInternval)");
-            }
-
-            for (size_t count = 0, j = 0; j < new_bitmaps[i].size(); ++j) {
-                if (new_bitmaps[i][j])
-                    values.push_back(all_decoded_values[i][count++]);
+            size_t count = 0;
+            std::vector<char> mask;
+            for (auto iter = bitmap.begin() + begin; iter < bitmap.begin() + end; iter++) {
+                mask.push_back(*iter);
+                if (*iter == true)
+                    values.push_back(decoded_values[count++]);
                 else
                     values.push_back(MISSING_VALUE);
             }
+
             all_values.push_back(values);
-            all_masks.push_back(to_bitset(new_bitmaps[i]));
-            // print values
-            //std::cerr << "values: ";
-            //for (const auto& v : values) {
-            //    std::cerr << v << " ";
-            //}
-            //std::cerr << std::endl;
+            all_masks.push_back(to_bitset(mask));
         }
     }
 

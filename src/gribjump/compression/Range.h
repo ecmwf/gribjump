@@ -34,4 +34,9 @@ std::ostream& operator<<(std::ostream& os, const mc::RangeBucket& bucket);
 mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r);
 mc::Range operator+(const mc::Range& r1, const mc::Range& r2);
 
+mc::Range operator>>(const mc::Range& r, const size_t n);
+mc::Range operator<<(const mc::Range& r, const size_t n);
+mc::Range operator*(const mc::Range& r, const size_t n);
+mc::Range operator/(const mc::Range& r, const size_t n);
+
 std::pair<size_t, size_t> begin_end(const mc::Range& range);

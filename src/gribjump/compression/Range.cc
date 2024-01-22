@@ -9,12 +9,40 @@ std::pair<size_t, size_t> begin_end(const mc::Range& range)
 }
 
 
+// Returns the range that covers both r1 and r2
 mc::Range operator+(const mc::Range& r1, const mc::Range& r2)
 {
     auto [b1, e1] = begin_end(r1);
     auto [b2, e2] = begin_end(r2);
     assert(!((b1 > e2) && (b2 > e1)));
     return mc::Range{std::min(b1, b2), std::max(e1, e2) - std::min(b1, b2)};
+}
+
+// Shifts the range by n
+// e.g. [3, 5] + 2 = [5, 7]
+mc::Range operator>>(const mc::Range& r, const size_t n) {
+    auto [offset, size] = r;
+    return mc::Range{offset + n, size};
+}
+
+mc::Range operator<<(const mc::Range& r, const size_t n) {
+    auto [offset, size] = r;
+    assert(offset >= n);
+    return mc::Range{offset - n, size};
+}
+
+// Scales the range by n
+// e.g. [3, 5] * 2 = [6, 10]
+mc::Range operator*(const mc::Range& r, const size_t n) {
+    auto [offset, size] = r;
+    return mc::Range{offset * n, size * n};
+}
+
+mc::Range operator/(const mc::Range& r, const size_t n) {
+    auto [offset, size] = r;
+    assert(size % n == 0);
+    assert(offset % n == 0);
+    return mc::Range{offset / n, size / n};
 }
 
 
@@ -37,6 +65,15 @@ std::ostream& operator<<(std::ostream& os, const mc::RangeBucket& range)
 }
 
 
+// Combines the range r with the existing buckets
+// If the range r overlaps with an existing bucket, the bucket is extended
+// e.g. [3, 2] + [4, 3] = [3, 4]
+// If the range r is adjacent to an existing bucket, the bucket is extended
+// e.g. [3, 2] + [5, 3] = [3, 5]
+// If the range r is not adjacent to an existing bucket, a new bucket is created
+// e.g. [3, 2] + [6, 3] = [3, 2], [6, 3]
+// If the range r is not adjacent to an existing bucket, and overlaps with multiple buckets, the buckets are merged
+// e.g. [3, 2] + [5, 4] + [8, 3] = [3, 11]
 mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r)
 {
     const mc::Range sub_range{r};

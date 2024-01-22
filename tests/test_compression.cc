@@ -93,14 +93,15 @@ void test_compression() {
             // Compare mask if it exists
             if (!mask_all.empty()) {
                 auto actual_mask = mask_all[index];
-                Bitmap expected_bitmap = generate_bitmap(expected, intervals[index]);
+                std::vector<char> expected_bitmap = generate_bitmap(expected, intervals[index]);
                 auto expected_mask = gribjump::to_bitset(expected_bitmap);
-                std::cerr << "expected_bitmap: " << std::endl;
-                print_bitmap(expected_bitmap);
-                std::cerr << "expected_mask: " << std::endl;
-                print_mask(expected_mask);
-                std::cerr << "actual_mask: " << std::endl;
-                print_mask(actual_mask);
+                //std::cerr << "expected_bitmap: " << std::endl;
+                //print_bitmap(expected_bitmap);
+                //std::cerr << "expected_mask: " << std::endl;
+                //print_mask(expected_mask);
+                //std::cerr << "actual_mask: " << std::endl;
+                //print_mask(actual_mask);
+                //std::cerr << std::endl;
                 EXPECT(actual_mask == expected_mask);
             }
 

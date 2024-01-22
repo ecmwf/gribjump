@@ -21,17 +21,19 @@ std::vector<InputData> testData;
 std::vector<InputData> simplePackedData;
 
 
-Bitmap generate_bitmap(const std::vector<double>& data, Interval interval) {
-    Bitmap bitmap;
+std::vector<char> generate_bitmap(const std::vector<double>& data, Interval interval) {
     auto [start, end] = interval;
+    assert(start < end);
+    assert(end <= data.size());
+    std::vector<char> bitmap_vec;
     for (size_t i = start; i < end; i++) {
         if (std::isnan(data[i])) {
-            bitmap.push_back(0);
+            bitmap_vec.push_back(0);
         } else {
-            bitmap.push_back(1);
+            bitmap_vec.push_back(1);
         }
     }
-    return bitmap;
+    return bitmap_vec;
 }
 
 
@@ -42,15 +44,14 @@ void print_mask(const std::vector<std::bitset<64>>& mask) {
 }
 
 
-void print_bitmap(const Bitmap& bitmap) {
+void print_bitmap(const std::vector<char>& bitmap_vec) {
     size_t split = 64;
-    std::cerr << "bitmap: " << std::endl;
     size_t count = 0;
-    for (size_t i = 0; i < bitmap.size(); i++) {
+    for (size_t i = 0; i < bitmap_vec.size(); i++) {
         if (i % split == 0) {
             std::cerr << count++ << ": ";
         }
-        std::cerr << (int) bitmap[i];
+        std::cerr << (int) bitmap_vec[i];
         if ((i + 1) % split == 0) {
             std::cerr << std::endl;
         }
@@ -458,21 +459,21 @@ void add_synthetic_data_with_bitmap() {
        .expectedString = "",
     });
 
-    //testData.push_back(InputData{
-    //    .gribFileName = "synth12.grib",
-    //    .expectedData = expectedData,
-    //    .expectedString = "JumpInfo[version=3,editionNumber=1,binaryScaleFactor=-2,decimalScaleFactor=0,bitsPerValue=12,ccsdsFlags=0,ccsdsBlockSize=0,ccsdsRsi=0,referenceValue=0,offsetBeforeData=195,offsetAfterData=696,numberOfDataPoints=684,numberOfValues=334,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.25,decimalMultiplier=1,totalLength=700,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
-    //});
-    //simplePackedData.push_back(testData.back());
+    testData.push_back(InputData{
+        .gribFileName = "synth12.grib",
+        .expectedData = expectedData,
+        .expectedString = "JumpInfo[version=3,editionNumber=1,binaryScaleFactor=-2,decimalScaleFactor=0,bitsPerValue=12,ccsdsFlags=0,ccsdsBlockSize=0,ccsdsRsi=0,referenceValue=0,offsetBeforeData=195,offsetAfterData=696,numberOfDataPoints=684,numberOfValues=334,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.25,decimalMultiplier=1,totalLength=700,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
+    });
+    simplePackedData.push_back(testData.back());
 
-    //// Grib with single value
-    //testData.push_back(InputData{
-    //    .gribFileName = "const.grib",
-    //    .expectedData = std::vector<double>(expectedData.size(), 1.23456789),
-    //    .epsilon = 1e-6, // Constant fields are stored at reduced precision
-    //    .expectedString = "JumpInfo[version=3,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=0,ccsdsFlags=0,ccsdsBlockSize=0,ccsdsRsi=0,referenceValue=1.23457,offsetBeforeData=111,offsetAfterData=112,numberOfDataPoints=684,numberOfValues=1,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=116,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
-    //});
-    //simplePackedData.push_back(testData.back());
+    // Grib with single value
+    testData.push_back(InputData{
+        .gribFileName = "const.grib",
+        .expectedData = std::vector<double>(expectedData.size(), 1.23456789),
+        .epsilon = 1e-6, // Constant fields are stored at reduced precision
+        .expectedString = "JumpInfo[version=3,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=0,ccsdsFlags=0,ccsdsBlockSize=0,ccsdsRsi=0,referenceValue=1.23457,offsetBeforeData=111,offsetAfterData=112,numberOfDataPoints=684,numberOfValues=1,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=116,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
+    });
+    simplePackedData.push_back(testData.back());
 }
 
 
@@ -544,9 +545,9 @@ void add_synthetic_data_without_bitmap() {
 
 void setGribJumpData() {
 // Set the data used by the test cases
-    //add_simple_no_bitmask();
-    //add_surface_level_data();
+    add_simple_no_bitmask();
+    add_surface_level_data();
     add_synthetic_data_with_bitmap();
-    //add_synthetic_data_without_bitmap();
+    add_synthetic_data_without_bitmap();
 }
 

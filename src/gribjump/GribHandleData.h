@@ -24,9 +24,10 @@ class DataHandle;
 
 namespace gribjump {
 
+class JumpInfo;
+
 class JumpHandle : public eckit::NonCopyable {
 public:
-
     explicit JumpHandle(const eckit::PathName&);
 
     /// Takes ownership of a handle pointer

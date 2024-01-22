@@ -44,6 +44,8 @@ list( APPEND gribjump_srcs
     ExtractionData.h
     Stats.cc
     Stats.h
+    Bitmap.cc
+    Bitmap.h
 
     remote/Request.h
     remote/Request.cc
