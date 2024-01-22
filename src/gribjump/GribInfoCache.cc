@@ -137,6 +137,7 @@ JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
 
     // somthing was loaded, check if it contains the field we want
     if(loaded) {
+        std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
         auto it = filecache.infocache_.find(offset);
         if(it != filecache.infocache_.end()) return it->second.get();
         LOG_DEBUG_LIB(LibGribJump) << "GribInfoCache file " << cachePath << " does not contain JumpInfo for field at offset " << offset << std::endl;
