@@ -16,6 +16,7 @@
 #include "eckit/thread/AutoLock.h"
 
 #include "gribjump/FDBService.h"
+#include "gribjump/Config.h"
 
 #include "gribjump/remote/ExtractRequest.h"
 #include "gribjump/remote/WorkQueue.h"
@@ -68,9 +69,9 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
     LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: numRequests = " << numRequests << std::endl;
 
-    bool distributeFieldsLocs = true;
+    bool distributeFieldLocs = LibGribJump::instance().config().getBool("distributeFieldLocs", false);
 
-    if(distributeFieldsLocs) {
+    if(distributeFieldLocs) {
         std::vector<ExtractionRequest> reqs;
         reqs.reserve(numRequests);
 
