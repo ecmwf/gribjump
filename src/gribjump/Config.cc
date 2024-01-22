@@ -16,10 +16,12 @@
 
 namespace gribjump {   
 
-    Config::Config() {
-        set("type", "local"); // default config
-    }
+Config::Config() {
+    set("type", "local"); // default config
+}
 
-    Config::Config(const eckit::PathName path):eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {}
+Config::Config(const eckit::PathName path) :
+    eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {
+}
 
 } // namespace gribjump

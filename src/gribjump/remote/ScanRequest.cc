@@ -16,10 +16,9 @@
 #include <algorithm>
 
 #include "eckit/log/Log.h"
+#include "eckit/thread/AutoLock.h"
 
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
-
+#include "gribjump/FDBService.h"
 #include "gribjump/remote/WorkQueue.h"
 
 namespace gribjump {
@@ -56,33 +55,34 @@ void ScanFileTask::execute(GribJump& gj) {
 
 std::vector<eckit::PathName> list_files_in_fdb_request(std::vector<metkit::mars::MarsRequest> requests) {
         
-        fdb5::FDB fdb;
+    eckit::AutoLock<FDBService> lock(FDBService::instance());
+    fdb5::FDB& fdb = FDBService::instance().fdb();
 
-        std::set< eckit::PathName > files;
+    std::set< eckit::PathName > files;
 
-        for (auto& request : requests) {
-            LOG_DEBUG_LIB(LibGribJump) << "Processing request: " << request << std::endl;
+    for (auto& request : requests) {
+        LOG_DEBUG_LIB(LibGribJump) << "Processing request: " << request << std::endl;
 
-            fdb5::FDBToolRequest fdbreq(request);
-            auto listIter = fdb.list(fdbreq, false);
+        fdb5::FDBToolRequest fdbreq(request);
+        auto listIter = fdb.list(fdbreq, false);
 
-            fdb5::ListElement elem;
-            eckit::PathName last;
-            while (listIter.next(elem)) {
-                const fdb5::FieldLocation& loc = elem.location();
-                LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
-                eckit::PathName path = loc.uri().path();
-                if(path != last) { 
-                    files.insert(path); // minor optimisation
-                }
-                last = path;
+        fdb5::ListElement elem;
+        eckit::PathName last;
+        while (listIter.next(elem)) {
+            const fdb5::FieldLocation& loc = elem.location();
+            LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
+            eckit::PathName path = loc.uri().path();
+            if(path != last) { 
+                files.insert(path); // minor optimisation
             }
+            last = path;
         }
+    }
 
-        std::vector<eckit::PathName> output;
-        std::copy(files.begin(), files.end(), std::back_inserter(output));
+    std::vector<eckit::PathName> output;
+    std::copy(files.begin(), files.end(), std::back_inserter(output));
 
-        return output;
+    return output;
 }
 
 ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
@@ -114,7 +114,9 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
         size_t count = 0;
         for (size_t i = 0; i < numRequests; i++) {
             metkit::mars::MarsRequest base = metkit::mars::MarsRequest(client_);
-            std::vector< metkit::mars::MarsRequest > splits = base.split("number"); // todo: date, time.
+
+            std::vector<std::string> split_keys = { "date", "time", "number" };
+            std::vector< metkit::mars::MarsRequest > splits = base.split(split_keys);
 
             for (size_t j = 0; j < splits.size(); j++) {
                 tasks_.emplace_back(new ScanMARSTask(count, this, splits[j]));

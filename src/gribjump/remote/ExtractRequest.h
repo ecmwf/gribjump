@@ -13,6 +13,10 @@
 
 #pragma once
 
+#include <cstddef>
+
+#include "fdb5/api/FDB.h"
+
 #include "gribjump/ExtractionData.h"
 #include "gribjump/remote/Request.h"
 
@@ -25,17 +29,41 @@ class ExtractRequest;
 class ExtractTask : public Task {
 public: 
     
-    ExtractTask(size_t id, ExtractRequest* clientRequest, ExtractionRequest& request);
+    ExtractTask(size_t id, ExtractRequest* clientRequest);
 
     virtual ~ExtractTask();
 
     const std::vector<ExtractionResult>& results() { return results_; }
     
+protected:
+    std::vector<ExtractionResult> results_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ExtractMARSTask : public ExtractTask {
+public: 
+    
+    ExtractMARSTask(size_t id, ExtractRequest* clientRequest, ExtractionRequest& request);
+    
     void execute(GribJump& gj) override;
 
 private:
     ExtractionRequest request_;
-    std::vector<ExtractionResult> results_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ExtractFDBLocTask : public ExtractTask {
+public: 
+    
+    ExtractFDBLocTask(size_t id, ExtractRequest* clientRequest, std::vector<eckit::URI> fields, std::vector<Range> ranges);
+    
+    void execute(GribJump& gj) override;
+
+private:
+    std::vector<eckit::URI> fields_;
+    std::vector<Range> ranges_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

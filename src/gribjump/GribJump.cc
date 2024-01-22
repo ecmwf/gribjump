@@ -20,14 +20,8 @@
 
 namespace gribjump {
 
-GribJump::GribJump(){
-    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
-        config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
-    } 
-    else {
-        LOG_DEBUG_LIB(LibGribJump) << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
-    }
-    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(config_));
+GribJump::GribJump() {
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(LibGribJump::instance().config()));
 }
 
 GribJump::~GribJump() {

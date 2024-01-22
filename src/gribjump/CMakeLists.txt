@@ -44,6 +44,8 @@ list( APPEND gribjump_srcs
     ExtractionData.h
     Stats.cc
     Stats.h
+    FDBService.h
+    FDBService.cc
 
     remote/Request.h
     remote/Request.cc

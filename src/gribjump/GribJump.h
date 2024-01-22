@@ -47,7 +47,6 @@ public:
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false);
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> requests);
-
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
@@ -56,8 +55,6 @@ public:
 
 private:
     std::unique_ptr<GribJumpBase> impl_;
-    Config config_;
-
 };
 
 } // namespace gribjump

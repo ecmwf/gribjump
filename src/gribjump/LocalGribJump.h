@@ -18,7 +18,9 @@
 #include "gribjump/GribInfoCache.h"
 
 namespace gribjump {
+
 class LocalGribJump : public GribJumpBase {
+
 public:
 
     explicit LocalGribJump(const Config& config);

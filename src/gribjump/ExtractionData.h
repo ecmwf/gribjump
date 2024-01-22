@@ -23,6 +23,8 @@ using Range = std::pair<size_t, size_t>;
 
 namespace gribjump {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class ExtractionResult  {
 public: // methods
 
@@ -36,7 +38,7 @@ public: // methods
     size_t nvalues(size_t i) const {return values_[i].size();}
 
     // For exposing buffers to C
-    // Use carefully, as the vector values_ still own the data.
+    // Use carefully, as the vector values_ still owns the data.
     void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
 
 private: // methods
@@ -51,6 +53,7 @@ private: // members
     std::vector<std::vector<std::bitset<64>>> mask_;
 };
 
+//----------------------------------------------------------------------------------------------------------------------
 
 class ExtractionRequest {
 
@@ -75,5 +78,7 @@ private: // members
     std::vector<Range> ranges_;
     metkit::mars::MarsRequest request_;
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump
