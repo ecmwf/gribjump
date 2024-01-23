@@ -14,6 +14,7 @@
 #include "gribjump/FDBService.h"
 
 #include "eckit/log/Log.h"
+#include "eckit/config/Resource.h"
 
 #include "gribjump/GribJump.h"
 
@@ -116,20 +117,33 @@ std::map<std::string, std::unordered_set<std::string> > FDBService::axes(const f
 
     eckit::AutoLock<FDBService> lock(this);
 
-    auto listIter = fdb_.list(request, true);
+    bool DEBUG_USE_FDBAXES = eckit::Resource<bool>("$GRIBJUMP_USE_FDBAXES", true);
 
     std::map<std::string, std::unordered_set<std::string>> values;
 
-    fdb5::ListElement elem;
-    while (listIter.next(elem)) {
-        for (const auto& key : elem.key()) {
-            for (const auto& param : key) {
-                values[param.first].insert(param.second);
+    if (DEBUG_USE_FDBAXES) {
+        
+        LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
+        
+        fdb5::IndexAxis ax = fdb_.axes(request);
+        values = ax.copyAxesMap();
+    }
+    else {
+
+        LOG_DEBUG_LIB(LibGribJump) << "Using GribJump's (old) axes impl" << std::endl;
+
+        auto listIter = fdb_.list(request, true);
+        fdb5::ListElement elem;
+        while (listIter.next(elem)) {
+            for (const auto& key : elem.key()) {
+                for (const auto& param : key) {
+                    values[param.first].insert(param.second);
+                }
             }
         }
     }
-    return values;
 
+    return values;
 }
 
 
