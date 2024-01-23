@@ -76,6 +76,7 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
     for (size_t i = 0; i < numRequests; i++) {
 
+        size_t countTasks = 0;
         const ExtractionRequest& baseRequest = reqs[i];
 
         /// @todo: XXX the order here needs to be checked -- are we returning the results in the correct order?
@@ -83,18 +84,21 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         if(distributeByFile) {
             std::vector<eckit::URI> fields = FDBService::instance().fieldLocations(baseRequest.getRequest());
 
-            /// @todo: not finished -- we need to split into a task per file (URI)
-            NOTIMP;
-
-            tasks_.emplace_back(new ExtractFDBLocTask(i, this, fields, baseRequest.getRanges()));
-            requestGroups_.push_back(1); // we didnt split requests
+            for (size_t j = 0; j < fields.size(); j++) {
+                LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: split request " << fields[j] << std::endl;
+                tasks_.emplace_back(new ExtractFDBLocTask(countTasks, this, { fields[j] }, baseRequest.getRanges()));
+                countTasks++;
+            }
+            requestGroups_.push_back(fields.size());
         }
         else {
             std::vector<std::string> split_keys = { "date", "time", "number" };
             std::vector<ExtractionRequest> splitRequests = baseRequest.split( split_keys );
+            
             for (size_t j = 0; j < splitRequests.size(); j++) {
                 LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: split request " << splitRequests[j].getRequest() << std::endl;
-                tasks_.emplace_back(new ExtractMARSTask(j, this, splitRequests[j]));
+                tasks_.emplace_back(new ExtractMARSTask(countTasks, this, splitRequests[j]));
+                countTasks++;
             }
             requestGroups_.push_back(splitRequests.size());
         }
