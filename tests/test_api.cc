@@ -20,6 +20,7 @@
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/GribJump.h"
+#include "gribjump/FDBService.h"
 
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
@@ -71,8 +72,7 @@ CASE( "test_gribjump_api_extract" ) {
 
     fdb5::FDB fdb;
     eckit::PathName path = "extract_ranges.grib";
-    eckit::DataHandle *dh = path.fileHandle();
-    fdb.archive(*dh);
+    fdb.archive(*path.fileHandle());
     fdb.flush();
 
     // Build test requests
@@ -165,7 +165,7 @@ CASE( "test_gribjump_api_extract" ) {
     {
         std::istringstream s(
             "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc\n"
-            );
+        );
         metkit::mars::MarsParser parser(s);
         auto parsedRequests = parser.parse();
         metkit::mars::MarsExpension expand(/* inherit */ false);
@@ -216,6 +216,41 @@ CASE( "test_gribjump_api_extract" ) {
                     EXPECT(values[k][l] == expectedValues[i][j][k][l]);
                     EXPECT(mask[k][l/64][l%64]);
                 }
+            }
+        }
+    }
+
+    // test 3: use extract with uri
+
+    // Use fdb list to get URIs
+    std::vector<eckit::URI> uris;
+    fdb5::FDBToolRequest fdbreq(requests[0]);
+    auto listIter = fdb.list(fdbreq, false);
+    fdb5::ListElement elem;
+    while (listIter.next(elem)) {
+        const fdb5::FieldLocation& loc = elem.location();
+        uris.push_back(loc.fullUri());
+        std::cout << "location: " << loc.fullUri() << std::endl;
+    }
+    std::vector<ExtractionResult> output3 = gj.extract(uris, ranges);
+    EXPECT(output3.size() == 3);
+
+    // Expect output3 to be the same as output2[0]
+    for (size_t i = 0; i < output3.size(); i++) { // each field
+        auto values = output3[i].values();
+        auto mask = output3[i].mask();
+
+        auto values2 = output2[0][i].values();
+        auto mask2 = output2[0][i].mask();
+
+        for (size_t k = 0; k < values.size(); k++) { // each range
+            for (size_t l = 0; l < values[k].size(); l++) { // each value
+                EXPECT(mask[k][l/64][l%64] == mask2[k][l/64][l%64]);
+                if (std::isnan(values[k][l])) {
+                    EXPECT(std::isnan(values2[k][l]));
+                    continue;
+                }
+                EXPECT(values[k][l] == values2[k][l]);
             }
         }
     }

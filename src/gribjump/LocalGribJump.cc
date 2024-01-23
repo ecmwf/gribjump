@@ -103,18 +103,13 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
 }
 
 std::vector<ExtractionResult> LocalGribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
+    
     std::vector<ExtractionResult> result;
+    
     for(auto& uri : uris){
         eckit::Offset offset = std::stoll(uri.fragment());
         JumpInfoHandle info = extractInfo(uri, offset);
-
         result.push_back(directJump(uri, offset, ranges, info));
-
-        // eckit::DataHandle* handle = uri.newReadHandle(); // TODO: for now. See also uri.newReadHandle with offsets.
-        // JumpHandle dataSource(handle);
-        // info->setStartOffset(offset);
-        // ASSERT(info->ready());
-        // result.push_back(info->extractRanges(dataSource, ranges));
     }
 
     return result;
@@ -201,17 +196,20 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     return result;
 }
 
-ExtractionResult LocalGribJump::directJump(eckit::URI uri, eckit::Offset offset, std::vector<Range> ranges, JumpInfoHandle info) const {
-    eckit::DataHandle* handle = uri.newReadHandle(); // TODO: for now. See also uri.newReadHandle with offsets, to avoid reopening the file.
+ExtractionResult LocalGribJump::directJump(const eckit::URI uri, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const {
+    eckit::Length length = info->length();
+    eckit::DataHandle* handle = uri.newReadHandle({offset}, {length}); // TODO: Use one handle for requests in the same file.
     JumpHandle dataSource(handle);
-    info->setStartOffset(offset); // Message starts at the beginning of the handle
+    // XXX: We shouldn't allow modification of jumpinfo.
+    info->setStartOffset(0); // Message starts at the beginning of the handle.
     ASSERT(info->ready());
     return info->extractRanges(dataSource, ranges);
 }
 
 ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std::vector<Range> ranges, JumpInfoHandle info) const {
     JumpHandle dataSource(handle);
-    info->setStartOffset(0); // Message starts at the beginning of the handle
+    // XXX: We shouldn't allow modification of jumpinfo.
+    info->setStartOffset(0); // Message starts at the beginning of the handle.
     ASSERT(info->ready());
     return info->extractRanges(dataSource, ranges);
 }

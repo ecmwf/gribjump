@@ -55,6 +55,13 @@ std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest 
     return out;
 }
 
+std::vector<ExtractionResult> GribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
+    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
+    auto out = impl_->extract(uris, ranges);
+    timer.report();
+    return out;
+}
+
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
     eckit::Timer timer("GribJump::axes API",eckit::Log::debug<LibGribJump>());
     auto out = impl_->axes(request);
