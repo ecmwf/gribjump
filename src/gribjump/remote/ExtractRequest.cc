@@ -50,12 +50,7 @@ ExtractFDBLocTask::ExtractFDBLocTask(size_t id, ExtractRequest* clientRequest, s
 }
 
 void ExtractFDBLocTask::execute(GribJump& gj) {
-    NOTIMP;
-    // std::vector< 
-    //     std::tuple<eckit::PathName, Offset, Length > > fields_; 
-    // or 
-    // std::vector<eckit::URI> fields_;
-    std::vector<ExtractionResult> results; /* = gj.extract(fields_, ranges_); */
+    std::vector<ExtractionResult> results = gj.extract(fields_, ranges_); 
     results_.swap(results);
     notify();
 }
@@ -69,31 +64,30 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
     LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: numRequests = " << numRequests << std::endl;
 
+    // receive requests
+    std::vector<ExtractionRequest> reqs;
+    reqs.reserve(numRequests);
+    for (size_t i = 0; i < numRequests; i++) { 
+        ExtractionRequest req(client_);
+        reqs.push_back(req);
+    }
+
     bool distributeFieldLocs = LibGribJump::instance().config().getBool("distributeFieldLocs", false);
 
-    if(distributeFieldLocs) {
-        std::vector<ExtractionRequest> reqs;
-        reqs.reserve(numRequests);
+    for (size_t i = 0; i < numRequests; i++) {
 
-        for (size_t i = 0; i < numRequests; i++) {
-            ExtractionRequest req(client_);
-            reqs.push_back(req);
+        const ExtractionRequest& baseRequest = reqs[i];
+
+        /// @todo: XXX the order here needs to be checked -- are we returning the results in the correct order?
+
+        if(distributeFieldLocs) {
+            std::vector<eckit::URI> fields = FDBService::instance().fieldLocations(baseRequest.getRequest());
+            tasks_.emplace_back(new ExtractFDBLocTask(i, this, fields, baseRequest.getRanges()));
+            requestGroups_.push_back(1); // we didnt split requests
         }
-
-        for (size_t i = 0; i < numRequests; i++) {
-            std::vector<eckit::URI> fields = FDBService::instance().fieldLocations(reqs[i].getRequest());
-            tasks_.emplace_back(new ExtractFDBLocTask(i, this, fields, reqs[i].getRanges()));
-        }
-    }
-    else {
-        // flat vector of tasks, one per split request
-        for (size_t i = 0; i < numRequests; i++) {
-
-            const ExtractionRequest baseRequest = ExtractionRequest(client_);
-
+        else {
             std::vector<std::string> split_keys = { "date", "time", "number" };
             std::vector<ExtractionRequest> splitRequests = baseRequest.split( split_keys );
-
             for (size_t j = 0; j < splitRequests.size(); j++) {
                 LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: split request " << splitRequests[j].getRequest() << std::endl;
                 tasks_.emplace_back(new ExtractMARSTask(j, this, splitRequests[j]));
