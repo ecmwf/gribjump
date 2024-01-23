@@ -13,8 +13,6 @@
 
 #include "gribjump/remote/ScanRequest.h"
 
-#include <algorithm>
-
 #include "eckit/log/Log.h"
 #include "eckit/thread/AutoLock.h"
 
@@ -53,38 +51,6 @@ void ScanFileTask::execute(GribJump& gj) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-std::vector<eckit::PathName> list_files_in_fdb_request(std::vector<metkit::mars::MarsRequest> requests) {
-        
-    eckit::AutoLock<FDBService> lock(FDBService::instance());
-    fdb5::FDB& fdb = FDBService::instance().fdb();
-
-    std::set< eckit::PathName > files;
-
-    for (auto& request : requests) {
-        LOG_DEBUG_LIB(LibGribJump) << "Processing request: " << request << std::endl;
-
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb.list(fdbreq, false);
-
-        fdb5::ListElement elem;
-        eckit::PathName last;
-        while (listIter.next(elem)) {
-            const fdb5::FieldLocation& loc = elem.location();
-            LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
-            eckit::PathName path = loc.uri().path();
-            if(path != last) { 
-                files.insert(path); // minor optimisation
-            }
-            last = path;
-        }
-    }
-
-    std::vector<eckit::PathName> output;
-    std::copy(files.begin(), files.end(), std::back_inserter(output));
-
-    return output;
-}
-
 ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
 
     bool byfiles;
@@ -104,7 +70,7 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
             requests.emplace_back(metkit::mars::MarsRequest(client_));
         }
 
-        std::vector<eckit::PathName> files = list_files_in_fdb_request(requests);
+        std::vector<eckit::PathName> files = FDBService::instance().listFilesInRequest(requests);
 
         for (size_t i = 0; i < files.size(); i++) {
             tasks_.emplace_back(new ScanFileTask(i, this, files[i]));

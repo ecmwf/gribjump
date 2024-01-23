@@ -15,8 +15,11 @@
 
 #include <cstddef>
 #include <mutex>
+#include <map>
+#include <vector>
 
 #include "eckit/thread/AutoLock.h"
+#include "eckit/io/Offset.h"
 
 #include "fdb5/database/FieldLocation.h"
 #include "fdb5/api/FDB.h"
@@ -35,6 +38,12 @@ public:
     fdb5::FDB& fdb() { ASSERT(locked_); return fdb_; }
 
     std::vector<eckit::URI> fieldLocations(const metkit::mars::MarsRequest& request);
+
+    std::vector<eckit::PathName> listFilesInRequest(std::vector<metkit::mars::MarsRequest> requests);
+
+    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(std::vector<metkit::mars::MarsRequest> requests);
+
+    std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request);
 
 private:
 
