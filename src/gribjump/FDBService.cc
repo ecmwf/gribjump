@@ -36,7 +36,7 @@ std::vector<eckit::URI> FDBService::fieldLocations(const metkit::mars::MarsReque
     std::vector<eckit::URI> locations;
 
     fdb5::FDBToolRequest fdbreq(request);
-    auto listIter = fdb_.list(fdbreq, false);
+    auto listIter = fdb_.list(fdbreq, true);
     fdb5::ListElement elem;
     while (listIter.next(elem)) {
             const fdb5::FieldLocation& loc = elem.location();
@@ -55,7 +55,7 @@ std::vector<eckit::PathName> FDBService::listFilesInRequest(std::vector<metkit::
     for (auto& request : requests) {
 
         fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, false);
+        auto listIter = fdb_.list(fdbreq, true);
 
         fdb5::ListElement elem;
         eckit::PathName last;
@@ -87,7 +87,7 @@ std::map< eckit::PathName, eckit::OffsetList > FDBService::filesOffsets(std::vec
         size_t count = request.count(); // worse case scenario all fields in one file
 
         fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, false);
+        auto listIter = fdb_.list(fdbreq, true);
 
         fdb5::ListElement elem;
         while (listIter.next(elem)) {
@@ -116,7 +116,7 @@ std::map<std::string, std::unordered_set<std::string> > FDBService::axes(const f
 
     eckit::AutoLock<FDBService> lock(this);
 
-    auto listIter = fdb_.list(request, false);
+    auto listIter = fdb_.list(request, true);
 
     std::map<std::string, std::unordered_set<std::string>> values;
 
