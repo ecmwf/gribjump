@@ -72,7 +72,7 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         reqs.push_back(req);
     }
 
-    bool distributeFieldLocs = LibGribJump::instance().config().getBool("distributeFieldLocs", false);
+    bool distributeByFile = LibGribJump::instance().config().getBool("distributeByFile", false);
 
     for (size_t i = 0; i < numRequests; i++) {
 
@@ -80,8 +80,12 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
         /// @todo: XXX the order here needs to be checked -- are we returning the results in the correct order?
 
-        if(distributeFieldLocs) {
+        if(distributeByFile) {
             std::vector<eckit::URI> fields = FDBService::instance().fieldLocations(baseRequest.getRequest());
+
+            /// @todo: not finished -- we need to split into a task per file (URI)
+            NOTIMP;
+
             tasks_.emplace_back(new ExtractFDBLocTask(i, this, fields, baseRequest.getRanges()));
             requestGroups_.push_back(1); // we didnt split requests
         }
