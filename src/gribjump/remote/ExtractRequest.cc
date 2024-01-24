@@ -115,6 +115,18 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
     bool mergeBefore = LibGribJump::instance().config().getBool("mergeBefore", false);
     if(mergeBefore) {
 
+#if 0
+        // merge requests to reduce fdb list calls
+        for(auto& req : reqs) {
+            const metkit::mars::MarsRequest& mreq = req.getRequest();
+            LOG_DEBUG_LIB(LibGribJump) << "current request " << mreq << std::endl;
+            std::cout << "current request params " << mreq.params() << std::endl;
+            for(auto& p: mreq.params()) {
+                std::cout << "param " << p << " values " << mreq.values(p) << std::endl;
+            }
+        }
+#endif
+
         eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
 
         std::map<eckit::PathName, WorkPerFile*> merged;
