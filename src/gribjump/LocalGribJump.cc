@@ -187,7 +187,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
     if (pinfo) return JumpInfoHandle(pinfo);
     
     std::string f = loc.uri().path().baseName();
-    eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
+    eckit::Log::info() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
 
     eckit::DataHandle* handle = loc.dataHandle();
     JumpHandle dataSource(handle);
@@ -204,7 +204,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Of
     if (pinfo) return JumpInfoHandle(pinfo);
     
     std::string f = uri.path().baseName();
-    eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
+    eckit::Log::info() << "GribJump cache miss file=" << f << "offset=" << offset << std::endl;
 
     eckit::DataHandle* handle = uri.path().fileHandle();
     JumpHandle dataSource(handle);

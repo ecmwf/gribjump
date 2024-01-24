@@ -85,7 +85,7 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
             std::vector<eckit::URI> fields = FDBService::instance().fieldLocations(baseRequest.getRequest());
 
             for (size_t j = 0; j < fields.size(); j++) {
-                LOG_DEBUG_LIB(LibGribJump) << "ExtractRequest: split request " << fields[j] << std::endl;
+                LOG_DEBUG_LIB(LibGribJump) << "Extracting from " << fields[j] << std::endl;
                 tasks_.emplace_back(new ExtractFDBLocTask(countTasks, this, { fields[j] }, baseRequest.getRanges()));
                 countTasks++;
             }
@@ -118,8 +118,9 @@ void ExtractRequest::enqueueTasks() {
     for (size_t i = 0; i < tasks_.size(); i++) {
         WorkItem w(tasks_[i]);
         queue.push(w);
-        LOG_DEBUG_LIB(LibGribJump) << "Pushed request (" << i << ") onto queue" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "Queued task " << i << std::endl;
     }
+    eckit::Log::info() << "ExtractRequest: " << tasks_.size() << " tasks enqueued" << std::endl;
 }
 
 void ExtractRequest::replyToClient() {       
