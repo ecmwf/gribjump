@@ -127,18 +127,13 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
             fdb5::FDBToolRequest fdbreq(request);
             auto listIter = FDBService::instance().fdb().list(fdbreq, true);
 
-            std::cout << "Find Iterator >>> " << std::endl;
-
             size_t field_id = 0;
             fdb5::ListElement elem;
             while (listIter.next(elem)) {
-
-                std::cout << "IM HERE!!!! " << elem << std::endl;
                 
-                // fdb5::Key key = elem.combinedKey(true);
+                fdb5::Key key = elem.combinedKey(true);
                 const fdb5::FieldLocation& loc = elem.location();
-                LOG_DEBUG_LIB(LibGribJump) << "FOUND " << loc << std::endl;
-                LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
+                LOG_DEBUG_LIB(LibGribJump) << "FOUND key=" << key << " " << loc << std::endl;
 
                 eckit::PathName filepath = loc.uri().path();
 
@@ -158,16 +153,16 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
                 throw eckit::BadValue("No fields found for request " + reqs[reqId].getRequest().asString(), Here());
 
             nb_fields_in_client_request_.push_back(field_id);
-
-            size_t countTasks = 0;
-            for(auto& file : merged) {
-                LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
-                size_t taskid = reqId * numRequests + countTasks;
-                tasks_.emplace_back(new ExtractPerFileTask(taskid, this, file.second));
-                countTasks++;
-            }
-            requestGroups_.push_back(countTasks);
         }
+
+        size_t countTasks = 0;
+        for(auto& file : merged) {
+            LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
+            tasks_.emplace_back(new ExtractPerFileTask(countTasks, this, file.second));
+            countTasks++;
+        }
+        requestGroups_.push_back(countTasks);
+
 
         taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
         return;
