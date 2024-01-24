@@ -41,6 +41,34 @@ protected:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+struct WorkPerField {
+    size_t client_request_id_;    // id in client request
+    size_t field_id_;             // field id in that client request
+    eckit::Offset field_offset_;
+    std::vector<Range> ranges_;
+    ExtractionResult result_;
+};
+
+struct WorkPerFile {
+    eckit::PathName file_; // full path to file
+    std::vector<WorkPerField> fields_;
+};
+
+class ExtractPerFileTask : public ExtractTask {
+public: 
+    
+    ExtractPerFileTask(size_t id, ExtractRequest* clientRequest, WorkPerFile* work);
+    
+    void execute(GribJump& gj) override;
+
+    WorkPerFile* work() { return work_; }
+
+private:
+    WorkPerFile* work_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class ExtractMARSTask : public ExtractTask {
 public: 
     
@@ -82,6 +110,7 @@ public:
 private:
     std::vector<ExtractTask*> tasks_;
     std::vector<size_t> requestGroups_;
+    std::vector<size_t> nb_fields_in_client_request_;
 };
 
 } // namespace gribjump

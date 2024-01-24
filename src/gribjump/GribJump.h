@@ -49,6 +49,7 @@ public:
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> requests);
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges);
     std::vector<ExtractionResult> extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges);
+    std::vector<ExtractionResult> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 

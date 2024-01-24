@@ -62,6 +62,14 @@ std::vector<ExtractionResult> GribJump::extract(const std::vector<eckit::URI> ur
     return out;
 }
 
+std::vector<ExtractionResult> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
+    auto out = impl_->extract(path, offsets, ranges);
+    timer.report();
+    return out;
+}
+
+
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
     eckit::Timer timer("GribJump::axes API",eckit::Log::debug<LibGribJump>());
     auto out = impl_->axes(request);

@@ -57,6 +57,44 @@ void ExtractFDBLocTask::execute(GribJump& gj) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+ ExtractPerFileTask::ExtractPerFileTask(size_t id, ExtractRequest* clientRequest, WorkPerFile* work) : 
+    ExtractTask(id, clientRequest), work_(work) {
+ }
+
+void ExtractPerFileTask::execute(GribJump& gj) {
+
+    bool sortOffsets = true;
+    if(sortOffsets) {
+        
+        std::sort(work_->fields_.begin(), work_->fields_.end(), [](const WorkPerField& a, const WorkPerField& b) { return a.field_offset_ < b.field_offset_; });
+        
+        std::vector<eckit::Offset> offsets;
+        offsets.reserve(work_->fields_.size());
+        std::vector<std::vector<Range>> ranges;
+        ranges.reserve(work_->fields_.size());
+        for(auto& field : work_->fields_) {
+            offsets.push_back(field.field_offset_);
+            ranges.push_back(field.ranges_);
+        }
+
+        std::vector<ExtractionResult> r = gj.extract(work_->file_, offsets, ranges);
+
+        for(size_t i = 0; i < r.size(); ++i) {
+            work_->fields_[i].result_ = r[i];
+        }
+    }
+    else {
+        for(auto& field : work_->fields_) {
+            std::vector<ExtractionResult> r = gj.extract(work_->file_, { field.field_offset_ }, { field.ranges_ });
+            std::copy(r.begin(), r.end(), std::back_inserter(results_));
+        }
+    }
+
+    notify();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
     size_t numRequests;
@@ -71,6 +109,62 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         ExtractionRequest req(client_);
         reqs.push_back(req);
     }
+
+    nb_fields_in_client_request_.reserve(numRequests);
+
+    bool mergeBefore = LibGribJump::instance().config().getBool("mergeBefore", false);
+    if(mergeBefore) {
+
+        eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
+        fdb5::FDB& fdb = FDBService::instance().fdb();
+
+        std::map<eckit::PathName, WorkPerFile*> merged;
+
+    
+        for (size_t reqId = 0; reqId < numRequests; ++reqId) {    
+            auto listIter = fdb.list(fdb5::FDBToolRequest(reqs[reqId].getRequest()), true);
+            
+            
+            size_t field_id = 0;
+            fdb5::ListElement elem;
+            while (listIter.next(elem)) {
+                
+                // fdb5::Key key = elem.combinedKey(true);
+                
+                const fdb5::FieldLocation& loc = elem.location();
+                LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
+
+                eckit::PathName filepath = loc.uri().path();
+
+                auto it = merged.find(filepath);
+                if(it != merged.end()) {
+                    it->second->fields_.push_back({reqId, field_id, loc.offset(), reqs[reqId].getRanges(), ExtractionResult{} });
+                }
+                else { 
+                    WorkPerFile* work = new WorkPerFile{ filepath, {{ reqId, field_id, loc.offset(), reqs[reqId].getRanges(), ExtractionResult{} }} };
+                    merged.emplace(filepath, work);
+                }
+
+                field_id++;
+            }
+
+            nb_fields_in_client_request_.push_back(field_id);
+
+            size_t countTasks = 0;
+            for(auto& file : merged) {
+                LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
+                size_t taskid = reqId * numRequests + countTasks;
+                tasks_.emplace_back(new ExtractPerFileTask(taskid, this, file.second));
+                countTasks++;
+            }
+            requestGroups_.push_back(countTasks);
+        }
+
+        taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
+        return;
+    }
+
+
 
     bool distributeByFile = LibGribJump::instance().config().getBool("distributeByFile", false);
 
@@ -90,6 +184,7 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
                 countTasks++;
             }
             requestGroups_.push_back(fields.size());
+            nb_fields_in_client_request_ = requestGroups_;
         }
         else {
             std::vector<std::string> split_keys = { "date", "time", "number" };
@@ -101,8 +196,11 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
                 countTasks++;
             }
             requestGroups_.push_back(splitRequests.size());
+            nb_fields_in_client_request_ = requestGroups_;
         }
     }
+
+    ASSERT(nb_fields_in_client_request_.size() == requestGroups_.size());
 
     taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
 }
@@ -129,24 +227,52 @@ void ExtractRequest::replyToClient() {
 
     eckit::Timer timer;
 
-    size_t nReq = 0;
     size_t nValues = 0;
-    for (size_t group : requestGroups_){
-        size_t nfieldsInOriginalReq = 0;
-        for (size_t i = 0; i < group; i++) {
-            nfieldsInOriginalReq += tasks_[nReq+i]->results().size();
+
+    bool mergeBefore = LibGribJump::instance().config().getBool("mergeBefore", false);
+    if(mergeBefore) {
+
+        std::vector< std::vector<ExtractionResult>> replies; // for all requests, for all fields in request
+        replies.resize(nb_fields_in_client_request_.size());
+        for(size_t i = 0; i < nb_fields_in_client_request_.size(); ++i) {
+            replies[i].resize(nb_fields_in_client_request_[i]);
         }
-        client_ << nfieldsInOriginalReq;
-        for (size_t i = 0; i < group; i++) {
-            const std::vector<ExtractionResult>& results = tasks_[nReq]->results();
-            for (auto& result : results) {
-                for (size_t i = 0; i < result.nrange(); i++) {
-                    nValues += result.nvalues(i);
-                }
-                client_ << result;
+
+        for(size_t taskid = 0; taskid < tasks_.size(); ++taskid) {
+            WorkPerFile* work = static_cast<ExtractPerFileTask*>(tasks_[taskid])->work();
+            for(auto& field : work->fields_) {
+                replies[field.client_request_id_][field.field_id_] = field.result_;
             }
-            nReq++;
         }
+
+        for(size_t i = 0; i < replies.size(); ++i) {
+            client_ << replies[i].size();
+            for(size_t j = 0; j < replies[i].size(); ++j) {
+                client_ << replies[i][j];
+                nValues += replies[i][j].total_values();
+            }
+        }
+    }
+    else {
+        size_t nReq = 0;
+        for (size_t group : requestGroups_){
+            size_t nfieldsInOriginalReq = 0;
+            for (size_t i = 0; i < group; i++) {
+                nfieldsInOriginalReq += tasks_[nReq+i]->results().size();
+            }
+            client_ << nfieldsInOriginalReq;
+            for (size_t i = 0; i < group; i++) {
+                const std::vector<ExtractionResult>& results = tasks_[nReq]->results();
+                for (auto& result : results) {
+                    for (size_t i = 0; i < result.nrange(); i++) {
+                        nValues += result.total_values();
+                    }
+                    client_ << result;
+                }
+                nReq++;
+            }
+        }
+        ASSERT(nReq == tasks_.size());  
     }
 
     timer.stop();
@@ -155,8 +281,6 @@ void ExtractRequest::replyToClient() {
     double byterate = rate * sizeof(double) / 1024.0; // KiB/sec
 
     eckit::Log::info() << "ExtractRequest sent " << eckit::Plural(nValues,"value") << " @ " << rate << " values/s " << byterate << "KiB/s" << std::endl;
-
-    ASSERT(nReq == tasks_.size());
 }
 
 }  // namespace gribjump

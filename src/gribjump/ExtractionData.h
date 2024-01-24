@@ -28,6 +28,7 @@ namespace gribjump {
 class ExtractionResult  {
 public: // methods
 
+    ExtractionResult();
     ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
     explicit ExtractionResult(eckit::Stream& s);
 
@@ -36,6 +37,13 @@ public: // methods
 
     size_t nrange() const {return values_.size();}
     size_t nvalues(size_t i) const {return values_[i].size();}
+    size_t total_values() const {
+        size_t total = 0;
+        for (auto& v : values_) {
+            total += v.size();
+        }
+        return total;
+    }
 
     // For exposing buffers to C
     // Use carefully, as the vector values_ still owns the data.
@@ -65,8 +73,8 @@ public: // methods
 
     std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
     std::vector<ExtractionRequest> split(const std::string& key) const;
-    std::vector<Range> getRanges() const {return ranges_;}
-    metkit::mars::MarsRequest getRequest() const {return request_;}
+    const std::vector<Range>& getRanges() const {return ranges_;}
+    const metkit::mars::MarsRequest& getRequest() const {return request_;}
 
 private: // methods
     void print(std::ostream&) const;
