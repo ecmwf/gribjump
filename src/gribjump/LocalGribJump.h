@@ -33,6 +33,7 @@ public:
     size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
 
     std::vector<ExtractionResult> extract(const std::vector<eckit::URI>, const std::vector<Range> ranges) override;
+    std::vector<ExtractionResult> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
 
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
@@ -41,9 +42,11 @@ public:
     
     ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfoHandle info) const;
     ExtractionResult directJump(eckit::URI uri, eckit::Offset offset, std::vector<Range> ranges, JumpInfoHandle info) const;
+    ExtractionResult directJump(eckit::PathName path, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const;
 
     JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
     JumpInfoHandle extractInfo(const eckit::URI& uri, const eckit::Offset& offset);
+    JumpInfoHandle extractInfo(const eckit::PathName& path, const eckit::Offset& offset);
     
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 };
