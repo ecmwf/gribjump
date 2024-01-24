@@ -109,6 +109,10 @@ std::vector<std::vector<ExtractionResult>> RemoteGribJump::extract(std::vector<E
     return result;
 }
 
+std::vector<ExtractionResult> RemoteGribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges) {
+    NOTIMP;
+}
+
 std::vector<ExtractionResult> RemoteGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) {
     NOTIMP;
 }

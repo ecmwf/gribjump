@@ -101,6 +101,11 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
     std::map<std::string, std::unordered_set<std::string>> axes = gj.axes(request);
 
     timer.report("AXES finished. Sending results");
+
+    // TODO: reporting of axes errors.
+    size_t nerror = 0;
+    s << nerror;
+
     size_t naxes = axes.size();
     s << naxes;
     for (auto& pair : axes) {

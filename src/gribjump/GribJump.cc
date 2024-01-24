@@ -20,14 +20,8 @@
 
 namespace gribjump {
 
-GribJump::GribJump(){
-    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
-        config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
-    } 
-    else {
-        LOG_DEBUG_LIB(LibGribJump) << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
-    }
-    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(config_));
+GribJump::GribJump() {
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(LibGribJump::instance().config()));
 }
 
 GribJump::~GribJump() {
@@ -58,6 +52,13 @@ std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest 
     // eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
     auto out = impl_->extract(request, ranges);
     // timer.report();
+    return out;
+}
+
+std::vector<ExtractionResult> GribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
+    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
+    auto out = impl_->extract(uris, ranges);
+    timer.report();
     return out;
 }
 

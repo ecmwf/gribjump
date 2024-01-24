@@ -27,6 +27,8 @@ public: // methods
 
     size_t scan(const eckit::PathName& path) override;
     size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
+
+    std::vector<ExtractionResult> extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges) override;
     
     std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest> polyRequest) override;
     std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
