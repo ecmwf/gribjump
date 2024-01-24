@@ -116,22 +116,28 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
     if(mergeBefore) {
 
         eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
-        fdb5::FDB& fdb = FDBService::instance().fdb();
 
         std::map<eckit::PathName, WorkPerFile*> merged;
-
     
         for (size_t reqId = 0; reqId < numRequests; ++reqId) {    
-            auto listIter = fdb.list(fdb5::FDBToolRequest(reqs[reqId].getRequest()), true);
+
+            const metkit::mars::MarsRequest& request = reqs[reqId].getRequest();
+            LOG_DEBUG_LIB(LibGribJump) << "Extract request " << request << std::endl;
             
-            
+            fdb5::FDBToolRequest fdbreq(request);
+            auto listIter = FDBService::instance().fdb().list(fdbreq, true);
+
+            std::cout << "Find Iterator >>> " << std::endl;
+
             size_t field_id = 0;
             fdb5::ListElement elem;
             while (listIter.next(elem)) {
+
+                std::cout << "IM HERE!!!! " << elem << std::endl;
                 
                 // fdb5::Key key = elem.combinedKey(true);
-                
                 const fdb5::FieldLocation& loc = elem.location();
+                LOG_DEBUG_LIB(LibGribJump) << "FOUND " << loc << std::endl;
                 LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
 
                 eckit::PathName filepath = loc.uri().path();
@@ -147,6 +153,9 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
                 field_id++;
             }
+
+            if(field_id == 0) 
+                throw eckit::BadValue("No fields found for request " + reqs[reqId].getRequest().asString(), Here());
 
             nb_fields_in_client_request_.push_back(field_id);
 
