@@ -29,7 +29,7 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ExtractFileTask::ExtractFileTask(size_t id, ExtractFileRequest* clientRequest) : Task(id, clientRequest){
+ExtractFileTask::ExtractFileTask(size_t id, ExtractFileRequest* clientRequest) : Task(id, clientRequest), request_(clientRequest) {
 }
 
 ExtractFileTask::~ExtractFileTask() {
@@ -37,67 +37,61 @@ ExtractFileTask::~ExtractFileTask() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
- PerFileTask::PerFileTask(size_t id, ExtractFileRequest* clientRequest, WorkPerFile2* work) : 
+ PerFileTask::PerFileTask(size_t id, ExtractFileRequest* clientRequest, PerFileWork* work) : 
     ExtractFileTask(id, clientRequest), work_(work) {
  }
 
 void PerFileTask::execute(GribJump& gj) {
 
-    NOTIMP;
-#if 0
-    bool sortOffsets = true;
-    if(sortOffsets) {
-        
-        std::sort(work_->fields_.begin(), work_->fields_.end(), [](const WorkPerField& a, const WorkPerField& b) { return a.field_offset_ < b.field_offset_; });
-        
-        std::vector<eckit::Offset> offsets;
-        offsets.reserve(work_->fields_.size());
-        std::vector<std::vector<Range>> ranges;
-        ranges.reserve(work_->fields_.size());
-        for(auto& field : work_->fields_) {
-            offsets.push_back(field.field_offset_);
-            ranges.push_back(field.ranges_);
-        }
+    const map_ranges_t& allranges = request_->ranges();
 
-        std::vector<ExtractionResult> r = gj.extract(work_->file_, offsets, ranges);
+    std::sort(work_->jumps_.begin(), work_->jumps_.end(), [](const KeyOffset& a, const KeyOffset& b) { return a.offset_ < b.offset_; });
 
-        for(size_t i = 0; i < r.size(); ++i) {
-            work_->fields_[i].result_ = r[i];
-        }
+    std::vector<eckit::Offset> offsets;
+    offsets.reserve(work_->jumps_.size());
+    std::vector<ranges_t> ranges;
+    ranges.reserve(work_->jumps_.size());
+    for(auto& jump : work_->jumps_) {
+        offsets.push_back(jump.offset_);
+        ranges.push_back( allranges.at(jump.key_) );
     }
-    else {
-        for(auto& field : work_->fields_) {
-            std::vector<ExtractionResult> r = gj.extract(work_->file_, { field.field_offset_ }, { field.ranges_ });
-            std::copy(r.begin(), r.end(), std::back_inserter(results_));
-        }
+
+    std::vector<ExtractionResult*> r = gj.extract(work_->file_, offsets, ranges);
+
+    for(size_t i = 0; i < work_->jumps_.size(); ++i) {
+        partial_results_.insert( { work_->jumps_[i].key_, r[i] } );
     }
-#endif
+
     notify();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
 class FillMapCB : public metkit::mars::FlattenCallback {
 public:
-    FillMapCB(map_results_t& mapres, const std::vector<Range>& ranges) : mapres_(mapres), ranges_(ranges) {}
+    FillMapCB(map_results_t& mapres, map_ranges_t& mapranges, const std::vector<Range>& ranges) : mapres_(mapres),  mapranges_(mapranges), ranges_(ranges) {}
 
     virtual void operator()(const metkit::mars::MarsRequest& req) {
-        mapres_.insert({req.asString(), {ranges_, nullptr}});
+        std::string reqkey = req.asString();
+        ASSERT(mapres_.find(reqkey) == mapres_.end());
+        mapres_.insert({reqkey, nullptr});
+        mapranges_.insert({reqkey, ranges_});
     }
     map_results_t& mapres_;
+    map_ranges_t& mapranges_;
     std::vector<Range> ranges_;
 };
 
-void requestToMap(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, map_results_t& mapres) {
+void requestToMap(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, map_results_t& mapres, map_ranges_t& mapranges) {
 
     metkit::mars::MarsExpension expansion(false);
     metkit::mars::DummyContext ctx;
 
-    FillMapCB cb(mapres, ranges);
+    FillMapCB cb(mapres, mapranges, ranges);
 
     expansion.flatten(ctx, request, cb);
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class ToStrCallback : public metkit::mars::FlattenCallback {
@@ -132,104 +126,72 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
     LOG_DEBUG_LIB(LibGribJump) << "ExtractFileRequest: numRequests = " << numRequests << std::endl;
 
     // receive requests
-    std::vector<ExtractionRequest> reqs;
-    reqs.reserve(numRequests);
+    received_requests_.reserve(numRequests);
     for (size_t i = 0; i < numRequests; i++) { 
         ExtractionRequest req(client_);
-        reqs.push_back(req);
+        received_requests_.push_back(req);
     }
 
-#if 1
-        for(auto& req : reqs) {
-            const metkit::mars::MarsRequest& mreq = req.getRequest();
-            LOG_DEBUG_LIB(LibGribJump) << "current request " << mreq << std::endl;
-            std::cout << "current request params " << mreq.params() << std::endl;
-            for(auto& p: mreq.params()) {
-                std::cout << "param " << p << " values " << mreq.values(p) << std::endl;
-            }
-        }
-#endif
+    // create the map of results
+    for(size_t i = 0; i < received_requests_.size(); ++i) {
+        requestToMap(received_requests_[i].getRequest(), received_requests_[i].getRanges(), results_, ranges_);
+    }
 
-        // create the map of results
-        for(size_t i = 0; i < reqs.size(); ++i) {
-            requestToMap(reqs[i].getRequest(), reqs[i].getRanges(), results_);
-        }
+    // merge requests
+    /// @todo: we should do some check not to merge on keys like class and stream
+    metkit::mars::MarsRequest unionRequest = received_requests_.front().getRequest();  
+    for(size_t i = 1; i < received_requests_.size(); ++i) {
+        unionRequest.merge(received_requests_[i].getRequest());
+    }
+    LOG_DEBUG_LIB(LibGribJump) << "Union request " << unionRequest << std::endl;
 
-        // we should do some check not to merge on keys like class and stream
-        metkit::mars::MarsRequest unionRequest;
-        for(auto& req : reqs) {
-            unionRequest.merge(req.getRequest());
-        }
+    // fdb list to get locations
+    eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
 
-        eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
+    std::map<eckit::PathName, PerFileWork*> per_file_work;
 
-        std::map<eckit::PathName, WorkPerFile2*> per_file_work;
+    fdb5::FDBToolRequest fdbreq(unionRequest);
+    auto listIter = FDBService::instance().fdb().list(fdbreq, true);
 
-        fdb5::FDBToolRequest fdbreq(unionRequest);
-        auto listIter = FDBService::instance().fdb().list(fdbreq, true);
-
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-                
-                fdb5::Key key = elem.combinedKey(true);
-
-                flatkey_t flatkey = key;
-
-                auto resit = results_.find(flatkey);
-                if(resit != results_.end()) {
-                    // this is a key we are interested in
-                    const fdb5::FieldLocation& loc = elem.location();
-                    eckit::Offset offset = loc.offset();
-
-                    eckit::PathName filepath = elem.location().uri().path();
-
-                    auto it = per_file_work.find(filepath);
-                    if(it != per_file_work.end()) {
-                        it->second->fields_.push_back();
-                    }
-                    else { 
-                        WorkPerFile2* work = new WorkPerFile2{ filepath, {key, offset} };
-                        merged_work.emplace(filepath, work);
-                    }
-
-                }
-
-                // // LOG_DEBUG_LIB(LibGribJump) << "FOUND key=" << key << " " << loc << std::endl;
-
-                // eckit::PathName filepath = loc.uri().path();
-
-                // auto it = merged.find(filepath);
-                // if(it != merged.end()) {
-                //     it->second->fields_.push_back({reqId, field_id, loc.offset(), reqs[reqId].getRanges(), ExtractionResult{} });
-                // }
-                // else { 
-                //     WorkPerFile2* work = new WorkPerFile2{ filepath, {{ reqId, field_id, loc.offset(), reqs[reqId].getRanges(), ExtractionResult{} }} };
-                //     merged.emplace(filepath, work);
-                // }
-
-                // field_id++;
-            }
-
-
-
-        for (size_t reqId = 0; reqId < numRequests; ++reqId) {    
-
-            const metkit::mars::MarsRequest& request = reqs[reqId].getRequest();
-            LOG_DEBUG_LIB(LibGribJump) << "Extract request " << request << std::endl;
+    fdb5::ListElement elem;
+    while (listIter.next(elem)) {
             
-            if(field_id == 0) 
-                throw eckit::BadValue("No fields found for request " + reqs[reqId].getRequest().asString(), Here());
+        fdb5::Key key = elem.combinedKey(true);
 
-            nb_fields_in_client_request_.push_back(field_id);
+        LOG_DEBUG_LIB(LibGribJump) << "FDB LIST found " << key << std::endl;
+    
+        flatkey_t flatkey = key;
+
+        auto resit = results_.find(flatkey);
+        if(resit != results_.end()) {
+
+            LOG_DEBUG_LIB(LibGribJump) << "Work found for key=" << key << std::endl;
+
+            // this is a key we are interested in
+            const fdb5::FieldLocation& loc = elem.location();
+            eckit::Offset offset = loc.offset();
+
+            eckit::PathName filepath = elem.location().uri().path();
+
+            auto it = per_file_work.find(filepath);
+            if(it != per_file_work.end()) {
+                it->second->jumps_.push_back( {key, offset} );
+            }
+            else { 
+                PerFileWork* work = new PerFileWork{ filepath, {{key, offset}} };
+                per_file_work.insert( { filepath, work} );
+                LOG_DEBUG_LIB(LibGribJump) << "Work for file=" << filepath << std::endl;
+            }
+
         }
+    }
 
-        size_t countTasks = 0;
-        for(auto& file : merged) {
-            LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
-            tasks_.emplace_back(new PerFileTask(countTasks, this, file.second));
-            countTasks++;
-                    }
-#endif
+    size_t countTasks = 0;
+    for(auto& file : per_file_work) {
+        LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
+        tasks_.emplace_back(new PerFileTask(countTasks, this, file.second));
+        countTasks++;
+    }
 
     taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
 }
@@ -250,43 +212,70 @@ void ExtractFileRequest::enqueueTasks() {
     eckit::Log::info() << "ExtractFileRequest: " << tasks_.size() << " tasks enqueued" << std::endl;
 }
 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class CollectResultsCB : public metkit::mars::FlattenCallback {
+public:
+    CollectResultsCB(ExtractFileRequest& clientReq) : clientReq_(clientReq) {}
+
+    virtual void operator()(const metkit::mars::MarsRequest& req) {
+        flatkey_t key = req.asString();
+        ExtractionResult* r = clientReq_.results(key);
+        collected_.push_back(r);
+    }
+
+    ExtractFileRequest& clientReq_;
+    std::vector<ExtractionResult*> collected_;
+};
+
+std::vector<ExtractionResult*> orderedCollectResults(const metkit::mars::MarsRequest& request, ExtractFileRequest& clientReq) {
+
+    metkit::mars::MarsExpension expansion(false);
+    metkit::mars::DummyContext ctx;
+
+    CollectResultsCB cb(clientReq);
+    expansion.flatten(ctx, request, cb);
+
+    return cb.collected_;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 void ExtractFileRequest::replyToClient() {       
 
-    NOTIMP; // TODO: merge results before sending to client
+    eckit::Timer timer;
 
     reportErrors();
 
-#if 0
-    eckit::Timer timer;
-
-    size_t nValues = 0;
-
-    bool mergeBefore = LibGribJump::instance().config().getBool("mergeBefore", false);
-    if(mergeBefore) {
-
-        std::vector< std::vector<ExtractionResult>> replies; // for all requests, for all fields in request
-        replies.resize(nb_fields_in_client_request_.size());
-        for(size_t i = 0; i < nb_fields_in_client_request_.size(); ++i) {
-            replies[i].resize(nb_fields_in_client_request_[i]);
-        }
-
-        for(size_t taskid = 0; taskid < tasks_.size(); ++taskid) {
-            WorkPerFile2* work = static_cast<PerFileTask*>(tasks_[taskid])->work();
-            for(auto& field : work->fields_) {
-                replies[field.client_request_id_][field.field_id_] = field.result_;
-            }
-        }
-
-        for(size_t i = 0; i < replies.size(); ++i) {
-            client_ << replies[i].size();
-            for(size_t j = 0; j < replies[i].size(); ++j) {
-                client_ << replies[i][j];
-                nValues += replies[i][j].total_values();
-            }
+    // merge results
+    for(auto& task: tasks_) {
+        map_results_t& partial = task->results();
+        for(const auto& res : partial) {
+            results_[res.first] = res.second;
         }
     }
 
+    size_t nValues = 0;
 
+    // collect successful (non nullptr) requests in order & send to client
+    for(size_t i = 0; i < received_requests_.size(); ++i) {
+        const metkit::mars::MarsRequest& mreq = received_requests_[i].getRequest();
+        std::vector<ExtractionResult*> collected = orderedCollectResults(mreq, *this);
+
+        size_t nValidResults = std::count_if(collected.begin(), collected.end(), [](ExtractionResult* r) { return r != nullptr; });
+
+        client_ << nValidResults;
+        for(auto& res : collected) {
+            if(res != nullptr) {
+                ExtractionResult& result = *res;
+                for (size_t i = 0; i < result.nrange(); i++) {
+                    nValues += result.total_values();
+                }
+                client_ << result;
+            }
+        }
+    }
 
     timer.stop();
 
@@ -294,8 +283,6 @@ void ExtractFileRequest::replyToClient() {
     double byterate = rate * sizeof(double) / 1024.0; // KiB/sec
 
     eckit::Log::info() << "ExtractFileRequest sent " << eckit::Plural(nValues,"value") << " @ " << rate << " values/s " << byterate << "KiB/s" << std::endl;
-
-#endif
 }
 
 }  // namespace gribjump

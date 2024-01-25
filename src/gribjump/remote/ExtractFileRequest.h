@@ -28,22 +28,19 @@ class ExtractFileRequest;
 
 typedef std::string flatkey_t;
 
-struct WorkPerField2 {
+struct KeyOffset {
     flatkey_t key_;
-    eckit::Offset field_offset_;
+    eckit::Offset offset_;
 };
 
-struct WorkPerFile2 {
+struct PerFileWork {
     eckit::PathName file_; // full path to file
-    std::vector<WorkPerField2> fields_;
+    std::vector<KeyOffset> jumps_;
 };
 
-struct RangesResults {
-    std::vector<Range> ranges_;
-    ExtractionResult* result_;
-};
-
-typedef std::map<flatkey_t, RangesResults> map_results_t;
+typedef std::vector<Range> ranges_t;
+typedef std::map<flatkey_t, ExtractionResult*> map_results_t;
+typedef std::map<flatkey_t, ranges_t> map_ranges_t;
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -57,6 +54,7 @@ public:
     map_results_t& results() { return partial_results_; }
     
 protected:
+    const ExtractFileRequest *const request_;
     map_results_t partial_results_;
 };
 
@@ -65,15 +63,15 @@ protected:
 class PerFileTask : public ExtractFileTask {
 public: 
     
-    PerFileTask(size_t id, ExtractFileRequest* clientRequest, WorkPerFile2* work);
+    PerFileTask(size_t id, ExtractFileRequest* clientRequest, PerFileWork* work);
     virtual ~PerFileTask() { delete work_; }
     
     void execute(GribJump& gj) override;
 
-    WorkPerFile2* work() { return work_; }
+    PerFileWork* work() { return work_; }
 
 private:
-    WorkPerFile2* work_; // owned by this task
+    PerFileWork* work_; // owned by this task
 }; 
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -85,13 +83,21 @@ public:
 
     ~ExtractFileRequest();
 
+    const map_ranges_t& ranges() const { return ranges_; }
+
     void enqueueTasks() override; 
 
     void replyToClient() override;
 
+    ExtractionResult* results(const flatkey_t& k) {
+        return results_[k];
+    }    
+
 private:
+    std::vector<ExtractionRequest> received_requests_;
     std::vector<ExtractFileTask*> tasks_;
     map_results_t results_;
+    map_ranges_t ranges_;
 };
 
 } // namespace gribjump

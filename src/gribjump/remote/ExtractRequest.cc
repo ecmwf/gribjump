@@ -62,35 +62,35 @@ void ExtractFDBLocTask::execute(GribJump& gj) {
  }
 
 void ExtractPerFileTask::execute(GribJump& gj) {
-
-    bool sortOffsets = true;
-    if(sortOffsets) {
+    NOTIMP;
+    // bool sortOffsets = true;
+    // if(sortOffsets) {
         
-        std::sort(work_->fields_.begin(), work_->fields_.end(), [](const WorkPerField& a, const WorkPerField& b) { return a.field_offset_ < b.field_offset_; });
+    //     std::sort(work_->fields_.begin(), work_->fields_.end(), [](const WorkPerField& a, const WorkPerField& b) { return a.field_offset_ < b.field_offset_; });
         
-        std::vector<eckit::Offset> offsets;
-        offsets.reserve(work_->fields_.size());
-        std::vector<std::vector<Range>> ranges;
-        ranges.reserve(work_->fields_.size());
-        for(auto& field : work_->fields_) {
-            offsets.push_back(field.field_offset_);
-            ranges.push_back(field.ranges_);
-        }
+    //     std::vector<eckit::Offset> offsets;
+    //     offsets.reserve(work_->fields_.size());
+    //     std::vector<std::vector<Range>> ranges;
+    //     ranges.reserve(work_->fields_.size());
+    //     for(auto& field : work_->fields_) {
+    //         offsets.push_back(field.field_offset_);
+    //         ranges.push_back(field.ranges_);
+    //     }
 
-        std::vector<ExtractionResult> r = gj.extract(work_->file_, offsets, ranges);
+    //     std::vector<ExtractionResult> r = gj.extract(work_->file_, offsets, ranges);
 
-        for(size_t i = 0; i < r.size(); ++i) {
-            work_->fields_[i].result_ = r[i];
-        }
-    }
-    else {
-        for(auto& field : work_->fields_) {
-            std::vector<ExtractionResult> r = gj.extract(work_->file_, { field.field_offset_ }, { field.ranges_ });
-            std::copy(r.begin(), r.end(), std::back_inserter(results_));
-        }
-    }
+    //     for(size_t i = 0; i < r.size(); ++i) {
+    //         work_->fields_[i].result_ = r[i];
+    //     }
+    // }
+    // else {
+    //     for(auto& field : work_->fields_) {
+    //         std::vector<ExtractionResult> r = gj.extract(work_->file_, { field.field_offset_ }, { field.ranges_ });
+    //         std::copy(r.begin(), r.end(), std::back_inserter(results_));
+    //     }
+    // }
 
-    notify();
+    // notify();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

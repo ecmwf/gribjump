@@ -66,9 +66,9 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
     return numFiles;
 }
 
-std::vector<ExtractionResult> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
+std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
 
-    std::vector<ExtractionResult> results;
+    std::vector<ExtractionResult*> results;
 
     for (size_t i = 0; i < offsets.size(); i++) {
         JumpInfoHandle info = extractInfo(path, offsets[i]);
@@ -191,14 +191,14 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std:
     return info->extractRanges(dataSource, ranges);
 }
 
-ExtractionResult LocalGribJump::directJump(eckit::PathName path, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const {
+ExtractionResult* LocalGribJump::directJump(eckit::PathName path, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const {
     eckit::Length length = info->length();
     eckit::DataHandle* handle = path.partHandle(offset, length); // because we currently require always being at start of message...
     JumpHandle dataSource(handle);
     // XXX: We shouldn't allow modification of jumpinfo.
     info->setStartOffset(0); // Message starts at the beginning of the handle.
     ASSERT(info->ready());
-    return info->extractRanges(dataSource, ranges);
+    return info->newExtractRanges(dataSource, ranges);
 }
 
 JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
