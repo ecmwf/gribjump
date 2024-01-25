@@ -98,6 +98,8 @@ private:
     std::vector<ExtractFileTask*> tasks_;
     map_results_t results_;
     map_ranges_t ranges_;
+
+    bool flattenRequest_;
 };
 
 } // namespace gribjump

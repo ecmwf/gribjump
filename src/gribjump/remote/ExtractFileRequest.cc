@@ -16,6 +16,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/config/Resource.h"
 
 #include "metkit/mars/MarsExpension.h"
 
@@ -111,6 +112,16 @@ void requestToMap(const metkit::mars::MarsRequest& request, const std::vector<Ra
     expansion.flatten(ctx, request, cb);
 }
 
+void requestToMapNoFlatten(std::vector<ExtractionRequest> requests, map_results_t& mapres, map_ranges_t& mapranges) {
+    // do it all at once, no flattening. Assume request is one field (as it will be from polytope).
+    
+    for (auto& req : requests) {
+        std::string reqkey = requestToStr(req.getRequest());
+        mapres.insert({reqkey, nullptr});
+        mapranges.insert({reqkey, req.getRanges()});
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class ToStrCallback : public metkit::mars::FlattenCallback {
@@ -137,7 +148,9 @@ void requestToStr(const metkit::mars::MarsRequest& request, std::vector<flatkey_
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) {
+ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream), flattenRequest_(eckit::Resource<bool>("$GRIBJUMP_FLATTEN_REQUESTS", true)) {
+    eckit::Timer timer;
+    timer.start();
 
     size_t numRequests;
     client_ >> numRequests;
@@ -150,13 +163,21 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
         ExtractionRequest req(client_);
         received_requests_.push_back(req);
     }
+    LOG_DEBUG_LIB(LibGribJump)  << "Received all requests. Time in ExtractFileRequest:" << timer.elapsed() << std::endl;
 
     // create the map of results
-    for(size_t i = 0; i < received_requests_.size(); ++i) {
-        requestToMap(received_requests_[i].getRequest(), received_requests_[i].getRanges(), results_, ranges_);
-    }
-    LOG_DEBUG_LIB(LibGribJump) << "Results to be computed " << results_.size() << std::endl;
 
+    if (flattenRequest_){
+        for(size_t i = 0; i < received_requests_.size(); ++i) {
+            requestToMap(received_requests_[i].getRequest(), received_requests_[i].getRanges(), results_, ranges_);
+        }
+    }
+    else {
+        requestToMapNoFlatten(received_requests_, results_, ranges_);
+    }
+
+    LOG_DEBUG_LIB(LibGribJump) << "Results to be computed " << results_.size() << std::endl;
+    LOG_DEBUG_LIB(LibGribJump)  << "Created request map. Time in ExtractFileRequest:" << timer.elapsed() << std::endl;
     // merge requests
     /// @todo: we should do some check not to merge on keys like class and stream
     metkit::mars::MarsRequest unionRequest = received_requests_.front().getRequest();  
@@ -164,6 +185,7 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
         unionRequest.merge(received_requests_[i].getRequest());
     }
     LOG_DEBUG_LIB(LibGribJump) << "Union request " << unionRequest << std::endl;
+    LOG_DEBUG_LIB(LibGribJump)  << "Created union. Time in ExtractFileRequest: " << timer.elapsed() << std::endl;
 
     // fdb list to get locations
     eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
@@ -212,6 +234,8 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
     }
 
     taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
+
+    LOG_DEBUG_LIB(LibGribJump)  << "All tasks created. Time in ExtractFileRequest: " << timer.elapsed() << std::endl;
 }
 
 ExtractFileRequest::~ExtractFileRequest() {
@@ -280,16 +304,40 @@ void ExtractFileRequest::replyToClient() {
     size_t nValues = 0;
 
     // collect successful (non nullptr) requests in order & send to client
-    for(size_t i = 0; i < received_requests_.size(); ++i) {
-        const metkit::mars::MarsRequest& mreq = received_requests_[i].getRequest();
-        std::vector<ExtractionResult*> collected = orderedCollectResults(mreq, *this);
+    if (flattenRequest_){
+        // collect successful (non nullptr) requests in order & send to client
+        for(size_t i = 0; i < received_requests_.size(); ++i) {
 
-        size_t nValidResults = std::count_if(collected.begin(), collected.end(), [](ExtractionResult* r) { return r != nullptr; });
+            const metkit::mars::MarsRequest& mreq = received_requests_[i].getRequest();
+            std::vector<ExtractionResult*> collected = orderedCollectResults(mreq, *this);
+            
+            size_t nValidResults = std::count_if(collected.begin(), collected.end(), [](ExtractionResult* r) { return r != nullptr; });
+            client_ << nValidResults;
+            
+            for(auto& res : collected) {
+                if(res != nullptr) {
+                    ExtractionResult& result = *res;
+                    for (size_t i = 0; i < result.nrange(); i++) {
+                        nValues += result.total_values();
+                    }
+                    client_ << result;
+                }
+            }
+        }
+    }
+    else{
+        // SPECIAL CASE: we know that the requests are one field each, so we can skip the very expensive un-flattening
+        for(size_t i = 0; i < received_requests_.size(); ++i) {
+            
+            const metkit::mars::MarsRequest& mreq = received_requests_[i].getRequest();
+            flatkey_t key = requestToStr(mreq);
+            ExtractionResult* r = results_[key]; // We are assuming there is exactly one result per request
+            
+            size_t nValidResults = (r != nullptr) ? 1 : 0;
+            client_ << nValidResults;
 
-        client_ << nValidResults;
-        for(auto& res : collected) {
-            if(res != nullptr) {
-                ExtractionResult& result = *res;
+            if(r != nullptr) {
+                ExtractionResult& result = *r;
                 for (size_t i = 0; i < result.nrange(); i++) {
                     nValues += result.total_values();
                 }
