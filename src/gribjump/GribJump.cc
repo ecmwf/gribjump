@@ -28,52 +28,38 @@ GribJump::~GribJump() {
 }
 
 size_t GribJump::scan(const eckit::PathName& path) {
-    eckit::Timer timer("Gribjump::scan API", eckit::Log::debug<LibGribJump>());
     size_t ret = impl_->scan(path);
-    timer.report();
     return ret;
 }
 
 size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
-    eckit::Timer timer("Gribjump::scan API", eckit::Log::debug<LibGribJump>());
     size_t ret = impl_->scan(requests, byfiles);
-    timer.report();
     return ret;
 }
 
 std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> requests) {
-    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
     auto out = impl_->extract(requests);
-    timer.report();
     return out;
 }
 
 std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges){
-    // eckit::Timer timer("Gribjump::extract API",eckit::Log::debug<LibGribJump>());
     auto out = impl_->extract(request, ranges);
-    // timer.report();
     return out;
 }
 
 std::vector<ExtractionResult> GribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
-    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
     auto out = impl_->extract(uris, ranges);
-    timer.report();
     return out;
 }
 
 std::vector<ExtractionResult*> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
-    eckit::Timer timer("Gribjump::extract API", eckit::Log::debug<LibGribJump>());
     auto out = impl_->extract(path, offsets, ranges);
-    timer.report();
     return out;
 }
 
 
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
-    eckit::Timer timer("GribJump::axes API",eckit::Log::debug<LibGribJump>());
     auto out = impl_->axes(request);
-    timer.report();
     return out;
 }
 
