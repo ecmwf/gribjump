@@ -96,7 +96,7 @@ private:
     unsigned long ccsdsBlockSize_;
     unsigned long ccsdsRsi_;
     std::vector<size_t> ccsdsOffsets_;
-    size_t nChunks_ = 100;
+    size_t wantedNumberOfChunks_ = 100;
     size_t chunkSizeN_;
     std::vector<size_t> countMissings_;
 

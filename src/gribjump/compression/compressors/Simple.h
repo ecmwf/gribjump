@@ -108,7 +108,8 @@ public:
     size_t new_offset = offset / 8 * 8;
     size_t end = offset + size;
     size_t new_end = (end + 7) / 8 * 8;
-    size_t new_size = new_end - new_offset;
+    size_t max_end = accessor->eof() * 8 / bits_per_value_;
+    size_t new_size = std::min(new_end - new_offset, max_end - new_offset);
     Range inclusive_range{new_offset, new_size}; // Includes extra values before and after the requested range
 
     size_t shift_offset = offset - new_offset; // Extra values before the requested range

@@ -59,7 +59,7 @@ std::vector<mc::Range> to_ranges(const std::vector<Interval>& intervals) {
 bool check_intervals(const std::vector<Interval>& intervals, size_t max) {
     std::vector<char> check;
     std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(check), [&](const auto& a, const auto& b) {
-        return (a.first <= b.second) && b.second <= max;
+        return (a.first <= b.second) && (b.second <= max);
  });
     return std::all_of(check.begin(), check.end(), [](char c) { return c; });
 }
@@ -372,11 +372,11 @@ void JumpInfo::updateMissingValues(const JumpHandle& f) {
         return;
     }
     else { // bitmap
-        size_t nChunks = 60;
         auto bitmap_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeBitmap_, (numberOfDataPoints_ + 7) / 8});
-        auto bitmap = Bitmap(bitmap_accessor, numberOfDataPoints_, nChunks);
+        Bitmap bitmap{bitmap_accessor, numberOfDataPoints_, wantedNumberOfChunks_};
         chunkSizeN_ = bitmap.chunk_size();
         countMissings_ = bitmap.countMissingsInChunks();
+        assert(countMissings_.size() > 0);
     }
 }
 
@@ -481,6 +481,7 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
             new_intervals.push_back({begin - shift_begin, end - shift_end});
             assert(new_intervals.back().first <= new_intervals.back().second);
         }
+
         ASSERT(check_intervals(new_intervals, numberOfValues_));
 
         auto all_decoded_values = (this->*get_values)(f, new_intervals);
