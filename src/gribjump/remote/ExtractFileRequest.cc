@@ -149,8 +149,8 @@ void requestToStr(const metkit::mars::MarsRequest& request, std::vector<flatkey_
 
 
 ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream), flattenRequest_(eckit::Resource<bool>("$GRIBJUMP_FLATTEN_REQUESTS", true)) {
+
     eckit::Timer timer;
-    timer.start();
 
     size_t numRequests;
     client_ >> numRequests;
@@ -163,21 +163,26 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
         ExtractionRequest req(client_);
         received_requests_.push_back(req);
     }
-    LOG_DEBUG_LIB(LibGribJump)  << "Received all requests. Time in ExtractFileRequest:" << timer.elapsed() << std::endl;
+    
+    timer.reset("ExtractFileRequest : Received all requests");
 
     // create the map of results
 
     if (flattenRequest_){
+        std::cout << "Flattening requests" << std::endl;
         for(size_t i = 0; i < received_requests_.size(); ++i) {
             requestToMap(received_requests_[i].getRequest(), received_requests_[i].getRanges(), results_, ranges_);
         }
     }
     else {
+        std::cout << "No flattening requests -- assuming single requests" << std::endl;
         requestToMapNoFlatten(received_requests_, results_, ranges_);
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Results to be computed " << results_.size() << std::endl;
-    LOG_DEBUG_LIB(LibGribJump)  << "Created request map. Time in ExtractFileRequest:" << timer.elapsed() << std::endl;
+
+    timer.reset("ExtractFileRequest : Created map for results");
+
     // merge requests
     /// @todo: we should do some check not to merge on keys like class and stream
     metkit::mars::MarsRequest unionRequest = received_requests_.front().getRequest();  
@@ -185,7 +190,8 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
         unionRequest.merge(received_requests_[i].getRequest());
     }
     LOG_DEBUG_LIB(LibGribJump) << "Union request " << unionRequest << std::endl;
-    LOG_DEBUG_LIB(LibGribJump)  << "Created union. Time in ExtractFileRequest: " << timer.elapsed() << std::endl;
+
+    timer.reset("ExtractFileRequest : Created union request for resultss");
 
     // fdb list to get locations
     eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
@@ -229,13 +235,13 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
     size_t countTasks = 0;
     for(auto& file : per_file_work) {
         LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
-        tasks_.emplace_back(new PerFileTask(countTasks, this, file.second));
+        enqueueTask(new PerFileTask(countTasks, this, file.second));
         countTasks++;
     }
 
-    taskStatus_.resize(tasks_.size(), Task::Status::PENDING);
+    timer.reset("ExtractFileRequest : Generated all tasks");
 
-    LOG_DEBUG_LIB(LibGribJump)  << "All tasks created. Time in ExtractFileRequest: " << timer.elapsed() << std::endl;
+    // LOG_DEBUG_LIB(LibGribJump)  << "All tasks created. Time in ExtractFileRequest: " << timer.elapsed() << std::endl;
 }
 
 ExtractFileRequest::~ExtractFileRequest() {
@@ -248,13 +254,18 @@ ExtractFileRequest::~ExtractFileRequest() {
 }
 
 void ExtractFileRequest::enqueueTasks() {
-    WorkQueue& queue = WorkQueue::instance();
-    for (size_t i = 0; i < tasks_.size(); i++) {
-        WorkItem w(tasks_[i]);
-        queue.push(w);
-        LOG_DEBUG_LIB(LibGribJump) << "Queued task " << i << std::endl;
-    }
+    // all tasks were already pushed
     eckit::Log::info() << "ExtractFileRequest: " << tasks_.size() << " tasks enqueued" << std::endl;
+}
+
+void ExtractFileRequest::enqueueTask(ExtractFileTask* task) {
+
+    tasks_.emplace_back(task);
+    taskStatus_.push_back(Task::Status::PENDING);
+    WorkItem w(task);
+    WorkQueue& queue = WorkQueue::instance();
+    queue.push(w);
+    LOG_DEBUG_LIB(LibGribJump) << "Queued task " <<  tasks_.size() << std::endl;
 }
 
 
@@ -345,8 +356,6 @@ void ExtractFileRequest::replyToClient() {
             }
         }
     }
-
-    timer.stop();
 
     double rate = nValues / timer.elapsed();
     double byterate = rate * sizeof(double) / 1024.0; // KiB/sec

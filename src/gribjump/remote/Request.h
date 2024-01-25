@@ -64,7 +64,7 @@ public: // methods
     Request(eckit::Stream& stream);
 
     virtual ~Request();
-
+    
     /// Enqueue tasks to be executed to complete this request
     virtual void enqueueTasks() = 0;
 

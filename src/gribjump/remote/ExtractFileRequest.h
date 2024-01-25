@@ -85,7 +85,9 @@ public:
 
     const map_ranges_t& ranges() const { return ranges_; }
 
-    void enqueueTasks() override; 
+    void enqueueTasks() override;
+
+    void enqueueTask(ExtractFileTask*);
 
     void replyToClient() override;
 

@@ -70,37 +70,35 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
 
 void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
     
-    timer.report("SCAN request received ...");
+    timer.reset();
 
     ScanRequest request(s);
 
     request.enqueueTasks();
 
-    timer.report("SCAN tasks enqueued. Waiting for completion ...");
+    timer.reset("SCAN tasks enqueued.");
 
     request.waitForTasks();
 
-    timer.report("SCAN tasks finished. Sending results ...");
+    timer.reset("SCAN tasks completed");
 
     request.replyToClient();
     
-    timer.report("SCAN finished. Sending number of files per request ...");
+    s << size_t(0);
 
-    s << 0;
-
-    timer.report("SCAN results sent");
+    timer.reset("SCAN scan results sent");
 }
 
 void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
     
-    timer.report("AXES request received ...");
+    timer.reset();
 
     GribJump gj;
     std::string request;
     s >> request;
     std::map<std::string, std::unordered_set<std::string>> axes = gj.axes(request);
 
-    timer.report("AXES finished. Sending results");
+    timer.reset("AXES found");
 
     // TODO: reporting of axes errors.
     size_t nerror = 0;
@@ -116,7 +114,8 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
             s << val;
         }
     }
-    timer.report("Axes sent");
+
+    timer.report("AXES sent to client");
 
     // print the axes we sent
     for (auto& pair : axes) {
@@ -128,22 +127,22 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
     }
 }
 
-void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){
+void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){ 
 
-    timer.report("EXTRACT request received ...");
+    timer.reset();
 
     ExtractFileRequest request(s);
     request.enqueueTasks();
 
-    timer.report("EXTRACT tasks enqueued. Waiting for completion ...");
+    timer.reset("EXTRACT tasks enqueued");
 
     request.waitForTasks();
 
-    timer.report("EXTRACT tasks finished. Sending results ...");
+    timer.reset("EXTRACT tasks completed");
 
     request.replyToClient();
     
-    timer.report("EXTRACT results sent");
+    timer.reset("EXTRACT results sent");
 }
 
 }  // namespace gribjump
