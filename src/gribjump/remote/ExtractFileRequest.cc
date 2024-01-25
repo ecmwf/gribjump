@@ -29,6 +29,23 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// @todo these need to be checked and ensure the fdb list also returns the same order
+const std::vector<std::string> keysorder = { "class", "expver", "stream", "date", "time", "domain", "type", "levtype", "levellist", "step", "number", "param" };
+
+std::string requestToStr(const metkit::mars::MarsRequest& request) {
+    std::stringstream ss;
+    std::string separator = "";
+    for(const auto& key : keysorder) {
+        if(request.has(key)) {
+            ss << separator << key << "=" << request[key];
+        }
+        separator = ",";
+    }
+    return ss.str();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 ExtractFileTask::ExtractFileTask(size_t id, ExtractFileRequest* clientRequest) : Task(id, clientRequest), request_(clientRequest) {
 }
 
@@ -72,7 +89,7 @@ public:
     FillMapCB(map_results_t& mapres, map_ranges_t& mapranges, const std::vector<Range>& ranges) : mapres_(mapres),  mapranges_(mapranges), ranges_(ranges) {}
 
     virtual void operator()(const metkit::mars::MarsRequest& req) {
-        std::string reqkey = req.asString();
+        std::string reqkey = requestToStr(req);
         ASSERT(mapres_.find(reqkey) == mapres_.end());
         mapres_.insert({reqkey, nullptr});
         mapranges_.insert({reqkey, ranges_});
@@ -99,7 +116,7 @@ public:
     ToStrCallback(std::vector<flatkey_t>& fieldKeys) : fieldKeys_(fieldKeys) {}
 
     virtual void operator()(const metkit::mars::MarsRequest& req) {
-        fieldKeys_.push_back(req.asString());
+        fieldKeys_.push_back(requestToStr(req));
     }
 
     std::vector<flatkey_t>& fieldKeys_;
@@ -123,7 +140,7 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
     size_t numRequests;
     client_ >> numRequests;
 
-    LOG_DEBUG_LIB(LibGribJump) << "ExtractFileRequest: numRequests = " << numRequests << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "ExtractFileRequest received " << eckit::Plural(numRequests, "client request") << std::endl;
 
     // receive requests
     received_requests_.reserve(numRequests);
@@ -136,6 +153,7 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
     for(size_t i = 0; i < received_requests_.size(); ++i) {
         requestToMap(received_requests_[i].getRequest(), received_requests_[i].getRanges(), results_, ranges_);
     }
+    LOG_DEBUG_LIB(LibGribJump) << "Results to be computed " << results_.size() << std::endl;
 
     // merge requests
     /// @todo: we should do some check not to merge on keys like class and stream
@@ -157,10 +175,9 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
     while (listIter.next(elem)) {
             
         fdb5::Key key = elem.combinedKey(true);
-
-        LOG_DEBUG_LIB(LibGribJump) << "FDB LIST found " << key << std::endl;
     
         flatkey_t flatkey = key;
+        LOG_DEBUG_LIB(LibGribJump) << "FDB LIST found " << key << std::endl;
 
         auto resit = results_.find(flatkey);
         if(resit != results_.end()) {
@@ -220,7 +237,7 @@ public:
     CollectResultsCB(ExtractFileRequest& clientReq) : clientReq_(clientReq) {}
 
     virtual void operator()(const metkit::mars::MarsRequest& req) {
-        flatkey_t key = req.asString();
+        flatkey_t key = requestToStr(req);
         ExtractionResult* r = clientReq_.results(key);
         collected_.push_back(r);
     }
