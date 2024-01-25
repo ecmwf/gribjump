@@ -66,6 +66,19 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
     return numFiles;
 }
 
+std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
+
+    std::vector<ExtractionResult*> results;
+
+    for (size_t i = 0; i < offsets.size(); i++) {
+        JumpInfoHandle info = extractInfo(path, offsets[i]);
+        // TODO: directjump that takes multiple offsets which uses one handle and seeks accordingly.
+        results.emplace_back(directJump(path, offsets[i], ranges[i], info));
+    }
+    
+    return results;
+}
+
 std::vector<ExtractionResult> LocalGribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
     
     std::vector<ExtractionResult> result;
@@ -178,6 +191,16 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std:
     return info->extractRanges(dataSource, ranges);
 }
 
+ExtractionResult* LocalGribJump::directJump(eckit::PathName path, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const {
+    eckit::Length length = info->length();
+    eckit::DataHandle* handle = path.partHandle(offset, length); // because we currently require always being at start of message...
+    JumpHandle dataSource(handle);
+    // XXX: We shouldn't allow modification of jumpinfo.
+    info->setStartOffset(0); // Message starts at the beginning of the handle.
+    ASSERT(info->ready());
+    return info->newExtractRanges(dataSource, ranges);
+}
+
 JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
     // TODO: Assuming it works correctly, can call extractInfo(loc.uri(), loc.offset()) instead.
     
@@ -187,7 +210,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
     if (pinfo) return JumpInfoHandle(pinfo);
     
     std::string f = loc.uri().path().baseName();
-    eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
+    eckit::Log::info() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
 
     eckit::DataHandle* handle = loc.dataHandle();
     JumpHandle dataSource(handle);
@@ -195,6 +218,24 @@ JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
     cache.insert(loc, info); // takes ownership of info
     return JumpInfoHandle(info);
 }
+
+JumpInfoHandle LocalGribJump::extractInfo(const eckit::PathName& path, const eckit::Offset& offset) {
+    
+    GribInfoCache& cache = GribInfoCache::instance();
+
+    JumpInfo* pinfo = cache.get(path, offset);
+    if (pinfo) return JumpInfoHandle(pinfo);
+    
+    std::string f = path.baseName();
+    eckit::Log::info() << "GribJump cache miss file=" << f << "offset=" << offset << std::endl;
+
+    eckit::DataHandle* handle = path.fileHandle();
+    JumpHandle dataSource(handle);
+    JumpInfo* info = dataSource.extractInfo();
+    cache.insert(path, offset, info); // takes ownership of info
+    return JumpInfoHandle(info);
+}
+
 
 JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Offset& offset) {
     
@@ -204,7 +245,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Of
     if (pinfo) return JumpInfoHandle(pinfo);
     
     std::string f = uri.path().baseName();
-    eckit::Log::debug<LibGribJump>() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
+    eckit::Log::info() << "GribJump cache miss file=" << f << "offset=" << offset << std::endl;
 
     eckit::DataHandle* handle = uri.path().fileHandle();
     JumpHandle dataSource(handle);

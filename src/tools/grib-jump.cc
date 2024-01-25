@@ -54,7 +54,7 @@ private: // members
     eckit::PathName binFileName_;
     eckit::PathName timingFname_;
     std::vector<size_t> msgids_;
-    size_t singleIndex_;
+
     std::vector<std::pair<size_t, size_t>> rangesVector_;
 };
 

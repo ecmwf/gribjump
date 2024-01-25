@@ -16,7 +16,7 @@
 
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/LibGribJump.h"
-#include "gribjump/remote/ExtractRequest.h"
+#include "gribjump/remote/ExtractFileRequest.h"
 #include "gribjump/remote/ScanRequest.h"
 
 namespace gribjump {
@@ -132,7 +132,7 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){
 
     timer.report("EXTRACT request received ...");
 
-    ExtractRequest request(s);
+    ExtractFileRequest request(s);
     request.enqueueTasks();
 
     timer.report("EXTRACT tasks enqueued. Waiting for completion ...");

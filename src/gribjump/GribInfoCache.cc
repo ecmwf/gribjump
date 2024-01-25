@@ -83,15 +83,20 @@ void GribInfoCache::insert(const eckit::URI& uri, const eckit::Offset offset, Ju
     insert(uri.path().baseName(), offset, info);
 }
 
+void GribInfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info) {
+    if (!cacheEnabled_) return;
+    insert(path.baseName(), offset, info);
+}
+
 GribInfoCache::InfoCache&  GribInfoCache::getFileCache(const filename_t& f) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = cache_.find(f);
-    if(it == cache_.end()) {
-        InfoCache* infocache = new InfoCache();
-        cache_.insert(std::make_pair(f, infocache));
-        return *infocache;
-    }
-    return *(it->second);
+    if(it != cache_.end()) return *(it->second);
+    
+    eckit::Log::info() << "New GribInfoCache entry for file " << f << std::endl;
+    InfoCache* infocache = new InfoCache();
+    cache_.insert(std::make_pair(f, infocache));
+    return *infocache;
 }
 
 void GribInfoCache::insert(const filename_t& f, off_t offset, JumpInfo* info) {
@@ -104,7 +109,7 @@ void GribInfoCache::insert(const filename_t& f, off_t offset, JumpInfo* info) {
 bool GribInfoCache::loadIntoCache(const eckit::PathName& cachePath, GribInfoCache::InfoCache& cache) {
     if (cachePath.exists()) {
         
-        LOG_DEBUG_LIB(LibGribJump) << "Loading " << cachePath << " into cache" << std::endl;
+        eckit::Log::info() << "Loading " << cachePath << " into cache" << std::endl;
         eckit::FileStream s(cachePath, "r");
         infocache_t c;
         s >> c;
@@ -115,7 +120,7 @@ bool GribInfoCache::loadIntoCache(const eckit::PathName& cachePath, GribInfoCach
         return true;
     }   
 
-    LOG_DEBUG_LIB(LibGribJump) << "GribInfoCache file " << cachePath << " does not exist" << std::endl;
+    eckit::Log::info() << "GribInfoCache file " << cachePath << " does not exist" << std::endl;
     return false;
 }
 
@@ -154,11 +159,12 @@ JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
     // return nullptr;
 }
 
-JumpInfo* GribInfoCache::get(const eckit::URI& uri, const eckit::Offset offset) {
+
+JumpInfo* GribInfoCache::get(const eckit::PathName& path, const eckit::Offset offset) {
     
     if (!cacheEnabled_) return nullptr;
 
-    filename_t f = uri.path().baseName();
+    filename_t f = path.baseName();
     InfoCache& filecache = getFileCache(f);
 
     // return it in memory cache
@@ -167,10 +173,66 @@ JumpInfo* GribInfoCache::get(const eckit::URI& uri, const eckit::Offset offset) 
         auto it = filecache.infocache_.find(offset);
         if(it != filecache.infocache_.end()) return it->second.get();
     }
+
+    // cache miss, load cache file into memory, maybe it has info for this field
+    eckit::PathName cachePath = cacheFilePath(path);
+    bool loaded = loadIntoCache(cachePath, filecache); 
+
+    // somthing was loaded, check if it contains the field we want
+    if(loaded) {
+        std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
+        auto it = filecache.infocache_.find(offset);
+        if(it != filecache.infocache_.end()) return it->second.get();
+        LOG_DEBUG_LIB(LibGribJump) << "GribInfoCache file " << cachePath << " does not contain JumpInfo for field at offset " << offset << std::endl;
+    }
+
+    return nullptr;
+}
+
+
+JumpInfo* GribInfoCache::get(const eckit::URI& uri, const eckit::Offset offset) {
+
+    // TODO:
+    // This can probably now use get(const eckit::PathName& path, const eckit::Offset offset) instead
+    // where path=uri.path()
+    
+    if (!cacheEnabled_) return nullptr;
+
+    filename_t f = uri.path().baseName();
+    InfoCache& filecache = getFileCache(f);
+
+    // eckit::Log::info() << "GribInfoCache::get(" << f << " , " << offset << ")" << std::endl;
+
+    // return it in memory cache
+    {   
+        std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
+        auto it = filecache.infocache_.find(offset);
+        if(it != filecache.infocache_.end()) return it->second.get();
+    }
+
+#if 0
+    {
+        eckit::Log::info() << "Memory cache " << f <<  std::endl;
+        for(auto& entry : filecache.infocache_) {
+            eckit::Log::info() << entry.first << std::endl;
+        }
+    }
+#endif
     
     // cache miss, load cache file into memory, maybe it has info for this field
     eckit::PathName cachePath = cacheFilePath(uri.path());
     bool loaded = loadIntoCache(cachePath, filecache); 
+
+#if 0
+    {
+        eckit::Log::info() << "Loaded cache " << cachePath << std::endl;
+        eckit::Log::info() << "After loafing memory cache " << f <<  std::endl;
+        for(auto& entry : filecache.infocache_) {
+            eckit::Log::info() << entry.first << std::endl;
+        }
+    }
+#endif
+    
 
     // somthing was loaded, check if it contains the field we want
     if(loaded) {

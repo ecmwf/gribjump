@@ -116,6 +116,9 @@ std::vector<ExtractionResult> RemoteGribJump::extract(const std::vector<eckit::U
 std::vector<ExtractionResult> RemoteGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) {
     NOTIMP;
 }
+std::vector<ExtractionResult*> RemoteGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+    NOTIMP;
+}
 
 std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request) {
     eckit::Timer timer("RemoteGribJump::axes()");

@@ -73,6 +73,7 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
         std::vector<eckit::PathName> files = FDBService::instance().listFilesInRequest(requests);
 
         for (size_t i = 0; i < files.size(); i++) {
+            eckit::Log::info() << "Scanning file " << files[i] << std::endl;
             tasks_.emplace_back(new ScanFileTask(i, this, files[i]));
         }
     }
@@ -105,8 +106,9 @@ void ScanRequest::enqueueTasks() {
     for (size_t i = 0; i < tasks_.size(); i++) {
         WorkItem w(tasks_[i]);
         queue.push(w);
-        LOG_DEBUG_LIB(LibGribJump)  << "Pushed request (" << i << ") onto queue" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump)  << "Queued task " << i << std::endl;
     }
+    eckit::Log::info() << "ScanRequest: " << tasks_.size() << " tasks enqueued" << std::endl;
 }
 
 void ScanRequest::replyToClient() {
