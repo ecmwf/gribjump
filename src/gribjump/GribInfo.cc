@@ -510,7 +510,7 @@ ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<
 }
 
 ExtractionResult* JumpInfo::newExtractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
-    ASSERT(check_intervals(intervals));
+    ASSERT(check_intervals(intervals, numberOfDataPoints_));
     ASSERT(!sphericalHarmonics_);
     // TODO(maee): do we need this check?
     //for (const auto& i : intervals) {
@@ -532,7 +532,7 @@ ExtractionResult* JumpInfo::newExtractRanges(const JumpHandle& f, const std::vec
             return Values(interval.second - interval.first, referenceValue_);
         });
         std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-            return to_bitset(std::vector(interval.second - interval.first, true));
+            return to_bitset(std::vector<char>(interval.second - interval.first, true));
         });
         return new ExtractionResult(all_values, all_masks);
     }
@@ -549,24 +549,47 @@ ExtractionResult* JumpInfo::newExtractRanges(const JumpHandle& f, const std::vec
     if (!offsetBeforeBitmap_) { // no bitmap
         all_values = (this->*get_values)(f, intervals);
         std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-            return to_bitset(std::vector(interval.second - interval.first, true));
+            return to_bitset(std::vector<char>(interval.second - interval.first, true));
         });
     }
     else { // bitmap
-        auto bitmap = get_bitmap(f);
-        auto [new_intervals, new_bitmaps] = calculate_intervals(intervals, bitmap);
+        std::vector<size_t> countMissingsBeforeChunk{0};
+        assert(countMissings_.size() > 0);
+        std::partial_sum(countMissings_.begin(), countMissings_.end(), std::back_inserter(countMissingsBeforeChunk));
+
+        std::shared_ptr<mc::DataAccessor> bitmap_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeBitmap_, (numberOfDataPoints_ + 7) / 8});
+        Bitmap bitmap{bitmap_accessor, numberOfDataPoints_, intervals, countMissingsBeforeChunk, chunkSizeN_};
+
+        std::vector<Interval> new_intervals;
+        for (size_t i = 0; i < intervals.size(); ++i) {
+            auto [begin, end] = intervals[i];
+            auto shift_begin = bitmap.countMissingsBeforePos(begin);
+            auto shift_end = bitmap.countMissingsBeforePos(end);
+            new_intervals.push_back({begin - shift_begin, end - shift_end});
+            assert(new_intervals.back().first <= new_intervals.back().second);
+        }
+
+        ASSERT(check_intervals(new_intervals, numberOfValues_));
+
         auto all_decoded_values = (this->*get_values)(f, new_intervals);
 
         for (size_t i = 0; i < intervals.size(); ++i) {
+            auto decoded_values = all_decoded_values[i];
+            const auto& [begin, end] = intervals[i];
+
             Values values;
-            for (size_t count = 0, j = 0; j < new_bitmaps[i].size(); ++j) {
-                if (new_bitmaps[i][j])
-                    values.push_back(all_decoded_values[i][count++]);
+            size_t count = 0;
+            std::vector<char> mask;
+            for (auto iter = bitmap.begin() + begin; iter < bitmap.begin() + end; iter++) {
+                mask.push_back(*iter);
+                if (*iter == true)
+                    values.push_back(decoded_values[count++]);
                 else
                     values.push_back(MISSING_VALUE);
             }
+
             all_values.push_back(values);
-            all_masks.push_back(to_bitset(new_bitmaps[i]));
+            all_masks.push_back(to_bitset(mask));
         }
     }
 
