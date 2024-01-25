@@ -74,18 +74,21 @@ eckit::PathName GribInfoCache::cacheFilePath(const eckit::PathName& path) const 
 }
 
 void GribInfoCache::insert(const fdb5::FieldLocation& loc, JumpInfo* info) {
-    if (!cacheEnabled_) return;
     insert(loc.uri().path().baseName(), loc.offset(), info);
 }
 
 void GribInfoCache::insert(const eckit::URI& uri, const eckit::Offset offset, JumpInfo* info) {
-    if (!cacheEnabled_) return;
     insert(uri.path().baseName(), offset, info);
 }
 
 void GribInfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info) {
     if (!cacheEnabled_) return;
-    insert(path.baseName(), offset, info);
+
+    filename_t f = path.baseName();
+    LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << f << ":" << offset << std::endl;
+    InfoCache& filecache = getFileCache(f);
+    std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
+    filecache.infocache_.insert(std::make_pair(offset, JumpInfoHandle(info)));
 }
 
 GribInfoCache::InfoCache&  GribInfoCache::getFileCache(const filename_t& f) {
@@ -99,12 +102,6 @@ GribInfoCache::InfoCache&  GribInfoCache::getFileCache(const filename_t& f) {
     return *infocache;
 }
 
-void GribInfoCache::insert(const filename_t& f, off_t offset, JumpInfo* info) {
-    LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << f << ":" << offset << std::endl;
-    InfoCache& filecache = getFileCache(f);
-    std::lock_guard<std::recursive_mutex> lock(filecache.mutex_);
-    filecache.infocache_.insert(std::make_pair(offset, JumpInfoHandle(info)));
-}
 
 bool GribInfoCache::loadIntoCache(const eckit::PathName& cachePath, GribInfoCache::InfoCache& cache) {
     if (cachePath.exists()) {
