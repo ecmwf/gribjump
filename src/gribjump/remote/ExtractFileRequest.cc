@@ -63,7 +63,11 @@ ExtractFileTask::~ExtractFileTask() {
 
 void PerFileTask::execute(GribJump& gj) {
     eckit::Timer timer;
-    eckit::Timer full_timer("Thread total time");
+    auto id = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << id;
+    std::string thread_id = ss.str();
+    eckit::Timer full_timer("Thread total time. Thread: " + thread_id);
 
     const map_ranges_t& allranges = request_->ranges();
 
@@ -78,16 +82,16 @@ void PerFileTask::execute(GribJump& gj) {
         ranges.push_back( allranges.at(jump.key_) );
     }
     
-    timer.reset("PerFileTask : Sorted offsets");
+    timer.reset("PerFileTask : Sorted offsets Thread: " + thread_id);
     std::vector<ExtractionResult*> r = gj.extract(work_->file_, offsets, ranges);
-    timer.reset("PerFileTask : Extracted results");
+    timer.reset("PerFileTask : Extracted results Thread: " + thread_id);
 
     for(size_t i = 0; i < work_->jumps_.size(); ++i) {
         partial_results_.insert( { work_->jumps_[i].key_, r[i] } );
     }
 
     notify();
-    timer.reset("PerFileTask : Notified.");
+    timer.reset("PerFileTask : Notified. Thread: " + thread_id);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
