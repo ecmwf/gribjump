@@ -175,13 +175,13 @@ public:
     size_t i;
     switch (nbytes) {
       case 1:
-        values = decode_all_<uint8_t>(in_buf, values, bscale, dscale);
+        values = decode_all_<uint8_t>(in_buf, bscale, dscale);
         break;
       case 2:
-        values = decode_all_<uint16_t>(in_buf, values, bscale, dscale);
+        values = decode_all_<uint16_t>(in_buf, bscale, dscale);
         break;
       case 4:
-        values = decode_all_<uint32_t>(in_buf, values, bscale, dscale);
+        values = decode_all_<uint32_t>(in_buf, bscale, dscale);
         break;
       default:
         throw std::runtime_error("Invalid number of bytes per sample");
@@ -206,13 +206,13 @@ public:
 
     switch (simple_nbytes) {
       case 1:
-        values = decode_range_<uint8_t>(accessor, values, range, bscale, dscale);
+        values = decode_range_<uint8_t>(accessor, range, bscale, dscale);
         break;
       case 2:
-        values = decode_range_<uint16_t>(accessor, values, range, bscale, dscale);
+        values = decode_range_<uint16_t>(accessor, range, bscale, dscale);
         break;
       case 4:
-        values = decode_range_<uint32_t>(accessor, values, range, bscale, dscale);
+        values = decode_range_<uint32_t>(accessor, range, bscale, dscale);
         break;
       default:
         throw std::runtime_error("Invalid number of bytes per sample");
@@ -230,7 +230,7 @@ private:
   size_t n_elems_;
 
   template <typename SimpleValueType>
-  Values decode_range_ (const std::shared_ptr<DataAccessor> accessor, Values values, const Range& simple_range, double bscale, double dscale) {
+  Values decode_range_ (const std::shared_ptr<DataAccessor> accessor, const Range& simple_range, double bscale, double dscale) {
     AecDecompressor<SimpleValueType> aec{};
     auto flags = modify_aec_flags(flags_);
     aec.flags(flags);
@@ -240,7 +240,7 @@ private:
     aec.offsets(offsets_);
 
     typename AecDecompressor<SimpleValueType>::Values simple_values = aec.decode(accessor, simple_range);
-    values.resize(simple_values.size());
+    Values values(simple_values.size());
     std::transform(simple_values.begin(), simple_values.end(), values.begin(), [&](const auto& simple_value) {
                        return (simple_value * bscale + reference_value_) * dscale;
                    });
@@ -249,7 +249,7 @@ private:
 
 
   template <typename SimpleValueType>
-  Values decode_all_ (const typename AecDecompressor<SimpleValueType>::CompressedData& in_buf, Values values, double bscale, double dscale) {
+  Values decode_all_ (const typename AecDecompressor<SimpleValueType>::CompressedData& in_buf, double bscale, double dscale) {
     AecDecompressor<SimpleValueType> aec{};
     auto flags = modify_aec_flags(flags_);
     aec.flags(flags);
@@ -264,7 +264,7 @@ private:
       offsets_ = aec.offsets().value();
     }
 
-    values.resize(simple_values.size());
+    Values values(simple_values.size());
     std::transform(simple_values.begin(), simple_values.end(), values.begin(), [&](const auto& simple_value) {
         return (simple_value * bscale + reference_value_) * dscale;
     });
