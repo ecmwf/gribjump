@@ -79,6 +79,7 @@ std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
     return masks;
 }
 
+// TODO: Can we make these use eckit::offset, etc?
 static GribAccessor<long>          editionNumber("editionNumber");
 static GribAccessor<long>          bitmapPresent("bitmapPresent");
 static GribAccessor<long>          binaryScaleFactor("binaryScaleFactor");
@@ -170,7 +171,7 @@ void JumpInfo::update(const GribHandle& h) {
         throw JumpException(ss.str(), Here());
     }
 
-    bitmapPresent_ = bitmapPresent(h);
+    long bitmapPresent_ = bitmapPresent(h);
     constexpr size_t offsetToBitmap = 6;
     if (bitmapPresent_) {
         offsetBeforeBitmap_ = editionNumber_ == 1? offsetBeforeBitmap(h) : offsetBSection6(h) + offsetToBitmap;

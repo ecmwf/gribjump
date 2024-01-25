@@ -78,12 +78,11 @@ private:
     unsigned long bitsPerValue_;
     unsigned long offsetBeforeData_;
     unsigned long offsetAfterData_;
-    unsigned long bitmapPresent_;
     unsigned long offsetBeforeBitmap_;
     unsigned long numberOfValues_;
     unsigned long numberOfDataPoints_;
     unsigned long totalLength_;
-    unsigned long msgStartOffset_;
+    unsigned long long msgStartOffset_;
     long          sphericalHarmonics_;
     eckit::FixedString<32> md5GridSection_;
     eckit::FixedString<64> packingType_;
