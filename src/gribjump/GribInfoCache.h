@@ -65,7 +65,6 @@ public:
     JumpInfo* get(const eckit::URI& uri, const eckit::Offset offset);
     JumpInfo* get(const eckit::PathName& path, const eckit::Offset offset);
 
-
     void print(std::ostream& s) const;
 
     bool enabled() const { return cacheEnabled_; }
@@ -79,12 +78,6 @@ private: // methods
     InfoCache& getFileCache(const filename_t& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
-
-    /// Inserts a JumpInfo entry
-    /// @param f filename
-    /// @param offset offset in file
-    /// @param info JumpInfo to insert, takes ownership
-    void insert(const filename_t& f, off_t offset, JumpInfo* info);
 
     bool loadIntoCache(const eckit::PathName& cachePath, InfoCache& cache);
 
