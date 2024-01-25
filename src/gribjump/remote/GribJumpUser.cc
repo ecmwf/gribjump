@@ -16,7 +16,6 @@
 
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/LibGribJump.h"
-#include "gribjump/remote/ExtractRequest.h"
 #include "gribjump/remote/ExtractFileRequest.h"
 #include "gribjump/remote/ScanRequest.h"
 
@@ -133,36 +132,18 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){
 
     timer.report("EXTRACT request received ...");
 
-    bool mapByFile = LibGribJump::instance().config().getBool("mapByFile", false);
-    if(mapByFile) {
-        ExtractFileRequest request(s);
-        request.enqueueTasks();
+    ExtractFileRequest request(s);
+    request.enqueueTasks();
 
-        timer.report("EXTRACT tasks enqueued. Waiting for completion ...");
+    timer.report("EXTRACT tasks enqueued. Waiting for completion ...");
 
-        request.waitForTasks();
+    request.waitForTasks();
 
-        timer.report("EXTRACT tasks finished. Sending results ...");
+    timer.report("EXTRACT tasks finished. Sending results ...");
 
-        request.replyToClient();
-        
-        timer.report("EXTRACT results sent");
-    }
-    else
-    {
-        ExtractRequest request(s);
-        request.enqueueTasks();
-
-        timer.report("EXTRACT tasks enqueued. Waiting for completion ...");
-
-        request.waitForTasks();
-
-        timer.report("EXTRACT tasks finished. Sending results ...");
-
-        request.replyToClient();
-        
-        timer.report("EXTRACT results sent");
-    }
+    request.replyToClient();
+    
+    timer.report("EXTRACT results sent");
 }
 
 }  // namespace gribjump

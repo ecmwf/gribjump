@@ -49,8 +49,6 @@ list( APPEND gribjump_srcs
 
     remote/Request.h
     remote/Request.cc
-    remote/ExtractRequest.h
-    remote/ExtractRequest.cc
     remote/ExtractFileRequest.h
     remote/ExtractFileRequest.cc
     remote/ScanRequest.h
