@@ -62,7 +62,6 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     ASSERT(requests.size() == 1);
     metkit::mars::MarsRequest mreq(requests[0]);
 
-    std::cout << mreq << std::endl;
 
     // Parse the ranges string
     std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
@@ -74,8 +73,6 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     }
 
     *request = new gribjump_extraction_request_t(mreq, rangevec);
-
-    std::cout << **request << std::endl;
 
     return 0;
 }
