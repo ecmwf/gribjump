@@ -70,10 +70,18 @@ std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& pat
 
     std::vector<ExtractionResult*> results;
 
+    eckit::Timer t, t2;
+
     for (size_t i = 0; i < offsets.size(); i++) {
         JumpInfoHandle info = extractInfo(path, offsets[i]);
+        
+        t.reset("extractInfo");
+        
         // TODO: directjump that takes multiple offsets which uses one handle and seeks accordingly.
         results.emplace_back(directJump(path, offsets[i], ranges[i], info));
+
+        t.reset("directJump");
+        t2.reset("total");
     }
     
     return results;
