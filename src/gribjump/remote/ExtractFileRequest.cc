@@ -30,6 +30,8 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 /// @todo these need to be checked and ensure the fdb list also returns the same order
+///       this should be a function from metkit::mars::MarsRequest probably using information 
+///       from metkit MARS language to know the order of the keys
 const std::vector<std::string> keysorder = { "class", "expver", "stream", "date", "time", "domain", "type", "levtype", "levellist", "step", "number", "param" };
 
 std::string requestToStr(const metkit::mars::MarsRequest& request) {
@@ -173,16 +175,15 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
 
     fdb5::ListElement elem;
     while (listIter.next(elem)) {
-            
-        fdb5::Key key = elem.combinedKey(true);
-    
-        flatkey_t flatkey = key;
+                
+        // the order in this key should match the order in requestToStr
+        flatkey_t key = elem.combinedKey(true);
         LOG_DEBUG_LIB(LibGribJump) << "FDB LIST found " << key << std::endl;
 
-        auto resit = results_.find(flatkey);
+        auto resit = results_.find(key);
         if(resit != results_.end()) {
 
-            LOG_DEBUG_LIB(LibGribJump) << "Work found for key=" << key << std::endl;
+            // LOG_DEBUG_LIB(LibGribJump) << "Work found for key=" << key << std::endl;
 
             // this is a key we are interested in
             const fdb5::FieldLocation& loc = elem.location();
@@ -216,6 +217,9 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream) 
 ExtractFileRequest::~ExtractFileRequest() {
     for (auto& task : tasks_) {
         delete task;
+    }
+    for(auto& res : results_) {
+        delete res.second;
     }
 }
 
