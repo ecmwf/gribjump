@@ -216,25 +216,27 @@ public:
     auto start_idx = range_offset_bytes / rsi_size_bytes;
     auto end_idx   = (range_offset_bytes + range_size_bytes) / rsi_size_bytes + 1;
 
-    auto start_offset_bits = offsets_[start_idx];
+    assert(start_idx < end_idx);
+    assert(end_idx <= offsets_.size());
+
+    size_t start_offset_bits = offsets_[start_idx];
     size_t start_offset_bytes = start_offset_bits / 8;
 
-    auto end_offset_bits = end_idx >= offsets_.size() ? accessor->eof() * 8 : offsets_[end_idx];
-    size_t end_offset_bytes = end_idx >= offsets_.size() ? accessor->eof() : (offsets_[end_idx] + 7) / 8;
-    //(end_offset + 7) / 8;
+    size_t end_offset_bits = end_idx == offsets_.size() ? accessor->eof() * 8 : offsets_[end_idx];
+    size_t end_offset_bytes = end_idx == offsets_.size() ? accessor->eof() : (offsets_[end_idx] + 7) / 8;
 
+
+    // The new offset to the RSI may not be aligned to the start of the range
+    // so we need to shift the offsets by the difference
     std::vector<size_t> new_offsets_tmp;
-    std::copy(offsets_.begin() + start_idx, offsets_.end(), std::back_inserter(new_offsets_tmp));
     std::vector<size_t> new_offsets;
-    std::transform(new_offsets_tmp.begin(), new_offsets_tmp.end(), std::back_inserter(new_offsets), [start_offset_bits] (size_t offset) {
-      // Offsets are counted in bits
-      // Shift offsets in new_offsets so that they are valid for the data read by the accessor
-      return offset - (start_offset_bits >> 3 << 3);
-      //constexpr typeof(start_offset) mask = 0x111;
-      //return offset - start_offset & ~mask;
+    std::copy(offsets_.begin() + start_idx, offsets_.end(), std::back_inserter(new_offsets_tmp));
+    size_t shift = start_offset_bits >> 3 << 3;
+    std::transform(new_offsets_tmp.begin(), new_offsets_tmp.end(), std::back_inserter(new_offsets), [shift] (size_t offset) {
+      return offset - shift;
     });
 
-    //CompressedData encoded = accessor->read({start_offset / 8, (end_offset + 7) / 8 - start_offset / 8});
+    // Read RSIs
     CompressedData encoded = accessor->read({start_offset_bytes, end_offset_bytes - start_offset_bytes});
 
     //print_binary("decode_range_e", encoded.data(), encoded.size());
@@ -250,7 +252,6 @@ public:
     int err;
     size_t new_offset_bytes = range_offset_bytes - rsi_size_bytes * start_idx;
     size_t new_size_bytes = range_size_bytes;
-    int i = 0;
 
     if (new_offsets.empty())
       throw std::runtime_error("AEC offsets list is empty");
