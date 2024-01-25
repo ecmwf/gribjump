@@ -374,7 +374,7 @@ void JumpInfo::updateMissingValues(const JumpHandle& f) {
     else { // bitmap
         auto bitmap_accessor = std::make_shared<GribJumpDataAccessor>(&f, mc::Range{msgStartOffset_ + offsetBeforeBitmap_, (numberOfDataPoints_ + 7) / 8});
         Bitmap bitmap{bitmap_accessor, numberOfDataPoints_, wantedNumberOfChunks_};
-        chunkSizeN_ = bitmap.chunk_size();
+        chunkSizeN_ = bitmap.chunkSize();
         countMissings_ = bitmap.countMissingsInChunks();
         assert(countMissings_.size() > 0);
     }
