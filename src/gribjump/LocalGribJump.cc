@@ -12,6 +12,7 @@
 /// @author Tiago Quintino
 
 #include <set>
+#include <chrono>
 
 #include "eckit/log/Log.h"
 #include "eckit/net/TCPClient.h"
@@ -34,6 +35,17 @@
 #include "gribjump/LocalGribJump.h"
 
 namespace gribjump {
+
+
+
+typedef std::chrono::high_resolution_clock Clock;
+
+static std::string thread_id_str() {
+    auto id = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << id;
+    return ss.str();
+}
 
 LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 }
@@ -217,12 +229,25 @@ ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std:
 
 ExtractionResult* LocalGribJump::directJump(eckit::PathName path, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const {
     eckit::Length length = info->length();
+
     eckit::DataHandle* handle = path.partHandle(offset, length); // because we currently require always being at start of message...
+
     JumpHandle dataSource(handle);
-    // XXX: We shouldn't allow modification of jumpinfo.
+
+    auto t0 = Clock::now();
+
     info->setStartOffset(0); // Message starts at the beginning of the handle.
     ASSERT(info->ready());
-    return info->newExtractRanges(dataSource, ranges);
+
+    ExtractionResult* ret = info->newExtractRanges(dataSource, ranges);
+
+    auto t1 = Clock::now();
+
+    std::chrono::duration<double> delta3 = t1 - t0;
+
+    std::cout << "Thread[" << thread_id_str() << "] offset " << offset << " extract time " << delta3.count() << std::endl;
+
+    return ret;
 }
 
 std::vector<ExtractionResult*> LocalGribJump::directJumpSharedHandle(const eckit::PathName path, const std::vector<eckit::Offset> offsets, const std::vector<std::vector<Range>> ranges, std::vector<JumpInfoHandle> infos) const {
@@ -242,6 +267,7 @@ std::vector<ExtractionResult*> LocalGribJump::directJumpSharedHandle(const eckit
     JumpHandle dataSource(handle);
     // XXX: We may need to explicitly seek to the start of the message.
     // e.g. jump handle . seek
+    auto t0 = Clock::now();
     std::vector<ExtractionResult*> results;
     for (size_t i = 0; i < infos.size(); i++) {
         ASSERT(infos[i]->ready());
@@ -249,6 +275,13 @@ std::vector<ExtractionResult*> LocalGribJump::directJumpSharedHandle(const eckit
         results.push_back(infos[i]->newExtractRanges(dataSource, ranges[i]));
         std::cout << "datasource.position() after = " << dataSource.position() << std::endl;
     }
+    
+    auto t1 = Clock::now();
+
+    std::chrono::duration<double> delta3 = t1 - t0;
+    
+    std::cout << "Thread[" << thread_id_str() << "] Sharedhandle extract time " << delta3.count() << std::endl;
+
     return results;
 
 
@@ -280,7 +313,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::PathName& path, const eck
     if (pinfo) return JumpInfoHandle(pinfo);
     
     std::string f = path.baseName();
-    eckit::Log::info() << "GribJump cache miss file=" << f << "offset=" << offset << std::endl;
+    eckit::Log::info() << "GribJump cache miss file=" << f << ",offset=" << offset << std::endl;
 
     eckit::DataHandle* handle = path.fileHandle();
     JumpHandle dataSource(handle);
@@ -298,7 +331,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Of
     if (pinfo) return JumpInfoHandle(pinfo);
     
     std::string f = uri.path().baseName();
-    eckit::Log::info() << "GribJump cache miss file=" << f << "offset=" << offset << std::endl;
+    eckit::Log::info() << "GribJump cache miss file=" << f << ",offset=" << offset << std::endl;
 
     eckit::DataHandle* handle = uri.path().fileHandle();
     JumpHandle dataSource(handle);

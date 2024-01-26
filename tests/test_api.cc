@@ -221,7 +221,6 @@ CASE( "test_gribjump_api_extract" ) {
     }
 
     // test 3: use extract with uri
-
     // Use fdb list to get URIs
     std::vector<eckit::URI> uris;
     fdb5::FDBToolRequest fdbreq(requests[0]);
@@ -254,6 +253,60 @@ CASE( "test_gribjump_api_extract" ) {
             }
         }
     }
+
+    // test 4: use extract with path and offsets
+    // Note, this returns pointers to ExtractionResult, not ExtractionResult
+
+    // Get the paths from the URI above. Offset from URI's fragment
+    std::vector<eckit::PathName> paths;
+    std::vector<eckit::Offset> offsets;
+    for (const auto& uri : uris) {
+        paths.push_back(uri.path());
+        std::string fragment =  uri.fragment();
+        offsets.push_back(std::stoll(fragment));
+    }
+
+    // Make sure all paths are the same
+    for (size_t i = 1; i < paths.size(); i++) {
+        EXPECT(paths[i] == paths[0]);
+    }
+
+    std::vector<std::vector<Range>> rangesRepeat;
+    for (size_t i = 0; i < paths.size(); i++) {
+        rangesRepeat.push_back(ranges);
+    }
+    
+
+    std::vector<ExtractionResult*> output4 = gj.extract(paths[0], offsets, rangesRepeat);
+    EXPECT(output4.size() == 3);
+
+    // Expect output4 to be the same as output2[0]
+
+    std::cout << "output 4 expected" << std::endl;
+
+    for (size_t i = 0; i < output4.size(); i++) { // each field
+        auto values = output4[i]->values();
+        auto mask = output4[i]->mask();
+
+        auto values2 = output2[0][i].values();
+        auto mask2 = output2[0][i].mask();
+
+        for (size_t k = 0; k < values.size(); k++) { // each range
+            for (size_t l = 0; l < values[k].size(); l++) { // each value
+                EXPECT(mask[k][l/64][l%64] == mask2[k][l/64][l%64]);
+                std::cout << "v=" << values[k][l];
+                std::cout << ", expected=" << values2[k][l] << std::endl;
+                if (std::isnan(values[k][l])) {
+                    EXPECT(std::isnan(values2[k][l]));
+                    continue;
+                }
+                EXPECT(values[k][l] == values2[k][l]);
+            }
+        }
+    }
+
+    std::cout << "test_gribjump_api_extract got to the end" << std::endl;
+
 }
 //----------------------------------------------------------------------------------------------------------------------
 
