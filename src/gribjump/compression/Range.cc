@@ -80,11 +80,11 @@ mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r)
 }
 
 
-// std::size_t std::hash<mc::Range>::operator() (const mc::Range& range) const
-// {
-//     static_assert(sizeof(std::size_t) == sizeof(std::uint64_t), "std::size_t must be 64 bits");
-//     const auto [offset, size] = range;
-//     return offset ^ (size << 32);
-// }
+std::size_t std::hash<mc::Range>::operator() (const mc::Range& range) const
+{
+    static_assert(sizeof(std::size_t) == sizeof(std::uint64_t), "std::size_t must be 64 bits");
+    const auto [offset, size] = range;
+    return offset ^ (size << 32);
+}
 
 

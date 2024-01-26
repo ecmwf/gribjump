@@ -82,7 +82,7 @@ private:
     unsigned long numberOfValues_;
     unsigned long numberOfDataPoints_;
     unsigned long totalLength_;
-    eckit::Offset msgStartOffset_;
+    unsigned long long msgStartOffset_;
     long          sphericalHarmonics_;
     eckit::FixedString<32> md5GridSection_;
     eckit::FixedString<64> packingType_;
