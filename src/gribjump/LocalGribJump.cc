@@ -21,6 +21,7 @@
 #include "eckit/container/Queue.h"
 #include "eckit/log/Timer.h"
 #include "eckit/thread/AutoLock.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -68,9 +69,24 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
 
 std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
 
-    std::vector<ExtractionResult*> results;
+    bool useSharedHandle = eckit::Resource<bool>("GRIBJUMP_SHARED_HANDLE", true);
+
+    if (useSharedHandle){
+        LOG_DEBUG_LIB(LibGribJump) << "Using shared handle" << std::endl;
+        std::vector<JumpInfoHandle> infos;
+        for (size_t i = 0; i < offsets.size(); i++) {
+            infos.push_back(extractInfo(path, offsets[i]));
+        }
+
+        std::vector<ExtractionResult*> results = directJumpSharedHandle(path, offsets, ranges, infos);
+        return results;
+    }
+
+    LOG_DEBUG_LIB(LibGribJump) << "NOT using shared handle" << std::endl;
 
     eckit::Timer t, t2;
+
+    std::vector<ExtractionResult*> results;
 
     for (size_t i = 0; i < offsets.size(); i++) {
         JumpInfoHandle info = extractInfo(path, offsets[i]);
@@ -83,7 +99,7 @@ std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& pat
         t.reset("directJump");
         t2.reset("total");
     }
-    
+
     return results;
 }
 
@@ -207,6 +223,35 @@ ExtractionResult* LocalGribJump::directJump(eckit::PathName path, const eckit::O
     info->setStartOffset(0); // Message starts at the beginning of the handle.
     ASSERT(info->ready());
     return info->newExtractRanges(dataSource, ranges);
+}
+
+std::vector<ExtractionResult*> LocalGribJump::directJumpSharedHandle(const eckit::PathName path, const std::vector<eckit::Offset> offsets, const std::vector<std::vector<Range>> ranges, std::vector<JumpInfoHandle> infos) const {
+    std::vector<eckit::Length> lengths;
+    for (auto& info : infos) {
+        lengths.push_back(info->length());
+    }
+    eckit::DataHandle* handle = path.partHandle(offsets, lengths);
+
+    // Set start offset to end of previous message.
+    eckit::Offset prevEnd = 0;
+    for (size_t i = 0; i < infos.size(); i++) {
+        infos[i]->setStartOffset(prevEnd);
+        prevEnd += infos[i]->length();
+    }
+
+    JumpHandle dataSource(handle);
+    // XXX: We may need to explicitly seek to the start of the message.
+    // e.g. jump handle . seek
+    std::vector<ExtractionResult*> results;
+    for (size_t i = 0; i < infos.size(); i++) {
+        ASSERT(infos[i]->ready());
+        std::cout << "datasource.position() before = " << dataSource.position() << std::endl;
+        results.push_back(infos[i]->newExtractRanges(dataSource, ranges[i]));
+        std::cout << "datasource.position() after = " << dataSource.position() << std::endl;
+    }
+    return results;
+
+
 }
 
 JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {

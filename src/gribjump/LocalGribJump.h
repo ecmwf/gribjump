@@ -43,6 +43,8 @@ public:
     ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfoHandle info) const;
     ExtractionResult directJump(eckit::URI uri, eckit::Offset offset, std::vector<Range> ranges, JumpInfoHandle info) const;
     ExtractionResult* directJump(eckit::PathName path, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const;
+    
+    std::vector<ExtractionResult*> directJumpSharedHandle(const eckit::PathName path, const std::vector<eckit::Offset> offsets, const std::vector<std::vector<Range>> ranges, std::vector<JumpInfoHandle> infos) const;
 
     JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
     JumpInfoHandle extractInfo(const eckit::URI& uri, const eckit::Offset& offset);
