@@ -27,12 +27,12 @@ GribJumpUser::~GribJumpUser() {}
 
 void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
 
-    eckit::Timer timer_full("GribJumpUser::serve");
+    eckit::Timer timer_full("Connection closed");
 
     eckit::Log::info() << "Serving new connection" << std::endl;
 
     try {
-        eckit::Timer timer("GribJumpUser::serve");
+        eckit::Timer timer;
         handle_client(s, timer);
     }
     catch (std::exception& e) {
@@ -49,7 +49,6 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
         
     LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;
 
-    timer_full.report("Connection closed");
 }
 
 void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {

@@ -271,9 +271,7 @@ std::vector<ExtractionResult*> LocalGribJump::directJumpSharedHandle(const eckit
     std::vector<ExtractionResult*> results;
     for (size_t i = 0; i < infos.size(); i++) {
         ASSERT(infos[i]->ready());
-        std::cout << "datasource.position() before = " << dataSource.position() << std::endl;
         results.push_back(infos[i]->newExtractRanges(dataSource, ranges[i]));
-        std::cout << "datasource.position() after = " << dataSource.position() << std::endl;
     }
     
     auto t1 = Clock::now();
