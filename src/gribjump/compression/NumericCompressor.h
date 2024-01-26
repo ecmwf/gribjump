@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 #include <eckit/io/Buffer.h>
-#include <unordered_map>
+#include <map>
 
 namespace mc {
 
@@ -34,7 +34,7 @@ public:
     using Values = typename NumericDecompressor<ValueType>::Values;
 
     std::vector<Values> result;
-    std::unordered_map<Range, std::pair<Range, std::shared_ptr<Values>>> ranges_map;
+    std::map<Range, std::pair<Range, std::shared_ptr<Values>>> ranges_map;
 
     // find which sub_ranges are in which buckets
     RangeBuckets buckets;
