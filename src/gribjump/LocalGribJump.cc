@@ -81,7 +81,7 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
 
 std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
 
-    bool useSharedHandle = eckit::Resource<bool>("GRIBJUMP_SHARED_HANDLE", true);
+    bool useSharedHandle = eckit::Resource<bool>("$GRIBJUMP_SHARED_HANDLE", true);
 
     if (useSharedHandle){
         LOG_DEBUG_LIB(LibGribJump) << "Using shared handle" << std::endl;
