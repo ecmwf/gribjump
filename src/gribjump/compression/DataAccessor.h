@@ -12,6 +12,7 @@ namespace mc {
 
 class DataAccessor {
 public:
+    virtual ~DataAccessor() = default;
     virtual void write(const eckit::Buffer& buffer, const size_t offset) const = 0;
     virtual eckit::Buffer read(const Range& range) const = 0;
     virtual eckit::Buffer read() const = 0;
