@@ -98,9 +98,8 @@ std::vector<JumpInfo*> JumpHandle::extractInfoFromFile() {
 
         metkit::grib::GribHandle h(*handle_, offset);
         JumpInfo* info = new JumpInfo(h);
-        eckit::Offset fp = handle_->position();
-        eckit::Length len = info->length();
-        info->setStartOffset(fp - len);
+        unsigned long fp = handle_->position();
+        info->setStartOffset(fp - info->length());
         offset = handle_->position();
         info->updateCcsdsOffsets(*this); // XXX Pretty inelgeant. Honestly all of this is.
         infos.push_back(info);

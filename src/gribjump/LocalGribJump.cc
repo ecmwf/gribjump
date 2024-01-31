@@ -265,24 +265,13 @@ std::vector<ExtractionResult*> LocalGribJump::directJumpSharedHandle(const eckit
     }
 
     JumpHandle dataSource(handle);
-    // XXX: We may need to explicitly seek to the start of the message.
-    // e.g. jump handle . seek
-    auto t0 = Clock::now();
+
     std::vector<ExtractionResult*> results;
     for (size_t i = 0; i < infos.size(); i++) {
         ASSERT(infos[i]->ready());
         results.push_back(infos[i]->newExtractRanges(dataSource, ranges[i]));
     }
-    
-    auto t1 = Clock::now();
-
-    std::chrono::duration<double> delta3 = t1 - t0;
-    
-    std::cout << "Thread[" << thread_id_str() << "] Sharedhandle extract time " << delta3.count() << std::endl;
-
     return results;
-
-
 }
 
 JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
@@ -292,7 +281,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
 
     JumpInfo* pinfo = cache.get(loc);
     if (pinfo) return JumpInfoHandle(pinfo);
-    
+
     std::string f = loc.uri().path().baseName();
     eckit::Log::info() << "GribJump::extractInfo() cache miss for file " << f << std::endl;
 
@@ -309,17 +298,17 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::PathName& path, const eck
 
     JumpInfo* pinfo = cache.get(path, offset);
     if (pinfo) return JumpInfoHandle(pinfo);
-    
+
     std::string f = path.baseName();
     eckit::Log::info() << "GribJump cache miss file=" << f << ",offset=" << offset << std::endl;
 
     eckit::DataHandle* handle = path.fileHandle();
     JumpHandle dataSource(handle);
+    dataSource.seek(offset); // !!!
     JumpInfo* info = dataSource.extractInfo();
     cache.insert(path, offset, info); // takes ownership of info
     return JumpInfoHandle(info);
 }
-
 
 JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Offset& offset) {
     
@@ -333,6 +322,7 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Of
 
     eckit::DataHandle* handle = uri.path().fileHandle();
     JumpHandle dataSource(handle);
+    dataSource.seek(offset); // !!!
     JumpInfo* info = dataSource.extractInfo();
     cache.insert(uri, offset, info); // takes ownership of info
     return JumpInfoHandle(info);
