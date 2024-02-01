@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Range.h"
-#include <eckit/io/Buffer.h>
 
 #include <fstream>
-#include <stdexcept>
 #include <iomanip>
 #include <cassert>
+
+#include "Range.h"
+
+#include "eckit/io/Buffer.h"
 
 namespace mc {
 
