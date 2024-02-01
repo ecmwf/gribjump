@@ -329,10 +329,10 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
     }
 }
 
-void JumpInfo::updateCcsdsOffsets(const JumpHandle& f){
+void JumpInfo::updateCcsdsOffsets(const JumpHandle& f, const unsigned long long msgStartOffset) {
     if (packingType_ != "grid_ccsds") return;
 
-    auto data_range = mc::Range{msgStartOffset_ + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_};
+    auto data_range = mc::Range{msgStartOffset + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_};
 
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(&f, data_range);
     mc::CcsdsDecompressor<double> ccsds{};

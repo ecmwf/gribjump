@@ -101,7 +101,7 @@ std::vector<JumpInfo*> JumpHandle::extractInfoFromFile() {
         unsigned long fp = handle_->position();
         info->setStartOffset(fp - info->length());
         offset = handle_->position();
-        info->updateCcsdsOffsets(*this); // XXX Pretty inelgeant. Honestly all of this is.
+        info->updateCcsdsOffsets(*this, fp - info->length()); // XXX Pretty inelgeant. Honestly all of this is.
         infos.push_back(info);
 
         // XXX: On linux, fp is wrong if handle is not closed and reopened.
@@ -127,10 +127,9 @@ JumpInfo* JumpHandle::extractInfo() {
     open();
     eckit::Offset initialPos = handle_->position();
     metkit::grib::GribHandle h(*handle_, initialPos);
-
     JumpInfo* info = new JumpInfo(h);
-    info->setStartOffset(0);
-    info->updateCcsdsOffsets(*this); 
+    info->updateCcsdsOffsets(*this, initialPos); 
+    info->setStartOffset(0); // XXX: Remove this hack as part of cleanup.
     return info;
 }
 

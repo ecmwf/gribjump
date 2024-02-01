@@ -63,11 +63,13 @@ public:
     eckit::Offset offset() const { return msgStartOffset_; }
     void setStartOffset(eckit::Offset offset) { msgStartOffset_ = offset; }
 
-    void updateCcsdsOffsets(const JumpHandle& f);
+    void updateCcsdsOffsets(const JumpHandle& f, const unsigned long long msgStartOffset);
     std::vector<size_t> getCcsdsOffsets() const { return ccsdsOffsets_; }
     std::string getPackingType() const { return packingType_; }
 
 private:
+
+    // TODO: Change offsets to use eckit::Offset, and propagate this change.
 
     static constexpr uint8_t currentVersion_ = 3;
     uint8_t       version_;
