@@ -115,19 +115,6 @@ std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& pat
     return results;
 }
 
-std::vector<ExtractionResult> LocalGribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
-    
-    std::vector<ExtractionResult> result;
-    
-    for(auto& uri : uris){
-        eckit::Offset offset = std::stoll(uri.fragment());
-        JumpInfoHandle info = extractInfo(uri, offset);
-        result.push_back(directJump(uri, offset, ranges, info));
-    }
-
-    return result;
-}
-
 std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
     eckit::Log::info() << "GribJump::extract() [batch] called" << std::endl;
     eckit::Timer timer;
@@ -207,16 +194,6 @@ std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsReq
     }
 
     return result;
-}
-
-ExtractionResult LocalGribJump::directJump(const eckit::URI uri, const eckit::Offset offset, const std::vector<Range> ranges, JumpInfoHandle info) const {
-    eckit::Length length = info->length();
-    eckit::DataHandle* handle = uri.newReadHandle({offset}, {length}); // TODO: Use one handle for requests in the same file.
-    JumpHandle dataSource(handle);
-    // XXX: We shouldn't allow modification of jumpinfo.
-    info->setStartOffset(0); // Message starts at the beginning of the handle.
-    ASSERT(info->ready());
-    return info->extractRanges(dataSource, ranges);
 }
 
 ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std::vector<Range> ranges, JumpInfoHandle info) const {
@@ -307,24 +284,6 @@ JumpInfoHandle LocalGribJump::extractInfo(const eckit::PathName& path, const eck
     dataSource.seek(offset); // !!!
     JumpInfo* info = dataSource.extractInfo();
     cache.insert(path, offset, info); // takes ownership of info
-    return JumpInfoHandle(info);
-}
-
-JumpInfoHandle LocalGribJump::extractInfo(const eckit::URI& uri, const eckit::Offset& offset) {
-    
-    GribInfoCache& cache = GribInfoCache::instance();
-
-    JumpInfo* pinfo = cache.get(uri, offset);
-    if (pinfo) return JumpInfoHandle(pinfo);
-    
-    std::string f = uri.path().baseName();
-    eckit::Log::info() << "GribJump cache miss file=" << f << ",offset=" << offset << std::endl;
-
-    eckit::DataHandle* handle = uri.path().fileHandle();
-    JumpHandle dataSource(handle);
-    dataSource.seek(offset); // !!!
-    JumpInfo* info = dataSource.extractInfo();
-    cache.insert(uri, offset, info); // takes ownership of info
     return JumpInfoHandle(info);
 }
 

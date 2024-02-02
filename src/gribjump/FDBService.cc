@@ -31,22 +31,6 @@ FDBService::FDBService() {
 FDBService::~FDBService() {
 }
 
-std::vector<eckit::URI> FDBService::fieldLocations(const metkit::mars::MarsRequest& request) {
-    eckit::AutoLock<FDBService> lock(this);
-
-    std::vector<eckit::URI> locations;
-
-    fdb5::FDBToolRequest fdbreq(request);
-    auto listIter = fdb_.list(fdbreq, true);
-    fdb5::ListElement elem;
-    while (listIter.next(elem)) {
-            const fdb5::FieldLocation& loc = elem.location();
-            locations.push_back(loc.fullUri());
-            LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
-        }
-    return locations;
-}
-
 std::vector<eckit::PathName> FDBService::listFilesInRequest(std::vector<metkit::mars::MarsRequest> requests) {
         
     eckit::AutoLock<FDBService> lock(this);

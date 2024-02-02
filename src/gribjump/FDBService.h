@@ -37,8 +37,6 @@ public:
 
     fdb5::FDB& fdb() { ASSERT(locked_); return fdb_; }
 
-    std::vector<eckit::URI> fieldLocations(const metkit::mars::MarsRequest& request);
-
     std::vector<eckit::PathName> listFilesInRequest(std::vector<metkit::mars::MarsRequest> requests);
 
     std::map< eckit::PathName, eckit::OffsetList > filesOffsets(std::vector<metkit::mars::MarsRequest> requests);

@@ -47,11 +47,6 @@ std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest 
     return out;
 }
 
-std::vector<ExtractionResult> GribJump::extract(const std::vector<eckit::URI> uris, const std::vector<Range> ranges){
-    auto out = impl_->extract(uris, ranges);
-    return out;
-}
-
 std::vector<ExtractionResult*> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
     auto out = impl_->extract(path, offsets, ranges);
     return out;

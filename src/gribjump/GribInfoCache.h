@@ -50,19 +50,15 @@ public:
     /// @brief Inserts JumpInfos associated to the path
     void insert(const eckit::PathName& path, const std::vector<JumpInfo*>& infos);
 
-    bool contains(const fdb5::FieldLocation& loc);
-
     /// Inserts a JumpInfo entry
     /// @param loc field location
     /// @param info JumpInfo to insert, takes ownership
     void insert(const fdb5::FieldLocation& loc, JumpInfo* info);
-    void insert(const eckit::URI& uri, const eckit::Offset offset, JumpInfo* info);
     void insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info);
 
     /// Get JumpInfo from memory cache
     /// @return JumpInfo, null if not found
     JumpInfo* get(const fdb5::FieldLocation& loc);
-    JumpInfo* get(const eckit::URI& uri, const eckit::Offset offset);
     JumpInfo* get(const eckit::PathName& path, const eckit::Offset offset);
 
     void print(std::ostream& s) const;

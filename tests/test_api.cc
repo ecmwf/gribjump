@@ -220,8 +220,9 @@ CASE( "test_gribjump_api_extract" ) {
         }
     }
 
-    // test 3: use extract with uri
-    // Use fdb list to get URIs
+    // test 4: use extract with path and offsets
+    // Note, this returns pointers to ExtractionResult, not ExtractionResult
+    
     std::vector<eckit::URI> uris;
     fdb5::FDBToolRequest fdbreq(requests[0]);
     auto listIter = fdb.list(fdbreq, false);
@@ -231,31 +232,7 @@ CASE( "test_gribjump_api_extract" ) {
         uris.push_back(loc.fullUri());
         std::cout << "location: " << loc.fullUri() << std::endl;
     }
-    std::vector<ExtractionResult> output3 = gj.extract(uris, ranges);
-    EXPECT(output3.size() == 3);
 
-    // Expect output3 to be the same as output2[0]
-    for (size_t i = 0; i < output3.size(); i++) { // each field
-        auto values = output3[i].values();
-        auto mask = output3[i].mask();
-
-        auto values2 = output2[0][i].values();
-        auto mask2 = output2[0][i].mask();
-
-        for (size_t k = 0; k < values.size(); k++) { // each range
-            for (size_t l = 0; l < values[k].size(); l++) { // each value
-                EXPECT(mask[k][l/64][l%64] == mask2[k][l/64][l%64]);
-                if (std::isnan(values[k][l])) {
-                    EXPECT(std::isnan(values2[k][l]));
-                    continue;
-                }
-                EXPECT(values[k][l] == values2[k][l]);
-            }
-        }
-    }
-
-    // test 4: use extract with path and offsets
-    // Note, this returns pointers to ExtractionResult, not ExtractionResult
 
     // Get the paths from the URI above. Offset from URI's fragment
     std::vector<eckit::PathName> paths;

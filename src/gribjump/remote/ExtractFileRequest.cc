@@ -325,7 +325,6 @@ void ExtractFileRequest::replyToClient() {
 
     // collect successful (non nullptr) requests in order & send to client
     if (flattenRequest_){
-        // collect successful (non nullptr) requests in order & send to client
         for(size_t i = 0; i < received_requests_.size(); ++i) {
 
             const metkit::mars::MarsRequest& mreq = received_requests_[i].getRequest();
