@@ -98,15 +98,13 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
 
     std::vector<ExtractionRequest> polyRequest;
     for (size_t i = 0; i < requests.size(); i++) {
-        // copy the requests
-        metkit::mars::MarsRequest request = requests[i];
-        ExtractionRequest exrequest(request, allRanges[i]);
+        ExtractionRequest exrequest(requests[i], allRanges[i]);
         polyRequest.push_back(exrequest);
     }
 
     GribJump gj;
     std::vector<std::vector<ExtractionResult>> results = gj.extract(polyRequest);
-    
+
     // Now we have the gribjump results, we need to compare with eccodes
     // For each request we need to:
     // 1. find the message using path + offset from fdb.
@@ -117,9 +115,10 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
     for (int i = 0; i < requests.size(); i++) {
         std::map< eckit::PathName, eckit::OffsetList > map = FDBService::instance().filesOffsets({requests[i]});
         ASSERT(map.size() == results[i].size());
+        size_t filecount = 0;
         for (const auto& entry : map) {
-            eckit::PathName path = entry.first;
-            eckit::OffsetList offsets = entry.second;
+            const eckit::PathName path = entry.first;
+            const eckit::OffsetList offsets = entry.second;
 
             std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
             dh->openForRead();
@@ -127,30 +126,34 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
             for (int j = 0; j < offsets.size(); j++) {
 
                 const eckit::Offset offset = offsets[j];
-                metkit::grib::GribHandle handle(*dh, offset);
+                const metkit::grib::GribHandle handle(*dh, offset);
 
                 size_t count;
                 std::unique_ptr<double[]> data(handle.getDataValues(count));
 
-                std::vector<std::vector<double>> values;
+                std::vector<std::vector<double>> ecvalues;
                 for (const auto& range : allRanges[i]) {
                     std::vector<double> rangeValues;
                     for (size_t k = range.first; k < range.second; k++) {
                         rangeValues.push_back(data[k]);
                     }
-                    values.push_back(rangeValues);
+                    ecvalues.push_back(rangeValues);
                 }
 
                 // compare the values
-                ASSERT(values.size() == results[i][j].values().size());
-                for (int k = 0; k < values.size(); k++) {
-                    ASSERT(values[k].size() == results[i][j].values()[k].size());
-                    for (int l = 0; l < values[k].size(); l++) {
-                        ASSERT(values[k][l] == results[i][j].values()[k][l]);
+                const auto& gjvalues = results[i][j+filecount].values();
+                ASSERT(ecvalues.size() == gjvalues.size());
+
+                for (int k = 0; k < ecvalues.size(); k++) {
+                    ASSERT(ecvalues[k].size() == gjvalues[k].size());
+                    for (int l = 0; l < ecvalues[k].size(); l++) {
+                        ASSERT(ecvalues[k][l] == gjvalues[k][l]);
                         countAllValues++;
                     }
                 }
             }
+            filecount++;
+
         }
     }
 
