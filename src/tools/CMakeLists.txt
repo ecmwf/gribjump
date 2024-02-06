@@ -39,3 +39,9 @@ ecbuild_add_executable( TARGET   gribjump-scan
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
     LIBS      gribjump
 )
+
+ecbuild_add_executable( TARGET   compare-eccodes
+    SOURCES   compare_eccodes.cc
+    INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    LIBS      gribjump
+)
