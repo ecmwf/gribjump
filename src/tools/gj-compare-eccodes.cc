@@ -114,8 +114,7 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
 
     for (int i = 0; i < requests.size(); i++) {
         std::map< eckit::PathName, eckit::OffsetList > map = FDBService::instance().filesOffsets({requests[i]});
-        ASSERT(map.size() == results[i].size());
-        size_t filecount = 0;
+        size_t fieldcount = 0;
         for (const auto& entry : map) {
             const eckit::PathName path = entry.first;
             const eckit::OffsetList offsets = entry.second;
@@ -141,8 +140,15 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
                 }
 
                 // compare the values
-                const auto& gjvalues = results[i][j+filecount].values();
+                const auto& gjvalues = results[i][fieldcount].values();
                 ASSERT(ecvalues.size() == gjvalues.size());
+
+                // print everything
+                LOG_DEBUG_LIB(LibGribJump) << "Comparing values for field " << fieldcount << " in file " << path << " at offset " << offset << std::endl;
+                for (int k = 0; k < ecvalues.size(); k++) {
+                    LOG_DEBUG_LIB(LibGribJump)  << "ecvalues[" << k << "]" << ecvalues[k] << std::endl;
+                    LOG_DEBUG_LIB(LibGribJump)  << "gjvalues[" << k << "]" << gjvalues[k] << std::endl;
+                }
 
                 for (int k = 0; k < ecvalues.size(); k++) {
                     ASSERT(ecvalues[k].size() == gjvalues[k].size());
@@ -151,9 +157,10 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
                         countAllValues++;
                     }
                 }
-            }
-            filecount++;
 
+                fieldcount++;
+
+            }
         }
     }
 
