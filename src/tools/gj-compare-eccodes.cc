@@ -102,8 +102,25 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
         polyRequest.push_back(exrequest);
     }
 
+    // Extract the data using gribjump
+
     GribJump gj;
     std::vector<std::vector<ExtractionResult>> results = gj.extract(polyRequest);
+
+    ASSERT(results.size() == requests.size());
+
+    // TODO: Although gribjump.extract can deal with requests of cardinality > 1, (e.g. step=1/2/3), it is
+    // difficult to get the ordering consistent with eccodes. For now, we will require cardinality == 1.
+    for (size_t i = 0; i < results.size(); i++) {
+        const auto& r = results[i];
+        if (r.size() != 1) {
+            // also print the request
+            std::stringstream ss;
+            ss << requests[i];
+            throw eckit::UserError("This tool requires cardinality of each request to be 1, but gribjump found " + std::to_string(r.size()) + " results for request " + ss.str());
+        }
+    }
+
 
     // Now we have the gribjump results, we need to compare with eccodes
     // For each request we need to:
@@ -113,6 +130,8 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
     size_t countAllValues = 0;
 
     for (int i = 0; i < requests.size(); i++) {
+        LOG_DEBUG_LIB(LibGribJump) << "Results for request " << i << ": " << requests[i] << std::endl;
+
         std::map< eckit::PathName, eckit::OffsetList > map = FDBService::instance().filesOffsets({requests[i]});
         size_t fieldcount = 0;
         for (const auto& entry : map) {
@@ -139,11 +158,11 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
                     ecvalues.push_back(rangeValues);
                 }
 
-                // compare the values
+                ASSERT(fieldcount < results[i].size());
                 const auto& gjvalues = results[i][fieldcount].values();
                 ASSERT(ecvalues.size() == gjvalues.size());
 
-                // print everything
+                // debug: print everything
                 LOG_DEBUG_LIB(LibGribJump) << "Comparing values for field " << fieldcount << " in file " << path << " at offset " << offset << std::endl;
                 for (int k = 0; k < ecvalues.size(); k++) {
                     LOG_DEBUG_LIB(LibGribJump)  << "ecvalues[" << k << "]" << ecvalues[k] << std::endl;
