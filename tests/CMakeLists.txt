@@ -13,9 +13,7 @@ schema
 
 list( APPEND gribjump_test_O1280_data_files
 2t_O1280.grib
-2t_O1280.values
 ceil_O1280.grib
-ceil_O1280.values
 )
 
 if(ECCODES_DEFINITION_PATH AND (EXISTS ${ECCODES_DEFINITION_PATH}))

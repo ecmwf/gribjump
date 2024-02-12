@@ -13,6 +13,8 @@
 #include "eckit/testing/Test.h"
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribHandleData.h"
+#include "gribjump/tools/ToolUtils.h"
+
 using namespace eckit::testing;
 
 namespace gribjump {
@@ -52,27 +54,15 @@ const std::vector<size_t> o1280_offsets = {
 41175828,41216441,41255357,41293759,41333013,41371640,41408917,41445100,41479757,41515411,41552860,41591463,41627430,41663401,41698302,41731835,41766161,41797401,41830947,41865092,41898711,41934215,41966673,41997747,42032696,42072310,42109850
 };
 
-std::vector<double> getComparisonValues(eckit::PathName comparisonFileName, size_t expectedNumberOfValues) {
-    std::ifstream comparisonFile(comparisonFileName);
-    std::string line;
-    std::vector<double> comparisonValues;
-    comparisonValues.reserve(expectedNumberOfValues);
-    while (std::getline(comparisonFile, line)) {
-        std::stringstream lineStream(line);
-        std::string value;
-        // expect exactly 5 values per line
-        for (int i = 0; i < 5; i++) {
-            std::getline(lineStream, value, ',');
-            comparisonValues.push_back(std::stod(value));
-        }
-    }
+std::vector<double> getComparisonValues(eckit::PathName gribname, size_t expectedNumberOfValues) {
+    std::vector<Range> ranges = {Range(0, expectedNumberOfValues)};
+    std::vector<double> comparisonValues = eccodesExtract(gribname, {0}, ranges)[0][0];
     EXPECT(comparisonValues.size() == expectedNumberOfValues);
     return comparisonValues;
 }
 
 void test(eckit::PathName gribname, eckit::PathName comparename){
-// a comma separated list of values, 5 values per line
-    const std::vector<double> comparisonValues = getComparisonValues(comparename, expectedNumberOfValues);
+    const std::vector<double> comparisonValues = getComparisonValues(gribname, expectedNumberOfValues);
     std::cout << "Got comparison values" << std::endl;
     // check the values
     eckit::PathName binName = "temp";
@@ -100,8 +90,6 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
     EXPECT(values.size() == ranges.size());
 
     // compare the values
-    // small epsilon from grib_dump valueq
-    const double epsilon = 1e-2;
     for (size_t i = 0; i < values.size(); i++) {
         size_t range0 = std::get<0>(ranges[i]);
         size_t range1 = std::get<1>(ranges[i]);
@@ -113,15 +101,14 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
             }
             //std::cout << "values[" << i << "][" << j << "] = " << values[i][j] << std::endl;
             //std::cout << "comparisonValues[" << range0 + j << "] = " << comparisonValues[range0 + j] << std::endl;
-            double delta = std::abs(values[i][j] - comparisonValues[range0 + j]);
-            EXPECT(delta < epsilon);
+            EXPECT(values[i][j] == comparisonValues[range0 + j]);
         }
     }
 
-    // Now, read 50 single points
+    // Now, read 5000 single points
     std::vector<Range> singlePoints;
-    for (size_t i = 0; i < 50; i++) {
-        size_t r0 = i*10000;
+    for (size_t i = 0; i < 5000; i++) {
+        size_t r0 = i*100;
         singlePoints.push_back(Range(r0, r0+1));
     }
     // Plus the last one
@@ -142,8 +129,7 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
                 EXPECT(comparisonValues[range0 + j] == 9999); // comparison file has 9999 for missing values
                 continue;
             }
-            double delta = std::abs(values[i][j] - comparisonValues[range0 + j]);
-            EXPECT(delta < epsilon);
+            EXPECT(values[i][j] == comparisonValues[range0 + j]);
         }
     }
 

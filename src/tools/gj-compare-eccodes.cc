@@ -31,7 +31,7 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/FDBService.h"
-#include "tools/ToolUtils.h"
+#include "gribjump/tools/ToolUtils.h"
 
 /// @author Christopher Bradley
 
@@ -121,64 +121,34 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
         }
     }
 
-
-    // Now we have the gribjump results, we need to compare with eccodes
-    // For each request we need to:
-    // 1. find the message using path + offset from fdb.
-    // 2. Extract the data (using eccodes)
+    // Find the values using eccodes
 
     size_t countAllValues = 0;
 
     for (int i = 0; i < requests.size(); i++) {
         LOG_DEBUG_LIB(LibGribJump) << "Results for request " << i << ": " << requests[i] << std::endl;
+        std::vector<std::vector<std::vector<double>>> ecvalues = eccodesExtract(requests[i], allRanges[i]);
 
-        std::map< eckit::PathName, eckit::OffsetList > map = FDBService::instance().filesOffsets({requests[i]});
-        size_t fieldcount = 0;
-        for (const auto& entry : map) {
-            const eckit::PathName path = entry.first;
-            const eckit::OffsetList offsets = entry.second;
+        ASSERT(ecvalues.size() == results[i].size());
 
-            std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
-            dh->openForRead();
+        for (int j = 0; j < results[i].size(); j++) {
+            const auto& ecval = ecvalues[j];
+            const auto& gjval= results[i][j].values();
 
-            for (int j = 0; j < offsets.size(); j++) {
+            ASSERT(ecval.size() == gjval.size());
 
-                const eckit::Offset offset = offsets[j];
-                const metkit::grib::GribHandle handle(*dh, offset);
+            // debug: print everything
+            for (int k = 0; k < ecval.size(); k++) {
+                LOG_DEBUG_LIB(LibGribJump)  << "ecval[" << k << "]: " << ecval[k] << std::endl;
+                LOG_DEBUG_LIB(LibGribJump)  << "gjval[" << k << "]: " << gjval[k] << std::endl;
+            }
 
-                size_t count;
-                std::unique_ptr<double[]> data(handle.getDataValues(count));
-
-                std::vector<std::vector<double>> ecvalues;
-                for (const auto& range : allRanges[i]) {
-                    std::vector<double> rangeValues;
-                    for (size_t k = range.first; k < range.second; k++) {
-                        rangeValues.push_back(data[k]);
-                    }
-                    ecvalues.push_back(rangeValues);
+            for (int k = 0; k < ecval.size(); k++) {
+                ASSERT(ecval[k].size() == gjval[k].size());
+                for (int l = 0; l < ecval[k].size(); l++) {
+                    ASSERT(ecval[k][l] == gjval[k][l]);
+                    countAllValues++;
                 }
-
-                ASSERT(fieldcount < results[i].size());
-                const auto& gjvalues = results[i][fieldcount].values();
-                ASSERT(ecvalues.size() == gjvalues.size());
-
-                // debug: print everything
-                LOG_DEBUG_LIB(LibGribJump) << "Comparing values for field " << fieldcount << " in file " << path << " at offset " << offset << std::endl;
-                for (int k = 0; k < ecvalues.size(); k++) {
-                    LOG_DEBUG_LIB(LibGribJump)  << "ecvalues[" << k << "]" << ecvalues[k] << std::endl;
-                    LOG_DEBUG_LIB(LibGribJump)  << "gjvalues[" << k << "]" << gjvalues[k] << std::endl;
-                }
-
-                for (int k = 0; k < ecvalues.size(); k++) {
-                    ASSERT(ecvalues[k].size() == gjvalues[k].size());
-                    for (int l = 0; l < ecvalues[k].size(); l++) {
-                        ASSERT(ecvalues[k][l] == gjvalues[k][l]);
-                        countAllValues++;
-                    }
-                }
-
-                fieldcount++;
-
             }
         }
     }

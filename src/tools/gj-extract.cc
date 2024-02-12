@@ -27,7 +27,7 @@
 #include "gribjump/GribHandleData.h"
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJump.h"
-#include "tools/ToolUtils.h"
+#include "gribjump/tools/ToolUtils.h"
 
 
 // TODO(Chris) This probably doesnt need to be an FDBTool

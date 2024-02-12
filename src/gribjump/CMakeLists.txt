@@ -47,6 +47,9 @@ list( APPEND gribjump_srcs
     FDBService.h
     FDBService.cc
 
+    tools/ToolUtils.h
+    tools/ToolUtils.cc
+
     remote/Request.h
     remote/Request.cc
     remote/ExtractFileRequest.h
