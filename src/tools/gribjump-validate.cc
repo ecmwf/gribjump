@@ -35,9 +35,10 @@
 
 /// @author Christopher Bradley
 
-// Tool to perform an extraction request on a given request, and compare
-// the results with the equivalent request using eccodes.
-// Note: This tool requires a locally configured FDB config.
+// Tool to perform an extraction request on a given request, and compare the results with the
+// equivalent request using eccodes.
+// Note: This tool requires a locally configured FDB.
+// Note: Tool should work for local and remote gribjump, though eccodes will always be local.
 
 namespace gribjump
 {
