@@ -42,16 +42,10 @@ std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<Extract
     return out;
 }
 
-std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges){
-    auto out = impl_->extract(request, ranges);
-    return out;
-}
-
 std::vector<ExtractionResult*> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
     auto out = impl_->extract(path, offsets, ranges);
     return out;
 }
-
 
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
     auto out = impl_->axes(request);

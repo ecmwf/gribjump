@@ -38,7 +38,6 @@ public:
     virtual size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) = 0;
 
     virtual std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) = 0;
-    virtual std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) = 0;
     virtual std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) = 0;
     
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) = 0;

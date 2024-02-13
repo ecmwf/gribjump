@@ -163,39 +163,6 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     return result;
 }
 
-std::vector<ExtractionResult> LocalGribJump::extract(const metkit::mars::MarsRequest request, const std::vector<std::pair<size_t, size_t>> ranges){
-
-    std::vector<ExtractionResult>  result;
-    eckit::Timer timer;
-
-    eckit::AutoLock<FDBService> lock(FDBService::instance());
-    fdb5::FDB& fdb = FDBService::instance().fdb();
-
-
-    fdb5::ListIterator it = fdb.inspect(request);
-    timer.stop();
-    stats_.addInspect(timer);
-    fdb5::ListElement el;
-    while (it.next(el)) {
-
-        const fdb5::FieldLocation& loc = el.location(); // Use the location or uri to check if cached.
-        
-        timer.start();
-        JumpInfoHandle info = extractInfo(loc);
-        timer.stop();
-        stats_.addInfo(timer);
-
-        timer.start();
-        ExtractionResult v = directJump(loc.dataHandle(), ranges, info);
-        timer.stop();
-        stats_.addExtract(timer);
-
-        result.push_back(v);
-    }
-
-    return result;
-}
-
 ExtractionResult LocalGribJump::directJump(eckit::DataHandle* handle, const std::vector<Range> ranges, JumpInfoHandle info) const {
     JumpHandle dataSource(handle);
     // XXX: We shouldn't allow modification of jumpinfo.
