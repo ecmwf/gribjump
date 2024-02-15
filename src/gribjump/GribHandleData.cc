@@ -129,7 +129,7 @@ JumpInfo* JumpHandle::extractInfo() {
     metkit::grib::GribHandle h(*handle_, initialPos);
     JumpInfo* info = new JumpInfo(h);
     info->updateCcsdsOffsets(*this, initialPos); 
-    info->setStartOffset(0); // XXX: Remove this hack as part of cleanup.
+    info->setStartOffset(initialPos);
     return info;
 }
 

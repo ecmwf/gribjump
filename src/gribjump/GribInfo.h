@@ -47,7 +47,6 @@ public:
     explicit JumpInfo(eckit::Stream& s);
 
     bool ready() const { return numberOfValues_ > 0; }
-    void update(const metkit::grib::GribHandle& h);
 
     ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
     ExtractionResult* newExtractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
@@ -98,6 +97,8 @@ private:
     std::vector<size_t> ccsdsOffsets_;
 
 
+    void update(const metkit::grib::GribHandle& h);
+
     Bitmap get_bitmap(const JumpHandle& f) const;
     std::pair<std::vector<Interval>, std::vector<Bitmap>> calculate_intervals(const std::vector<Interval>&, const Bitmap&) const;
 
@@ -130,7 +131,7 @@ public: // methods
     
     JumpInfo* get() { return info_; }
 
-    JumpInfo* operator->() { return info_; }
+    const JumpInfo* operator->() const { return info_; }
 
 private: // members
 

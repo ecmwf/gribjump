@@ -36,8 +36,6 @@
 
 namespace gribjump {
 
-
-
 typedef std::chrono::high_resolution_clock Clock;
 
 static std::string thread_id_str() {
@@ -62,7 +60,7 @@ size_t LocalGribJump::scan(const eckit::PathName& path) {
 size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
 
     // note that the order in the map is not guaranteed to be the same as the order of the requests
-    std::map< eckit::PathName, eckit::OffsetList > files = FDBService::instance().filesOffsets(requests);
+    const std::map< eckit::PathName, eckit::OffsetList > files = FDBService::instance().filesOffsets(requests);
 
     for (const auto& file : files) {
         if(byfiles) {
@@ -84,7 +82,6 @@ std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& pat
     std::vector<JumpInfoHandle> infos;
     for (size_t i = 0; i < offsets.size(); i++) {
         infos.push_back(extractInfo(path, offsets[i]));
-        infos[i]->setStartOffset(offsets[i]); // xxx We don't want to modify the original info, set it correctly in the first place or don't set it at all.
         ASSERT(offsets[i] == infos[i]->offset()); 
     }
 
@@ -105,8 +102,6 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     // Old API
     // TODO: use pointers to ExtractionResult.
 
-    eckit::Log::info() << "GribJump::extract() [batch] called" << std::endl;
-
     std::vector<std::vector<JumpInfoHandle>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
     
@@ -124,24 +119,22 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
             handles.push_back(std::vector<eckit::DataHandle*>());
             while (it.next(el)) {
                 const fdb5::FieldLocation& loc = el.location();
-                JumpInfoHandle info = extractInfo(loc);
+                const JumpInfoHandle info = extractInfo(loc);
                 infos.back().push_back(info);
-                handles.back().push_back(loc.dataHandle());
+                
+                handles.back().push_back(loc.uri().path().fileHandle());
             }
         }
     
     }
 
     // Extract values
-
     std::vector<std::vector<ExtractionResult>> result;
     
     for (size_t i = 0; i < polyRequest.size(); i++) {
         result.push_back(std::vector<ExtractionResult>());
         for (size_t j = 0; j < infos[i].size(); j++) {
             JumpHandle dataSource(handles[i][j]);
-            infos[i][j]->setStartOffset(0); // xxx We don't want to modify the original info, set it correctly in the first place or don't set it at all.
-            ASSERT(infos[i][j]->ready());
             result.back().push_back(infos[i][j]->extractRanges(dataSource, polyRequest[i].getRanges()));
         }
     }
