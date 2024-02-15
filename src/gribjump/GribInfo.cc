@@ -25,7 +25,7 @@
 
 #include "metkit/codes/GribAccessor.h"
 
-#include "gribjump/GribHandleData.h"
+#include "gribjump/JumpHandle.h"
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"
 
@@ -329,7 +329,7 @@ void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex
     }
 }
 
-void JumpInfo::updateCcsdsOffsets(const JumpHandle& f, const unsigned long long msgStartOffset) {
+void JumpInfo::updateCcsdsOffsets(const JumpHandle& f, const eckit::Offset msgStartOffset) {
     if (packingType_ != "grid_ccsds") return;
 
     auto data_range = mc::Range{msgStartOffset + offsetBeforeData_, offsetAfterData_ - offsetBeforeData_};

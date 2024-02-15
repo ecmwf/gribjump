@@ -57,12 +57,12 @@ public:
     size_t streamSize() const;
 
     unsigned long getNumberOfDataPoints() const { return numberOfDataPoints_; }
-    unsigned long length() const { return totalLength_; }
+    eckit::Length length() const { return totalLength_; }
 
     eckit::Offset offset() const { return msgStartOffset_; }
     void setStartOffset(eckit::Offset offset) { msgStartOffset_ = offset; }
 
-    void updateCcsdsOffsets(const JumpHandle& f, const unsigned long long msgStartOffset);
+    void updateCcsdsOffsets(const JumpHandle& f, const eckit::Offset msgStartOffset);
     std::vector<size_t> getCcsdsOffsets() const { return ccsdsOffsets_; }
     std::string getPackingType() const { return packingType_; }
 
@@ -70,20 +70,20 @@ private:
 
     // TODO: Change offsets to use eckit::Offset, and propagate this change.
 
-    static constexpr uint8_t currentVersion_ = 3;
+    static constexpr uint8_t currentVersion_ = 4;
     uint8_t       version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
     long          decimalScaleFactor_;
     unsigned long editionNumber_;
     unsigned long bitsPerValue_;
-    unsigned long offsetBeforeData_;
-    unsigned long offsetAfterData_;
-    unsigned long offsetBeforeBitmap_;
+    eckit::Offset offsetBeforeData_;
+    eckit::Offset offsetAfterData_;
+    eckit::Offset offsetBeforeBitmap_;
     unsigned long numberOfValues_;
     unsigned long numberOfDataPoints_;
-    unsigned long totalLength_;
-    unsigned long long msgStartOffset_;
+    eckit::Length totalLength_;
+    eckit::Offset msgStartOffset_;
     long          sphericalHarmonics_;
     eckit::FixedString<32> md5GridSection_;
     eckit::FixedString<64> packingType_;

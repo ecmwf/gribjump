@@ -22,7 +22,7 @@
 #include "eckit/exception/Exceptions.h"
 
 #include "gribjump/LibGribJump.h"
-#include "gribjump/GribHandleData.h"
+#include "gribjump/JumpHandle.h"
 
 namespace gribjump {
 

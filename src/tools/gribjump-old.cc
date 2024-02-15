@@ -20,7 +20,7 @@
 #include "metkit/tool/MetkitTool.h"
 
 #include "gribjump/GribInfo.h"
-#include "gribjump/GribHandleData.h"
+#include "gribjump/JumpHandle.h"
 
 using namespace gribjump;
 

@@ -24,8 +24,8 @@ list( APPEND gribjump_srcs
 
     Config.cc
     Config.h
-    GribHandleData.cc
-    GribHandleData.h
+    JumpHandle.cc
+    JumpHandle.h
     GribInfo.cc
     GribInfo.h
     GribInfoCache.cc

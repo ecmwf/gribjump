@@ -27,7 +27,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "gribjump/GribHandleData.h"
+#include "gribjump/JumpHandle.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/FDBService.h"
 #include "gribjump/GribJumpFactory.h"

@@ -11,7 +11,7 @@
 #include <cmath>
 #include "eckit/testing/Test.h"
 #include "gribjump/GribInfo.h"
-#include "gribjump/GribHandleData.h"
+#include "gribjump/JumpHandle.h"
 #include <fstream>
 #include <filesystem>
 

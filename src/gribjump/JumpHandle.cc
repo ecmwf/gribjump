@@ -22,7 +22,7 @@
 
 #include "metkit/codes/GribHandle.h"
 
-#include "gribjump/GribHandleData.h"
+#include "gribjump/JumpHandle.h"
 #include "gribjump/GribInfo.h"
 
 namespace gribjump {
@@ -61,7 +61,7 @@ void JumpHandle::close() const {
 eckit::Offset JumpHandle::seek(const eckit::Offset& offset) const {
     open();
     eckit::Offset pos = handle_->seek(offset);
-    return (long long)pos;
+    return pos;
 }
 
 long JumpHandle::read(void* buffer, long len) const {
@@ -98,7 +98,7 @@ std::vector<JumpInfo*> JumpHandle::extractInfoFromFile() {
 
         metkit::grib::GribHandle h(*handle_, offset);
         JumpInfo* info = new JumpInfo(h);
-        unsigned long fp = handle_->position();
+        eckit::Offset fp = handle_->position(); // now at end of message
         info->setStartOffset(fp - info->length());
         offset = handle_->position();
         info->updateCcsdsOffsets(*this, fp - info->length()); // XXX Pretty inelgeant. Honestly all of this is.
