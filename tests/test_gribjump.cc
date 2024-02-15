@@ -85,12 +85,11 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
             expected.push_back(expectedRange);
         }
 
-        // auto [actual, mask] = gribInfo.extractRanges(dataSource, ranges); // lets not use auto in the testing code
         std::vector<std::vector<double>> actual;
         std::vector<std::vector<std::bitset<64>>> mask;
-        ExtractionResult output = gribInfo.extractRanges(dataSource, ranges);
-        actual = output.values();
-        mask = output.mask();
+        std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, ranges));
+        actual = output->values();
+        mask = output->mask();
 
         EXPECT(actual.size() == expected.size());
         for (size_t ri = 0; ri < expected.size(); ri++) {

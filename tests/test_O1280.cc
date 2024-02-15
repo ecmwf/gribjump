@@ -73,35 +73,37 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
     std::cout << "Made JumpInfo" << std::endl;
     EXPECT(gribInfo.getNumberOfDataPoints() == expectedNumberOfValues);
 
-    // Big ranges
-    std::vector<Range> ranges = {
-        Range(0, 10000),  
-        Range(100000, 110000), 
-        Range(200000, 210000),
-        Range(300000, 310000), Range(400000, 410000), Range(500000, 510000),
-        // and read towards the end
-        Range(6500000, 6510000),Range(6520000, 6530000),Range(6550000, 6560000),
-        Range(6560000, expectedNumberOfValues),
-    };
+    {
+        // Big ranges
+        std::vector<Range> ranges = {
+            Range(0, 10000),  
+            Range(100000, 110000), 
+            Range(200000, 210000),
+            Range(300000, 310000), Range(400000, 410000), Range(500000, 510000),
+            // and read towards the end
+            Range(6500000, 6510000),Range(6520000, 6530000),Range(6550000, 6560000),
+            Range(6560000, expectedNumberOfValues),
+        };
 
-    ExtractionResult output = gribInfo.extractRanges(dataSource, ranges);
-    auto values = output.values();
-    
-    EXPECT(values.size() == ranges.size());
+        std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, ranges));
+        auto values = output->values();
+        
+        EXPECT(values.size() == ranges.size());
 
-    // compare the values
-    for (size_t i = 0; i < values.size(); i++) {
-        size_t range0 = std::get<0>(ranges[i]);
-        size_t range1 = std::get<1>(ranges[i]);
-        EXPECT(values[i].size() == range1 - range0);
-        for (size_t j = 0; j < values[i].size(); j++) {
-            if (std::isnan(values[i][j])) {
-                EXPECT(comparisonValues[range0 + j] == 9999); // comparison file has 9999 for missing values
-                continue;
+        // compare the values
+        for (size_t i = 0; i < values.size(); i++) {
+            size_t range0 = std::get<0>(ranges[i]);
+            size_t range1 = std::get<1>(ranges[i]);
+            EXPECT(values[i].size() == range1 - range0);
+            for (size_t j = 0; j < values[i].size(); j++) {
+                if (std::isnan(values[i][j])) {
+                    EXPECT(comparisonValues[range0 + j] == 9999); // comparison file has 9999 for missing values
+                    continue;
+                }
+                //std::cout << "values[" << i << "][" << j << "] = " << values[i][j] << std::endl;
+                //std::cout << "comparisonValues[" << range0 + j << "] = " << comparisonValues[range0 + j] << std::endl;
+                EXPECT(values[i][j] == comparisonValues[range0 + j]);
             }
-            //std::cout << "values[" << i << "][" << j << "] = " << values[i][j] << std::endl;
-            //std::cout << "comparisonValues[" << range0 + j << "] = " << comparisonValues[range0 + j] << std::endl;
-            EXPECT(values[i][j] == comparisonValues[range0 + j]);
         }
     }
 
@@ -114,8 +116,8 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
     // Plus the last one
     singlePoints.push_back(Range(expectedNumberOfValues-1, expectedNumberOfValues));
 
-    output = gribInfo.extractRanges(dataSource, singlePoints);
-    values = output.values();
+    std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, singlePoints));
+    auto values = output->values();
 
     EXPECT(values.size() == singlePoints.size());
 

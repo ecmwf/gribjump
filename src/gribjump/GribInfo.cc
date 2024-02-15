@@ -477,67 +477,9 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
 }
 
 ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
-    ASSERT(check_intervals(intervals));
-    ASSERT(!sphericalHarmonics_);
-    // TODO(maee): do we need this check?
-    //for (const auto& i : intervals) {
-    //    ASSERT(i.first < i.second);
-    //    ASSERT(i.second <= numberOfDataPoints_);
-    //}
-
-    std::vector<std::vector<std::bitset<64>>> all_masks;
-    std::vector<Values> all_values;
-
-    if (intervals.size() == 0) {
-        return ExtractionResult(all_values, all_masks);
-    }
-
-    // XXX can constant fields have a bitmap? We explicitly assuming not. TODO handle constant fields with bitmaps
-    if (bitsPerValue_ == 0) { // constant field
-        // ASSERT(!offsetBeforeBitmap_);
-        std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_values), [this](const auto& interval) {
-            return Values(interval.second - interval.first, referenceValue_);
-        });
-        std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-            return to_bitset(std::vector(interval.second - interval.first, true));
-        });
-        return ExtractionResult(all_values, all_masks);
-    }
-
-    std::vector<Values> (JumpInfo::*get_values)(const JumpHandle&, const std::vector<Interval> &) const;
-
-    if (packingType_ == "grid_ccsds")
-        get_values = &JumpInfo::get_ccsds_values;
-    else if (packingType_ == "grid_simple")
-        get_values = &JumpInfo::get_simple_values;
-    else
-        throw std::runtime_error("Unsupported packing type \"" + std::string{packingType_} + "\"");
-
-    if (!offsetBeforeBitmap_) { // no bitmap
-        all_values = (this->*get_values)(f, intervals);
-        std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-            return to_bitset(std::vector(interval.second - interval.first, true));
-        });
-    }
-    else { // bitmap
-        auto bitmap = get_bitmap(f);
-        auto [new_intervals, new_bitmaps] = calculate_intervals(intervals, bitmap);
-        auto all_decoded_values = (this->*get_values)(f, new_intervals);
-
-        for (size_t i = 0; i < intervals.size(); ++i) {
-            Values values;
-            for (size_t count = 0, j = 0; j < new_bitmaps[i].size(); ++j) {
-                if (new_bitmaps[i][j])
-                    values.push_back(all_decoded_values[i][count++]);
-                else
-                    values.push_back(MISSING_VALUE);
-            }
-            all_values.push_back(values);
-            all_masks.push_back(to_bitset(new_bitmaps[i]));
-        }
-    }
-
-    return ExtractionResult(all_values, all_masks);
+    // Todo: remove this function and always use newExtractRanges
+    std::unique_ptr<ExtractionResult> result(newExtractRanges(f, intervals));
+    return *result;
 }
 
 ExtractionResult* JumpInfo::newExtractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
