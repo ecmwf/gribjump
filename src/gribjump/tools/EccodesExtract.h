@@ -9,15 +9,17 @@
  */
 /// @author Christopher Bradley
 
-#pragma once
 
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/ExtractionData.h"
+#include "metkit/mars/MarsRequest.h"
 
-namespace gribjump
-{
+#pragma once
 
-std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname);
+namespace gribjump {
 
+std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges);
+
+std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets, std::vector<Range> ranges);
 
 } // namespace gribjump

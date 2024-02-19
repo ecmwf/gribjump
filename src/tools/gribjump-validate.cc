@@ -7,7 +7,6 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
 /// @author Christopher Bradley
 
 #include <fstream>
@@ -32,8 +31,8 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/FDBService.h"
 #include "gribjump/tools/ToolUtils.h"
+#include "gribjump/tools/EccodesExtract.h"
 
-/// @author Christopher Bradley
 
 // Tool to perform an extraction request on a given request, and compare the results with the
 // equivalent request using eccodes.

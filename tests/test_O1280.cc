@@ -14,6 +14,7 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/JumpHandle.h"
 #include "gribjump/tools/ToolUtils.h"
+#include "gribjump/tools/EccodesExtract.h"
 
 using namespace eckit::testing;
 

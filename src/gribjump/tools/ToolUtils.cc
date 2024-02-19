@@ -7,19 +7,16 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+/// @author Christopher Bradley
 
 #include <fstream>
 
 #include "eckit/utils/StringTools.h"
-
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/codes/GribHandle.h"
+#include "eckit/filesystem/PathName.h"
 
 #include "gribjump/tools/ToolUtils.h"
-#include "gribjump/FDBService.h"
 
-namespace gribjump
-{
+namespace gribjump {
 
 std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname){
     
@@ -50,55 +47,6 @@ std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname){
     }
 
     return allRanges;
-}
-
-std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges){  
-
-    std::map< eckit::PathName, eckit::OffsetList > map = FDBService::instance().filesOffsets({request});
-   
-    std::vector<std::vector<std::vector<double>>> results;
-    for (const auto& entry : map) {
-        const eckit::PathName path = entry.first;
-        const eckit::OffsetList offsets = entry.second;
-        std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
-        dh->openForRead();
-
-        std::vector<std::vector<std::vector<double>>> resultsFile = eccodesExtract(path, offsets, ranges);
-        results.insert(results.end(), resultsFile.begin(), resultsFile.end());
-
-    }
-
-    return results;
-}
-
-std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets, std::vector<Range> ranges){ 
-
-    std::vector<std::vector<std::vector<double>>> results;
-    
-    std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
-    dh->openForRead();
-
-    for (int j = 0; j < offsets.size(); j++) {
-
-        const eckit::Offset offset = offsets[j];
-        const metkit::grib::GribHandle handle(*dh, offset);
-
-        size_t count;
-        std::unique_ptr<double[]> data(handle.getDataValues(count));
-
-        std::vector<std::vector<double>> ecvalues;
-        for (const auto& range : ranges) {
-            std::vector<double> rangeValues;
-            for (size_t k = range.first; k < range.second; k++) {
-                rangeValues.push_back(data[k]);
-            }
-            ecvalues.push_back(rangeValues);
-        }
-
-        results.push_back(ecvalues);
-    }
-
-    return results;
 }
 
 } // namespace gribjump
