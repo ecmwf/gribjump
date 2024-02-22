@@ -38,13 +38,6 @@ namespace gribjump {
 
 typedef std::chrono::high_resolution_clock Clock;
 
-static std::string thread_id_str() {
-    auto id = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << id;
-    return ss.str();
-}
-
 LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 }
 
@@ -102,13 +95,19 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     // Old API
     // TODO: use pointers to ExtractionResult.
 
+    // TODO: Remove this function, or significantly change it, such that the server and local implementations call the same functions.
+
     std::vector<std::vector<JumpInfoHandle>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
     
     { // Get handles
     
-        eckit::AutoLock<FDBService> lock(FDBService::instance());
-        fdb5::FDB& fdb = FDBService::instance().fdb();
+        // eckit::AutoLock<FDBService> lock(FDBService::instance()); 
+        // fdb5::FDB& fdb = FDBService::instance().fdb(); // NB: A static FDB cannot be destroyed correctly if inspect is ever called...
+
+        // This function is for single-threaded use only.
+        fdb5::FDB fdb;
+        
 
         for (auto& req : polyRequest){
 

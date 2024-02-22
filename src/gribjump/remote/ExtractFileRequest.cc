@@ -28,6 +28,13 @@
 
 namespace gribjump {
 
+static std::string thread_id_str() {
+    auto id = std::this_thread::get_id();
+    std::stringstream ss;
+    ss << id;
+    return ss.str();
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 /// @todo these need to be checked and ensure the fdb list also returns the same order
@@ -49,6 +56,82 @@ std::string requestToStr(const metkit::mars::MarsRequest& request) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class FillMapCB : public metkit::mars::FlattenCallback {
+public:
+    FillMapCB(map_results_t& mapres, map_ranges_t& mapranges, const std::vector<Range>& ranges) : mapres_(mapres),  mapranges_(mapranges), ranges_(ranges) {}
+
+    virtual void operator()(const metkit::mars::MarsRequest& req) {
+        std::string reqkey = requestToStr(req);
+        ASSERT(mapres_.find(reqkey) == mapres_.end());
+        mapres_.insert({reqkey, nullptr});
+        mapranges_.insert({reqkey, ranges_});
+    }
+    map_results_t& mapres_;
+    map_ranges_t& mapranges_;
+    std::vector<Range> ranges_;
+};
+
+void requestToMapFlatten(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, map_results_t& mapres, map_ranges_t& mapranges) {
+
+    metkit::mars::MarsExpension expansion(false);
+    metkit::mars::DummyContext ctx;
+
+    FillMapCB cb(mapres, mapranges, ranges);
+
+    expansion.flatten(ctx, request, cb);
+}
+
+void requestToMapNoFlatten(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, map_results_t& mapres, map_ranges_t& mapranges) {
+
+    std::string reqkey = requestToStr(request);
+    mapres.insert({reqkey, nullptr});
+    mapranges.insert({reqkey, ranges});
+}
+
+void requestToMap(const std::vector<ExtractionRequest>& requests, map_results_t& mapres, map_ranges_t& mapranges, bool flatten) {
+    if (flatten) {
+        for(size_t i = 0; i < requests.size(); ++i) {
+            requestToMapFlatten(requests[i].getRequest(), requests[i].getRanges(), mapres, mapranges);
+        }
+    }
+    else {
+        // Assume request is one field (as it will be from polytope).
+        for(size_t i = 0; i < requests.size(); ++i) {
+            requestToMapNoFlatten(requests[i].getRequest(), requests[i].getRanges(), mapres, mapranges);
+        }
+    }
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class CollectResultsCB : public metkit::mars::FlattenCallback {
+public:
+    CollectResultsCB(ExtractFileRequest& clientReq) : clientReq_(clientReq) {}
+
+    virtual void operator()(const metkit::mars::MarsRequest& req) {
+        flatkey_t key = requestToStr(req);
+        ExtractionResult* r = clientReq_.results(key);
+        collected_.push_back(r);
+    }
+
+    ExtractFileRequest& clientReq_;
+    std::vector<ExtractionResult*> collected_;
+};
+
+std::vector<ExtractionResult*> orderedCollectResults(const metkit::mars::MarsRequest& request, ExtractFileRequest& clientReq) {
+
+    metkit::mars::MarsExpension expansion(false);
+    metkit::mars::DummyContext ctx;
+
+    CollectResultsCB cb(clientReq);
+    expansion.flatten(ctx, request, cb);
+
+    return cb.collected_;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 ExtractFileTask::ExtractFileTask(size_t id, ExtractFileRequest* clientRequest) : Task(id, clientRequest), request_(clientRequest) {
 }
 
@@ -63,10 +146,7 @@ ExtractFileTask::~ExtractFileTask() {
 
 void PerFileTask::execute(GribJump& gj) {
     eckit::Timer timer;
-    auto id = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << id;
-    std::string thread_id = ss.str();
+    std::string thread_id = thread_id_str();
     eckit::Timer full_timer("Thread total time. Thread: " + thread_id);
 
     const map_ranges_t& allranges = request_->ranges();
@@ -96,66 +176,6 @@ void PerFileTask::execute(GribJump& gj) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class FillMapCB : public metkit::mars::FlattenCallback {
-public:
-    FillMapCB(map_results_t& mapres, map_ranges_t& mapranges, const std::vector<Range>& ranges) : mapres_(mapres),  mapranges_(mapranges), ranges_(ranges) {}
-
-    virtual void operator()(const metkit::mars::MarsRequest& req) {
-        std::string reqkey = requestToStr(req);
-        ASSERT(mapres_.find(reqkey) == mapres_.end());
-        mapres_.insert({reqkey, nullptr});
-        mapranges_.insert({reqkey, ranges_});
-    }
-    map_results_t& mapres_;
-    map_ranges_t& mapranges_;
-    std::vector<Range> ranges_;
-};
-
-void requestToMap(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, map_results_t& mapres, map_ranges_t& mapranges) {
-
-    metkit::mars::MarsExpension expansion(false);
-    metkit::mars::DummyContext ctx;
-
-    FillMapCB cb(mapres, mapranges, ranges);
-
-    expansion.flatten(ctx, request, cb);
-}
-
-void requestToMapNoFlatten(std::vector<ExtractionRequest> requests, map_results_t& mapres, map_ranges_t& mapranges) {
-    // do it all at once, no flattening. Assume request is one field (as it will be from polytope).
-    
-    for (auto& req : requests) {
-        std::string reqkey = requestToStr(req.getRequest());
-        mapres.insert({reqkey, nullptr});
-        mapranges.insert({reqkey, req.getRanges()});
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class ToStrCallback : public metkit::mars::FlattenCallback {
-public:
-    ToStrCallback(std::vector<flatkey_t>& fieldKeys) : fieldKeys_(fieldKeys) {}
-
-    virtual void operator()(const metkit::mars::MarsRequest& req) {
-        fieldKeys_.push_back(requestToStr(req));
-    }
-
-    std::vector<flatkey_t>& fieldKeys_;
-};
-
-void requestToStr(const metkit::mars::MarsRequest& request, std::vector<flatkey_t>& fieldKeys) {
-
-    metkit::mars::MarsExpension expansion(false);
-    metkit::mars::DummyContext ctx;
-
-    ToStrCallback cb(fieldKeys);
-
-    expansion.flatten(ctx, request, cb);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
 
 ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream), flattenRequest_(eckit::Resource<bool>("$GRIBJUMP_FLATTEN_REQUESTS", true)) {
 
@@ -164,7 +184,6 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
     size_t numRequests;
     client_ >> numRequests;
 
-    LOG_DEBUG_LIB(LibGribJump) << "ExtractFileRequest received " << eckit::Plural(numRequests, "client request") << std::endl;
 
     // receive requests
     received_requests_.reserve(numRequests);
@@ -173,20 +192,11 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
         received_requests_.push_back(req);
     }
     
-    timer.reset("ExtractFileRequest : Received all requests");
+    LOG_DEBUG_LIB(LibGribJump) << "ExtractFileRequest received " << eckit::Plural(numRequests, "client request") << std::endl;
 
     // create the map of results
 
-    if (flattenRequest_){
-        std::cout << "Flattening requests" << std::endl;
-        for(size_t i = 0; i < received_requests_.size(); ++i) {
-            requestToMap(received_requests_[i].getRequest(), received_requests_[i].getRanges(), results_, ranges_);
-        }
-    }
-    else {
-        std::cout << "No flattening requests -- assuming single requests" << std::endl;
-        requestToMapNoFlatten(received_requests_, results_, ranges_);
-    }
+    requestToMap(received_requests_, results_, ranges_, flattenRequest_);
 
     LOG_DEBUG_LIB(LibGribJump) << "Results to be computed " << results_.size() << std::endl;
 
@@ -200,7 +210,7 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
     }
     LOG_DEBUG_LIB(LibGribJump) << "Union request " << unionRequest << std::endl;
 
-    timer.reset("ExtractFileRequest : Created union request for resultss");
+    timer.reset("ExtractFileRequest : Created union request for results");
 
     // fdb list to get locations
     eckit::AutoLock<FDBService> lock(FDBService::instance()); // worker threads wont touch FDB, only main thread, however this is not good for multiple clients
@@ -212,15 +222,13 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
 
     fdb5::ListElement elem;
     while (listIter.next(elem)) {
-                
+
         // the order in this key should match the order in requestToStr
         flatkey_t key = elem.combinedKey(true);
         LOG_DEBUG_LIB(LibGribJump) << "FDB LIST found " << key << std::endl;
 
         auto resit = results_.find(key);
         if(resit != results_.end()) {
-
-            // LOG_DEBUG_LIB(LibGribJump) << "Work found for key=" << key << std::endl;
 
             // this is a key we are interested in
             const fdb5::FieldLocation& loc = elem.location();
@@ -235,7 +243,6 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
             else { 
                 PerFileWork* work = new PerFileWork{ filepath, {{key, offset}} };
                 per_file_work.insert( { filepath, work} );
-                LOG_DEBUG_LIB(LibGribJump) << "Work for file=" << filepath << std::endl;
             }
 
         }
@@ -275,34 +282,6 @@ void ExtractFileRequest::enqueueTask(ExtractFileTask* task) {
     WorkQueue& queue = WorkQueue::instance();
     queue.push(w);
     LOG_DEBUG_LIB(LibGribJump) << "Queued task " <<  tasks_.size() << std::endl;
-}
-
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class CollectResultsCB : public metkit::mars::FlattenCallback {
-public:
-    CollectResultsCB(ExtractFileRequest& clientReq) : clientReq_(clientReq) {}
-
-    virtual void operator()(const metkit::mars::MarsRequest& req) {
-        flatkey_t key = requestToStr(req);
-        ExtractionResult* r = clientReq_.results(key);
-        collected_.push_back(r);
-    }
-
-    ExtractFileRequest& clientReq_;
-    std::vector<ExtractionResult*> collected_;
-};
-
-std::vector<ExtractionResult*> orderedCollectResults(const metkit::mars::MarsRequest& request, ExtractFileRequest& clientReq) {
-
-    metkit::mars::MarsExpension expansion(false);
-    metkit::mars::DummyContext ctx;
-
-    CollectResultsCB cb(clientReq);
-    expansion.flatten(ctx, request, cb);
-
-    return cb.collected_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
