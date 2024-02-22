@@ -70,9 +70,9 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     return count;
 }
 
-std::vector<std::vector<ExtractionResult>> RemoteGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
+std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
     eckit::Timer timer("RemoteGribJump::extract()");
-    std::vector<std::vector<ExtractionResult>> result;
+    std::vector<std::vector<ExtractionResult*>> result;
 
     // connect to server
     eckit::net::TCPClient client;
@@ -96,12 +96,11 @@ std::vector<std::vector<ExtractionResult>> RemoteGribJump::extract(std::vector<E
     bool error = receiveErrors(stream);
 
     for (size_t i = 0; i < nRequests; i++) {
-        std::vector<ExtractionResult> response;
+        std::vector<ExtractionResult*> response;
         size_t nfields;
         stream >> nfields;
         for (size_t i = 0; i < nfields; i++) {
-            ExtractionResult output(stream);
-            response.push_back(output);
+            response.push_back(new ExtractionResult(stream));
         }
         result.push_back(response);
     }

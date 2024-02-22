@@ -34,7 +34,7 @@ public:
 
     std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
 
-    std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
+    std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>) override;
     
     JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
     JumpInfoHandle extractInfo(const eckit::PathName& path, const eckit::Offset& offset);

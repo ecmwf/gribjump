@@ -447,13 +447,8 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
     return std::make_pair(new_intervals, new_interval_bitmaps);
 }
 
-ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
-    // Todo: remove this function and always use newExtractRanges
-    std::unique_ptr<ExtractionResult> result(newExtractRanges(f, intervals));
-    return *result;
-}
 
-ExtractionResult* JumpInfo::newExtractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
+ExtractionResult* JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
     ASSERT(check_intervals(intervals));
     ASSERT(!sphericalHarmonics_);
     // TODO(maee): do we need this check?

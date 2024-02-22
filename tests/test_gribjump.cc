@@ -87,7 +87,7 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
 
         std::vector<std::vector<double>> actual;
         std::vector<std::vector<std::bitset<64>>> mask;
-        std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, ranges));
+        std::unique_ptr<ExtractionResult> output(gribInfo.extractRanges(dataSource, ranges));
         actual = output->values();
         mask = output->mask();
 

@@ -86,7 +86,7 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
             Range(6560000, expectedNumberOfValues),
         };
 
-        std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, ranges));
+        std::unique_ptr<ExtractionResult> output(gribInfo.extractRanges(dataSource, ranges));
         auto values = output->values();
         
         EXPECT(values.size() == ranges.size());
@@ -117,7 +117,7 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
     // Plus the last one
     singlePoints.push_back(Range(expectedNumberOfValues-1, expectedNumberOfValues));
 
-    std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, singlePoints));
+    std::unique_ptr<ExtractionResult> output(gribInfo.extractRanges(dataSource, singlePoints));
     auto values = output->values();
 
     EXPECT(values.size() == singlePoints.size());

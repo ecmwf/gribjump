@@ -38,7 +38,16 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 }
 
 std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> requests) {
-    auto out = impl_->extract(requests);
+    std::vector<std::vector<ExtractionResult*>> out_ptr = impl_->extract(requests);
+
+    std::vector<std::vector<ExtractionResult>> out;
+    for (auto& ptr : out_ptr) {
+        std::vector<ExtractionResult> tmp;
+        for (auto& res : ptr) {
+            tmp.push_back(*res);
+        }
+        out.push_back(tmp);
+    }
     return out;
 }
 
