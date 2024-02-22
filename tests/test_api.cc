@@ -117,7 +117,7 @@ CASE( "test_gribjump_api_extract" ) {
 
     // Extract values
     GribJump gj;
-    std::vector<std::vector<ExtractionResult>> output = gj.extract(polyRequest);
+    std::vector<std::vector<ExtractionResult*>> output = gj.extract(polyRequest);
     std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues;
     for (size_t i = 0; i < requests.size(); i++) {
         std::vector<std::vector<std::vector<double>>> vi;
@@ -142,8 +142,8 @@ CASE( "test_gribjump_api_extract" ) {
         std::cout << "request " << i << std::endl;
         for (size_t j = 0; j < expectedValues[i].size(); j++) { // each field
             std::cout << "field " << j << std::endl;
-            auto values = output[i][j].values();
-            auto mask = output[i][j].mask();
+            auto values = output[i][j]->values();
+            auto mask = output[i][j]->mask();
             for (size_t k = 0; k < expectedValues[i][j].size(); k++) { // each range
                 std::cout << "range " << k << std::endl;
                 for (size_t l = 0; l < expectedValues[i][j][k].size(); l++) { // each value
@@ -176,7 +176,7 @@ CASE( "test_gribjump_api_extract" ) {
     polyRequest.clear();
     polyRequest.push_back(ExtractionRequest(requests[0], ranges));
 
-    std::vector<std::vector<ExtractionResult>> output2 = gj.extract(polyRequest);
+    std::vector<std::vector<ExtractionResult*>> output2 = gj.extract(polyRequest);
     EXPECT(output2.size() == 1);
     EXPECT(output2[0].size() == 3);
 
@@ -201,8 +201,8 @@ CASE( "test_gribjump_api_extract" ) {
         std::cout << "request " << i << std::endl;
         for (size_t j = 0; j < expectedValues[i].size(); j++) { // each field
             std::cout << "field " << j << std::endl;
-            auto values = output2[i][j].values();
-            auto mask = output2[i][j].mask();
+            auto values = output2[i][j]->values();
+            auto mask = output2[i][j]->mask();
             for (size_t k = 0; k < expectedValues[i][j].size(); k++) { // each range
                 std::cout << "range " << k << std::endl;
                 for (size_t l = 0; l < expectedValues[i][j][k].size(); l++) { // each value
@@ -254,19 +254,19 @@ CASE( "test_gribjump_api_extract" ) {
     }
     
 
-    std::vector<ExtractionResult*> output4 = gj.extract(paths[0], offsets, rangesRepeat);
-    EXPECT(output4.size() == 3);
+    std::vector<ExtractionResult*> output3 = gj.extract(paths[0], offsets, rangesRepeat);
+    EXPECT(output3.size() == 3);
 
-    // Expect output4 to be the same as output2[0]
+    // Expect output3 to be the same as output2[0]
 
     std::cout << "output 4 expected" << std::endl;
 
-    for (size_t i = 0; i < output4.size(); i++) { // each field
-        auto values = output4[i]->values();
-        auto mask = output4[i]->mask();
+    for (size_t i = 0; i < output3.size(); i++) { // each field
+        auto values = output3[i]->values();
+        auto mask = output3[i]->mask();
 
-        auto values2 = output2[0][i].values();
-        auto mask2 = output2[0][i].mask();
+        auto values2 = output2[0][i]->values();
+        auto mask2 = output2[0][i]->mask();
 
         for (size_t k = 0; k < values.size(); k++) { // each range
             for (size_t l = 0; l < values[k].size(); l++) { // each value

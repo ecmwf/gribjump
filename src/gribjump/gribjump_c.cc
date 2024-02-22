@@ -138,13 +138,13 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
 
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned short* nfields) {
     ExtractionRequest req = *request;
-    std::vector<ExtractionResult> results = handle->extract(std::vector<ExtractionRequest>{req})[0]; // XXX Bad, we do this because we are serving requests one at a time. Don't do this.
+    std::vector<ExtractionResult*> results = handle->extract(std::vector<ExtractionRequest>{req})[0];
 
     *nfields = results.size();
     *results_array = new gribjump_extraction_result_t*[*nfields];
 
     for (size_t i = 0; i < *nfields; i++) {
-        (*results_array)[i] = new gribjump_extraction_result_t(results[i]);
+        (*results_array)[i] = new gribjump_extraction_result_t(*results[i]);
     }
 
     return 0;
@@ -154,7 +154,7 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
     for (size_t i = 0; i < nrequests; i++) {
         reqs.push_back(*requests[i]);
     }
-    std::vector<std::vector<ExtractionResult>> results = handle->extract(reqs);
+    std::vector<std::vector<ExtractionResult*>> results = handle->extract(reqs);
 
     *nfields = new unsigned short[nrequests];
     *results_array = new gribjump_extraction_result_t**[nrequests];
@@ -163,7 +163,7 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
         (*nfields)[i] = results[i].size();
         (*results_array)[i] = new gribjump_extraction_result_t*[(*nfields)[i]];
         for (size_t j = 0; j < (*nfields)[i]; j++) {
-            (*results_array)[i][j] = new gribjump_extraction_result_t(results[i][j]);
+            (*results_array)[i][j] = new gribjump_extraction_result_t(*results[i][j]);
         }
     }
     return 0;
