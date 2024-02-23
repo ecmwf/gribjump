@@ -10,7 +10,9 @@
 
 #include <cmath>
 #include <fstream>
+
 #include "eckit/testing/Test.h"
+
 #include "gribjump/GribInfo.h"
 #include "gribjump/JumpHandle.h"
 #include "gribjump/tools/ToolUtils.h"
@@ -21,7 +23,7 @@ using namespace eckit::testing;
 namespace gribjump {
 namespace test {
 
-using Range = std::pair<size_t, size_t>; // change this with ccsds
+using Range = std::pair<size_t, size_t>;
 const size_t expectedNumberOfValues = 6599680; // O1280
 
 const std::vector<size_t> o1280_offsets = {
@@ -64,14 +66,11 @@ std::vector<double> getComparisonValues(eckit::PathName gribname, size_t expecte
 
 void test(eckit::PathName gribname, eckit::PathName comparename){
     const std::vector<double> comparisonValues = getComparisonValues(gribname, expectedNumberOfValues);
-    std::cout << "Got comparison values" << std::endl;
     // check the values
     eckit::PathName binName = "temp";
     JumpHandle dataSource(gribname);
-    std::cout << "Made JumpHandle" << std::endl;
     std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();  
     JumpInfo gribInfo = *infos.back();
-    std::cout << "Made JumpInfo" << std::endl;
     EXPECT(gribInfo.getNumberOfDataPoints() == expectedNumberOfValues);
 
     {
@@ -98,11 +97,9 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
             EXPECT(values[i].size() == range1 - range0);
             for (size_t j = 0; j < values[i].size(); j++) {
                 if (std::isnan(values[i][j])) {
-                    EXPECT(comparisonValues[range0 + j] == 9999); // comparison file has 9999 for missing values
+                    EXPECT(comparisonValues[range0 + j] == 9999);
                     continue;
                 }
-                //std::cout << "values[" << i << "][" << j << "] = " << values[i][j] << std::endl;
-                //std::cout << "comparisonValues[" << range0 + j << "] = " << comparisonValues[range0 + j] << std::endl;
                 EXPECT(values[i][j] == comparisonValues[range0 + j]);
             }
         }
@@ -129,7 +126,7 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
         EXPECT(values[i].size() == range1 - range0);
         for (size_t j = 0; j < values[i].size(); j++) {
             if (std::isnan(values[i][j])) {
-                EXPECT(comparisonValues[range0 + j] == 9999); // comparison file has 9999 for missing values
+                EXPECT(comparisonValues[range0 + j] == 9999);
                 continue;
             }
             EXPECT(values[i][j] == comparisonValues[range0 + j]);
@@ -157,8 +154,6 @@ CASE( "test_ceil_offsets" ) {
 
     JumpInfo gribInfo = *infos.back();
 
-    // NOTE: These offsets were originally obtained from GribInfo
-    // TODO: Verify they are correct with an independent tool...
     std::vector<size_t> offsets = gribInfo.getCcsdsOffsets();
     EXPECT(offsets.size() == o1280_offsets.size());
     EXPECT(offsets == o1280_offsets);

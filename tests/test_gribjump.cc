@@ -10,18 +10,23 @@
 
 #include <cmath>
 #include <fstream>
+
 #include "eckit/testing/Test.h"
+
 #include "gribjump/GribInfo.h"
 #include "gribjump/JumpHandle.h"
 
 using namespace eckit::testing;
+
+#include "data.cc"
 
 namespace gribjump {
 namespace test {
 
 //-----------------------------------------------------------------------------
 
-#include "data.cc"
+
+using Range = std::pair<size_t, size_t>;
 
 void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     EXPECT(gribInfo.ready());
@@ -35,41 +40,41 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     std::vector<std::vector<Interval> > rangesVector;
     // Single ranges
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(12, 34),   // start and end in same word
+        Range(12, 34),   // start and end in same word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 63),    // test edge of word
+        Range(0, 63),    // test edge of word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 64),    // test edge of word
+        Range(0, 64),    // test edge of word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 65),    // test edge of word
+        Range(0, 65),    // test edge of word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(32, 100),  // start and end in adjacent words
+        Range(32, 100),  // start and end in adjacent words
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(123, 456), // start and end in non-adjacent words
+        Range(123, 456), // start and end in non-adjacent words
     });
 
     // Ranges of ranges:
     // densely backed ranges
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 3), std::make_pair(30, 60), std::make_pair(60, 90), std::make_pair(90, 120)
+        Range(0, 3), Range(30, 60), Range(60, 90), Range(90, 120)
     });
     // // slightly seperated ranges, also starting from non-zero. also big ranges
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(1, 30), std::make_pair(31, 60), std::make_pair(61, 90), std::make_pair(91, 120),
-        std::make_pair(200, 400), std::make_pair(401, 402), std::make_pair(403, 600),
+        Range(1, 30), Range(31, 60), Range(61, 90), Range(91, 120),
+        Range(200, 400), Range(401, 402), Range(403, 600),
     });
     // not starting on first word. Hitting last index.
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(200, 220), std::make_pair(220, 240), std::make_pair(240, 260), std::make_pair(600, 684)
+        Range(200, 220), Range(220, 240), Range(240, 260), Range(600, 684)
     });
-    // ranges with entire words between them (so word skipping should take place)
+    // ranges with entire words between them
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(5, 10), std::make_pair(130, 135), std::make_pair(400, 410)
+        Range(5, 10), Range(130, 135), Range(400, 410)
     });
 
     // loop through the ranges
@@ -94,10 +99,8 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
         EXPECT(actual.size() == expected.size());
         for (size_t ri = 0; ri < expected.size(); ri++) {
             EXPECT(actual[ri].size() == expected[ri].size());
-            // std::cout << "range " << std::get<0>(ranges[ri]) << " to " << std::get<1>(ranges[ri]) << std::endl;
-            // std::cout << "xxx:" << " expected " << expected[ri] << " actual " << actual[ri] << std::endl;
             for (size_t index = 0; index < expected[ri].size(); index++) {
-                if (std::isnan(expected[ri][index])) {
+                if (expected[ri][index] == 9999) {
                     EXPECT(std::isnan(actual[ri][index]));
                     EXPECT(!mask[ri][index/64][index%64]);
                     continue;
@@ -112,6 +115,8 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
 
 }
 CASE( "test_gribjump_extract" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     // loop through the test cases, ensure metadata is extracted correctly
     for (int i=0; i < simplePackedData.size(); i++) {
         JumpHandle dataSource(simplePackedData[i].gribFileName);
@@ -129,6 +134,8 @@ CASE( "test_gribjump_extract" ) {
 }
 
 CASE( "test_gribjump_query" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     // loop through the test cases
     for (int i = 0; i < simplePackedData.size(); i++) {
         JumpHandle dataSource(simplePackedData[i].gribFileName);
@@ -144,6 +151,8 @@ CASE( "test_gribjump_query" ) {
 }
 
 CASE( "test_gribjump_query_multimsg" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     // concatenate each test file into one big file, and check that reading from that file
     // gives the same result as reading from the individual files
 
@@ -186,7 +195,5 @@ CASE( "test_gribjump_query_multimsg" ) {
 
 int main(int argc, char **argv)
 {
-    gribjump::test::setGribJumpData(); // Set the data used by the test cases
-    // print the current directoy
     return run_tests ( argc, argv );
 }

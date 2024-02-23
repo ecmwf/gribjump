@@ -9,17 +9,21 @@
  */
 
 #include <cmath>
-#include "eckit/testing/Test.h"
-#include "gribjump/GribInfo.h"
-#include "gribjump/JumpHandle.h"
 #include <fstream>
 #include <filesystem>
 
+#include "eckit/testing/Test.h"
+
+#include "gribjump/GribInfo.h"
+#include "gribjump/JumpHandle.h"
+
 using namespace eckit::testing;
 
+#include "data.cc"
+
+namespace gribjump {
 namespace test {
 
-#include "data.cc"
 
 void print_result(const Interval& interval, const std::vector<std::bitset<64>>& mask, const Values& actual, const Values& expected)
 {
@@ -50,11 +54,11 @@ void test_compression() {
 
     for (const auto& data : testData) {
         std::cerr << "Testing " << data.gribFileName << std::endl;
-        gribjump::JumpHandle dataSource(data.gribFileName);
+        JumpHandle dataSource(data.gribFileName);
         eckit::PathName binName = "temp";
-        std::vector<gribjump::JumpInfo*> infos = dataSource.extractInfoFromFile();
+        std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
 
-        gribjump::JumpInfo gribInfo = *infos.back();
+        JumpInfo gribInfo = *infos.back();
         EXPECT(gribInfo.ready());
         size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
         double epsilon = data.epsilon;
@@ -83,7 +87,7 @@ void test_compression() {
             return interval.second <= numberOfDataPoints && interval.first < interval.second;
         });
 
-        std::unique_ptr<gribjump::ExtractionResult> result(gribInfo.extractRanges(dataSource, intervals));
+        std::unique_ptr<ExtractionResult> result(gribInfo.extractRanges(dataSource, intervals));
         auto actual_all = result->values();
         auto mask_all = result->mask();
 
@@ -94,7 +98,7 @@ void test_compression() {
             if (!mask_all.empty()) {
                 auto actual_mask = mask_all[index];
                 Bitmap expected_bitmap = generate_bitmap(expected, intervals[index]);
-                auto expected_mask = gribjump::to_bitset(expected_bitmap);
+                auto expected_mask = to_bitset(expected_bitmap);
                 //print_bitmap(expected_bitmap);
                 //print_mask(expected_mask);
                 //print_mask(actual_mask);
@@ -106,7 +110,7 @@ void test_compression() {
             auto actual_values = actual_all[index];
             EXPECT(actual_values.size() == end - start);
             for (size_t i = 0; i < actual_values.size(); i++) {
-                if (std::isnan(expected[start + i])) {
+                if (expected[start + i] == 9999) {
                     EXPECT(std::isnan(actual_values[i]));
                     continue;
                 }
@@ -126,6 +130,8 @@ void test_compression() {
 
 
 CASE( "test_compression" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     test_compression();
 }
 
@@ -134,11 +140,9 @@ CASE( "test_compression" ) {
 
 
 }  // namespace test
-
+} // namespace gribjump
 
 int main(int argc, char **argv)
 {
-    test::setGribJumpData(); // Set the data used by the test cases
-    // print the current directoy
     return run_tests ( argc, argv );
 }

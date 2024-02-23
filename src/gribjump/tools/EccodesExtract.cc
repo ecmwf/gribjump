@@ -73,6 +73,24 @@ std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName pat
 
     return results;
 
-
 }
+
+std::vector<double> eccodesExtract(eckit::PathName path) {
+    
+        std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
+        dh->openForRead();
+    
+        const metkit::grib::GribHandle handle(*dh, 0);
+    
+        size_t count;
+        std::unique_ptr<double[]> data(handle.getDataValues(count));
+    
+        std::vector<double> ecvalues;
+        for (size_t k = 0; k < count; k++) {
+            ecvalues.push_back(data[k]);
+        }
+    
+        return ecvalues;
+}
+
 } // namespace gribjump
