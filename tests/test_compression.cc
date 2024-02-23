@@ -61,7 +61,6 @@ void test_compression() {
         JumpInfo gribInfo = *infos.back();
         EXPECT(gribInfo.ready());
         size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
-        double epsilon = data.epsilon;
 
         if (numberOfDataPoints != data.expectedData.size()) {
             std::cerr << "numberOfDataPoints: " << numberOfDataPoints << std::endl;
@@ -114,15 +113,16 @@ void test_compression() {
                     EXPECT(std::isnan(actual_values[i]));
                     continue;
                 }
-                double delta = std::abs(actual_values[i] - expected[start + i]);
-                if (delta > epsilon) {
-                    std::cerr << "delta: " << delta << std::endl;
+
+                if (actual_values[i] != expected[start + i]){
                     std::cerr << "actual: " << actual_values[i] << std::endl;
                     std::cerr << "expected: " << expected[start + i] << std::endl;
                     print_result(intervals[index], {}, actual_values, expected);
-                    throw std::runtime_error("delta is too large");
+                    throw std::runtime_error("actual value does not match expected value");
                 }
-                EXPECT(delta < epsilon);
+
+                EXPECT(actual_values[i] == expected[start + i]);
+                
             }
         }
     }

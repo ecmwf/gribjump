@@ -17,7 +17,6 @@ class InputData {
 public:
     std::string gribFileName;
     std::vector<double> expectedData;
-    double epsilon = 1e-12;
     std::string expectedString;
     // std::vector<size_t> expectedCcsdsOffsets; // todo for all ccsds files.
 };
@@ -83,6 +82,7 @@ void add_surface_level_data() {
     // Surface level grib with bitmask
     std::vector<double> ecValues = eccodesExtract("sl_mask.grib");
     EXPECT(ecValues.size() == 684);
+    // ecValues[0] += 1;
     testData.push_back(
         InputData{
             .gribFileName = "sl_mask.grib",
@@ -131,10 +131,11 @@ void add_synthetic_data_with_bitmap() {
     simplePackedData.push_back(testData.back());
 
     // Grib with single value
+    std::vector<double> ecValuesConst = eccodesExtract("const.grib");
+    EXPECT(ecValuesConst.size() == 1);
     testData.push_back(InputData{
         .gribFileName = "const.grib",
-        .expectedData = std::vector<double>(ecValues.size(), 1.23456789),
-        .epsilon = 1e-6, // Constant fields are stored at reduced precision
+        .expectedData = std::vector<double>(ecValues.size(), ecValuesConst[0]),
         .expectedString = "JumpInfo[version=4,editionNumber=1,binaryScaleFactor=-10,decimalScaleFactor=0,bitsPerValue=0,ccsdsFlags=0,ccsdsBlockSize=0,ccsdsRsi=0,referenceValue=1.23457,offsetBeforeData=111,offsetAfterData=112,numberOfDataPoints=684,numberOfValues=1,offsetBeforeBitmap=98,sphericalHarmonics=0,binaryMultiplier=0.000976562,decimalMultiplier=1,totalLength=116,msgStartOffset=0,md5GridSection=33c7d6025995e1b4913811e77d38ec50,packingType=grid_simple]",
     });
     simplePackedData.push_back(testData.back());

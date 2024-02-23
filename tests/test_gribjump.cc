@@ -31,7 +31,6 @@ using Range = std::pair<size_t, size_t>;
 void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     EXPECT(gribInfo.ready());
     size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
-    double epsilon = simplePackedData[i].epsilon;
 
     std::cout << "Testing " << simplePackedData[i].gribFileName << std::endl;
     EXPECT(numberOfDataPoints == simplePackedData[i].expectedData.size());
@@ -105,8 +104,7 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
                     EXPECT(!mask[ri][index/64][index%64]);
                     continue;
                 }
-                double delta = std::abs(actual[ri][index] - expected[ri][index]);
-                EXPECT(delta < epsilon);
+                EXPECT(actual[ri][index] == expected[ri][index]);
                 EXPECT(mask[ri][index/64][index%64]);
             }
         }
