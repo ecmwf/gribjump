@@ -13,6 +13,8 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/gribjump_config.h
 list( APPEND gribjump_srcs
     ${CMAKE_CURRENT_BINARY_DIR}/gribjump_version.c
 
+    # libraries for clientside, no extraction support
+
     LibGribJump.cc
     LibGribJump.h
     gribjump_config.h.in
@@ -24,32 +26,44 @@ list( APPEND gribjump_srcs
 
     Config.cc
     Config.h
+    Stats.cc
+    Stats.h
+
+    tools/ToolUtils.h
+    tools/ToolUtils.cc
+    
+    remote/RemoteGribJump.cc
+    remote/RemoteGribJump.h
+
+    GribJump.cc
+    GribJump.h
+    GribJumpBase.h
+    GribJumpBase.cc
+    GribJumpFactory.cc
+    GribJumpFactory.h
+    GribJumpException.h 
+    ExtractionData.cc
+    ExtractionData.h
+)
+
+if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
+    list( APPEND gribjump_srcs
     JumpHandle.cc
     JumpHandle.h
     GribInfo.cc
     GribInfo.h
     GribInfoCache.cc
     GribInfoCache.h
-    GribJump.cc
-    GribJump.h
-    GribJumpBase.h
-    GribJumpBase.cc
     LocalGribJump.cc
     LocalGribJump.h
-    GribJumpFactory.cc
-    GribJumpFactory.h
-    GribJumpException.h 
     GribJumpDataAccessor.h
-    ExtractionData.cc
-    ExtractionData.h
-    Stats.cc
-    Stats.h
     FDBService.h
     FDBService.cc
 
-    tools/ToolUtils.h
-    tools/ToolUtils.cc
+    tools/EccodesExtract.h
+    tools/EccodesExtract.cc
 
+    
     remote/Request.h
     remote/Request.cc
     remote/ExtractFileRequest.h
@@ -60,8 +74,6 @@ list( APPEND gribjump_srcs
     remote/GribJumpService.h
     remote/GribJumpUser.cc
     remote/GribJumpUser.h
-    remote/RemoteGribJump.cc
-    remote/RemoteGribJump.h
     remote/WorkItem.cc
     remote/WorkItem.h
     remote/WorkQueue.cc
@@ -82,7 +94,11 @@ list( APPEND gribjump_srcs
     compression/compressors/algorithms/SimplePacking.h
     compression/compressors/algorithms/LibEccodes.h
     compression/compressors/algorithms/LibEccodes.cc
-)
+    )
+
+    set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )
+
+endif()
 
 ecbuild_add_library(
 
@@ -101,9 +117,8 @@ ecbuild_add_library(
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 
     PUBLIC_LIBS
-        fdb5
         metkit
         eckit
         eckit_option
-        ${AEC_LIBRARIES}
+        ${SERVER_LIBS}
 )

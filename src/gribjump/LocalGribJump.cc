@@ -38,13 +38,6 @@ namespace gribjump {
 
 typedef std::chrono::high_resolution_clock Clock;
 
-static std::string thread_id_str() {
-    auto id = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << id;
-    return ss.str();
-}
-
 LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 }
 
@@ -92,23 +85,29 @@ std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& pat
     std::vector<ExtractionResult*> results;
     for (size_t i = 0; i < infos.size(); i++) {
         ASSERT(infos[i]->ready());
-        results.push_back(infos[i]->newExtractRanges(dataSource, ranges[i]));
+        results.push_back(infos[i]->extractRanges(dataSource, ranges[i]));
     }
 
     return results;
 }
 
-std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
+std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
     // Old API
     // TODO: use pointers to ExtractionResult.
+
+    // TODO: Remove this function, or significantly change it, such that the server and local implementations call the same functions.
 
     std::vector<std::vector<JumpInfoHandle>> infos;
     std::vector<std::vector<eckit::DataHandle*>> handles;
     
     { // Get handles
     
-        eckit::AutoLock<FDBService> lock(FDBService::instance());
-        fdb5::FDB& fdb = FDBService::instance().fdb();
+        // eckit::AutoLock<FDBService> lock(FDBService::instance()); 
+        // fdb5::FDB& fdb = FDBService::instance().fdb(); // NB: A static FDB cannot be destroyed correctly if inspect is ever called...
+
+        // This function is for single-threaded use only.
+        fdb5::FDB fdb;
+        
 
         for (auto& req : polyRequest){
 
@@ -129,10 +128,10 @@ std::vector<std::vector<ExtractionResult>> LocalGribJump::extract(std::vector<Ex
     }
 
     // Extract values
-    std::vector<std::vector<ExtractionResult>> result;
+    std::vector<std::vector<ExtractionResult*>> result;
     
     for (size_t i = 0; i < polyRequest.size(); i++) {
-        result.push_back(std::vector<ExtractionResult>());
+        result.push_back(std::vector<ExtractionResult*>());
         for (size_t j = 0; j < infos[i].size(); j++) {
             JumpHandle dataSource(handles[i][j]);
             result.back().push_back(infos[i][j]->extractRanges(dataSource, polyRequest[i].getRanges()));

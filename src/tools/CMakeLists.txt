@@ -4,27 +4,31 @@ ecbuild_add_executable( TARGET   gribjump-extract
     LIBS      gribjump
 )
 
-ecbuild_add_executable( TARGET   gribjump-server
-    SOURCES   gribjump-server.cc
-    INCLUDES  ${ECKIT_INCLUDE_DIRS}
-    LIBS      gribjump
-)
+if ( HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
-# TODO: merge me with extract, then delete.
-ecbuild_add_executable( TARGET   gribjump-old
-  SOURCES   gribjump-old.cc
-  INCLUDES  ${ECKIT_INCLUDE_DIRS}
-  LIBS      gribjump
+    ecbuild_add_executable( TARGET   gribjump-server
+        SOURCES   gribjump-server.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      gribjump
     )
 
-ecbuild_add_executable( TARGET   gribjump-scan
-    SOURCES   gribjump-scan.cc
+    # TODO: merge me with extract, then delete.
+    ecbuild_add_executable( TARGET   gribjump-old
+    SOURCES   gribjump-old.cc
     INCLUDES  ${ECKIT_INCLUDE_DIRS}
     LIBS      gribjump
-)
+        )
 
-ecbuild_add_executable( TARGET   gribjump-validate
-    SOURCES   gribjump-validate.cc
-    INCLUDES  ${ECKIT_INCLUDE_DIRS}
-    LIBS      gribjump
-)
+    ecbuild_add_executable( TARGET   gribjump-scan
+        SOURCES   gribjump-scan.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      gribjump
+    )
+
+    ecbuild_add_executable( TARGET   gribjump-validate
+        SOURCES   gribjump-validate.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      gribjump
+    )
+
+endif()

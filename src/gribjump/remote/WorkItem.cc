@@ -13,6 +13,7 @@
 
 
 #include "gribjump/remote/WorkItem.h"
+#include "gribjump/remote/Request.h"
 
 namespace gribjump {
 

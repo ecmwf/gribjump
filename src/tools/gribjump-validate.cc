@@ -7,7 +7,6 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
 /// @author Christopher Bradley
 
 #include <fstream>
@@ -32,8 +31,8 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/FDBService.h"
 #include "gribjump/tools/ToolUtils.h"
+#include "gribjump/tools/EccodesExtract.h"
 
-/// @author Christopher Bradley
 
 // Tool to perform an extraction request on a given request, and compare the results with the
 // equivalent request using eccodes.
@@ -106,7 +105,7 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
     // Extract the data using gribjump
 
     GribJump gj;
-    std::vector<std::vector<ExtractionResult>> results = gj.extract(polyRequest);
+    std::vector<std::vector<ExtractionResult*>> results = gj.extract(polyRequest);
 
     ASSERT(results.size() == requests.size());
 
@@ -134,7 +133,7 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
 
         for (int j = 0; j < results[i].size(); j++) {
             const auto& ecval = ecvalues[j];
-            const auto& gjval= results[i][j].values();
+            const auto& gjval= results[i][j]->values();
 
             ASSERT(ecval.size() == gjval.size());
 

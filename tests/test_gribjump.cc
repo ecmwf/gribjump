@@ -10,23 +10,27 @@
 
 #include <cmath>
 #include <fstream>
+
 #include "eckit/testing/Test.h"
+
 #include "gribjump/GribInfo.h"
 #include "gribjump/JumpHandle.h"
 
 using namespace eckit::testing;
+
+#include "data.cc"
 
 namespace gribjump {
 namespace test {
 
 //-----------------------------------------------------------------------------
 
-#include "data.cc"
+
+using Range = std::pair<size_t, size_t>;
 
 void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     EXPECT(gribInfo.ready());
     size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
-    double epsilon = simplePackedData[i].epsilon;
 
     std::cout << "Testing " << simplePackedData[i].gribFileName << std::endl;
     EXPECT(numberOfDataPoints == simplePackedData[i].expectedData.size());
@@ -35,41 +39,41 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     std::vector<std::vector<Interval> > rangesVector;
     // Single ranges
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(12, 34),   // start and end in same word
+        Range(12, 34),   // start and end in same word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 63),    // test edge of word
+        Range(0, 63),    // test edge of word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 64),    // test edge of word
+        Range(0, 64),    // test edge of word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 65),    // test edge of word
+        Range(0, 65),    // test edge of word
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(32, 100),  // start and end in adjacent words
+        Range(32, 100),  // start and end in adjacent words
     });
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(123, 456), // start and end in non-adjacent words
+        Range(123, 456), // start and end in non-adjacent words
     });
 
     // Ranges of ranges:
     // densely backed ranges
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(0, 3), std::make_pair(30, 60), std::make_pair(60, 90), std::make_pair(90, 120)
+        Range(0, 3), Range(30, 60), Range(60, 90), Range(90, 120)
     });
     // // slightly seperated ranges, also starting from non-zero. also big ranges
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(1, 30), std::make_pair(31, 60), std::make_pair(61, 90), std::make_pair(91, 120),
-        std::make_pair(200, 400), std::make_pair(401, 402), std::make_pair(403, 600),
+        Range(1, 30), Range(31, 60), Range(61, 90), Range(91, 120),
+        Range(200, 400), Range(401, 402), Range(403, 600),
     });
     // not starting on first word. Hitting last index.
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(200, 220), std::make_pair(220, 240), std::make_pair(240, 260), std::make_pair(600, 684)
+        Range(200, 220), Range(220, 240), Range(240, 260), Range(600, 684)
     });
-    // ranges with entire words between them (so word skipping should take place)
+    // ranges with entire words between them
     rangesVector.push_back(std::vector<Interval>{
-        std::make_pair(5, 10), std::make_pair(130, 135), std::make_pair(400, 410)
+        Range(5, 10), Range(130, 135), Range(400, 410)
     });
 
     // loop through the ranges
@@ -87,23 +91,20 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
 
         std::vector<std::vector<double>> actual;
         std::vector<std::vector<std::bitset<64>>> mask;
-        std::unique_ptr<ExtractionResult> output(gribInfo.newExtractRanges(dataSource, ranges));
+        std::unique_ptr<ExtractionResult> output(gribInfo.extractRanges(dataSource, ranges));
         actual = output->values();
         mask = output->mask();
 
         EXPECT(actual.size() == expected.size());
         for (size_t ri = 0; ri < expected.size(); ri++) {
             EXPECT(actual[ri].size() == expected[ri].size());
-            // std::cout << "range " << std::get<0>(ranges[ri]) << " to " << std::get<1>(ranges[ri]) << std::endl;
-            // std::cout << "xxx:" << " expected " << expected[ri] << " actual " << actual[ri] << std::endl;
             for (size_t index = 0; index < expected[ri].size(); index++) {
-                if (std::isnan(expected[ri][index])) {
+                if (expected[ri][index] == 9999) {
                     EXPECT(std::isnan(actual[ri][index]));
                     EXPECT(!mask[ri][index/64][index%64]);
                     continue;
                 }
-                double delta = std::abs(actual[ri][index] - expected[ri][index]);
-                EXPECT(delta < epsilon);
+                EXPECT(actual[ri][index] == expected[ri][index]);
                 EXPECT(mask[ri][index/64][index%64]);
             }
         }
@@ -112,6 +113,8 @@ void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
 
 }
 CASE( "test_gribjump_extract" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     // loop through the test cases, ensure metadata is extracted correctly
     for (int i=0; i < simplePackedData.size(); i++) {
         JumpHandle dataSource(simplePackedData[i].gribFileName);
@@ -129,6 +132,8 @@ CASE( "test_gribjump_extract" ) {
 }
 
 CASE( "test_gribjump_query" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     // loop through the test cases
     for (int i = 0; i < simplePackedData.size(); i++) {
         JumpHandle dataSource(simplePackedData[i].gribFileName);
@@ -144,6 +149,8 @@ CASE( "test_gribjump_query" ) {
 }
 
 CASE( "test_gribjump_query_multimsg" ) {
+    setGribJumpData(); // Set the data used by the test cases
+
     // concatenate each test file into one big file, and check that reading from that file
     // gives the same result as reading from the individual files
 
@@ -178,186 +185,6 @@ CASE( "test_gribjump_query_multimsg" ) {
     binName.unlink();
 }
 
-// XXX I don't believe the below code is used anywhere anymore, so we are testing unused code.
-CASE( "test_gribjump_accedges1" ) {
-    // unit test for accumulateIndexes function
-    // Testing handling of single words
-    size_t MASKED = -1;
-    for (size_t ti=0; ti < 2; ti ++){
-        uint64_t n;
-        std::queue<size_t> edges;
-        std::vector<size_t> n_index;
-        std::vector<size_t> expected_n;
-        size_t expected_count;
-        if (ti == 0) {
-            n = 0xF0F0F0F0F0F0F0F0;
-            expected_n = {
-                1, 2, 3, 4, MASKED, MASKED, MASKED, MASKED, 5, 6,
-                MASKED, MASKED, MASKED, MASKED, 13, 14, 15, 16, MASKED, MASKED,
-                MASKED,
-                18, 19, 20, MASKED, MASKED, MASKED, MASKED, 21, 22, 23, 24,
-                MASKED, MASKED, MASKED, 25, 26, 27, 28, MASKED, MASKED, MASKED, MASKED, 29, 30, 31, 32, MASKED, MASKED, MASKED, MASKED
-            };
-            expected_count = 32;
-        } else if (ti == 1) {
-            n = 0;
-            expected_n = {
-                MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED,
-                MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED,
-                MASKED,
-                MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED,
-                MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED, MASKED,
-            };
-            expected_count = 0;
-        } else if (ti == 2){
-            n = 0xFFFFFFFFFFFFFFFF;
-            expected_n = {
-                1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-                21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-                32,
-                34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
-                46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64
-            };
-            expected_count = 64;
-        }
-        else {
-            continue;
-        }
-
-        // std::cout << "bitstring n: " << std::bitset<64>(n) << std::endl;
-        size_t count = 0;
-        edges.push(0);
-        edges.push(10);
-
-        edges.push(20);
-        edges.push(30);
-
-        edges.push(31);
-        edges.push(32);
-
-        edges.push(33);
-        edges.push(44);
-
-        edges.push(45);
-        edges.push(64);
-
-        bool pushToggle = false; // note this test doesnt utilise this trick, its for inter-word edges
-        size_t bp = 0; // ditto
-        accumulateIndexes(n, count, n_index, edges, pushToggle, bp);
-
-        // print out expected
-        // std::cout << "expected: ";
-        // for (size_t i = 0; i < expected_n.size(); i++) {
-        //     std::cout << expected_n[i] << ", ";
-        // }
-        // std::cout << std::endl;
-
-        // std::cout << "count: " << count << std::endl;
-        // std::cout << "n_index: ";
-        // for (size_t i = 0; i < n_index.size(); i++) {
-        //     std::cout << n_index[i] << ", ";
-        // }
-        // std::cout << std::endl;
-
-
-        // XXX: WIP, expected_n currently off by 1 intentionally while developments happen
-        for (size_t i = 0; i < expected_n.size(); i++) {
-            if (expected_n[i] != MASKED) {
-                expected_n[i] -= 1;
-            }
-        }
-
-        EXPECT(expected_n.size() == n_index.size());
-        for (size_t i = 0; i < expected_n.size(); i++) {
-            EXPECT(n_index[i] == expected_n[i]);
-        }
-        EXPECT(count == expected_count);
-    }
-}
-
-CASE( "test_gribjump_accedges2" ) {
-    // unit test for accumulateIndexes function
-    // Testing handling of multiple words
-
-    uint64_t bitstream[] = {
-        0xFFFFFFFFFFFFFFFF, // [0, 64)
-        0xFFFFFFFFFFFFFFFF, // [64, 128)
-        0x0000000000000000, // [128, 192)
-        0xFFFFFFFFFFFFFFFF, // [192, 256)
-        0xFFFFFFFFFFFFFFFF, // [256, 320)
-    };
-    uint64_t n;
-    std::queue<size_t> edges;
-    std::vector<size_t> n_index;
-    std::vector<size_t> expected_n;
-    size_t expected_count;
-    size_t count = 0;
-
-    // inter-word range
-    edges.push(0);
-    edges.push(96);
-    // intra-word range
-    edges.push(100);
-    edges.push(120);
-    // inter-word range, edge case
-    edges.push(191);
-    edges.push(193);
-    // intra-word range, edge case
-    edges.push(255);
-    edges.push(256);
-
-
-    bool pushToggle = false;
-    size_t bp = 0;
-    size_t word = 0;
-    while (!edges.empty()) {
-        n = bitstream[word];
-        accumulateIndexes(n, count, n_index, edges, pushToggle, bp);
-        ASSERT(bp < 1000); // infinite loop protection
-        word++;
-    }
-    size_t MASKED = -1;
-    expected_n = {
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-        22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
-        60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
-        79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 101,
-        102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
-        117, 118, 119, 120, MASKED, 129, 192,
-    };
-    expected_count = 192;
-
-    // print out expected
-    // std::cout << "expected: ";
-    // for (size_t i = 0; i < expected_n.size(); i++) {
-    //     std::cout << expected_n[i] << ", ";
-    // }
-    // std::cout << std::endl;
-
-    // std::cout << "count: " << count << std::endl;
-    // std::cout << "n_index: ";
-    // for (size_t i = 0; i < n_index.size(); i++) {
-    //     std::cout << n_index[i] << ", ";
-    // }
-    // std::cout << std::endl;
-
-
-
-    // XXX: WIP, expected_n currently off by 1 intentionally while developments happen
-    for (size_t i = 0; i < expected_n.size(); i++) {
-        if (expected_n[i] != MASKED) {
-            expected_n[i] -= 1;
-        }
-    }
-
-    EXPECT(expected_n.size() == n_index.size());
-    for (size_t i = 0; i < expected_n.size(); i++) {
-        EXPECT(n_index[i] == expected_n[i]);
-    }
-    EXPECT(count == expected_count);
-}
-
 //-----------------------------------------------------------------------------
 
 }  // namespace test
@@ -366,7 +193,5 @@ CASE( "test_gribjump_accedges2" ) {
 
 int main(int argc, char **argv)
 {
-    gribjump::test::setGribJumpData(); // Set the data used by the test cases
-    // print the current directoy
     return run_tests ( argc, argv );
 }

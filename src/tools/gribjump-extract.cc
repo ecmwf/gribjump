@@ -7,6 +7,7 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+/// @author Christopher Bradley
 
 #include <fstream>
 #include <memory>
@@ -14,15 +15,12 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/utils/StringTools.h"
+#include "eckit/runtime/Tool.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
-
-#include "fdb5/api/FDB.h"
-#include "fdb5/message/MessageDecoder.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBTool.h"
 
 #include "gribjump/JumpHandle.h"
 #include "gribjump/GribInfo.h"
@@ -30,40 +28,43 @@
 #include "gribjump/tools/ToolUtils.h"
 
 
-// TODO(Chris) This probably doesnt need to be an FDBTool
+// TODO(Chris) Make a gribjump::Tool class that inherits from eckit::Tool
 
-namespace gribjump
-{
+namespace gribjump {
+
+static void usage(const std::string &tool) {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " <request_file> <ranges_file>" << std::endl
+                       << "       " << tool << " --raw <request_file> <ranges_file>" << std::endl;
+
     
+}
+class GJExtractTool : public eckit::Tool{
 
-class GJExtractTool : public fdb5::FDBTool {
-// class GJExtractTool : public fdb5::FDBTool {
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
-  public:
-    GJExtractTool(int argc, char **argv): fdb5::FDBTool(argc, argv) {
+
+    virtual void run(const eckit::option::CmdArgs &args);
+
+    virtual void run() override {
+        eckit::option::CmdArgs args(usage, options_, numberOfPositionalArguments());
+        run(args);
+    }
+
+public:
+    GJExtractTool(int argc, char **argv): eckit::Tool(argc, argv, "GRIBJUMP_HOME") {
         options_.push_back(new eckit::option::SimpleOption<bool>("print", "Prints the results"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
-        options_.push_back(
-                    new eckit::option::SimpleOption<bool>("statistics",
-                                                          "Report timing statistics"));
     }
+
+private:
+        std::vector<eckit::option::Option*> options_;
 };
 
-void GJExtractTool::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " <mars request file> <ranges file>" << std::endl
-                       << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl;
-
-    fdb5::FDBTool::usage(tool);
-}
-
-void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
+void GJExtractTool::run(const eckit::option::CmdArgs &args) {
     // Testing tool for extract / directJump functionality
 
-    bool raw = args.getBool("raw", false);
-    bool printout = args.getBool("print", true);
+    const bool raw = args.getBool("raw", false);
+    const bool printout = args.getBool("print", true);
 
     // Build request(s) from input
     std::ifstream in(args(0).c_str());
@@ -103,7 +104,7 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
 
     // Extract values
     GribJump gj;
-    std::vector<std::vector<ExtractionResult>> output = gj.extract(polyRequest);
+    std::vector<std::vector<ExtractionResult*>> output = gj.extract(polyRequest);
 
     // Print extracted values
     if (!printout) return;
@@ -114,8 +115,8 @@ void GJExtractTool::execute(const eckit::option::CmdArgs &args) {
         eckit::Log::info() << "  Number of fields: " << output[i].size() << std::endl;
         for (size_t j = 0; j < output[i].size(); j++) { // each field
             eckit::Log::info() << "  Field " << j << std::endl;
-            auto values = output[i][j].values(); // NOTE: Copies data?
-            auto mask = output[i][j].mask(); // NOTE: Copies data?
+            auto values = output[i][j]->values(); 
+            auto mask = output[i][j]->mask();
 
             for (size_t k = 0; k < values.size(); k++) { // each range
                 eckit::Log::info() << "    Range " << k;

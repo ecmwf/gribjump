@@ -24,6 +24,7 @@
 
 #include "gribjump/JumpHandle.h"
 #include "gribjump/GribInfo.h"
+#include "gribjump/LibGribJump.h"
 
 namespace gribjump {
 
@@ -83,30 +84,33 @@ std::vector<JumpInfo*> JumpHandle::extractInfoFromFile() {
 
     ASSERT(path_.asString().size() > 0);
 
-    // count number of messages in file
     grib_context* c = nullptr;
     int n = 0;
-    int err = codes_count_in_filename(c, path_.asString().c_str(), &n);
+    off_t* offsets;
+    int err = codes_extract_offsets_malloc(c, path_.asString().c_str(), PRODUCT_GRIB, &offsets, &n, 1);
     ASSERT(!err);
 
-    // extract metadata from each message to a binary file
-    eckit::Offset offset = 0;
     std::vector<JumpInfo*> infos;
+
+    open();
+
     for (size_t i = 0; i < n; i++) {
         
-        open();
+        LOG_DEBUG_LIB(LibGribJump) << "Extracting info for message " << i << " from file " << path_ << std::endl;
 
-        metkit::grib::GribHandle h(*handle_, offset);
+        metkit::grib::GribHandle h(*handle_, offsets[i]);
+        
         JumpInfo* info = new JumpInfo(h);
-        eckit::Offset fp = handle_->position(); // now at end of message
-        info->setStartOffset(fp - info->length());
-        offset = handle_->position();
-        info->updateCcsdsOffsets(*this, fp - info->length()); // XXX Pretty inelgeant. Honestly all of this is.
-        infos.push_back(info);
 
-        // XXX: On linux, fp is wrong if handle is not closed and reopened.
-        close();
+        info->setStartOffset(offsets[i]);
+        info->updateCcsdsOffsets(*this, offsets[i]);
+
+        infos.push_back(info);
     }
+
+    close();
+
+    free(offsets);
 
     return infos;
 }
@@ -123,7 +127,7 @@ void write_jumpinfos_to_file(const std::vector<JumpInfo*> infos, const eckit::Pa
 }
 
 JumpInfo* JumpHandle::extractInfo() {
-    // Note: Requires handle at start of message, and will advance handle to end of message.
+    // Note: Requires handle at start of message.
     open();
     eckit::Offset initialPos = handle_->position();
     metkit::grib::GribHandle h(*handle_, initialPos);
