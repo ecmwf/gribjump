@@ -10,8 +10,8 @@
 
 /// @author Christopher Bradley
 
-#ifndef JumpException_H
-#define JumpException_H
+#pragma once
+
 
 #include "eckit/exception/Exceptions.h"
 
@@ -27,5 +27,3 @@ public:
 };
 
 } // namespace gribjump
-
-#endif // JumpException_H
