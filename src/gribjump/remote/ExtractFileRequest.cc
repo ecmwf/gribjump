@@ -37,23 +37,30 @@ static std::string thread_id_str() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @todo these need to be checked and ensure the fdb list also returns the same order
-///       this should be a function from metkit::mars::MarsRequest probably using information 
-///       from metkit MARS language to know the order of the keys
-const std::vector<std::string> keysorder = { "class", "expver", "stream", "date", "time", "domain", "type", "levtype", "levellist", "step", "number", "param" };
+// Stringify requests and keys alphabetically
 
 std::string requestToStr(const metkit::mars::MarsRequest& request) {
     std::stringstream ss;
     std::string separator = "";
-    for(const auto& key : keysorder) {
-        if(request.has(key)) {
-            ss << separator << key << "=" << request[key];
-        }
+    std::vector<std::string> keys = request.params();
+    std::sort(keys.begin(), keys.end());
+    for(const auto& key : keys) {
+        ss << separator << key << "=" << request[key];
         separator = ",";
     }
     return ss.str();
 }
 
+std::string keyToStr(const fdb5::Key& key) {
+    std::stringstream ss;
+    std::string separator = "";
+    std::set<std::string> keys = key.keys();
+    for(const auto& k : keys) {
+        ss << separator << k << "=" << key.get(k);
+        separator = ",";
+    }
+    return ss.str();
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 class FillMapCB : public metkit::mars::FlattenCallback {
@@ -221,16 +228,20 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
     auto listIter = FDBService::instance().fdb().list(fdbreq, true);
 
     fdb5::ListElement elem;
+    size_t countResults = 0;
     while (listIter.next(elem)) {
 
-        // the order in this key should match the order in requestToStr
-        flatkey_t key = elem.combinedKey(true);
+        // we are now using alphabetical order
+        flatkey_t key = keyToStr(elem.combinedKey());
         LOG_DEBUG_LIB(LibGribJump) << "FDB LIST found " << key << std::endl;
 
         auto resit = results_.find(key);
         if(resit != results_.end()) {
 
             // this is a key we are interested in
+            LOG_DEBUG_LIB(LibGribJump) << "Matched key " << key << " to the results map" << std::endl;
+            countResults++;
+
             const fdb5::FieldLocation& loc = elem.location();
             eckit::Offset offset = loc.offset();
 
@@ -248,6 +259,11 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
         }
     }
 
+    if(countResults != results_.size()) {
+        // Some requested fields were not found in the FDB
+        LOG_DEBUG_LIB(LibGribJump) << "WARNING! FDB LIST found " << countResults << " results, but " << results_.size() << " were requested." << std::endl;
+    }
+
     size_t countTasks = 0;
     for(auto& file : per_file_work) {
         LOG_DEBUG_LIB(LibGribJump) << "Extracting from file " << file.first << std::endl;
@@ -255,9 +271,8 @@ ExtractFileRequest::ExtractFileRequest(eckit::Stream& stream) : Request(stream),
         countTasks++;
     }
 
-    timer.reset("ExtractFileRequest : Generated all tasks");
+    timer.reset("ExtractFileRequest : Generated " + std::to_string(countTasks) + "file tasks");
 
-    // LOG_DEBUG_LIB(LibGribJump)  << "All tasks created. Time in ExtractFileRequest: " << timer.elapsed() << std::endl;
 }
 
 ExtractFileRequest::~ExtractFileRequest() {
