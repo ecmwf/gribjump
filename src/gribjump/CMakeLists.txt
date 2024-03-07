@@ -63,6 +63,15 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     tools/EccodesExtract.h
     tools/EccodesExtract.cc
 
+    info/JumpInfo.h
+    info/JumpInfo.cc
+    info/SimpleInfo.h
+    info/SimpleInfo.cc
+    info/CcsdsInfo.h
+    info/CcsdsInfo.cc
+    info/JumpInfoFactory.h
+    info/JumpInfoFactory.cc
+
     
     remote/Request.h
     remote/Request.cc

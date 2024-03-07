@@ -64,7 +64,7 @@ std::vector<double> getComparisonValues(eckit::PathName gribname, size_t expecte
     return comparisonValues;
 }
 
-void test(eckit::PathName gribname, eckit::PathName comparename){
+void test(eckit::PathName gribname){
     const std::vector<double> comparisonValues = getComparisonValues(gribname, expectedNumberOfValues);
     // check the values
     eckit::PathName binName = "temp";
@@ -137,12 +137,12 @@ void test(eckit::PathName gribname, eckit::PathName comparename){
 
 CASE( "test_2t_O1280" ) {
     // this is grid_simple, grib 1, no bitmask.
-    test("2t_O1280.grib", "2t_O1280.values");
+    test("2t_O1280.grib");
     
 }
 CASE( "test_ceil_O1280" ) {
     // this is grid_ccsds, grib 2, with bitmask.
-    test("ceil_O1280.grib", "ceil_O1280.values");    
+    test("ceil_O1280.grib");
 }
 
 CASE( "test_ceil_offsets" ) {
