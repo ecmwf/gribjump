@@ -9,16 +9,16 @@
 //
 #include "LibEccodes.h"
 
-//#define GRIB_SUCCESS 0
-//#define GRIB_NO_VALUES 1
-//#define GRIB_INVALID_BPV 2
-//#define GRIB_INTERNAL_ERROR 3
-//#define GRIB_LOG_DEBUG 4
-//#define GRIB_LOG_ERROR 5
-//#define GRIB_ENCODING_ERROR 6
-//#define GRIB_OUT_OF_RANGE 7
-//#define GRIB_UNDERFLOW 8
-//#define GRIB_ARRAY_TOO_SMALL 9
+//#define LIB_ECCODES_SUCCESS 0
+//#define LIB_ECCODES_NO_VALUES 1
+//#define LIB_ECCODES_INVALID_BPV 2
+//#define LIB_ECCODES_INTERNAL_ERROR 3
+//#define LIB_ECCODES_LOG_DEBUG 4
+//#define LIB_ECCODES_LOG_ERROR 5
+//#define LIB_ECCODES_ENCODING_ERROR 6
+//#define LIB_ECCODES_OUT_OF_RANGE 7
+//#define LIB_ECCODES_UNDERFLOW 8
+//#define LIB_ECCODES_ARRAY_TOO_SMALL 9
 
 #define DebugAssert(a) assert(a)
 #define mask1(i) (1UL << i)
@@ -72,12 +72,15 @@ void grib_set_bit_on(unsigned char* p, long* bitp)
 
 int grib_encode_unsigned_longb(unsigned char* p, unsigned long val, long* bitp, long nb)
 {
+    auto test = [](unsigned long n, int i) {
+        return !!(n & (1UL << i));
+    };
     long i = 0;
 
-    if (nb > max_nbits) {
-        fprintf(stderr, "Number of bits (%ld) exceeds maximum number of bits (%d)\n", nb, max_nbits);
+    if (nb > maxNBits) {
+        fprintf(stderr, "Number of bits (%ld) exceeds maximum number of bits (%d)\n", nb, maxNBits);
         assert(0);
-        return GRIB_INTERNAL_ERROR;
+        return LIB_ECCODES_INTERNAL_ERROR;
     }
 #ifdef DEBUG
     {
@@ -94,7 +97,7 @@ int grib_encode_unsigned_longb(unsigned char* p, unsigned long val, long* bitp, 
         else
             grib_set_bit_off(p, bitp);
     }
-    return GRIB_SUCCESS;
+    return LIB_ECCODES_SUCCESS;
 }
 
 int grib_encode_double_array(size_t n_vals, const double* val, long bits_per_value, double reference_value, double d, double divisor, unsigned char* p, long* off)
@@ -124,7 +127,7 @@ int grib_encode_double_array(size_t n_vals, const double* val, long bits_per_val
             }
         }
     }
-    return GRIB_SUCCESS;
+    return LIB_ECCODES_SUCCESS;
 }
 
 
@@ -144,7 +147,7 @@ long grib_get_binary_scale_fact(double max, double min, long bpval, int* ret)
       double dmaxint=(double)maxint;
     */
     if (bpval >= ulong_size) {
-        *ret = GRIB_OUT_OF_RANGE; /*overflow*/
+        *ret = LIB_ECCODES_OUT_OF_RANGE; /*overflow*/
         return 0;
     }
     const double dmaxint = grib_power<double>(bpval, 2) - 1;
@@ -152,7 +155,7 @@ long grib_get_binary_scale_fact(double max, double min, long bpval, int* ret)
 
     *ret = 0;
     if (bpval < 1) {
-        *ret = GRIB_ENCODING_ERROR; /* constant field */
+        *ret = LIB_ECCODES_ENCODING_ERROR; /* constant field */
         return 0;
     }
 
@@ -183,7 +186,7 @@ long grib_get_binary_scale_fact(double max, double min, long bpval, int* ret)
     }
 
     if (scale < -last) {
-        *ret = GRIB_UNDERFLOW;
+        *ret = LIB_ECCODES_UNDERFLOW;
         /*printf("grib_get_binary_scale_fact: max=%g min=%g\n",max,min);*/
         scale = -last;
     }
@@ -257,7 +260,7 @@ int grib_optimize_decimal_factor(
         *kdec = 0;
         *kbin = 0;
         *ref  = 0.;
-        return GRIB_SUCCESS;
+        return LIB_ECCODES_SUCCESS;
     }
 
     inumax = 0;
@@ -323,10 +326,10 @@ int grib_optimize_decimal_factor(
         double divisor = grib_power<double>(-*kbin, 2);
         double min     = pmin * decimal;
         long vmin, vmax;
-        if (grib_get_nearest_smaller_value(min, ref) != GRIB_SUCCESS) {
-            //grib_context_log(gh->context, GRIB_LOG_ERROR,
+        if (grib_get_nearest_smaller_value(min, ref) != LIB_ECCODES_SUCCESS) {
+            //grib_context_log(gh->context, LIB_ECCODES_LOG_ERROR,
             //                 "unable to find nearest_smaller_value of %g for %s", min, reference_value);
-            return GRIB_INTERNAL_ERROR;
+            return LIB_ECCODES_INTERNAL_ERROR;
         }
 
         vmax = (((pmax * decimal) - *ref) * divisor) + 0.5;
@@ -366,22 +369,22 @@ int grib_optimize_decimal_factor(
             range = max - min;
         }
 
-        if (grib_get_nearest_smaller_value(min, ref) != GRIB_SUCCESS) {
-            //grib_context_log(gh->context, GRIB_LOG_ERROR,
+        if (grib_get_nearest_smaller_value(min, ref) != LIB_ECCODES_SUCCESS) {
+            //grib_context_log(gh->context, LIB_ECCODES_LOG_ERROR,
                              //"unable to find nearest_smaller_value of %g for %s", min, reference_value);
-            return GRIB_INTERNAL_ERROR;
+            return LIB_ECCODES_INTERNAL_ERROR;
         }
 
         *kbin = grib_get_binary_scale_fact(max, *ref, knbit, &err);
 
-        if (err == GRIB_UNDERFLOW) {
+        if (err == LIB_ECCODES_UNDERFLOW) {
             *kbin = 0;
             *kdec = 0;
             *ref  = 0;
         }
     }
 
-    return GRIB_SUCCESS;
+    return LIB_ECCODES_SUCCESS;
 }
 
 
@@ -394,10 +397,10 @@ int number_of_bits(unsigned long x, long* result)
         n++;
         (*result)++;
         if (*result >= count) {
-            return GRIB_ENCODING_ERROR;
+            return LIB_ECCODES_ENCODING_ERROR;
         }
     }
-    return GRIB_SUCCESS;
+    return LIB_ECCODES_SUCCESS;
 }
 
 
@@ -472,9 +475,9 @@ unsigned long grib_decode_unsigned_long(const unsigned char* p, long* bitp, long
     if (nbits == 0)
         return 0;
 
-    if (nbits > max_nbits) {
+    if (nbits > maxNBits) {
         int bits = nbits;
-        int mod  = bits % max_nbits;
+        int mod  = bits % maxNBits;
 
         if (mod != 0) {
             int e = grib_decode_unsigned_long(p, bitp, mod);
@@ -482,15 +485,15 @@ unsigned long grib_decode_unsigned_long(const unsigned char* p, long* bitp, long
             bits -= mod;
         }
 
-        while (bits > max_nbits) {
-            int e = grib_decode_unsigned_long(p, bitp, max_nbits);
+        while (bits > maxNBits) {
+            int e = grib_decode_unsigned_long(p, bitp, maxNBits);
             assert(e == 0);
-            bits -= max_nbits;
+            bits -= maxNBits;
         }
 
         return grib_decode_unsigned_long(p, bitp, bits);
     }
-    mask = BIT_MASK(nbits);
+    mask = LIB_ECCODES_BIT_MASK(nbits);
     /* pi: position of bitp in p[]. >>3 == /8 */
     pi = oc;
     /* number of useful bits in current byte */
@@ -524,10 +527,10 @@ int grib_encode_unsigned_long(unsigned char* p, unsigned long val, long* bitp, l
     int n             = 8 - s;
     unsigned char tmp = 0; /*for temporary results*/
 
-    if (nbits > max_nbits) {
+    if (nbits > maxNBits) {
         /* TODO: Do some real code here, to support long longs */
         int bits  = nbits;
-        int mod   = bits % max_nbits;
+        int mod   = bits % maxNBits;
         long zero = 0;
 
         if (mod != 0) {
@@ -537,11 +540,11 @@ int grib_encode_unsigned_long(unsigned char* p, unsigned long val, long* bitp, l
             bits -= mod;
         }
 
-        while (bits > max_nbits) {
-            int e = grib_encode_unsigned_long(p, zero, bitp, max_nbits);
-            /* printf(" -> : encoding %ld bits=%ld %ld\n",zero,(long)max_nbits,*bitp); */
+        while (bits > maxNBits) {
+            int e = grib_encode_unsigned_long(p, zero, bitp, maxNBits);
+            /* printf(" -> : encoding %ld bits=%ld %ld\n",zero,(long)maxNBits,*bitp); */
             assert(e == 0);
-            bits -= max_nbits;
+            bits -= maxNBits;
         }
 
         /* printf(" -> : encoding %ld bits=%ld %ld\n",val,(long)bits,*bitp); */
@@ -573,18 +576,18 @@ int grib_encode_unsigned_long(unsigned char* p, unsigned long val, long* bitp, l
         *p = (val << (8 - len));
 
     *bitp += nbits;
-    return GRIB_SUCCESS;
+    return LIB_ECCODES_SUCCESS;
 }
 
 void init_table_if_needed()
 {
-    //GRIB_MUTEX_INIT_ONCE(&once, &init)
-    //GRIB_MUTEX_LOCK(&mutex)
+    //LIB_ECCODES_MUTEX_INIT_ONCE(&once, &init)
+    //LIB_ECCODES_MUTEX_LOCK(&mutex)
 
     if (!ieee_table.inited)
         init_ieee_table();
 
-    //GRIB_MUTEX_UNLOCK(&mutex)
+    //LIB_ECCODES_MUTEX_UNLOCK(&mutex)
 }
 
 int grib_nearest_smaller_ieee_float(double a, double* ret)
@@ -595,12 +598,12 @@ int grib_nearest_smaller_ieee_float(double a, double* ret)
 
     if (a > ieee_table.vmax) {
         std::cout << "Number is too large: x=" << a << " > xmax=" << ieee_table.vmax << " (IEEE float)";
-        return GRIB_INTERNAL_ERROR;
+        return LIB_ECCODES_INTERNAL_ERROR;
     }
 
     l    = grib_ieee_nearest_smaller_to_long(a);
     *ret = grib_long_to_ieee(l);
-    return GRIB_SUCCESS;
+    return LIB_ECCODES_SUCCESS;
 }
 
 int nearest_smaller_value(double val, double* nearest)
@@ -621,15 +624,15 @@ int grib_get_nearest_smaller_value(double val, double* nearest)
 
 int grib_check_data_values_range(const double min_val, const double max_val)
 {
-    int result        = GRIB_SUCCESS;
+    int result        = LIB_ECCODES_SUCCESS;
 
     if (!(min_val < dbl_max && min_val > -dbl_max)) {
         std::cout << "Minimum value out of range: " << min_val << std::endl;
-        return GRIB_ENCODING_ERROR;
+        return LIB_ECCODES_ENCODING_ERROR;
     }
     if (!(max_val < dbl_max && max_val > -dbl_max)) {
         std::cout << "Maximum value out of range: " <<  max_val << std::endl;
-        return GRIB_ENCODING_ERROR;
+        return LIB_ECCODES_ENCODING_ERROR;
     }
 
     //// Data Quality checks
@@ -799,7 +802,7 @@ unsigned long grib_ieee_nearest_smaller_to_long(double x)
 //    // First check if the transient key is set
 //    grib_context* c                 = h->context;
 //    long produceLargeConstantFields = 0;
-//    if (grib_get_long(h, "produceLargeConstantFields", &produceLargeConstantFields) == GRIB_SUCCESS &&
+//    if (grib_get_long(h, "produceLargeConstantFields", &produceLargeConstantFields) == LIB_ECCODES_SUCCESS &&
 //        produceLargeConstantFields != 0) {
 //        return 1;
 //    }

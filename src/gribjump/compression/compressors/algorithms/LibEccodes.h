@@ -8,29 +8,19 @@
 #include <random>
 #include <iomanip>
 
-#define GRIB_SUCCESS 0
-#define GRIB_NO_VALUES 1
-#define GRIB_INVALID_BPV 2
-#define GRIB_INTERNAL_ERROR 3
-#define GRIB_LOG_DEBUG 4
-#define GRIB_LOG_ERROR 5
-#define GRIB_ENCODING_ERROR 6
-#define GRIB_OUT_OF_RANGE 7
-#define GRIB_UNDERFLOW 8
-#define GRIB_ARRAY_TOO_SMALL 9
+#define LIB_ECCODES_SUCCESS 0
+#define LIB_ECCODES_NO_VALUES 1
+#define LIB_ECCODES_INVALID_BPV 2
+#define LIB_ECCODES_INTERNAL_ERROR 3
+#define LIB_ECCODES_LOG_DEBUG 4
+#define LIB_ECCODES_LOG_ERROR 5
+#define LIB_ECCODES_ENCODING_ERROR 6
+#define LIB_ECCODES_OUT_OF_RANGE 7
+#define LIB_ECCODES_UNDERFLOW 8
+#define LIB_ECCODES_ARRAY_TOO_SMALL 9
 
-#define DebugAssert(a) assert(a)
-#define mask1(i) (1UL << i)
-#define test(n, i) !!((n)&mask1(i))
-
-#define max_nbits sizeof(unsigned long) * 8
-#define max_nbits_size_t sizeof(size_t) * 8
-
-/* A mask with x least-significant bits set, possibly 0 or >=32 */
-/* -1UL is 1111111... in every bit in binary representation */
-#define BIT_MASK(x) \
-    (((x) == max_nbits) ? (unsigned long)-1UL : (1UL << (x)) - 1)
-
+constexpr size_t maxNBits = sizeof(unsigned long) * 8;
+#define LIB_ECCODES_BIT_MASK(x) (((x) == maxNBits) ? (unsigned long)-1UL : (1UL << (x)) - 1)
 
 typedef std::numeric_limits<double> dbl;
 typedef std::numeric_limits<float> flt;
@@ -109,7 +99,7 @@ int grib_decode_array(const unsigned char* p, long* bitp, long bitsPerValue,
         }
     }
     else {
-        unsigned long mask = BIT_MASK(bitsPerValue);
+        unsigned long mask = LIB_ECCODES_BIT_MASK(bitsPerValue);
 
         /* pi: position of bitp in p[]. >>3 == /8 */
         long pi = *bitp / 8;
