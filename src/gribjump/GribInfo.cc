@@ -300,35 +300,6 @@ void JumpInfo::print(std::ostream& s) const {
     s << std::endl;
 }
 
-// n: 64-bit word from bitmap
-// count: number of set bits in previous words
-// newIndex: vector to push new indexes to
-// edges: queue of bit positions where range starts/ends
-// inRange: true if currently in a range
-// bp: bit position in bitmap
-void accumulateIndexes(uint64_t &n, size_t &count, std::vector<size_t> &newIndex, std::queue<size_t> &edges, bool &inRange, size_t &bp) {
-    // Used by extractRanges to parse bitmap and calculate new indexes.
-    // Counts set bits in n, and pushes new indexes to newIndex.
-
-    ASSERT(!edges.empty());
-    ASSERT(bp%64 == 0); // at start of new word
-
-    constexpr uint64_t msb64 = 0x8000000000000000; // 0b100...0
-    size_t endbit = bp + 64;
-    while (bp < endbit) {
-        if (bp == edges.front()) {
-            inRange = !inRange;
-            edges.pop();
-            if (edges.empty()) break;
-        }
-        bool set = n & msb64;
-        if (inRange) newIndex.push_back(set ? count : MISSING_INDEX);
-        count += set ? 1 : 0;
-        n <<= 1;
-        ++bp;
-    }
-}
-
 void JumpInfo::updateCcsdsOffsets(const JumpHandle& f, const eckit::Offset msgStartOffset) {
     if (packingType_ != "grid_ccsds") return;
 
@@ -476,13 +447,8 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> JumpInfo::calculate_interv
     return std::make_pair(new_intervals, new_interval_bitmaps);
 }
 
-ExtractionResult JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
-    // Todo: remove this function and always use newExtractRanges
-    std::unique_ptr<ExtractionResult> result(newExtractRanges(f, intervals));
-    return *result;
-}
 
-ExtractionResult* JumpInfo::newExtractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
+ExtractionResult* JumpInfo::extractRanges(const JumpHandle& f, const std::vector<Interval>& intervals) const {
     ASSERT(check_intervals(intervals));
     ASSERT(!sphericalHarmonics_);
     // TODO(maee): do we need this check?

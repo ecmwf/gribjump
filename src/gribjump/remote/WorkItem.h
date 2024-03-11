@@ -14,7 +14,6 @@
 #pragma once
 
 #include "gribjump/GribJump.h"
-#include "gribjump/remote/Request.h"
 
 namespace gribjump {
 

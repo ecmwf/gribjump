@@ -48,8 +48,7 @@ public:
 
     bool ready() const { return numberOfValues_ > 0; }
 
-    ExtractionResult extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
-    ExtractionResult* newExtractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
+    ExtractionResult* extractRanges(const JumpHandle&, const std::vector<std::pair<size_t, size_t>>& ranges) const;
 
     void print(std::ostream&) const;
     void encode(eckit::Stream&) const;

@@ -15,11 +15,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED )
 ecbuild_find_package( NAME eckit VERSION 1.25.2 REQUIRED )
-ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
-ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED ) # TODO: Will have to support axes requests...
+
+# Set "GRIBJUMP_LOCAL_EXTRACT" to build everything. If it is off, build only minimal clientside functionality.
+ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
+                    DEFAULT ON
+                    DESCRIPTION "Build local extraction and serverside functionality")
+
+if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
+
+  ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
+  ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
+  ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED ) # todo make optional?
+
+endif()
 
 ########################################################################################################################
 # contents
@@ -40,7 +50,10 @@ get_directory_property( gribjump_DEFINITIONS COMPILE_DEFINITIONS )
 ### source files
 
 add_subdirectory( src )
-add_subdirectory( tests )
+
+if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
+  add_subdirectory( tests )
+endif()
 
 
 ### finalize
