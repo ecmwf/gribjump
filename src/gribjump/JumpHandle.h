@@ -24,38 +24,42 @@ class DataHandle;
 
 namespace gribjump {
 
+// Todo: Can we remove this class? It's not used in the refactor.
+
 class JumpHandle : public eckit::NonCopyable {
 public:
 
     explicit JumpHandle(const eckit::PathName&);
 
-    /// Takes ownership of a handle pointer
+    /// Takes ownership of a handle pointer. Todo: remove other one.
     explicit JumpHandle(eckit::DataHandle*);
+    explicit JumpHandle(eckit::DataHandle& handle);
 
     ~JumpHandle();
 
-    std::vector<JumpInfo*> extractInfoFromFile();
-    JumpInfo* extractInfo();
+    std::vector<JumpInfo*> extractInfoFromFile(); // todo move elsewhere
+    JumpInfo* extractInfo(); // todo move elsewhere
 
     eckit::Offset position();
     eckit::Length size();
     eckit::Offset seek(const eckit::Offset&) const;
 
+    virtual long read(void*, long) const;
+
 private:
 
-    mutable eckit::DataHandle *handle_;
-    bool ownsHandle_;
+    mutable eckit::DataHandle *handle_; // < owned
+    bool ownsHandle_; // todo: remove. make always true.
     mutable bool opened_;
-    eckit::PathName path_;
+    eckit::PathName path_; // todo: remove, not always using filehandles.
 
-    virtual long read(void*, long) const;
     virtual void print(std::ostream& s) const;
 
     void open() const;
     void close() const;
 
-    friend class JumpInfo;
-    friend class GribJumpDataAccessor;
+    friend class JumpInfo; // todo: why? remove?
+    friend class GribJumpDataAccessor; // todo: why?
 };
 
 void write_jumpinfos_to_file(const std::vector<JumpInfo*> infos, const eckit::PathName& path);

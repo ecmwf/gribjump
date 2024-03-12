@@ -41,13 +41,13 @@ InfoFactory& InfoFactory::instance() {
     return instance;
 }
 
-Info* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
-    metkit::grib::GribHandle gh(h, msgOffset);
-    h.seek(msgOffset); // return to the start of the message
-    std::string type = packingType(gh);
+NewJumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
+    
+    metkit::grib::GribHandle gh(h, msgOffset); // Note: eccodes will read message into memory
 
-    InfoBuilderBase* builder = get(type);
-    return builder->make(h, gh);
+    InfoBuilderBase* builder = get(packingType(gh));
+
+    return builder->make(h, gh, msgOffset);
 }
 
 void InfoFactory::enregister(const std::string& name, InfoBuilderBase* builder) {

@@ -32,6 +32,7 @@ namespace gribjump {
 // --------------------------------------------------------------------------------------------
 
 using metkit::grib::GribAccessor;
+namespace grib {
 static GribAccessor<long>          editionNumber("editionNumber");
 static GribAccessor<long>          bitmapPresent("bitmapPresent");
 static GribAccessor<long>          binaryScaleFactor("binaryScaleFactor");
@@ -47,36 +48,38 @@ static GribAccessor<long>          sphericalHarmonics("sphericalHarmonics", true
 static GribAccessor<unsigned long> totalLength("totalLength");
 static GribAccessor<unsigned long> offsetBSection6("offsetBSection6");
 static GribAccessor<std::string>   md5GridSection("md5GridSection");
+static metkit::grib::GribAccessor<std::string>   packingType("packingType");
 
+} // namespace grib
 // --------------------------------------------------------------------------------------------
 
-Info::Info(const metkit::grib::GribHandle& h){
+NewJumpInfo::NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): msgStartOffset_(startOffset) {
 
-    editionNumber_      = editionNumber(h);
-
+    editionNumber_      = grib::editionNumber(h);
+    packingType_        = grib::packingType(h);
     if (editionNumber_ != 1 && editionNumber_ != 2) {
         std::stringstream ss;
         ss << "Unsupported GRIB edition number: " << editionNumber_;
         throw JumpException(ss.str(), Here());
     }
     
-    binaryScaleFactor_  = binaryScaleFactor(h);
-    decimalScaleFactor_ = decimalScaleFactor(h);
-    bitsPerValue_       = bitsPerValue(h);
-    referenceValue_     = referenceValue(h);
-    offsetBeforeData_   = offsetBeforeData(h);
-    offsetAfterData_    = offsetAfterData(h);
-    numberOfDataPoints_ = numberOfDataPoints(h);
-    numberOfValues_     = numberOfValues(h);
-    sphericalHarmonics_ = sphericalHarmonics(h);
-    totalLength_        = totalLength(h);
-    md5GridSection_     = md5GridSection(h);
+    binaryScaleFactor_  = grib::binaryScaleFactor(h);
+    decimalScaleFactor_ = grib::decimalScaleFactor(h);
+    bitsPerValue_       = grib::bitsPerValue(h);
+    referenceValue_     = grib::referenceValue(h);
+    offsetBeforeData_   = grib::offsetBeforeData(h);
+    offsetAfterData_    = grib::offsetAfterData(h);
+    numberOfDataPoints_ = grib::numberOfDataPoints(h);
+    numberOfValues_     = grib::numberOfValues(h);
+    sphericalHarmonics_ = grib::sphericalHarmonics(h);
+    totalLength_        = grib::totalLength(h);
+    md5GridSection_     = grib::md5GridSection(h);
 
-    long bitmapPresent_ = bitmapPresent(h);
+    long bitmapPresent_ = grib::bitmapPresent(h);
     
     if (bitmapPresent_) {
         constexpr size_t offsetToBitmap = 6;
-        offsetBeforeBitmap_ = editionNumber_ == 1? offsetBeforeBitmap(h) : offsetBSection6(h) + offsetToBitmap;
+        offsetBeforeBitmap_ = editionNumber_ == 1? grib::offsetBeforeBitmap(h) : grib::offsetBSection6(h) + offsetToBitmap;
     }
     else {
         offsetBeforeBitmap_ = 0;
@@ -87,7 +90,7 @@ Info::Info(const metkit::grib::GribHandle& h){
 }
 
 
-Info::Info(eckit::Stream& s) : Streamable(s) {
+NewJumpInfo::NewJumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> version_;
     s >> referenceValue_;
     s >> binaryScaleFactor_;
@@ -107,7 +110,7 @@ Info::Info(eckit::Stream& s) : Streamable(s) {
     s >> decimalMultiplier_;
 }
 
-void Info::encode(eckit::Stream& s) const {
+void NewJumpInfo::encode(eckit::Stream& s) const {
     Streamable::encode(s);
     s << version_;
     s << referenceValue_;
@@ -128,13 +131,13 @@ void Info::encode(eckit::Stream& s) const {
     s << decimalMultiplier_;
 }
 
-std::string Info::toString() const {
+std::string NewJumpInfo::toString() const {
     std::stringstream ss;
     print(ss);
     return ss.str();
 }
 
-void Info::print(std::ostream& s) const {
+void NewJumpInfo::print(std::ostream& s) const {
     s << "version=" << static_cast<int>(version_) << ","
       << "referenceValue=" << referenceValue_ << ","
       << "binaryScaleFactor=" << binaryScaleFactor_ << ","
@@ -154,24 +157,24 @@ void Info::print(std::ostream& s) const {
       << "decimalMultiplier=" << decimalMultiplier_;
 }
 
-bool Info::equals(const Info& rhs) const {
-    return version_ == rhs.version_ &&
-           referenceValue_ == rhs.referenceValue_ &&
-           binaryScaleFactor_ == rhs.binaryScaleFactor_ &&
-           decimalScaleFactor_ == rhs.decimalScaleFactor_ &&
-           editionNumber_ == rhs.editionNumber_ &&
-           bitsPerValue_ == rhs.bitsPerValue_ &&
-           offsetBeforeData_ == rhs.offsetBeforeData_ &&
-           offsetAfterData_ == rhs.offsetAfterData_ &&
-           offsetBeforeBitmap_ == rhs.offsetBeforeBitmap_ &&
-           numberOfValues_ == rhs.numberOfValues_ &&
-           numberOfDataPoints_ == rhs.numberOfDataPoints_ &&
-           totalLength_ == rhs.totalLength_ &&
-           msgStartOffset_ == rhs.msgStartOffset_ &&
-           sphericalHarmonics_ == rhs.sphericalHarmonics_ &&
-           md5GridSection_ == rhs.md5GridSection_ &&
-           binaryMultiplier_ == rhs.binaryMultiplier_ &&
-           decimalMultiplier_ == rhs.decimalMultiplier_;
+bool NewJumpInfo::equals(const NewJumpInfo& rhs) const {
+    return version_ == rhs.version() &&
+           referenceValue() == rhs.referenceValue() &&
+           binaryScaleFactor() == rhs.binaryScaleFactor() &&
+           decimalScaleFactor() == rhs.decimalScaleFactor() &&
+           editionNumber() == rhs.editionNumber() &&
+           bitsPerValue() == rhs.bitsPerValue() &&
+           offsetBeforeData() == rhs.offsetBeforeData() &&
+           offsetAfterData() == rhs.offsetAfterData() &&
+           offsetBeforeBitmap() == rhs.offsetBeforeBitmap() &&
+           numberOfValues() == rhs.numberOfValues() &&
+           numberOfDataPoints() == rhs.numberOfDataPoints() &&
+           totalLength() == rhs.totalLength() &&
+           msgStartOffset() == rhs.msgStartOffset() &&
+           sphericalHarmonics() == rhs.sphericalHarmonics() &&
+           md5GridSection() == rhs.md5GridSection() &&
+           binaryMultiplier() == rhs.binaryMultiplier() &&
+           decimalMultiplier() == rhs.decimalMultiplier();
 }
 
 // --------------------------------------------------------------------------------------------

@@ -14,11 +14,12 @@
 
 #include "gribjump/info/JumpInfo.h"
 
-namespace gribjump
-{
-class SimpleInfo : public Info {
+namespace gribjump {
+
+class SimpleInfo : public NewJumpInfo {
+
 public:
-    SimpleInfo(eckit::DataHandle& h, const metkit::grib::GribHandle& gh);
+    SimpleInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
     SimpleInfo(eckit::Stream& s);
 
     void print(std::ostream&) const override;

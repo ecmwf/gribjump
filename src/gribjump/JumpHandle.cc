@@ -40,6 +40,11 @@ JumpHandle::JumpHandle(eckit::DataHandle *handle):
     ownsHandle_(true),
     opened_(false) {}
 
+JumpHandle::JumpHandle(eckit::DataHandle& handle):
+    handle_(&handle),
+    ownsHandle_(false),
+    opened_(false) {}
+
 JumpHandle::~JumpHandle() {
     if (opened_) handle_->close();
     if (ownsHandle_) delete handle_;

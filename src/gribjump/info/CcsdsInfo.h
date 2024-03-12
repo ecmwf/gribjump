@@ -16,10 +16,11 @@
 
 namespace gribjump {
 
-class CcsdsInfo : public Info {
+class CcsdsInfo : public NewJumpInfo {
 
 public:
-    CcsdsInfo(eckit::DataHandle& h, const metkit::grib::GribHandle& gh);
+
+    CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
     CcsdsInfo(eckit::Stream& s);
 
     virtual void encode(eckit::Stream&) const override;
@@ -31,9 +32,15 @@ public:
     const eckit::ReanimatorBase& reanimator() const override { return reanimator_; }
     static const eckit::ClassSpec& classSpec() { return classSpec_; }
 
+    // getters
+    unsigned long ccsdsFlags() const { return ccsdsFlags_; }
+    unsigned long ccsdsBlockSize() const { return ccsdsBlockSize_; }
+    unsigned long ccsdsRsi() const { return ccsdsRsi_; }
+    const std::vector<size_t>& ccsdsOffsets() const { return ccsdsOffsets_; }
+
 protected:
 
-    virtual bool equals(const Info& other) const override;
+    virtual bool equals(const NewJumpInfo& other) const override;
 
 private:
 

@@ -492,7 +492,7 @@ ExtractionResult* JumpInfo::extractRanges(const JumpHandle& f, const std::vector
         });
     }
     else { // bitmap
-        auto bitmap = get_bitmap(f);
+        auto bitmap = get_bitmap(f); // XXX <---- We calculate then imediately recalculate the bitmap, may as well merge these two functions
         auto [new_intervals, new_bitmaps] = calculate_intervals(intervals, bitmap);
         auto all_decoded_values = (this->*get_values)(f, new_intervals);
 

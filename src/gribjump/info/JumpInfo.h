@@ -21,13 +21,12 @@
 
 namespace gribjump
 {
-
-class Info : public eckit::Streamable { // TODO rename to JumpInfo when finished.
+class NewJumpInfo : public eckit::Streamable { // TODO rename to JumpInfo when finished.
 
 public:
 
-    Info(const metkit::grib::GribHandle& h);
-    Info(eckit::Stream&); 
+    NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
+    NewJumpInfo(eckit::Stream&); 
 
     virtual void encode(eckit::Stream&) const override;
     std::string toString() const;
@@ -37,18 +36,38 @@ public:
     virtual std::string className() const override = 0;
     virtual const eckit::ReanimatorBase& reanimator() const override = 0;
 
+    // getters
+    uint8_t version() const { return version_; }
+    double referenceValue() const { return referenceValue_; }
+    long binaryScaleFactor() const { return binaryScaleFactor_; }
+    long decimalScaleFactor() const { return decimalScaleFactor_; }
+    unsigned long editionNumber() const { return editionNumber_; }
+    unsigned long bitsPerValue() const { return bitsPerValue_; }
+    eckit::Offset offsetBeforeData() const { return offsetBeforeData_; }
+    eckit::Offset offsetAfterData() const { return offsetAfterData_; }
+    eckit::Offset offsetBeforeBitmap() const { return offsetBeforeBitmap_; }
+    unsigned long numberOfValues() const { return numberOfValues_; }
+    unsigned long numberOfDataPoints() const { return numberOfDataPoints_; }
+    eckit::Length totalLength() const { return totalLength_; }
+    eckit::Offset msgStartOffset() const { return msgStartOffset_; }
+    long sphericalHarmonics() const { return sphericalHarmonics_; }
+    std::string md5GridSection() const { return md5GridSection_; }
+    std::string packingType() const { return packingType_; }
+    double binaryMultiplier() const { return binaryMultiplier_; }
+    double decimalMultiplier() const { return decimalMultiplier_; }
+
 protected:
 
-    virtual bool equals(const Info& other) const;
+    virtual bool equals(const NewJumpInfo& other) const;
 
 private:
 
-    friend std::ostream& operator<<(std::ostream& s, const Info& f) {
+    friend std::ostream& operator<<(std::ostream& s, const NewJumpInfo& f) {
         f.print(s);
         return s;
     }
 
-    friend bool operator==(const Info& lhs, const Info& rhs){
+    friend bool operator==(const NewJumpInfo& lhs, const NewJumpInfo& rhs) {
         return lhs.equals(rhs);
     }
 
@@ -70,10 +89,10 @@ protected:
     eckit::Offset msgStartOffset_;
     long          sphericalHarmonics_;
     std::string   md5GridSection_;
-    std::string   packingType_;
+    std::string   packingType_ = "none";
 
-    double binaryMultiplier_; // = 2^binaryScaleFactor_
-    double decimalMultiplier_; // = 10^-decimalScaleFactor_
+    double binaryMultiplier_; // = 2^binaryScaleFactor_     // todo: check if used
+    double decimalMultiplier_; // = 10^-decimalScaleFactor_     // todo: check if used
 
 };
 

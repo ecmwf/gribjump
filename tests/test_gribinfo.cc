@@ -31,6 +31,13 @@
 
 #include "gribjump/info/JumpInfoFactory.h"
 
+#include "gribjump/jumper/SimpleJumper.h"
+#include "gribjump/jumper/CcsdsJumper.h"
+#include "gribjump/jumper/JumperFactory.h"
+
+#include "gribjump/tools/EccodesExtract.h"
+
+
 #include "gribjump/LibGribJump.h"
 
 using namespace eckit::testing;
@@ -47,16 +54,26 @@ CASE( "test_reanimate_info" ) {
     std::vector<eckit::PathName> paths = {
         "2t_O1280.grib",   // simple packed
         "ceil_O1280.grib", // ccsds
+        /* Todo: A file with a mix of both in a different test */
     };
 
+    std::vector<std::string> expectedPacking = {
+        "grid_simple",
+        "grid_ccsds",
+    };
+
+    uint32_t count = 0;
     for (auto path : paths) {
 
         eckit::FileHandle fh(path);
         fh.openForRead();
 
-        // Info* info =  InfoFactory::create(fh, 0);
-        Info* info = InfoFactory::instance().build(fh, 0);
+        eckit::Offset offset = 0;
+
+        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
         EXPECT(info);
+        EXPECT(info->packingType() == expectedPacking[count++]);
+        
         fh.close();
 
         // Write to file
@@ -71,12 +88,101 @@ CASE( "test_reanimate_info" ) {
         {
             eckit::FileStream sin(filename.asString().c_str(), "r");
             auto c             = eckit::closer(sin);
-            Info* info_in = eckit::Reanimator<Info>::reanimate(sin);
-
+            std::unique_ptr<NewJumpInfo> info_in(eckit::Reanimator<NewJumpInfo>::reanimate(sin));
             EXPECT(*info_in == *info);
         }
         
         if (filename.exists()) filename.unlink();
+    }
+}
+
+//-----------------------------------------------------------------------------
+
+CASE ("test_jumpers") {
+
+    std::vector<eckit::PathName> paths = {
+        "2t_O1280.grib",   // simple packed
+        "ceil_O1280.grib", // ccsds
+    };
+
+    for (auto path : paths) {
+        std::cout << "Path: " << path << std::endl;
+
+        eckit::FileHandle fh(path);
+        fh.openForRead();
+
+        eckit::Offset offset = 0;
+        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+
+        auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
+
+        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
+        std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
+
+        fh.close();
+
+        // Check correct values 
+        std::vector<std::vector<double>> comparisonValues = eccodesExtract(path, {offset}, intervals)[0];
+        EXPECT(comparisonValues.size() == 3);
+
+        for (size_t i = 0; i < comparisonValues.size(); i++) {
+            EXPECT(comparisonValues[i].size() == 10);
+            for (size_t j = 0; j < comparisonValues[i].size(); j++) {
+                EXPECT(comparisonValues[i][j] == res->values()[i][j]);
+            }
+        }
+    }
+}
+
+CASE ("test_wrong_jumper") {
+    // Negative test: intentionally use the wrong jumper, make sure it throws correctly
+
+    {
+         // simple packed grib, use ccsds jumper
+        eckit::PathName path = "2t_O1280.grib";
+
+        eckit::FileHandle fh(path);
+        fh.openForRead();
+
+        eckit::Offset offset = 0;
+        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+
+        auto intervals = std::vector<Interval>{{0, 10}, {10, 20}, {20, 30}};
+
+        std::unique_ptr<Jumper> jumper(new CcsdsJumper());
+
+        try {
+            std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
+            EXPECT(false);
+        } catch (BadJumpInfoException& e) {
+            // As expected!
+        }
+
+        fh.close();
+    }
+
+    {
+        // ccsds packed grib, use simple jumper
+        eckit::PathName path = "ceil_O1280.grib"; 
+
+        eckit::FileHandle fh(path);
+        fh.openForRead();
+
+        eckit::Offset offset = 0;
+        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));  // make this use jumphandle?
+
+        auto intervals = std::vector<Interval>{{0, 10}, {10, 20}, {20, 30}};
+
+        std::unique_ptr<Jumper> jumper(new SimpleJumper());
+
+        try {
+            std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
+            EXPECT(false);
+        } catch (BadJumpInfoException& e) {
+            // As expected!
+        }
+
+        fh.close();
     }
 }
 
@@ -98,13 +204,13 @@ CASE ("test_combine") {
     eckit::FileHandle fh(path);
     fh.openForRead();
 
-    std::vector<Info*> infos;
+    std::vector<std::unique_ptr<NewJumpInfo>> infos;
 
     for (size_t i = 0; i < n; i++) {
         
-        Info* info = InfoFactory::instance().build(fh, 0);
+        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
-        infos.push_back(info);
+        infos.push_back(std::move(info));
     }
 
     fh.close();
@@ -121,7 +227,7 @@ CASE ("test_combine") {
     {
         eckit::FileStream sin(filepath.c_str(), "r");
         auto c             = eckit::closer(sin);
-        Info* t2 = eckit::Reanimator<Info>::reanimate(sin);
+        std::unique_ptr<NewJumpInfo> t2(eckit::Reanimator<NewJumpInfo>::reanimate(sin));
 
         ASSERT(*t2 == *infos[0]);
     }

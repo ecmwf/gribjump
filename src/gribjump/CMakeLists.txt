@@ -72,7 +72,15 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     info/JumpInfoFactory.h
     info/JumpInfoFactory.cc
 
-    
+    jumper/Jumper.h
+    jumper/Jumper.cc
+    jumper/SimpleJumper.h
+    jumper/SimpleJumper.cc
+    jumper/CcsdsJumper.h
+    jumper/CcsdsJumper.cc
+    jumper/JumperFactory.h
+    jumper/JumperFactory.cc
+
     remote/Request.h
     remote/Request.cc
     remote/ExtractFileRequest.h
