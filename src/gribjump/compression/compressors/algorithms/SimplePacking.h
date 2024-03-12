@@ -130,11 +130,11 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     auto min = *min_ptr;
     auto max = *max_ptr;
 
-    if ((err = grib_check_data_values_range(min, max)) != GRIB_SUCCESS)
+    if ((err = grib_check_data_values_range(min, max)) != LIB_ECCODES_SUCCESS)
         throw std::runtime_error("grib_check_data_values_range");
 
     if (max == min) {
-        if (grib_get_nearest_smaller_value(val[0], &params.reference_value) != GRIB_SUCCESS) {
+        if (grib_get_nearest_smaller_value(val[0], &params.reference_value) != LIB_ECCODES_SUCCESS) {
             throw std::runtime_error("unable to find nearest_smaller_value");
         }
 
@@ -177,10 +177,10 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
 
         /* params.bits_per_value=(long)ceil(log((double)(imax-imin+1))/log(2.0)); */
         /* See GRIB-540 for why we use ceil */
-        if (number_of_bits((unsigned long)ceil(fabs(max - min)), &params.bits_per_value) != GRIB_SUCCESS)
+        if (number_of_bits((unsigned long)ceil(fabs(max - min)), &params.bits_per_value) != LIB_ECCODES_SUCCESS)
             throw std::runtime_error("Range of values too large. Try a smaller value for decimal precision (less than %ld)");
 
-        if (grib_get_nearest_smaller_value(min, &reference_value) != GRIB_SUCCESS)
+        if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS)
             throw std::runtime_error("unable to find nearest_smaller_value");
         /* divisor=1; */
     }
@@ -193,14 +193,14 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
         if (max == min) {
             binary_scale_factor = 0;
             /* divisor=1; */
-            if (grib_get_nearest_smaller_value(min, &reference_value) != GRIB_SUCCESS)
+            if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS)
                 throw std::runtime_error("unable to find nearest_smaller_value of %g for %s");
         }
         else if (optimize_scaling_factor_) {
             if ((err = grib_optimize_decimal_factor(
                                                     max, min, params.bits_per_value,
                                                     compat_gribex_, 1,
-                                                    &decimal_scale_factor, &binary_scale_factor, &reference_value)) != GRIB_SUCCESS)
+                                                    &decimal_scale_factor, &binary_scale_factor, &reference_value)) != LIB_ECCODES_SUCCESS)
                 throw std::runtime_error("grib_optimize_decimal_factor failed");
         }
         else {
@@ -228,7 +228,7 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
                 range = (max - min);
             }
 
-            if (grib_get_nearest_smaller_value(min, &reference_value) != GRIB_SUCCESS) {
+            if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS) {
                 throw std::runtime_error(std::string{"unable to find nearest_smaller_value of "} + std::to_string(min) + " for " + std::to_string(reference_value));
             }
 
@@ -241,7 +241,7 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
 
     changing_precision_ = 0;
 
-    //return GRIB_SUCCESS;
+    //return LIB_ECCODES_SUCCESS;
 
 
 //static int pack_double(grib_accessor* a, const double* cval, size_t* len)
@@ -260,22 +260,22 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     if (n_vals == 0) {
         //grib_buffer_replace(a, NULL, 0, 1, 1);
         return {params, Buffer(0)};
-        //return GRIB_SUCCESS;
+        //return LIB_ECCODES_SUCCESS;
     }
 
-    //if (ret == GRIB_SUCCESS)
+    //if (ret == LIB_ECCODES_SUCCESS)
     //    ret = grib_set_long_internal(grib_handle_of_accessor(a), self->number_of_values, *len);
 
-    //if (ret != GRIB_SUCCESS)
+    //if (ret != LIB_ECCODES_SUCCESS)
     //    return ret;
 
     //if (self->units_factor &&
-    //    (grib_get_double_internal(grib_handle_of_accessor(a), self->units_factor, &units_factor) == GRIB_SUCCESS)) {
+    //    (grib_get_double_internal(grib_handle_of_accessor(a), self->units_factor, &units_factor) == LIB_ECCODES_SUCCESS)) {
     //    grib_set_double_internal(grib_handle_of_accessor(a), self->units_factor, 1.0);
     //}
 
     //if (self->units_bias &&
-    //    (grib_get_double_internal(grib_handle_of_accessor(a), self->units_bias, &units_bias) == GRIB_SUCCESS)) {
+    //    (grib_get_double_internal(grib_handle_of_accessor(a), self->units_bias, &units_bias) == LIB_ECCODES_SUCCESS)) {
     //    grib_set_double_internal(grib_handle_of_accessor(a), self->units_bias, 0.0);
     //}
 
@@ -296,12 +296,12 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     //    grib_handle* h = grib_handle_of_accessor(a);
     //    long precision = 0; [> Either 1(=32 bits) or 2(=64 bits) <]
     //    size_t lenstr  = 10;
-    //    if ((ret = codes_check_grib_ieee_packing_value(c->ieee_packing)) != GRIB_SUCCESS)
+    //    if ((ret = codes_check_grib_ieee_packing_value(c->ieee_packing)) != LIB_ECCODES_SUCCESS)
     //        return ret;
     //    precision = c->ieee_packing == 32 ? 1 : 2;
-    //    if ((ret = grib_set_string(h, "packingType", "grid_ieee", &lenstr)) != GRIB_SUCCESS)
+    //    if ((ret = grib_set_string(h, "packingType", "grid_ieee", &lenstr)) != LIB_ECCODES_SUCCESS)
     //        return ret;
-    //    if ((ret = grib_set_long(h, "precision", precision)) != GRIB_SUCCESS)
+    //    if ((ret = grib_set_long(h, "precision", precision)) != LIB_ECCODES_SUCCESS)
     //        return ret;
 
     //    return grib_set_double_array(h, "values", val, *len);
@@ -319,13 +319,13 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     //    ret    = super2->pack_double(a, val, len);
     //}
     //switch (ret) {
-    //    case GRIB_CONSTANT_FIELD:
+    //    case LIB_ECCODES_CONSTANT_FIELD:
     //        grib_buffer_replace(a, NULL, 0, 1, 1);
-    //        return GRIB_SUCCESS;
-    //    case GRIB_SUCCESS:
+    //        return LIB_ECCODES_SUCCESS;
+    //    case LIB_ECCODES_SUCCESS:
     //        break;
     //    default:
-    //        grib_context_log(a->context, GRIB_LOG_ERROR, "GRIB2 simple packing: unable to set values (%s)", grib_get_error_message(ret));
+    //        grib_context_log(a->context, LIB_ECCODES_LOG_ERROR, "GRIB2 simple packing: unable to set values (%s)", grib_get_error_message(ret));
     //        return ret;
     //}
 
@@ -348,7 +348,7 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     decode_params.bits_per_value = params.bits_per_value;
     decode_params.n_vals = n_vals;
 
-    //grib_context_log(a->context, GRIB_LOG_DEBUG,
+    //grib_context_log(a->context, LIB_ECCODES_LOG_DEBUG,
                      //"grib_accessor_data_g2simple_packing : pack_double : packing %s, %d values", a->name, n_vals);
 
     //grib_buffer_replace(a, buf, buflen, 1, 1);
@@ -406,11 +406,11 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
 
     if (len < n_vals) {
         len = (long)n_vals;
-        //return GRIB_ARRAY_TOO_SMALL;
+        //return LIB_ECCODES_ARRAY_TOO_SMALL;
         throw std::runtime_error("Array too small");
     }
 
-    //if ((err = grib_get_long_internal(gh, self->params.bits_per_value, &params.bits_per_value)) != GRIB_SUCCESS)
+    //if ((err = grib_get_long_internal(gh, self->params.bits_per_value, &params.bits_per_value)) != LIB_ECCODES_SUCCESS)
     //    return err;
 
     /*
@@ -434,7 +434,7 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
         for (i = 0; i < n_vals; i++)
             val[i] = params.reference_value;
         //len = n_vals;
-        //return GRIB_SUCCESS;
+        //return LIB_ECCODES_SUCCESS;
         return Values(n_vals, params.reference_value);
     }
 
@@ -448,7 +448,7 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
 
     /* ECC-941 */
     if (float_type_ == FloatType::IEEE32) {
-        /* Must turn off this check when the environment variable ECCODES_GRIB_IEEE_PACKING is on */
+        /* Must turn off this check when the environment variable ECCODES_LIB_ECCODES_IEEE_PACKING is on */
         if (offsetAfterData > offsetBeforeData) {
             const long valuesSize = (params.bits_per_value * n_vals) / 8; /*in bytes*/
             if (offsetBeforeData + valuesSize > offsetAfterData) {
