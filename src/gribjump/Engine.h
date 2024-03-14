@@ -13,7 +13,7 @@
 #pragma once
 
 #include "metkit/mars/MarsRequest.h"
-#include "gribjump/ExtractionData.h"
+#include "gribjump/ExtractionItem.h"
 #include "gribjump/remote/ExtractFileRequest.h" // todo move to not remote
 
 namespace gribjump {
@@ -22,7 +22,8 @@ typedef std::vector<metkit::mars::MarsRequest> MarsRequests;
 typedef std::pair<size_t, size_t> Range;
 typedef std::vector<std::vector<Range>> RangesList;
 
-typedef std::vector<ExtractionResult> Results;
+// typedef std::vector<ExtractionResult> Results;
+typedef std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> Results;
 
 
 class Engine {
@@ -31,9 +32,7 @@ public:
     Engine();
     ~Engine();
 
-    Results extract(const MarsRequests& requests, const RangesList& ranges);
-
-    Results gatherResults();
+    Results extract(const MarsRequests& requests, const RangesList& ranges, bool flattenRequests = false);
 
 private:
     // std::vector<Task*> tasks_; // Want one vector per user request, not one per engine

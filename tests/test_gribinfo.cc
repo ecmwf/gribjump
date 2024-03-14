@@ -11,15 +11,11 @@
 #include <cmath>
 #include <fstream>
 
+#include "eccodes.h"
+
 #include "eckit/testing/Test.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/io/AutoCloser.h"
-
-#include "gribjump/GribInfo.h"
-#include "gribjump/JumpHandle.h"
-
-
-#include "eccodes.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
@@ -30,16 +26,12 @@
 #include "metkit/codes/GribHandle.h"
 
 #include "gribjump/info/JumpInfoFactory.h"
-
 #include "gribjump/jumper/SimpleJumper.h"
 #include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/jumper/JumperFactory.h"
-
 #include "gribjump/tools/EccodesExtract.h"
-
 #include "gribjump/ExtractionItem.h"
-
-
+#include "gribjump/Engine.h"
 #include "gribjump/LibGribJump.h"
 
 using namespace eckit::testing;
@@ -197,7 +189,6 @@ CASE ("test_ExtractionItem_extract") {
 
     eckit::PathName path = "2t_O1280.grib";
 
-    std::cout << "Setting URI" << std::endl;
     exItem.URI(new eckit::URI(path));
 
     eckit::FileHandle fh(path);
@@ -205,13 +196,11 @@ CASE ("test_ExtractionItem_extract") {
 
     eckit::Offset offset = 0;
 
-    std::cout << "Building info" << std::endl;
     std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
     EXPECT(info);
 
     std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
 
-    std::cout << "Extracting: " << exItem.intervals() << std::endl;
     jumper->extract(fh, *info, exItem);
 
     exItem.debug_print();
@@ -226,8 +215,6 @@ CASE ("test_ExtractionItem_extract") {
             EXPECT(comparisonValues[i][j] == exItem.values()[i][j]);
         }
     }
-    
-    std::cout << "end" << std::endl;
 }
 
 //-----------------------------------------------------------------------------

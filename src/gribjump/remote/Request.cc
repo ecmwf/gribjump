@@ -22,7 +22,7 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 Task::Task(size_t taskid, Request* r) : taskid_(taskid), clientRequest_(r) {
-    ASSERT(clientRequest_);
+    // ASSERT(clientRequest_);
 }
 
 Task::~Task() {}

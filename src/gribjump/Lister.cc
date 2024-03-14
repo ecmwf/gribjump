@@ -72,7 +72,7 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 }
 
 // i.e. do all of the listing work I want...
-filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const reqToXRR_t& reqToXRR) {
+filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const reqToXRR_t& reqToExtractionItem) {
 
     eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
@@ -88,23 +88,25 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         std::string key = fdbkeyToStr(elem.combinedKey());
 
         // If key not in map, not related to the request
-        if (reqToXRR.find(key) == reqToXRR.end()) continue;
+        if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
 
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().uri();
-        ExtractionItem* xrr = reqToXRR.at(key);
-        xrr->URI(new eckit::URI(uri));
+        uri.fragment(std::to_string(elem.location().offset())); // fdb's URIs don't contain the offset fragment (!?)
+
+        ExtractionItem* extractionItem = reqToExtractionItem.at(key);
+        extractionItem->URI(new eckit::URI(uri)); // XXX: second copy of the uri
 
         // Add to filemap
         eckit::PathName fname = uri.path();
         auto it = filemap.find(fname);
         if(it == filemap.end()) {
-            std::vector<ExtractionItem*> xrrs;
-            xrrs.push_back(xrr);
-            filemap.emplace(fname, xrrs);
+            std::vector<ExtractionItem*> extractionItems;
+            extractionItems.push_back(extractionItem);
+            filemap.emplace(fname, extractionItems);
         }
         else {
-            it->second.push_back(xrr);
+            it->second.push_back(extractionItem);
         }
 
         count++;
@@ -112,8 +114,18 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
 
     LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
 
-    if (count != reqToXRR.size()) {
-        eckit::Log::warning() << "Number of fields found (" << count << ") does not match Number of keys in reqToXRR (" << reqToXRR.size() << ")" << std::endl;
+    if (count != reqToExtractionItem.size()) {
+        eckit::Log::warning() << "Number of fields found (" << count << ") does not match Number of keys in reqToExtractionItem (" << reqToExtractionItem.size() << ")" << std::endl;
+    }
+
+    // print the file map
+    LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+    for (const auto& file : filemap) {
+        LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+        for (const auto& extractionItem : file.second) {
+            LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+        }
+        LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
     }
     
     return filemap;

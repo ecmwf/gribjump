@@ -62,8 +62,16 @@ ecbuild_add_test( TARGET "gribjump_test_O1280"
     LIBS      gribjump)
 
 
-ecbuild_add_test( TARGET "gribjump_test_gribinfo"
+    ecbuild_add_test( TARGET "gribjump_test_gribinfo"
     SOURCES   "test_gribinfo.cc"
+    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT   "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_O1280_data_files
+    NO_AS_NEEDED
+    LIBS      gribjump)
+
+ecbuild_add_test( TARGET "gribjump_test_engine"
+    SOURCES   "test_engine.cc"
     INCLUDES  "${ECKIT_INCLUDE_DIRS}"
     ENVIRONMENT   "${gribjump_env}"
     TEST_DEPENDS gribjump_test_O1280_data_files

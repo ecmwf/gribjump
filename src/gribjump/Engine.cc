@@ -21,6 +21,8 @@
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
 
+#include "eccodes.h" // xxx temp... for extracting infos. doesnt belong here
+
 namespace gribjump {
     
 //----------------------------------------------------------------------------------------------------------------------
@@ -44,17 +46,47 @@ std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRe
     NOTIMP;
 }
 
-std::vector<std::string> flattenKeys(const metkit::mars::MarsRequest& request) {
-    std::vector<metkit::mars::MarsRequest> flat = flattenRequest(request);
-    std::vector<std::string> keys;
-    for (const auto& req : flat) {
-        keys.push_back(requestToStr(req));
+// Stringify requests, and flatten if necessary
+typedef std::map<metkit::mars::MarsRequest, std::vector<std::string>> flattenedKeys_t;
+
+flattenedKeys_t buildFlatKeys(const std::vector<metkit::mars::MarsRequest>& requests, bool flatten) {
+    
+    flattenedKeys_t keymap;
+    
+    for (const auto& baseRequest : requests) {
+
+        keymap[baseRequest] = std::vector<std::string>();
+
+        // Assume baseRequest has cardinality >= 1 and may need to be flattened
+        if (flatten) {
+            std::vector<metkit::mars::MarsRequest> flat = flattenRequest(baseRequest);
+            for (const auto& r : flat) {
+                keymap[baseRequest].push_back(requestToStr(r));
+            }
+        }
+
+        // Assume baseRequest has cardinality 1
+        else {
+            keymap[baseRequest].push_back(requestToStr(baseRequest));
+        }
+
+        eckit::Log::debug<LibGribJump>() << "Flattened keys for request " << requestToStr(baseRequest) << ": " << keymap[baseRequest] << std::endl;
     }
-    return keys;
+
+    return keymap;
 }
 
 metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
-    NOTIMP;
+
+    /// @todo: we should do some check not to merge on keys like class and stream
+    metkit::mars::MarsRequest unionRequest = requests.front();
+    for(size_t i = 1; i < requests.size(); ++i) {
+        unionRequest.merge(requests[i]);
+    }
+    
+    LOG_DEBUG_LIB(LibGribJump) << "Union request " << unionRequest << std::endl;
+    
+    return unionRequest;
 }
 
 
@@ -75,6 +107,19 @@ class TaskGroup {
 public:
     TaskGroup() {}
 
+    ~TaskGroup() {
+        for (auto& t : tasks_) {
+            delete t;
+        }
+    }
+
+    void notify(size_t taskid) {
+        std::lock_guard<std::mutex> lock(m_);
+        taskStatus_[taskid] = Task::Status::DONE;
+        counter_++;
+        cv_.notify_one();
+    }
+
     void enqueueTask(Task* task) {
         taskStatus_.push_back(Task::Status::PENDING);
         WorkItem w(task);
@@ -88,7 +133,7 @@ public:
         LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
         std::unique_lock<std::mutex> lock(m_);
         cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
-    
+        LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
     }
 
 private:
@@ -110,14 +155,14 @@ public:
 
     // Each extraction item is assumed to be for the same file.
 
-    FileExtractionTask(const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*> extractionItems) :
+    FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems) :
         Task(id, nullptr), // todo, deal with the nullptr
+        taskgroup_(taskgroup),
         fname_(fname),
         extractionItems_(extractionItems)
     {
     }
 
-    virtual ~FileExtractionTask() {}
 
     void execute(GribJump& gj) override { // todo, don't need gj?
         // Timing info
@@ -148,7 +193,6 @@ public:
             NewJumpInfo& info = *infos[i];
             std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
             jumper->extract(fh, info, *extractionItems_[i]);
-            // eventually this will be void, and extractionItems_ will be updated with the result.
         }
 
         fh.close();
@@ -157,12 +201,38 @@ public:
 
     std::vector<NewJumpInfo*> getJumpInfos() {
         // Get the info from the cache, or read from the file.
-        NOTIMP;
+        /// @todo This should probably be a method of the cache class.
+
+        // for now, always read from the file.
+
+        grib_context* c = nullptr;
+        int n = 0;
+        off_t* offsets;
+        int err = codes_extract_offsets_malloc(c, fname_.asString().c_str(), PRODUCT_GRIB, &offsets, &n, 1);
+        ASSERT(!err);
+
+        eckit::FileHandle fh(fname_);
+        fh.openForRead();
+
+        std::vector<NewJumpInfo*> infos;
+
+        for (size_t i = 0; i < n; i++) {
+            
+            NewJumpInfo* info(InfoFactory::instance().build(fh, offsets[i]));
+            ASSERT(info);
+            infos.push_back(info);
+        }
+
+        fh.close();
+
+        free(offsets);
+
+        return infos;
     }
 
 
     void notify() override { //explicit override because we are not defining a client stream.
-        NOTIMP;
+        taskgroup_.notify(id());
     }
 
     void notifyError(const std::string& s) override { //explicit override because we are not defining a client stream.
@@ -170,8 +240,9 @@ public:
     }
 
 private:
+    TaskGroup& taskgroup_;
     eckit::PathName fname_;
-    std::vector<ExtractionItem*> extractionItems_;
+    std::vector<ExtractionItem*>& extractionItems_;
 };
 
 
@@ -183,7 +254,7 @@ Engine::Engine() {
 Engine::~Engine() {
 }
 
-Results Engine::extract(const MarsRequests& requests, const RangesList& ranges) {
+Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, bool flatten) {
 
     /*
 
@@ -231,56 +302,64 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges) 
 
    // WIP
 
-    typedef std::map<metkit::mars::MarsRequest, std::vector<std::string>> flattenedKeys_t;
-    typedef std::map<std::string, ExtractionItem*> reqToExItem_t;
+    typedef std::map<std::string, ExtractionItem*> keyToExItem_t;
     typedef std::map<eckit::PathName, std::vector<ExtractionItem*>> filemap_t;
 
-    flattenedKeys_t flattenedKeys;
-    reqToExItem_t reqToXRR;
+    keyToExItem_t keyToXRR;
 
-    for (size_t i = 0; i < requests.size(); i++) {
-        auto req = requests[i];
-        flattenedKeys[req] = flattenKeys(req);
-    }
+    flattenedKeys_t flatKeys = buildFlatKeys(requests, flatten); // Map from base request to {flattened keys}
 
     // Create the 1-to-1 map
     for (size_t i = 0; i < requests.size(); i++) {
-        const metkit::mars::MarsRequest req = requests[i];
-        const std::vector<std::string> keys = flattenedKeys[req];
+        const metkit::mars::MarsRequest& basereq = requests[i]; 
+        const std::vector<std::string> keys = flatKeys[basereq];
         for (const auto& key : keys) {
-            ASSERT(reqToXRR.find(key) == reqToXRR.end()); // XXX Don't currently handle duplicate requests.
-            reqToXRR.emplace(key, new ExtractionItem(req, ranges[i]));
+            ASSERT(keyToXRR.find(key) == keyToXRR.end()); /// @todo support duplicated requests?
+            keyToXRR.emplace(key, new ExtractionItem(basereq, ranges[i])); // 1-to-1-map
         }
     }
 
     // Create the union request
     const metkit::mars::MarsRequest req = unionRequest(requests);
-
     
     // Map files to ExtractionItem
-    filemap_t filemap = FDBLister::instance().fileMap(req, reqToXRR);
+    filemap_t filemap = FDBLister::instance().fileMap(req, keyToXRR);
 
     // Schedule the extraction of the data. Probably in another class.
+    {
+        TaskGroup taskGroup;
 
-    TaskGroup taskGroup;
-
-    size_t counter = 0;
-    for (auto& [fname, extractionItems] : filemap) {
-        taskGroup.enqueueTask(new FileExtractionTask(counter++, fname, extractionItems));
+        size_t counter = 0;
+        for (auto& [fname, extractionItems] : filemap) {
+            taskGroup.enqueueTask(new FileExtractionTask(taskGroup, counter++, fname, extractionItems));
+        }
+        
+        // Wait for the tasks to complete
+        taskGroup.waitForTasks();
     }
+
+    std::cout << ">>> Tasks complete" << std::endl;
+
+    // Create map of base request to vector of extraction items
     
-    // Wait for the tasks to complete
-    taskGroup.waitForTasks();
+    std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> reqToExtractionItems;
 
-    // Return the results
-    Results results = gatherResults();
+    for (auto& [key, ex] : keyToXRR) {
+        reqToExtractionItems[ex->request()].push_back(ex);
+    }
 
-    return results;
+    // // print contents of map
+    // for (auto& [req, exs] : reqToExtractionItems) {
+    //     LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
+    //     for (auto& ex : exs) {
+    //         ex->debug_print();
+    //     }
+    // }
+
+    return reqToExtractionItems;
+
 }
 
-Results Engine::gatherResults() {
-    NOTIMP;
-}
 
 size_t taskid() {
     static size_t id = 0;

@@ -25,6 +25,8 @@ class WorkQueue : private eckit::NonCopyable {
 public:
 
     static WorkQueue& instance(); // singleton
+    
+    ~WorkQueue();
 
     void push(WorkItem& item);
 

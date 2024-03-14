@@ -13,8 +13,9 @@
 #pragma once
 
 #include "eckit/filesystem/URI.h"
-
 #include "metkit/mars/MarsRequest.h"
+
+#include "gribjump/LibGribJump.h"
 
 namespace gribjump {
 
@@ -25,31 +26,46 @@ typedef std::vector<std::vector<std::bitset<64>>> ExMask;
 
 // An object for grouping request, uri and result information together.
 // Note, this is a one to one mapping between request and result.
-// i.e. the request is assumed to be of cardinality 1.
+// i.e. the request is assumed to be of cardinality 1. /// No it isn't! It's the base request
 
 class ExtractionItem {
 
 public:
 
-    ExtractionItem(const metkit::mars::MarsRequest& req, const Ranges& ranges): 
-        request_(req), ranges_(ranges) {
+    ExtractionItem(const metkit::mars::MarsRequest& baseRequest, const Ranges& ranges): 
+        request_(baseRequest), ranges_(ranges) {
             /// @note We could reserve the values and mask here based on the ranges
             /// @todo is there a cheap way to assert cardinality 1?
+
+        LOG_DEBUG_LIB(LibGribJump) << "ExtractionItem: " << request_ << std::endl;
     }
 
     ~ExtractionItem() {
         delete uri_;
+        delete values_;
+        delete mask_;
     }
     
     const eckit::URI& uri() const { return *uri_; }
     const ExValues& values() const { return *values_; }
     const ExMask& mask() const { return *mask_; }
     const Ranges& intervals() const { return ranges_; }
+    const metkit::mars::MarsRequest& request() const { return request_; }
     
+    /// @note alternatively we could store the offset directly instead of the uri.
     eckit::Offset offset() const {
         ASSERT(uri_);
+        
         std::string fragment =  uri_->fragment();
-        return std::stoll(fragment);
+        eckit::Offset offset;
+        
+        try {
+            offset = std::stoll(fragment);
+        } catch (std::invalid_argument& e) {
+            throw eckit::BadValue("Invalid offset: '" + fragment + "' in URI: " + uri_->asString(), Here());
+        }
+
+        return offset;
     }
 
     void URI(eckit::URI* uri) { uri_ = uri; }
@@ -68,7 +84,7 @@ public:
         for (auto& r : ranges_) {
             std::cout << "   {" << r.first << ", " << r.second << "}" << std::endl;
         }
-        if (uri_) std::cout << "  URI: " << uri_->asString() << std::endl;
+        if (uri_) std::cout << "  URI: " << uri_->asString() << ", fragment: " << uri_->fragment() << std::endl;
         if (values_){
             std::cout << "  Values: " << std::endl;
             for (auto& v : *values_) {

@@ -24,8 +24,17 @@ WorkQueue& WorkQueue::instance() {
     return wq;
 }
 
+WorkQueue::~WorkQueue(){
+    queue_.close();
+
+    for (auto& w : workers_) {
+        w.join();
+    }
+
+}
+
 WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1024)) {
-    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS", 32);
+    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS", 1);
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] {
@@ -35,7 +44,10 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1
             
             for (;;) {
                 WorkItem item;
-                queue_.pop(item);
+                if (queue_.pop(item) == -1) {
+                    LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " stopping (queue closed)" << std::endl;
+                    break;
+                }
                 LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " new job" << std::endl;
                 try {
                     item.run(gj);
