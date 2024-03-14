@@ -29,8 +29,8 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/GribJumpException.h"
 
-#include "compression/compressors/Simple.h"
-#include "compression/compressors/Ccsds.h"
+#include "gribjump/compression/compressors/Simple.h"
+#include "gribjump/compression/compressors/Ccsds.h"
 
 
 using namespace eckit;

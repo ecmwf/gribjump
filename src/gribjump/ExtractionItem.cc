@@ -8,23 +8,12 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Tiago Quintino
+/// @author Christopher Bradley
 
-#include "gribjump/GribJumpBase.h"
-#include "gribjump/LibGribJump.h"
-#include "GribJumpBase.h"
+#include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
 
-GribJumpBase::GribJumpBase(const Config &config) {
-}
-
-GribJumpBase::~GribJumpBase() {
-}
-
-void GribJumpBase::stats()
-{
-    stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: ");
-}
+// ------------------------------------------------------------------
 
 } // namespace gribjump

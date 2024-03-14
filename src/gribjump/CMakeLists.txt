@@ -60,6 +60,13 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     FDBService.h
     FDBService.cc
 
+    Engine.cc
+    Engine.h
+    Lister.cc
+    Lister.h
+    ExtractionItem.cc
+    ExtractionItem.h
+
     tools/EccodesExtract.h
     tools/EccodesExtract.cc
 

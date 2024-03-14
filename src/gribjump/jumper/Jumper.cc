@@ -10,8 +10,10 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/jumper/Jumper.h"
 #include "eckit/io/DataHandle.h"
+
+#include "gribjump/jumper/Jumper.h"
+#include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
 // -----------------------------------------------------------------------------
@@ -52,6 +54,7 @@ std::vector<mc::Range> toRanges(const std::vector<Interval>& intervals){
 
 
 bool checkIntervals(const std::vector<Interval>& intervals) {
+    ASSERT(intervals.size() > 0);
     std::vector<char> check;
     std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(check), [](const auto& a, const auto& b) {
         return a.second <= b.first;
@@ -65,10 +68,39 @@ Jumper::Jumper() {}
 
 Jumper::~Jumper() {}
 
+
+void Jumper::extract(eckit::DataHandle& dh, const NewJumpInfo& info, ExtractionItem& extractionItem) {
+    ASSERT(checkIntervals(extractionItem.intervals()));
+    ASSERT(!info.sphericalHarmonics());
+
+    /// @todo... actually put the contents into the extractionItem
+    /// @todo... remove the other extract method
+
+    // if (info.bitsPerValue() == 0) return extractConstant(info, intervals);
+
+    // if (!info.offsetBeforeBitmap()) return extractNoMask(dh, info, intervals);
+
+    // return extractMasked(dh, info, intervals);
+
+
+    auto intervals = extractionItem.intervals();
+    auto result = extract(dh, info, intervals);
+
+    /// @XXX: copy into extractionItem
+
+    const std::vector<std::vector<double>>& values = result->values();
+    const std::vector<std::vector<std::bitset<64>>>& mask = result->mask();
+
+    extractionItem.values(values);
+    extractionItem.mask(mask);
+
+    return;
+}
+
+
 ExtractionResult* Jumper::extract(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals) {
     ASSERT(checkIntervals(intervals));
     ASSERT(!info.sphericalHarmonics());
-    ASSERT(intervals.size() > 0);
 
     if (info.bitsPerValue() == 0) return extractConstant(info, intervals);
 
@@ -97,7 +129,7 @@ ExtractionResult* Jumper::extractMasked(eckit::DataHandle& dh, const NewJumpInfo
     auto [new_intervals, new_bitmaps] = calculateMaskedIntervals(intervals, fullbitmap);
     auto all_decoded_values = readValues(dh, info, new_intervals);
 
-    // XXX: Eventually, the XRR object will store values and masks, and pre-reserve space based on the ranges
+    // XXX: Eventually, the ExtractionItem object will store values and masks, and pre-reserve space based on the ranges
     std::vector<Values> all_values;
     std::vector<std::vector<std::bitset<64>>> all_masks;
 

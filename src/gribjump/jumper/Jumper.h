@@ -15,7 +15,7 @@
 #include "gribjump/compression/NumericCompressor.h"
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/ExtractionData.h"
-
+#include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
 
@@ -31,7 +31,7 @@ public:
     virtual ~Jumper() = 0;
 
     ExtractionResult* extract(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals);
-
+    void extract(eckit::DataHandle& dh, const NewJumpInfo& info, ExtractionItem& extractionItem);
 private:
 
     virtual std::vector<Values> readValues(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals) {NOTIMP;}

@@ -37,6 +37,8 @@
 
 #include "gribjump/tools/EccodesExtract.h"
 
+#include "gribjump/ExtractionItem.h"
+
 
 #include "gribjump/LibGribJump.h"
 
@@ -184,6 +186,48 @@ CASE ("test_wrong_jumper") {
 
         fh.close();
     }
+}
+//-----------------------------------------------------------------------------
+// Testing the extract functionality using ExtractionItem
+// ~ i.e. internals of FileExtractionTask
+CASE ("test_ExtractionItem_extract") {
+    metkit::mars::MarsRequest request("none");
+    auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
+    ExtractionItem exItem(request, intervals );
+
+    eckit::PathName path = "2t_O1280.grib";
+
+    std::cout << "Setting URI" << std::endl;
+    exItem.URI(new eckit::URI(path));
+
+    eckit::FileHandle fh(path);
+    fh.openForRead();
+
+    eckit::Offset offset = 0;
+
+    std::cout << "Building info" << std::endl;
+    std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+    EXPECT(info);
+
+    std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
+
+    std::cout << "Extracting: " << exItem.intervals() << std::endl;
+    jumper->extract(fh, *info, exItem);
+
+    exItem.debug_print();
+    
+    // Check correct values 
+    std::vector<std::vector<double>> comparisonValues = eccodesExtract(path, {offset}, intervals)[0];
+    EXPECT(comparisonValues.size() == 3);
+
+    for (size_t i = 0; i < comparisonValues.size(); i++) {
+        EXPECT(comparisonValues[i].size() == 10);
+        for (size_t j = 0; j < comparisonValues[i].size(); j++) {
+            EXPECT(comparisonValues[i][j] == exItem.values()[i][j]);
+        }
+    }
+    
+    std::cout << "end" << std::endl;
 }
 
 //-----------------------------------------------------------------------------
