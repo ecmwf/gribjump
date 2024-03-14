@@ -34,7 +34,7 @@ WorkQueue::~WorkQueue(){
 }
 
 WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1024)) {
-    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS", 1);
+    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS", 2);
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] {

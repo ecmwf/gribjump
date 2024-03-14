@@ -44,6 +44,18 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 
+size_t expectedCount(std::vector<std::vector<Interval>> allIntervals){
+    // count the number of values expected given the intervals
+    size_t count = 0;
+    for (auto& intervals : allIntervals) {
+        for (auto& interval : intervals) {
+            count += interval.second - interval.first;
+        }
+    }
+
+    return count; 
+}
+
 CASE ("test_engine_basic") {
 
     eckit::PathName gribName = "extract_ranges.grib";
@@ -103,7 +115,7 @@ CASE ("test_engine_basic") {
     }
 
     // Check correct values 
-
+    size_t count = 0;
     for (size_t i = 0; i < requests.size(); i++) {
         metkit::mars::MarsRequest req = requests[i];
         std::vector<Interval> intervals = allIntervals[i];
@@ -112,7 +124,7 @@ CASE ("test_engine_basic") {
         for (size_t j = 0; j < exs.size(); j++) {
             for (size_t k = 0; k < comparisonValues[j].size(); k++) {
                 for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
-
+                    count++;
                     double v = exs[j]->values()[k][l];
                     if (std::isnan(v)) {
                         EXPECT(comparisonValues[j][k][l] == 9999);
@@ -125,10 +137,15 @@ CASE ("test_engine_basic") {
         }
     }
 
+    EXPECT(count == expectedCount(allIntervals));
+
 
     // Test 2
     
-    // Same request, all in one
+    allIntervals = {
+        {std::make_pair(0, 5),  std::make_pair(20, 30)},
+    };
+    // Same request, all in one (test flattening)
     {
         std::istringstream s(
             "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc\n"
@@ -139,7 +156,42 @@ CASE ("test_engine_basic") {
         requests = expand.expand(parsedRequests);
     }
 
-    // results = engine.extract(requests, allIntervals, true); // NOTIMP;
+    results = engine.extract(requests, allIntervals, true);
+
+    // print contents of map
+    for (auto& [req, exs] : results) {
+        LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
+        for (auto& ex : exs) {
+            ex->debug_print();
+        }
+    }
+
+    // compare results
+
+    metkit::mars::MarsRequest req = requests[0];
+    auto exs = results[req];
+    auto comparisonValues = eccodesExtract(req, allIntervals[0]);
+    count = 0;
+    for (size_t j = 0; j < exs.size(); j++) {
+        for (size_t k = 0; k < comparisonValues[j].size(); k++) {
+            for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
+                count++;
+                double v = exs[j]->values()[k][l];
+                if (std::isnan(v)) {
+                    EXPECT(comparisonValues[j][k][l] == 9999);
+                    continue;
+                }
+
+                EXPECT(comparisonValues[j][k][l] == v);
+            }
+        }
+    }
+    EXPECT(count == (3*expectedCount(allIntervals)));
+
+
+
+
+    /// @todo: request touching multiple files
 
 
 }

@@ -12,12 +12,13 @@
 
 #include "eckit/log/Plural.h"
 
+#include "metkit/mars/MarsExpension.h"
+
+
 #include "gribjump/Engine.h"
 #include "gribjump/Lister.h"
 #include "gribjump/ExtractionItem.h"
-
 #include "gribjump/remote/WorkQueue.h"
-
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
 
@@ -42,11 +43,40 @@ std::string requestToStr(const metkit::mars::MarsRequest& request) {
     return ss.str();
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
+
+class CollectFlattenedRequests : public metkit::mars::FlattenCallback {
+public:
+    CollectFlattenedRequests(std::vector<metkit::mars::MarsRequest>& flattenedRequests) : flattenedRequests_(flattenedRequests) {}
+
+    virtual void operator()(const metkit::mars::MarsRequest& req) {
+        flattenedRequests_.push_back(req);
+    }
+
+    std::vector<metkit::mars::MarsRequest>& flattenedRequests_;
+};
+
 std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRequest& request) {
-    NOTIMP;
+
+    metkit::mars::MarsExpension expansion(false);
+    metkit::mars::DummyContext ctx;
+    std::vector<metkit::mars::MarsRequest> flattenedRequests;
+    
+    CollectFlattenedRequests cb(flattenedRequests);
+    expansion.flatten(ctx, request, cb);
+
+    LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;
+
+    for (const auto& req : flattenedRequests) {
+        LOG_DEBUG_LIB(LibGribJump) << "  Flattened request: " << req << std::endl;
+    }
+
+    return flattenedRequests;
 }
 
 // Stringify requests, and flatten if necessary
+
 typedef std::map<metkit::mars::MarsRequest, std::vector<std::string>> flattenedKeys_t;
 
 flattenedKeys_t buildFlatKeys(const std::vector<metkit::mars::MarsRequest>& requests, bool flatten) {
@@ -70,7 +100,7 @@ flattenedKeys_t buildFlatKeys(const std::vector<metkit::mars::MarsRequest>& requ
             keymap[baseRequest].push_back(requestToStr(baseRequest));
         }
 
-        eckit::Log::debug<LibGribJump>() << "Flattened keys for request " << requestToStr(baseRequest) << ": " << keymap[baseRequest] << std::endl;
+        eckit::Log::debug<LibGribJump>() << "Flattened keys for request " << baseRequest << ": " << keymap[baseRequest] << std::endl;
     }
 
     return keymap;
@@ -156,7 +186,7 @@ public:
     // Each extraction item is assumed to be for the same file.
 
     FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems) :
-        Task(id, nullptr), // todo, deal with the nullptr
+        Task(id, nullptr), // xxx todo, deal with the nullptr
         taskgroup_(taskgroup),
         fname_(fname),
         extractionItems_(extractionItems)
@@ -177,7 +207,6 @@ public:
 
         timer.reset("FileExtractionTask : Sorted offsets Thread: " + thread_id);
 
-        // Do the extraction ... this should be in a separate class.
         extract();
 
         notify();
@@ -305,25 +334,30 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
     typedef std::map<std::string, ExtractionItem*> keyToExItem_t;
     typedef std::map<eckit::PathName, std::vector<ExtractionItem*>> filemap_t;
 
-    keyToExItem_t keyToXRR;
+    keyToExItem_t keyToExtractionItem;
 
     flattenedKeys_t flatKeys = buildFlatKeys(requests, flatten); // Map from base request to {flattened keys}
+
+    LOG_DEBUG_LIB(LibGribJump) << "Built flat keys" << std::endl;
 
     // Create the 1-to-1 map
     for (size_t i = 0; i < requests.size(); i++) {
         const metkit::mars::MarsRequest& basereq = requests[i]; 
         const std::vector<std::string> keys = flatKeys[basereq];
         for (const auto& key : keys) {
-            ASSERT(keyToXRR.find(key) == keyToXRR.end()); /// @todo support duplicated requests?
-            keyToXRR.emplace(key, new ExtractionItem(basereq, ranges[i])); // 1-to-1-map
+            ASSERT(keyToExtractionItem.find(key) == keyToExtractionItem.end()); /// @todo support duplicated requests?
+            keyToExtractionItem.emplace(key, new ExtractionItem(basereq, ranges[i])); // 1-to-1-map
         }
     }
 
+    LOG_DEBUG_LIB(LibGribJump) << "Built keyToExtractionItem" << std::endl;
+
     // Create the union request
     const metkit::mars::MarsRequest req = unionRequest(requests);
+
     
     // Map files to ExtractionItem
-    filemap_t filemap = FDBLister::instance().fileMap(req, keyToXRR);
+    filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
 
     // Schedule the extraction of the data. Probably in another class.
     {
@@ -338,23 +372,14 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
         taskGroup.waitForTasks();
     }
 
-    std::cout << ">>> Tasks complete" << std::endl;
 
     // Create map of base request to vector of extraction items
     
     std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> reqToExtractionItems;
 
-    for (auto& [key, ex] : keyToXRR) {
+    for (auto& [key, ex] : keyToExtractionItem) {
         reqToExtractionItems[ex->request()].push_back(ex);
     }
-
-    // // print contents of map
-    // for (auto& [req, exs] : reqToExtractionItems) {
-    //     LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
-    //     for (auto& ex : exs) {
-    //         ex->debug_print();
-    //     }
-    // }
 
     return reqToExtractionItems;
 
