@@ -18,6 +18,10 @@
 #include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/EccodesExtract.h"
 
+#include "gribjump/info/InfoExtractor.h"
+#include "gribjump/info/CcsdsInfo.h"
+#include "gribjump/jumper/JumperFactory.h"
+
 using namespace eckit::testing;
 
 namespace gribjump {
@@ -147,14 +151,15 @@ CASE( "test_ceil_O1280" ) {
 
 CASE( "test_ceil_offsets" ) {
     // this is grid_ccsds, grib 2, with bitmask.
-    eckit::PathName gribname = "ceil_O1280.grib";
-    JumpHandle dataSource(gribname);
-    std::cout << "Made JumpHandle" << std::endl;
-    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
+    InfoExtractor extractor;
+    NewJumpInfo* info = extractor.extract("ceil_O1280.grib", 0);
 
-    JumpInfo gribInfo = *infos.back();
+    const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(info);
+    EXPECT(pccsds);
+    const CcsdsInfo& ccsdsInfo = *pccsds;
 
-    std::vector<size_t> offsets = gribInfo.getCcsdsOffsets();
+    std::vector<size_t> offsets = ccsdsInfo.ccsdsOffsets();
+
     EXPECT(offsets.size() == o1280_offsets.size());
     EXPECT(offsets == o1280_offsets);
 }

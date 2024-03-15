@@ -29,9 +29,6 @@
 #include "gribjump/GribInfo.h"
 #include "gribjump/JumpHandle.h"
 #include "gribjump/info/JumpInfoFactory.h"
-#include "gribjump/jumper/SimpleJumper.h"
-#include "gribjump/jumper/CcsdsJumper.h"
-#include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Engine.h"
@@ -188,11 +185,8 @@ CASE ("test_engine_basic") {
     }
     EXPECT(count == (3*expectedCount(allIntervals)));
 
-
-
-
+    
     /// @todo: request touching multiple files
-
 
 }
 

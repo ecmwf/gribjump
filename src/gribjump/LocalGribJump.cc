@@ -33,8 +33,15 @@
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LocalGribJump.h"
+#include "gribjump/GribInfoCache.h"
+
+#include "gribjump/Engine.h"
+#include "gribjump/info/InfoExtractor.h"
+#include "gribjump/jumper/JumperFactory.h"
 
 namespace gribjump {
+
+using namespace metkit::mars;
 
 typedef std::chrono::high_resolution_clock Clock;
 
@@ -50,7 +57,7 @@ size_t LocalGribJump::scan(const eckit::PathName& path) {
     return infos.size();
 }
 
-size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+size_t LocalGribJump::scan(const std::vector<MarsRequest> requests, bool byfiles) {
 
     // note that the order in the map is not guaranteed to be the same as the order of the requests
     const std::map< eckit::PathName, eckit::OffsetList > files = FDBService::instance().filesOffsets(requests);
@@ -72,73 +79,63 @@ size_t LocalGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests
 
 std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
 
-    std::vector<JumpInfoHandle> infos;
-    for (size_t i = 0; i < offsets.size(); i++) {
-        infos.push_back(extractInfo(path, offsets[i]));
-        ASSERT(offsets[i] == infos[i]->offset()); 
-    }
+    // Directly from file, no cache, no queue, no threads
 
-    eckit::DataHandle* handle = path.fileHandle();
-    
-    JumpHandle dataSource(handle);
+    InfoExtractor extractor;
+    std::vector<NewJumpInfo*> infos = extractor.extract(path, offsets);
+
+    eckit::FileHandle fh(path);
+    fh.openForRead();
 
     std::vector<ExtractionResult*> results;
-    for (size_t i = 0; i < infos.size(); i++) {
-        ASSERT(infos[i]->ready());
-        results.push_back(infos[i]->extractRanges(dataSource, ranges[i]));
+
+    for (size_t i = 0; i < offsets.size(); i++) {
+        NewJumpInfo& info = *infos[i];
+        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info));
+        ExtractionResult* res = jumper->extract(fh, info, ranges[i]);
+        results.push_back(res);
     }
+
+    fh.close();
 
     return results;
 }
 
+/// @todo, change API, remove extraction request
 std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
-    // Old API
-    // TODO: use pointers to ExtractionResult.
 
-    // TODO: Remove this function, or significantly change it, such that the server and local implementations call the same functions.
-
-    std::vector<std::vector<JumpInfoHandle>> infos;
-    std::vector<std::vector<eckit::DataHandle*>> handles;
+    std::vector<MarsRequest> requests;
+    std::vector<std::vector<Range>> ranges;
     
-    { // Get handles
-    
-        // eckit::AutoLock<FDBService> lock(FDBService::instance()); 
-        // fdb5::FDB& fdb = FDBService::instance().fdb(); // NB: A static FDB cannot be destroyed correctly if inspect is ever called...
+    bool flatten = true;
 
-        // This function is for single-threaded use only.
-        fdb5::FDB fdb;
-        
-
-        for (auto& req : polyRequest){
-
-            fdb5::ListIterator it = fdb.inspect(req.getRequest());
-
-            fdb5::ListElement el;
-            infos.push_back(std::vector<JumpInfoHandle>());
-            handles.push_back(std::vector<eckit::DataHandle*>());
-            while (it.next(el)) {
-                const fdb5::FieldLocation& loc = el.location();
-                const JumpInfoHandle info = extractInfo(loc);
-                infos.back().push_back(info);
-                
-                handles.back().push_back(loc.uri().path().fileHandle());
-            }
-        }
-    
+    for (auto& req : polyRequest) {
+        requests.push_back(req.getRequest());
+        ranges.push_back(req.getRanges());
     }
 
-    // Extract values
-    std::vector<std::vector<ExtractionResult*>> result;
-    
-    for (size_t i = 0; i < polyRequest.size(); i++) {
-        result.push_back(std::vector<ExtractionResult*>());
-        for (size_t j = 0; j < infos[i].size(); j++) {
-            JumpHandle dataSource(handles[i][j]);
-            result.back().push_back(infos[i][j]->extractRanges(dataSource, polyRequest[i].getRanges()));
+    std::map<MarsRequest, std::vector<ExtractionItem*>> results = extract(requests, ranges, flatten);
+
+    std::vector<std::vector<ExtractionResult*>> extractionResults;
+    for (auto& req : polyRequest) {
+        auto it = results.find(req.getRequest());
+        ASSERT(it != results.end());
+        std::vector<ExtractionResult*> res;
+        for (auto& item : it->second) {
+            ExtractionResult* r = new ExtractionResult(item->values(), item->mask());
+            res.push_back(r);
         }
+
+        extractionResults.push_back(res);
     }
 
-    return result;
+    return extractionResults;
+}
+
+std::map<MarsRequest, std::vector<ExtractionItem*>> LocalGribJump::extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten) {
+    Engine engine;
+    std::map<MarsRequest, std::vector<ExtractionItem*>> results = engine.extract(requests, ranges, flatten);
+    return results;
 }
 
 JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {

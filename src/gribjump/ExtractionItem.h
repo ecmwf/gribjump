@@ -36,8 +36,6 @@ public:
         request_(baseRequest), ranges_(ranges) {
             /// @note We could reserve the values and mask here based on the ranges
             /// @todo is there a cheap way to assert cardinality 1?
-
-        LOG_DEBUG_LIB(LibGribJump) << "ExtractionItem: " << request_ << std::endl;
     }
 
     ~ExtractionItem() {
@@ -46,7 +44,7 @@ public:
         delete mask_;
     }
     
-    const eckit::URI& uri() const { return *uri_; }
+    const eckit::URI& URI() const { return *uri_; }
     const ExValues& values() const { return *values_; }
     const ExMask& mask() const { return *mask_; }
     const Ranges& intervals() const { return ranges_; }

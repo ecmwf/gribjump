@@ -91,8 +91,9 @@ CASE( "test_reanimate_info" ) {
 }
 
 //-----------------------------------------------------------------------------
+const size_t O1280_size = 6599680; // O1280
 
-CASE ("test_jumpers") {
+CASE ("test_jumpers_filehandle") {
 
     std::vector<eckit::PathName> paths = {
         "2t_O1280.grib",   // simple packed
@@ -100,13 +101,13 @@ CASE ("test_jumpers") {
     };
 
     for (auto path : paths) {
-        std::cout << "Path: " << path << std::endl;
-
         eckit::FileHandle fh(path);
         fh.openForRead();
 
         eckit::Offset offset = 0;
         std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+    
+        EXPECT(info->numberOfDataPoints() == O1280_size);
 
         auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
 

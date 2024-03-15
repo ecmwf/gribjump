@@ -15,9 +15,11 @@
 
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribInfo.h"
-#include "gribjump/GribInfoCache.h"
+#include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
+
+typedef metkit::mars::MarsRequest MarsRequest;
 
 class LocalGribJump : public GribJumpBase {
 
@@ -30,10 +32,13 @@ public:
     /// @param path full path to grib file
     size_t scan(const eckit::PathName& path) override;
 
-    size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
+    size_t scan(const std::vector<MarsRequest> requests, bool byfiles) override;
 
+    // new API!
+    std::map<MarsRequest, std::vector<ExtractionItem*>> extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten);
+
+    // old API
     std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
-
     std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>) override;
     
     JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);

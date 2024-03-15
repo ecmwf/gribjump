@@ -21,8 +21,7 @@
 #include "gribjump/remote/WorkQueue.h"
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
-
-#include "eccodes.h" // xxx temp... for extracting infos. doesnt belong here
+#include "gribjump/info/InfoExtractor.h"
 
 namespace gribjump {
     
@@ -190,9 +189,7 @@ public:
         taskgroup_(taskgroup),
         fname_(fname),
         extractionItems_(extractionItems)
-    {
-    }
-
+    {}
 
     void execute(GribJump& gj) override { // todo, don't need gj?
         // Timing info
@@ -213,52 +210,37 @@ public:
     }
 
     void extract() {
-        std::vector<NewJumpInfo*> infos = getJumpInfos();
+        std::vector<NewJumpInfo*> infos = getJumpInfos(); 
         eckit::FileHandle fh(fname_);
 
         fh.openForRead();
 
-        for (size_t i = 0; i < infos.size(); i++) {
+        for (size_t i = 0; i < extractionItems_.size(); i++) {
+            ExtractionItem* extractionItem = extractionItems_[i];
             NewJumpInfo& info = *infos[i];
+            // NewJumpInfo& info = GribInfoCache::instance().get(extractionItem->URI());
             std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
-            jumper->extract(fh, info, *extractionItems_[i]);
+            jumper->extract(fh, info, *extractionItem);
         }
 
         fh.close();
-
     }
 
     std::vector<NewJumpInfo*> getJumpInfos() {
         // Get the info from the cache, or read from the file.
         /// @todo This should probably be a method of the cache class.
+        // in particular - infos are owned by the cache.
 
         // for now, always read from the file.
+        InfoExtractor extractor;
+        std::vector<eckit::Offset> offsets;
 
-        grib_context* c = nullptr;
-        int n = 0;
-        off_t* offsets;
-        int err = codes_extract_offsets_malloc(c, fname_.asString().c_str(), PRODUCT_GRIB, &offsets, &n, 1);
-        ASSERT(!err);
-
-        eckit::FileHandle fh(fname_);
-        fh.openForRead();
-
-        std::vector<NewJumpInfo*> infos;
-
-        for (size_t i = 0; i < n; i++) {
-            
-            NewJumpInfo* info(InfoFactory::instance().build(fh, offsets[i]));
-            ASSERT(info);
-            infos.push_back(info);
+        for (auto& extractionItem : extractionItems_) {
+            offsets.push_back(extractionItem->offset());
         }
 
-        fh.close();
-
-        free(offsets);
-
-        return infos;
+        return extractor.extract(fname_, offsets);
     }
-
 
     void notify() override { //explicit override because we are not defining a client stream.
         taskgroup_.notify(id());
@@ -277,59 +259,11 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Engine::Engine() {
-}
+Engine::Engine() {}
 
-Engine::~Engine() {
-}
+Engine::~Engine() {}
 
 Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, bool flatten) {
-
-    /*
-
-    - Flatten the requests, and turn into alphabetical requests (for fdb keys later), MULTIREQ_TO_REQ1
-        m1     : {a1}
-        m2/3/4 : {a2, a3, a4}
-    // this could be a vector of vectors of strings instead. (?)
-       i=0, {a1}; i=1, {a2, a3, a4}; i=2, {a5, a6, a7, a8}; etc.
-
-    - Create the 1-to-1 map, REQ1_TO_XRR
-        a1 : ExtractionItem(a1, ranges1)
-        a2 : ExtractionItem(a2, ranges2)
-        a3 : ExtractionItem(a2, ranges2)
-        a4 : ExtractionItem(a2, ranges2)  ...
-
-    - Create the union request: M = m1/2/3/4/etc. // NB We probably don't want to actually union all keywords (e.g. date). Keep for now...
-
-    - FDB.list(M) and iterate over list elements. Each element can be mapped to a key a1, a2, a3, a4, etc.
-        -> uri = elem.location().uri()
-        -> a = tostring(elem.key())
-        -> map[a].setURI(uri)
-    
-    By here, ExtractionItem will contain the URI and ranges to extract the data.
-
-    - Construct map of files to ExtractionItem. We Could be creating this map when we set the URI in the previous step.
-        f1 : {XRR1, XRR2}
-        f2 : {XRR3, XRR4, etc.}
-    Ideally in order of offset.
-
-    - Schedule the extraction of the data: a task per file.
-
-    - Wait for the tasks to complete.
-
-    - Return the results.
-    NB: In terms of mapping the multi-request to the result, use the map MULTIREQ_TO_REQ1 to map the original request to the result.
-    
-    i.e. MULTIREQ_TO_REQ1[m1] is a1, REQ1_TO_XRR[a1] is XRR1
-    so XRR1 == REQ1_TO_XRR[MULTIREQ_TO_REQ1[m1]]
-
-    So if you want to collect the results into a vector like the original requests, you can do something like:
-    for (auto& req : requests) {
-        results.push_back(REQ1_TO_XRR[MULTIREQ_TO_REQ1[req]].result());
-    }
-    */
-
-   // WIP
 
     typedef std::map<std::string, ExtractionItem*> keyToExItem_t;
     typedef std::map<eckit::PathName, std::vector<ExtractionItem*>> filemap_t;
@@ -352,29 +286,23 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
 
     LOG_DEBUG_LIB(LibGribJump) << "Built keyToExtractionItem" << std::endl;
 
-    // Create the union request
     const metkit::mars::MarsRequest req = unionRequest(requests);
 
-    
     // Map files to ExtractionItem
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
 
     // Schedule the extraction of the data. Probably in another class.
-    {
-        TaskGroup taskGroup;
+    TaskGroup taskGroup;
 
-        size_t counter = 0;
-        for (auto& [fname, extractionItems] : filemap) {
-            taskGroup.enqueueTask(new FileExtractionTask(taskGroup, counter++, fname, extractionItems));
-        }
-        
-        // Wait for the tasks to complete
-        taskGroup.waitForTasks();
+    size_t counter = 0;
+    for (auto& [fname, extractionItems] : filemap) {
+        taskGroup.enqueueTask(new FileExtractionTask(taskGroup, counter++, fname, extractionItems));
     }
-
+    
+    // Wait for the tasks to complete
+    taskGroup.waitForTasks();
 
     // Create map of base request to vector of extraction items
-    
     std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> reqToExtractionItems;
 
     for (auto& [key, ex] : keyToExtractionItem) {
@@ -385,10 +313,5 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
 
 }
 
-
-size_t taskid() {
-    static size_t id = 0;
-    return id++;
-}
 
 } // namespace gribjump

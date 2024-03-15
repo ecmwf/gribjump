@@ -11,9 +11,9 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#include "gribjump/GribInfoCache.h"
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
@@ -21,8 +21,11 @@
 #include "eckit/log/TimeStamp.h"
 #include "eckit/exception/Exceptions.h"
 
+
+#include "gribjump/GribInfoCache.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/JumpHandle.h"
+#include "gribjump/info/JumpInfoFactory.h"
 
 namespace gribjump {
 
@@ -117,6 +120,15 @@ bool GribInfoCache::loadIntoCache(const eckit::PathName& cachePath, GribInfoCach
     return false;
 }
 
+JumpInfo* GribInfoCache::get(const eckit::URI& uri) {
+    
+    if (!cacheEnabled_) return nullptr;
+
+    eckit::PathName path = uri.path();
+    eckit::Offset offset = std::stoll(uri.fragment());
+
+    return get(path, offset);
+}
 
 JumpInfo* GribInfoCache::get(const fdb5::FieldLocation& loc) {
     

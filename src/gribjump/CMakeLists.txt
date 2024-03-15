@@ -78,6 +78,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     info/CcsdsInfo.cc
     info/JumpInfoFactory.h
     info/JumpInfoFactory.cc
+    info/InfoExtractor.h
+    info/InfoExtractor.cc
 
     jumper/Jumper.h
     jumper/Jumper.cc
