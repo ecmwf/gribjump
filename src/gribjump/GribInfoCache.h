@@ -60,6 +60,7 @@ public:
     /// @return JumpInfo, null if not found
     JumpInfo* get(const fdb5::FieldLocation& loc);
     JumpInfo* get(const eckit::PathName& path, const eckit::Offset offset);
+    JumpInfo* get(const eckit::URI& uri);
 
     void print(std::ostream& s) const;
 

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <bitset>
+
 #include "eckit/filesystem/URI.h"
 #include "metkit/mars/MarsRequest.h"
 

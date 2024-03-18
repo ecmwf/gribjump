@@ -19,6 +19,8 @@
 #include "gribjump/remote/ExtractFileRequest.h"
 #include "gribjump/remote/ScanRequest.h"
 
+#include "gribjump/Engine.h"
+
 namespace gribjump {
 
 GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol){}
@@ -131,18 +133,75 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){
 
     timer.reset();
 
-    ExtractFileRequest request(s);
-    request.enqueueTasks();
+    // Receive the requests
+    std::vector<std::vector<Range>> ranges;
+    std::vector<metkit::mars::MarsRequest> marsRequests;
 
-    timer.reset("EXTRACT tasks enqueued");
+    // Temp, repackage the requests from old format into format the engine expects
+    {
+        size_t nRequests;
+        s >> nRequests;
 
-    request.waitForTasks();
+        std::vector<ExtractionRequest> requests;
+        for (size_t i = 0; i < nRequests; i++) {
+            ExtractionRequest req(s);
+            requests.push_back(req);
+        }
+
+        timer.reset("EXTRACT requests received");
+
+        for (auto& req : requests) {
+            marsRequests.push_back(req.getRequest());
+            ranges.push_back(req.getRanges());
+        }
+
+        timer.reset("EXTRACT requests converted to new engine format");
+
+    }
+
+    bool flatten = false; // xxx hard coded for now
+
+    Engine engine;
+    std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> results = engine.extract(marsRequests, ranges, flatten);
+
+    // print the results
+    for (auto& pair : results) {
+        LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
+        for (auto& item : pair.second) {
+            item->debug_print();
+        }
+    }
 
     timer.reset("EXTRACT tasks completed");
 
-    request.replyToClient();
-    
+    // Send the results, again repackage.
+    {
+        LOG_DEBUG_LIB(LibGribJump) << "Sending error 0" << std::endl;
+
+        s << size_t(0); // todo: bring back error reporting.
+
+        size_t nRequests = marsRequests.size();
+        LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
+
+        for (size_t i = 0; i < nRequests; i++) {
+            LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
+
+            auto it = results.find(marsRequests[i]);
+            ASSERT(it != results.end());
+            std::vector<ExtractionItem*> items = it->second;
+            size_t nfields = items.size();
+            s << nfields;
+            for (size_t i = 0; i < nfields; i++) {
+                ExtractionResult res(items[i]->values(), items[i]->mask());
+                s << res;
+            }
+        }
+
+        LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+    }
+
     timer.reset("EXTRACT results sent");
+
 }
 
 }  // namespace gribjump
