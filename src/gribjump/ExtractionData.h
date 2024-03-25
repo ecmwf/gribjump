@@ -25,6 +25,9 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+
+/// @todo This class is now redundant thanks to ExtractionItem.
+
 class ExtractionResult  {
 public: // methods
 
@@ -63,12 +66,14 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// @todo This class is now redundant thanks to ExtractionItem.
+
 class ExtractionRequest {
 
 public: // methods
 
     ExtractionRequest();
-    ExtractionRequest(metkit::mars::MarsRequest, std::vector<Range>);
+    ExtractionRequest(const metkit::mars::MarsRequest&, const std::vector<Range>&);
     explicit ExtractionRequest(eckit::Stream& s);
 
     std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;

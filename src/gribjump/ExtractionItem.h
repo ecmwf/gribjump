@@ -37,7 +37,7 @@ public:
     ExtractionItem(const metkit::mars::MarsRequest& baseRequest, const Ranges& ranges): 
         request_(baseRequest), ranges_(ranges) {
             /// @note We could reserve the values and mask here based on the ranges
-            /// @todo is there a cheap way to assert cardinality 1?
+            /// @note We're not always going to have mars requests (e.g. file name, tree, ...) More generic object?
     }
 
     ~ExtractionItem() {
@@ -117,7 +117,7 @@ private:
     eckit::URI* uri_;
 
     // Set on Extraction
-    ExValues * values_;
+    ExValues* values_;
     ExMask* mask_;
 };
 

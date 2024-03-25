@@ -51,30 +51,16 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 LocalGribJump::~LocalGribJump() {}
 
 size_t LocalGribJump::scan(const eckit::PathName& path) {
-    JumpHandle dataSource(path);
-    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
-    GribInfoCache::instance().insert(path, infos);
-    return infos.size();
+    NOTIMP;
+    // JumpHandle dataSource(path);
+    // std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
+    // GribInfoCache::instance().insert(path, infos);
+    // return infos.size();
 }
 
 size_t LocalGribJump::scan(const std::vector<MarsRequest> requests, bool byfiles) {
-
-    // note that the order in the map is not guaranteed to be the same as the order of the requests
-    const std::map< eckit::PathName, eckit::OffsetList > files = FDBService::instance().filesOffsets(requests);
-
-    for (const auto& file : files) {
-        if(byfiles) {
-            scan(file.first);
-        }
-        else {
-            GribInfoCache::instance().scan(file.first, file.second);
-        }
-    }
-
-    size_t numFiles = files.size();
-    LOG_DEBUG_LIB(LibGribJump) << "Found " << numFiles << " files" << std::endl;
-
-    return numFiles;
+    Engine engine;
+    return engine.scan(requests, byfiles);
 }
 
 std::vector<ExtractionResult*> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
@@ -143,21 +129,21 @@ JumpInfoHandle LocalGribJump::extractInfo(const fdb5::FieldLocation& loc) {
 }
 
 JumpInfoHandle LocalGribJump::extractInfo(const eckit::PathName& path, const eckit::Offset& offset) {
-    
-    GribInfoCache& cache = GribInfoCache::instance();
+    NOTIMP;
+    // GribInfoCache& cache = GribInfoCache::instance();
 
-    JumpInfo* pinfo = cache.get(path, offset);
-    if (pinfo) return JumpInfoHandle(pinfo);
+    // JumpInfo* pinfo = cache.get(path, offset);
+    // if (pinfo) return JumpInfoHandle(pinfo);
 
-    std::string f = path.baseName();
-    eckit::Log::info() << "GribJump cache miss file=" << f << ",offset=" << offset << std::endl;
+    // std::string f = path.baseName();
+    // eckit::Log::info() << "GribJump cache miss file=" << f << ",offset=" << offset << std::endl;
 
-    eckit::DataHandle* handle = path.fileHandle();
-    JumpHandle dataSource(handle);
-    dataSource.seek(offset); // !!!
-    JumpInfo* info = dataSource.extractInfo();
-    cache.insert(path, offset, info); // takes ownership of info
-    return JumpInfoHandle(info);
+    // eckit::DataHandle* handle = path.fileHandle();
+    // JumpHandle dataSource(handle);
+    // dataSource.seek(offset); // !!!
+    // JumpInfo* info = dataSource.extractInfo();
+    // cache.insert(path, offset, info); // takes ownership of info
+    // return JumpInfoHandle(info);
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {

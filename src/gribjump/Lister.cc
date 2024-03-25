@@ -92,7 +92,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
 
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().uri();
-        uri.fragment(std::to_string(elem.location().offset())); // fdb's URIs don't contain the offset fragment (!?)
+        uri.fragment(std::to_string(elem.location().offset())); // fdb's URIs don't contain the offset fragment (!?)   <---- Maybe location().fullUri() is better?
 
         ExtractionItem* extractionItem = reqToExtractionItem.at(key);
         extractionItem->URI(new eckit::URI(uri)); // XXX: second copy of the uri
@@ -129,6 +129,42 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     }
     
     return filemap;
+}
+
+std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(std::vector<metkit::mars::MarsRequest> requests) {
+
+    eckit::AutoLock<FDBLister> lock(this);
+
+    std::map< eckit::PathName, eckit::OffsetList > files; 
+
+    for (auto& request : requests) {
+
+        size_t count = request.count(); // worse case scenario all fields in one file
+
+        fdb5::FDBToolRequest fdbreq(request);
+        auto listIter = fdb_.list(fdbreq, true);
+
+        fdb5::ListElement elem;
+        while (listIter.next(elem)) {
+                        
+            const fdb5::FieldLocation& loc = elem.location();
+
+            eckit::PathName path = loc.uri().path();
+
+            auto it = files.find(path);
+            if(it == files.end()) {
+                eckit::OffsetList offsets;
+                offsets.reserve(count);
+                offsets.push_back(loc.offset());
+                files.emplace(path, offsets);
+            }
+            else {
+                it->second.push_back(loc.offset());
+            }
+        }
+    }
+
+    return files;
 }
 
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request) {

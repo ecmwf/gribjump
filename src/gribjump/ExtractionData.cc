@@ -86,9 +86,9 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges):
-    ranges_(std::move(ranges)),
-    request_(std::move(request))
+ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges):
+    ranges_(ranges),
+    request_(request)
     {}
 ExtractionRequest::ExtractionRequest(){}
 

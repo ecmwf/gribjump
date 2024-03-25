@@ -33,6 +33,9 @@ public:
     ~Engine();
 
     Results extract(const MarsRequests& requests, const RangesList& ranges, bool flattenRequests = false);
+    
+    // byfiles: scan entire file, not just fields matching request
+    size_t scan(const MarsRequests& requests, bool byfiles = false);
 
 private:
     // std::vector<Task*> tasks_; // Want one vector per user request, not one per engine

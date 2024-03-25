@@ -57,7 +57,10 @@ public:
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request) override;
     
-    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const reqToXRR_t& reqToXRR);
+    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const reqToXRR_t& reqToXRR); // Used during extraction
+
+    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(std::vector<metkit::mars::MarsRequest> requests); // Used during scan
+
     
 private:
     FDBLister();

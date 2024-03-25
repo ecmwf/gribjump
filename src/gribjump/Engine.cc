@@ -21,7 +21,9 @@
 #include "gribjump/remote/WorkQueue.h"
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
-#include "gribjump/info/InfoExtractor.h"
+
+#include "gribjump/GribInfoCache.h"
+
 
 namespace gribjump {
     
@@ -192,9 +194,9 @@ public:
     {}
 
     void execute(GribJump& gj) override { // todo, don't need gj?
-        // Timing info
+
         eckit::Timer timer;
-        std::string thread_id = thread_id_str();
+        const std::string thread_id = thread_id_str();
         eckit::Timer full_timer("Thread total time. Thread: " + thread_id);
 
         // Sort extractionItems_ by offset
@@ -217,8 +219,8 @@ public:
 
         for (size_t i = 0; i < extractionItems_.size(); i++) {
             ExtractionItem* extractionItem = extractionItems_[i];
-            NewJumpInfo& info = *infos[i];
-            // NewJumpInfo& info = GribInfoCache::instance().get(extractionItem->URI());
+            const NewJumpInfo& info = *infos[i];
+
             std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
             jumper->extract(fh, info, *extractionItem);
         }
@@ -227,19 +229,14 @@ public:
     }
 
     std::vector<NewJumpInfo*> getJumpInfos() {
-        // Get the info from the cache, or read from the file.
-        /// @todo This should probably be a method of the cache class.
-        // in particular - infos are owned by the cache.
 
-        // for now, always read from the file.
-        InfoExtractor extractor;
         std::vector<eckit::Offset> offsets;
 
         for (auto& extractionItem : extractionItems_) {
             offsets.push_back(extractionItem->offset());
         }
 
-        return extractor.extract(fname_, offsets);
+        return GribInfoCache::instance().get(fname_, offsets);
     }
 
     void notify() override { //explicit override because we are not defining a client stream.
@@ -254,6 +251,55 @@ private:
     TaskGroup& taskgroup_;
     eckit::PathName fname_;
     std::vector<ExtractionItem*>& extractionItems_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class FileScanTask : public Task {
+public:
+
+    // Each extraction item is assumed to be for the same file.
+
+    FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets) :
+        Task(id, nullptr), // xxx todo, deal with the nullptr
+        taskgroup_(taskgroup),
+        fname_(fname),
+        offsets_(offsets)
+    {}
+
+    void execute(GribJump& gj) override { // todo, don't need gj?
+        eckit::Timer timer;
+        eckit::Timer full_timer("Thread total time. Thread: " + thread_id_str());
+
+        std::sort(offsets_.begin(), offsets_.end());
+
+        scan();
+
+        notify();
+    }
+
+    void scan(){
+
+        if (offsets_.size() == 0) {
+            GribInfoCache::instance().scan(fname_);
+            return;
+        }
+
+        GribInfoCache::instance().scan(fname_, offsets_);
+    }
+
+    void notify() override { //explicit override because we are not defining a client stream.
+        taskgroup_.notify(id());
+    }
+
+    void notifyError(const std::string& s) override { //explicit override because we are not defining a client stream.
+        NOTIMP;
+    }
+
+private:
+    TaskGroup& taskgroup_;
+    eckit::PathName fname_;
+    std::vector<eckit::Offset> offsets_;
 };
 
 
@@ -313,5 +359,31 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
 
 }
 
+size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
+
+    const std::map< eckit::PathName, eckit::OffsetList > files = FDBLister::instance().filesOffsets(requests);
+
+    TaskGroup taskGroup;
+
+    size_t counter = 0;
+
+    if (byfiles){
+        for (auto& [fname, offsets] : files) {
+            taskGroup.enqueueTask(new FileScanTask(taskGroup, counter++, fname, offsets));
+        }
+    }
+    else {
+        for (auto& [fname, offsets] : files) {
+            taskGroup.enqueueTask(new FileScanTask(taskGroup, counter++, fname, {}));
+        }
+    }
+
+    // Wait for the tasks to complete
+    taskGroup.waitForTasks();
+
+    return files.size();
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump

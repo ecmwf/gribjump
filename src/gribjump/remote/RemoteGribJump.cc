@@ -70,7 +70,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     return count;
 }
 
-std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
+std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
     std::vector<std::vector<ExtractionResult*>> result;
 
@@ -81,9 +81,9 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
 
     stream << "EXTRACT";
 
-    size_t nRequests = polyRequest.size();
+    size_t nRequests = requests.size();
     stream << nRequests;
-    for (auto& req : polyRequest) {
+    for (auto& req : requests) {
         stream << req;
     }
 

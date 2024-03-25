@@ -53,7 +53,8 @@ static metkit::grib::GribAccessor<std::string>   packingType("packingType");
 } // namespace grib
 // --------------------------------------------------------------------------------------------
 
-NewJumpInfo::NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): msgStartOffset_(startOffset) {
+NewJumpInfo::NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): 
+    version_(currentVersion_), msgStartOffset_(startOffset) {
 
     editionNumber_      = grib::editionNumber(h);
     packingType_        = grib::packingType(h);
