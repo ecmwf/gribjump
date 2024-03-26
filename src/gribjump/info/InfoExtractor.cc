@@ -21,7 +21,7 @@ InfoExtractor::InfoExtractor() {}
 
 InfoExtractor::~InfoExtractor() {}
 
-std::vector<NewJumpInfo*> InfoExtractor::extract(const eckit::PathName& path){
+std::vector<JumpInfo*> InfoExtractor::extract(const eckit::PathName& path){
     
     grib_context* c = nullptr;
     int n = 0;
@@ -41,16 +41,16 @@ std::vector<NewJumpInfo*> InfoExtractor::extract(const eckit::PathName& path){
     return extract(path, eckit_offsets);
 }
 
-std::vector<NewJumpInfo*> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){
+std::vector<JumpInfo*> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){
 
     eckit::FileHandle fh(path);
     fh.openForRead();
 
-    std::vector<NewJumpInfo*> infos;
+    std::vector<JumpInfo*> infos;
 
     for (size_t i = 0; i < offsets.size(); i++) {
         
-        NewJumpInfo* info(InfoFactory::instance().build(fh, offsets[i]));
+        JumpInfo* info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
         infos.push_back(info);
     }
@@ -60,13 +60,13 @@ std::vector<NewJumpInfo*> InfoExtractor::extract(const eckit::PathName& path, co
     return infos;
 }
 
-NewJumpInfo* InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset){
+JumpInfo* InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset){
 
     eckit::FileHandle fh(path);
 
     fh.openForRead();
 
-    NewJumpInfo* info(InfoFactory::instance().build(fh, offset));
+    JumpInfo* info(InfoFactory::instance().build(fh, offset));
     ASSERT(info);
 
     fh.close();

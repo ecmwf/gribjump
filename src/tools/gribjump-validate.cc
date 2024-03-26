@@ -26,8 +26,6 @@
 #include "fdb5/io/HandleGatherer.h"
 #include "fdb5/tools/FDBTool.h"
 
-#include "gribjump/JumpHandle.h"
-#include "gribjump/GribInfo.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/FDBService.h"
 #include "gribjump/tools/ToolUtils.h"

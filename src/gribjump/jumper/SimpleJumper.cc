@@ -22,7 +22,7 @@ SimpleJumper::SimpleJumper(): Jumper() {}
 
 SimpleJumper::~SimpleJumper() {}
 
-std::vector<Values> SimpleJumper::readValues(eckit::DataHandle& dh, const NewJumpInfo& info_in, const std::vector<Range>& intervals){
+std::vector<Values> SimpleJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Range>& intervals){
 
     const SimpleInfo* psimple = dynamic_cast<const SimpleInfo*>(&info_in);
 

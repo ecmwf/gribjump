@@ -23,7 +23,7 @@ CcsdsJumper::CcsdsJumper(): Jumper() {}
 
 CcsdsJumper::~CcsdsJumper() {}
 
-std::vector<Values> CcsdsJumper::readValues(eckit::DataHandle& dh, const NewJumpInfo& info_in, const std::vector<Range>& intervals){
+std::vector<Values> CcsdsJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Range>& intervals){
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(&info_in);
 

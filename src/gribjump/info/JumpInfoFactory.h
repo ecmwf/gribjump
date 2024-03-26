@@ -23,14 +23,14 @@ public:
     InfoBuilderBase(const std::string& name);
     virtual ~InfoBuilderBase();
 
-    virtual NewJumpInfo* make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) const = 0;
+    virtual JumpInfo* make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) const = 0;
 
 };
 
 template <class T>
 class InfoBuilder : public InfoBuilderBase {
    
-    NewJumpInfo* make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, eckit::Offset startOffset) const override {
+    JumpInfo* make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, eckit::Offset startOffset) const override {
         return new T(h, gh, startOffset);
     }
 
@@ -44,7 +44,7 @@ public:
 
     static InfoFactory& instance();
 
-    NewJumpInfo* build(eckit::DataHandle& h, const eckit::Offset& offset);
+    JumpInfo* build(eckit::DataHandle& h, const eckit::Offset& offset);
 
     void enregister(const std::string& name, InfoBuilderBase* builder);
     void deregister(const std::string& name);

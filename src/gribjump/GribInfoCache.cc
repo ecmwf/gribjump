@@ -83,7 +83,7 @@ GribInfoCache::FileCache&  GribInfoCache::getFileCache(const filename_t& f) {
 }
 
 
-NewJumpInfo* GribInfoCache::get(const eckit::URI& uri) {
+JumpInfo* GribInfoCache::get(const eckit::URI& uri) {
     
     // if (!persistentCache_) return nullptr;
 
@@ -93,31 +93,31 @@ NewJumpInfo* GribInfoCache::get(const eckit::URI& uri) {
     return get(path, offset);
 }
 
-NewJumpInfo* GribInfoCache::get(const eckit::PathName& path, const eckit::Offset offset) {
+JumpInfo* GribInfoCache::get(const eckit::PathName& path, const eckit::Offset offset) {
 
     filename_t f = path.baseName();
     FileCache& filecache = getFileCache(f);
 
     // return it if in memory cache
     {   
-        NewJumpInfo* info = filecache.find(offset);
+        JumpInfo* info = filecache.find(offset);
         if (info) return info;
 
-        LOG_DEBUG_LIB(LibGribJump) << "GribInfoCache file " << f << " does not contain NewJumpInfo for field at offset " << offset << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "GribInfoCache file " << f << " does not contain JumpInfo for field at offset " << offset << std::endl;
 
     }
 
     // Extract explicitly
 
     InfoExtractor extractor;
-    NewJumpInfo* info = extractor.extract(path, offset);
+    JumpInfo* info = extractor.extract(path, offset);
 
     filecache.insert(offset, info);
 
     return info;
 }
 
-std::vector<NewJumpInfo*> GribInfoCache::get(const eckit::PathName& path, const eckit::OffsetList& offsets) {
+std::vector<JumpInfo*> GribInfoCache::get(const eckit::PathName& path, const eckit::OffsetList& offsets) {
 
     filename_t f = path.baseName();
     FileCache& filecache = getFileCache(f);
@@ -134,14 +134,14 @@ std::vector<NewJumpInfo*> GribInfoCache::get(const eckit::PathName& path, const 
         
         std::sort(missingOffsets.begin(), missingOffsets.end());
         InfoExtractor extractor;
-        std::vector<NewJumpInfo*> newInfos = extractor.extract(path, missingOffsets);
+        std::vector<JumpInfo*> newInfos = extractor.extract(path, missingOffsets);
         filecache.insert(newInfos);
     }
 
-    std::vector<NewJumpInfo*> result;
+    std::vector<JumpInfo*> result;
 
     for (const auto& offset : offsets) {
-        NewJumpInfo* info = filecache.find(offset);
+        JumpInfo* info = filecache.find(offset);
         ASSERT(info);
         result.push_back(info);
     }
@@ -152,7 +152,7 @@ std::vector<NewJumpInfo*> GribInfoCache::get(const eckit::PathName& path, const 
 // maybe insert should be private.
 // Only GribInfoCache will do insertions. Client code can only "get", which may in the process insert into cache
 
-void GribInfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, NewJumpInfo* info) {
+void GribInfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info) {
 
     filename_t f = path.baseName();
     LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << f << ":" << offset << std::endl;
@@ -161,7 +161,7 @@ void GribInfoCache::insert(const eckit::PathName& path, const eckit::Offset offs
 }
 
 
-void GribInfoCache::insert(const eckit::PathName& path, std::vector<NewJumpInfo*> infos) {
+void GribInfoCache::insert(const eckit::PathName& path, std::vector<JumpInfo*> infos) {
 
     filename_t f = path.baseName();
     LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << f << "" << infos.size() << " fields" << std::endl;
@@ -222,7 +222,7 @@ void GribInfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit
     std::sort(newOffsets.begin(), newOffsets.end());
 
     InfoExtractor extractor;
-    std::vector<NewJumpInfo*> infos = extractor.extract(fdbpath, newOffsets);
+    std::vector<JumpInfo*> infos = extractor.extract(fdbpath, newOffsets);
     
     filecache.insert(infos);
     
@@ -246,7 +246,7 @@ void GribInfoCache::scan(const eckit::PathName& fdbpath) {
     FileCache& filecache = getFileCache(base);
 
     InfoExtractor extractor;
-    std::vector<NewJumpInfo*> infos = extractor.extract(fdbpath);
+    std::vector<JumpInfo*> infos = extractor.extract(fdbpath);
     
     filecache.insert(infos);
 

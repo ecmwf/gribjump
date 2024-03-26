@@ -41,7 +41,7 @@ InfoFactory& InfoFactory::instance() {
     return instance;
 }
 
-NewJumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
+JumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
     
     metkit::grib::GribHandle gh(h, msgOffset); // Note: eccodes will read message into memory
 

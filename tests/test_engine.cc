@@ -26,8 +26,6 @@
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
 
-#include "gribjump/GribInfo.h"
-#include "gribjump/JumpHandle.h"
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/ExtractionItem.h"
@@ -40,6 +38,8 @@ namespace gribjump {
 namespace test {
 
 //-----------------------------------------------------------------------------
+
+using Interval = std::pair<size_t, size_t>;
 
 size_t expectedCount(std::vector<std::vector<Interval>> allIntervals){
     // count the number of values expected given the intervals

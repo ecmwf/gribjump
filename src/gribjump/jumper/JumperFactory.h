@@ -44,7 +44,7 @@ public:
 
     static JumperFactory& instance();
 
-    Jumper* build(const NewJumpInfo& info);
+    Jumper* build(const JumpInfo& info);
     Jumper* build(const std::string packingType);
 
     void enregister(const std::string& name, JumperBuilderBase* builder);

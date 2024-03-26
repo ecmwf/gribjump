@@ -31,7 +31,7 @@ static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi", true);
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) : NewJumpInfo(h, startOffset) {
+CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) : JumpInfo(h, startOffset) {
     
     ccsdsFlags_ = grib::ccsdsFlags(h);
     ccsdsBlockSize_ = grib::ccsdsBlockSize(h);
@@ -59,7 +59,7 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
     ccsdsOffsets_ = ccsds.offsets().value();
 }
 
-CcsdsInfo::CcsdsInfo(eckit::Stream& s) : NewJumpInfo(s) {
+CcsdsInfo::CcsdsInfo(eckit::Stream& s) : JumpInfo(s) {
     s >> ccsdsFlags_;
     s >> ccsdsBlockSize_;
     s >> ccsdsRsi_;
@@ -67,7 +67,7 @@ CcsdsInfo::CcsdsInfo(eckit::Stream& s) : NewJumpInfo(s) {
 }
 
 void CcsdsInfo::encode(eckit::Stream& s) const {
-    NewJumpInfo::encode(s);
+    JumpInfo::encode(s);
     s << ccsdsFlags_;
     s << ccsdsBlockSize_;
     s << ccsdsRsi_;
@@ -76,16 +76,16 @@ void CcsdsInfo::encode(eckit::Stream& s) const {
 
 void CcsdsInfo::print(std::ostream& s) const {
     s << "CcsdsInfo,";
-    NewJumpInfo::print(s);
+    JumpInfo::print(s);
     s << ",ccsdsFlags=" << ccsdsFlags_ << ",";
     s << "ccsdsBlockSize=" << ccsdsBlockSize_ << ",";
     s << "ccsdsRsi=" << ccsdsRsi_ << ",";
     s << "ccsdsOffsets.size=" << ccsdsOffsets_.size();
 }
 
-bool CcsdsInfo::equals(const NewJumpInfo& other) const {
+bool CcsdsInfo::equals(const JumpInfo& other) const {
     
-    if (!NewJumpInfo::equals(other)) return false;
+    if (!JumpInfo::equals(other)) return false;
 
     const auto& o = static_cast<const CcsdsInfo&>(other);
     return ccsdsFlags_ == o.ccsdsFlags_ &&
@@ -96,7 +96,7 @@ bool CcsdsInfo::equals(const NewJumpInfo& other) const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec CcsdsInfo::classSpec_ = {&NewJumpInfo::classSpec(), "CcsdsInfo",};
+eckit::ClassSpec CcsdsInfo::classSpec_ = {&JumpInfo::classSpec(), "CcsdsInfo",};
 eckit::Reanimator<CcsdsInfo> CcsdsInfo::reanimator_;
 
 static InfoBuilder<CcsdsInfo> ccsdsInfoBuilder("grid_ccsds");

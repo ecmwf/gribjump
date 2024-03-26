@@ -14,8 +14,8 @@
 
 #include "eckit/testing/Test.h"
 
-#include "gribjump/GribInfo.h"
-#include "gribjump/JumpHandle.h"
+#include "gribjump/GribJump.h"
+#include "gribjump/info/InfoExtractor.h"
 
 using namespace eckit::testing;
 
@@ -24,6 +24,7 @@ using namespace eckit::testing;
 namespace gribjump {
 namespace test {
 
+using Values = std::vector<double>;
 
 void print_result(const Interval& interval, const std::vector<std::bitset<64>>& mask, const Values& actual, const Values& expected)
 {
@@ -49,18 +50,34 @@ void print_result(const Interval& interval, const std::vector<std::bitset<64>>& 
 }
 
 
+std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
+    const size_t size = bitmap.size();
+    std::vector<std::bitset<64>> masks;
+    for (size_t i = 0; i < (size + 63) / 64; i++) {
+        std::bitset<64> mask64;
+        for (size_t j = 0; j < 64; j++) {
+            if (i * 64 + j < size) {
+                mask64[j] = bitmap[i * 64 + j] > 0;
+            }
+        }
+        masks.push_back(mask64);
+    }
+    assert(masks.size() == (size + 63) / 64);
+    return masks;
+}
+
 void test_compression() {
        // TODO(maee): Use expected string in these tests
 
     for (const auto& data : testData) {
         std::cerr << "Testing " << data.gribFileName << std::endl;
-        JumpHandle dataSource(data.gribFileName);
-        eckit::PathName binName = "temp";
-        std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
 
-        JumpInfo gribInfo = *infos.back();
-        EXPECT(gribInfo.ready());
-        size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
+        GribJump gribjump;
+        InfoExtractor extractor;
+        std::unique_ptr<JumpInfo> info(extractor.extract(data.gribFileName, 0));
+
+        EXPECT(info);
+        size_t numberOfDataPoints = info->numberOfDataPoints();
 
         if (numberOfDataPoints != data.expectedData.size()) {
             std::cerr << "numberOfDataPoints: " << numberOfDataPoints << std::endl;
@@ -86,7 +103,7 @@ void test_compression() {
             return interval.second <= numberOfDataPoints && interval.first < interval.second;
         });
 
-        std::unique_ptr<ExtractionResult> result(gribInfo.extractRanges(dataSource, intervals));
+        std::unique_ptr<ExtractionResult> result(gribjump.extract(data.gribFileName, {0}, {intervals})[0]);
         auto actual_all = result->values();
         auto mask_all = result->mask();
 

@@ -13,11 +13,10 @@
 
 #include "eckit/testing/Test.h"
 
-#include "gribjump/GribInfo.h"
-#include "gribjump/JumpHandle.h"
 #include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/EccodesExtract.h"
 
+#include "gribjump/GribJump.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/jumper/JumperFactory.h"
@@ -70,16 +69,12 @@ std::vector<double> getComparisonValues(eckit::PathName gribname, size_t expecte
 
 void test(eckit::PathName gribname){
     const std::vector<double> comparisonValues = getComparisonValues(gribname, expectedNumberOfValues);
-    // check the values
-    eckit::PathName binName = "temp";
-    JumpHandle dataSource(gribname);
-    std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();  
-    JumpInfo gribInfo = *infos.back();
-    EXPECT(gribInfo.getNumberOfDataPoints() == expectedNumberOfValues);
+
+    GribJump gj;
 
     {
         // Big ranges
-        std::vector<Range> ranges = {
+        const std::vector<Range> ranges = {
             Range(0, 10000),  
             Range(100000, 110000), 
             Range(200000, 210000),
@@ -89,7 +84,8 @@ void test(eckit::PathName gribname){
             Range(6560000, expectedNumberOfValues),
         };
 
-        std::unique_ptr<ExtractionResult> output(gribInfo.extractRanges(dataSource, ranges));
+        const std::vector<eckit::Offset> offsets = {0};
+        std::unique_ptr<ExtractionResult> output(gj.extract(gribname, offsets, {ranges})[0]);
         auto values = output->values();
         
         EXPECT(values.size() == ranges.size());
@@ -118,7 +114,10 @@ void test(eckit::PathName gribname){
     // Plus the last one
     singlePoints.push_back(Range(expectedNumberOfValues-1, expectedNumberOfValues));
 
-    std::unique_ptr<ExtractionResult> output(gribInfo.extractRanges(dataSource, singlePoints));
+    std::vector<eckit::Offset> offsets = {0};
+
+    std::unique_ptr<ExtractionResult> output(gj.extract(gribname, offsets, {singlePoints})[0]);
+
     auto values = output->values();
 
     EXPECT(values.size() == singlePoints.size());
@@ -152,7 +151,7 @@ CASE( "test_ceil_O1280" ) {
 CASE( "test_ceil_offsets" ) {
     // this is grid_ccsds, grib 2, with bitmask.
     InfoExtractor extractor;
-    NewJumpInfo* info = extractor.extract("ceil_O1280.grib", 0);
+    JumpInfo* info = extractor.extract("ceil_O1280.grib", 0);
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(info);
     EXPECT(pccsds);

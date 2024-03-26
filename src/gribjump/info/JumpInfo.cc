@@ -53,7 +53,7 @@ static metkit::grib::GribAccessor<std::string>   packingType("packingType");
 } // namespace grib
 // --------------------------------------------------------------------------------------------
 
-NewJumpInfo::NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): 
+JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): 
     version_(currentVersion_), msgStartOffset_(startOffset) {
 
     editionNumber_      = grib::editionNumber(h);
@@ -91,7 +91,7 @@ NewJumpInfo::NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset 
 }
 
 
-NewJumpInfo::NewJumpInfo(eckit::Stream& s) : Streamable(s) {
+JumpInfo::JumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> version_;
     s >> referenceValue_;
     s >> binaryScaleFactor_;
@@ -111,7 +111,7 @@ NewJumpInfo::NewJumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> decimalMultiplier_;
 }
 
-void NewJumpInfo::encode(eckit::Stream& s) const {
+void JumpInfo::encode(eckit::Stream& s) const {
     Streamable::encode(s);
     s << version_;
     s << referenceValue_;
@@ -132,13 +132,13 @@ void NewJumpInfo::encode(eckit::Stream& s) const {
     s << decimalMultiplier_;
 }
 
-std::string NewJumpInfo::toString() const {
+std::string JumpInfo::toString() const {
     std::stringstream ss;
     print(ss);
     return ss.str();
 }
 
-void NewJumpInfo::print(std::ostream& s) const {
+void JumpInfo::print(std::ostream& s) const {
     s << "version=" << static_cast<int>(version_) << ","
       << "referenceValue=" << referenceValue_ << ","
       << "binaryScaleFactor=" << binaryScaleFactor_ << ","
@@ -158,7 +158,7 @@ void NewJumpInfo::print(std::ostream& s) const {
       << "decimalMultiplier=" << decimalMultiplier_;
 }
 
-bool NewJumpInfo::equals(const NewJumpInfo& rhs) const {
+bool JumpInfo::equals(const JumpInfo& rhs) const {
     return version_ == rhs.version() &&
            referenceValue() == rhs.referenceValue() &&
            binaryScaleFactor() == rhs.binaryScaleFactor() &&

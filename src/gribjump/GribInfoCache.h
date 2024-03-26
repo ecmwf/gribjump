@@ -77,7 +77,7 @@ private: // types
             for (size_t i = 0; i < size; i++) {
                 eckit::Offset offset;
                 s >> offset;
-                NewJumpInfo* info = eckit::Reanimator<NewJumpInfo>::reanimate(s);
+                JumpInfo* info = eckit::Reanimator<JumpInfo>::reanimate(s);
 
                 map_.insert(std::make_pair(offset, info));
             }
@@ -118,13 +118,13 @@ private: // types
             eckit::PathName::rename(uniqPath, path_);
         }
 
-        void insert(eckit::Offset offset, NewJumpInfo* info) {
+        void insert(eckit::Offset offset, JumpInfo* info) {
             std::lock_guard<std::recursive_mutex> lock(mutex_);
             map_.insert(std::make_pair(offset, info));
         }
 
 
-        void insert(std::vector<NewJumpInfo*> infos) {
+        void insert(std::vector<JumpInfo*> infos) {
             std::lock_guard<std::recursive_mutex> lock(mutex_);
             for (auto& info : infos) {
                 map_.insert(std::make_pair(info->msgStartOffset(), info));
@@ -132,7 +132,7 @@ private: // types
         }
 
         // wrapper around map_.find()
-        NewJumpInfo* find(eckit::Offset offset) {
+        JumpInfo* find(eckit::Offset offset) {
             std::lock_guard<std::recursive_mutex> lock(mutex_);
             auto it = map_.find(offset);
             if (it != map_.end()) {
@@ -149,14 +149,14 @@ private: // types
         void lock() { mutex_.lock(); }
         void unlock() { mutex_.unlock(); }
 
-        const std::map<eckit::Offset, NewJumpInfo*>& map() const { return map_; }
+        const std::map<eckit::Offset, JumpInfo*>& map() const { return map_; }
 
     private:
         eckit::PathName path_;
 
     private:
         std::recursive_mutex mutex_; //< mutex for infocache_ // XXX Why recursive
-        std::map<eckit::Offset, NewJumpInfo*> map_;
+        std::map<eckit::Offset, JumpInfo*> map_;
     };
 
     // typedef std::map<off_t, JumpInfoHandle> infocache_t; //< map fieldlocation's to gribinfo
@@ -185,15 +185,15 @@ public:
 
     /// Inserts a JumpInfo entry
     /// @param info JumpInfo to insert, takes ownership
-    void insert(const eckit::PathName& path, const eckit::Offset offset, NewJumpInfo* info); // offset is redundant since it is in info
-    void insert(const eckit::PathName& path, std::vector<NewJumpInfo*> infos);
+    void insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info); // offset is redundant since it is in info
+    void insert(const eckit::PathName& path, std::vector<JumpInfo*> infos);
 
     /// Get JumpInfo from memory cache
     /// @return JumpInfo, null if not found
-    NewJumpInfo* get(const eckit::PathName& path, const eckit::Offset offset);
-    NewJumpInfo* get(const eckit::URI& uri);
+    JumpInfo* get(const eckit::PathName& path, const eckit::Offset offset);
+    JumpInfo* get(const eckit::URI& uri);
 
-    std::vector<NewJumpInfo*> get(const eckit::PathName& path, const eckit::OffsetList& offsets); // this version will generate on the fly... inconsistent?
+    std::vector<JumpInfo*> get(const eckit::PathName& path, const eckit::OffsetList& offsets); // this version will generate on the fly... inconsistent?
 
     void persist(bool merge=true);
     void clear();

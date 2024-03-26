@@ -28,14 +28,15 @@ ecbuild_get_test_multidata( TARGET gribjump_test_data_files
 ecbuild_get_test_multidata( TARGET gribjump_test_O1280_data_files
                             NAMES ${gribjump_test_O1280_data_files}
                             NOCHECK )
-                            
-ecbuild_add_test( TARGET    "gribjump_test_gribjump"
-    SOURCES   "test_gribjump.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
-    TEST_DEPENDS gribjump_test_data_files
-    NO_AS_NEEDED
-    LIBS      gribjump)
+
+# Todo merge this with test_compression.
+# ecbuild_add_test( TARGET    "gribjump_test_gribjump"
+#     SOURCES   "test_gribjump.cc"
+#     INCLUDES  "${ECKIT_INCLUDE_DIRS}"
+#     ENVIRONMENT   "${gribjump_env}"
+#     TEST_DEPENDS gribjump_test_data_files
+#     NO_AS_NEEDED
+#     LIBS      gribjump)
 
 ecbuild_add_test( TARGET    "gribjump_test_compression"
     SOURCES   "test_compression.cc"

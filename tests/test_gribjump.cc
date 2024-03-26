@@ -13,8 +13,7 @@
 
 #include "eckit/testing/Test.h"
 
-#include "gribjump/GribInfo.h"
-#include "gribjump/JumpHandle.h"
+// #include "gribjump/GribInfo.h"
 
 using namespace eckit::testing;
 

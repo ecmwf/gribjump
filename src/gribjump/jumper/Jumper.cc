@@ -69,7 +69,7 @@ Jumper::Jumper() {}
 Jumper::~Jumper() {}
 
 
-void Jumper::extract(eckit::DataHandle& dh, const NewJumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extract(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem) {
     ASSERT(checkIntervals(extractionItem.intervals()));
     ASSERT(!info.sphericalHarmonics());
 
@@ -98,7 +98,7 @@ void Jumper::extract(eckit::DataHandle& dh, const NewJumpInfo& info, ExtractionI
 }
 
 
-ExtractionResult* Jumper::extract(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals) {
+ExtractionResult* Jumper::extract(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {
     ASSERT(checkIntervals(intervals));
     ASSERT(!info.sphericalHarmonics());
 
@@ -110,7 +110,7 @@ ExtractionResult* Jumper::extract(eckit::DataHandle& dh, const NewJumpInfo& info
 }
 
 
-ExtractionResult* Jumper::extractNoMask(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals) {
+ExtractionResult* Jumper::extractNoMask(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {
 
     std::vector<Values> all_values = readValues(dh, info, intervals);
 
@@ -124,7 +124,7 @@ ExtractionResult* Jumper::extractNoMask(eckit::DataHandle& dh, const NewJumpInfo
     
 }
 
-ExtractionResult* Jumper::extractMasked(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals) {
+ExtractionResult* Jumper::extractMasked(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {
     auto fullbitmap = readBitmap(dh, info);
     auto [new_intervals, new_bitmaps] = calculateMaskedIntervals(intervals, fullbitmap);
     auto all_decoded_values = readValues(dh, info, new_intervals);
@@ -149,9 +149,9 @@ ExtractionResult* Jumper::extractMasked(eckit::DataHandle& dh, const NewJumpInfo
 }
 
 // Constant fields
-ExtractionResult* Jumper::extractConstant(const NewJumpInfo& info, const std::vector<Interval>& intervals) {
+ExtractionResult* Jumper::extractConstant(const JumpInfo& info, const std::vector<Interval>& intervals) {
 
-    ASSERT(!info.offsetBeforeBitmap()); // todo: handle constant fields with bitmaps
+    // ASSERT(!info.offsetBeforeBitmap()); // todo: handle constant fields with bitmaps <- It looks like eccodes ignores the bitmap?
 
     std::vector<std::vector<std::bitset<64>>> all_masks;
     std::vector<Values> all_values;
@@ -171,7 +171,7 @@ ExtractionResult* Jumper::extractConstant(const NewJumpInfo& info, const std::ve
 
 // Read the entire bitmap from a GRIB file
 // TODO(maee): optimization: read only the bitmap for the requested interval
-Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const NewJumpInfo& info) const {
+Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const JumpInfo& info) const {
 
 
     eckit::Offset offset = info.msgStartOffset() + info.offsetBeforeBitmap();

@@ -16,7 +16,7 @@
 
 namespace gribjump {
 
-class SimpleInfo : public NewJumpInfo {
+class SimpleInfo : public JumpInfo {
 
 public:
     SimpleInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);

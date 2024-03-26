@@ -64,7 +64,7 @@ CASE( "test_reanimate_info" ) {
 
         eckit::Offset offset = 0;
 
-        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
         EXPECT(info);
         EXPECT(info->packingType() == expectedPacking[count++]);
         
@@ -82,7 +82,7 @@ CASE( "test_reanimate_info" ) {
         {
             eckit::FileStream sin(filename.asString().c_str(), "r");
             auto c             = eckit::closer(sin);
-            std::unique_ptr<NewJumpInfo> info_in(eckit::Reanimator<NewJumpInfo>::reanimate(sin));
+            std::unique_ptr<JumpInfo> info_in(eckit::Reanimator<JumpInfo>::reanimate(sin));
             EXPECT(*info_in == *info);
         }
         
@@ -105,7 +105,7 @@ CASE ("test_jumpers_filehandle") {
         fh.openForRead();
 
         eckit::Offset offset = 0;
-        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
     
         EXPECT(info->numberOfDataPoints() == O1280_size);
 
@@ -140,7 +140,7 @@ CASE ("test_wrong_jumper") {
         fh.openForRead();
 
         eckit::Offset offset = 0;
-        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
 
         auto intervals = std::vector<Interval>{{0, 10}, {10, 20}, {20, 30}};
 
@@ -164,7 +164,7 @@ CASE ("test_wrong_jumper") {
         fh.openForRead();
 
         eckit::Offset offset = 0;
-        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));  // make this use jumphandle?
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
 
         auto intervals = std::vector<Interval>{{0, 10}, {10, 20}, {20, 30}};
 
@@ -197,7 +197,7 @@ CASE ("test_ExtractionItem_extract") {
 
     eckit::Offset offset = 0;
 
-    std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offset));
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
     EXPECT(info);
 
     std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
@@ -236,11 +236,11 @@ CASE ("test_combine") {
     eckit::FileHandle fh(path);
     fh.openForRead();
 
-    std::vector<std::unique_ptr<NewJumpInfo>> infos;
+    std::vector<std::unique_ptr<JumpInfo>> infos;
 
     for (size_t i = 0; i < n; i++) {
         
-        std::unique_ptr<NewJumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
         infos.push_back(std::move(info));
     }
@@ -259,7 +259,7 @@ CASE ("test_combine") {
     {
         eckit::FileStream sin(filepath.c_str(), "r");
         auto c             = eckit::closer(sin);
-        std::unique_ptr<NewJumpInfo> t2(eckit::Reanimator<NewJumpInfo>::reanimate(sin));
+        std::unique_ptr<JumpInfo> t2(eckit::Reanimator<JumpInfo>::reanimate(sin));
 
         ASSERT(*t2 == *infos[0]);
     }

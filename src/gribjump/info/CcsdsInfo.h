@@ -16,7 +16,7 @@
 
 namespace gribjump {
 
-class CcsdsInfo : public NewJumpInfo {
+class CcsdsInfo : public JumpInfo {
 
 public:
 
@@ -40,7 +40,7 @@ public:
 
 protected:
 
-    virtual bool equals(const NewJumpInfo& other) const override;
+    virtual bool equals(const JumpInfo& other) const override;
 
 private:
 

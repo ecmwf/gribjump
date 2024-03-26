@@ -212,14 +212,14 @@ public:
     }
 
     void extract() {
-        std::vector<NewJumpInfo*> infos = getJumpInfos(); 
+        std::vector<JumpInfo*> infos = getJumpInfos(); 
         eckit::FileHandle fh(fname_);
 
         fh.openForRead();
 
         for (size_t i = 0; i < extractionItems_.size(); i++) {
             ExtractionItem* extractionItem = extractionItems_[i];
-            const NewJumpInfo& info = *infos[i];
+            const JumpInfo& info = *infos[i];
 
             std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
             jumper->extract(fh, info, *extractionItem);
@@ -228,7 +228,7 @@ public:
         fh.close();
     }
 
-    std::vector<NewJumpInfo*> getJumpInfos() {
+    std::vector<JumpInfo*> getJumpInfos() {
 
         std::vector<eckit::Offset> offsets;
 

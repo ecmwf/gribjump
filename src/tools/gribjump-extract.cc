@@ -22,8 +22,6 @@
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
 
-#include "gribjump/JumpHandle.h"
-#include "gribjump/GribInfo.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/tools/ToolUtils.h"
 

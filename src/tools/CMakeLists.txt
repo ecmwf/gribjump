@@ -12,12 +12,12 @@ if ( HAVE_GRIBJUMP_LOCAL_EXTRACT)
         LIBS      gribjump
     )
 
-    # TODO: merge me with extract, then delete.
-    ecbuild_add_executable( TARGET   gribjump-old
-    SOURCES   gribjump-old.cc
-    INCLUDES  ${ECKIT_INCLUDE_DIRS}
-    LIBS      gribjump
-        )
+    # # TODO: merge me with extract, then delete.
+    # ecbuild_add_executable( TARGET   gribjump-old
+    # SOURCES   gribjump-old.cc
+    # INCLUDES  ${ECKIT_INCLUDE_DIRS}
+    # LIBS      gribjump
+    #     )
 
     ecbuild_add_executable( TARGET   gribjump-scan
         SOURCES   gribjump-scan.cc

@@ -22,7 +22,7 @@ public:
     ~SimpleJumper();
 
 private:
-    virtual std::vector<Values> readValues(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Range>& intervals) override;
+    virtual std::vector<Values> readValues(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Range>& intervals) override;
 };
 
 } // namespace gribjump

@@ -14,7 +14,6 @@
 #pragma once
 
 #include "gribjump/GribJumpBase.h"
-#include "gribjump/GribInfo.h"
 #include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
@@ -37,12 +36,10 @@ public:
     // new API!
     std::map<MarsRequest, std::vector<ExtractionItem*>> extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten);
 
+
     // old API
     std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
     std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>) override;
-    
-    JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
-    JumpInfoHandle extractInfo(const eckit::PathName& path, const eckit::Offset& offset);
     
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 

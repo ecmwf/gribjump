@@ -24,7 +24,6 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/ExtractionData.h"
-#include "gribjump/GribInfo.h"
 #include "gribjump/Config.h"
 #include "gribjump/GribJumpBase.h"
 

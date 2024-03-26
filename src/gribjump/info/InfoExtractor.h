@@ -23,9 +23,9 @@ public:
     InfoExtractor();
     ~InfoExtractor();
 
-    std::vector<NewJumpInfo*> extract(const eckit::PathName& path);
-    std::vector<NewJumpInfo*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
-    NewJumpInfo* extract(const eckit::PathName& path, const eckit::Offset& offset);
+    std::vector<JumpInfo*> extract(const eckit::PathName& path);
+    std::vector<JumpInfo*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+    JumpInfo* extract(const eckit::PathName& path, const eckit::Offset& offset);
 
 };
 

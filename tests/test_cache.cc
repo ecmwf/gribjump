@@ -42,7 +42,7 @@ CASE( "test_cache" ){
 
     eckit::PathName path = "extract_ranges.grib"; // TODO, use a file with mixed ccsds and simple grids
     InfoExtractor extractor;
-    std::vector<NewJumpInfo*> infos = extractor.extract(path);
+    std::vector<JumpInfo*> infos = extractor.extract(path);
 
     std::vector<std::pair<eckit::PathName, eckit::Offset>> locations;
     for (size_t i = 0; i < infos.size(); i++) {
@@ -53,14 +53,14 @@ CASE( "test_cache" ){
     
     // pre-populate the cache
     for (size_t i = 0; i < locations.size(); i++) {
-        NewJumpInfo* info = extractor.extract(locations[i].first, locations[i].second);
+        JumpInfo* info = extractor.extract(locations[i].first, locations[i].second);
         GribInfoCache::instance().insert(locations[i].first, locations[i].second, info);
     }
     
     // Test 1: getting fields from cache.
     
     for (size_t i = 0; i < locations.size(); i++) {
-        NewJumpInfo* info = GribInfoCache::instance().get(locations[i].first, locations[i].second);
+        JumpInfo* info = GribInfoCache::instance().get(locations[i].first, locations[i].second);
         EXPECT(info);
         EXPECT(*info == *infos[i]);
     }
@@ -71,7 +71,7 @@ CASE( "test_cache" ){
     // Test 2: Get fields, reanimated from disk.
 
     for (size_t i = 0; i < locations.size(); i++) {
-        NewJumpInfo* info = GribInfoCache::instance().get(locations[i].first, locations[i].second);
+        JumpInfo* info = GribInfoCache::instance().get(locations[i].first, locations[i].second);
         EXPECT(info);
         EXPECT(*info == *infos[i]);
     }

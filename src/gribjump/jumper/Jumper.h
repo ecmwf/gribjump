@@ -30,16 +30,16 @@ public:
     Jumper();
     virtual ~Jumper() = 0;
 
-    ExtractionResult* extract(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals);
-    void extract(eckit::DataHandle& dh, const NewJumpInfo& info, ExtractionItem& extractionItem);
+    ExtractionResult* extract(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals);
+    void extract(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem);
 private:
 
-    virtual std::vector<Values> readValues(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals) {NOTIMP;}
-    Bitmap readBitmap(eckit::DataHandle& dh, const NewJumpInfo& info) const;
+    virtual std::vector<Values> readValues(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {NOTIMP;}
+    Bitmap readBitmap(eckit::DataHandle& dh, const JumpInfo& info) const;
 
-    ExtractionResult* extractConstant(const NewJumpInfo& info, const std::vector<Interval>& intervals);
-    ExtractionResult* extractNoMask(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals);
-    ExtractionResult* extractMasked(eckit::DataHandle& dh, const NewJumpInfo& info, const std::vector<Interval>& intervals);
+    ExtractionResult* extractConstant(const JumpInfo& info, const std::vector<Interval>& intervals);
+    ExtractionResult* extractNoMask(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals);
+    ExtractionResult* extractMasked(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals);
 
     std::pair<std::vector<Range>, std::vector<Bitmap>> calculateMaskedIntervals(const std::vector<Interval>& intervals, const Bitmap& bitmap) const;
 };

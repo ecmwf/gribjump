@@ -48,10 +48,6 @@ list( APPEND gribjump_srcs
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     list( APPEND gribjump_srcs
-    JumpHandle.cc
-    JumpHandle.h
-    GribInfo.cc
-    GribInfo.h
     GribInfoCache.cc
     GribInfoCache.h
     LocalGribJump.cc

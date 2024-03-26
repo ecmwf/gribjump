@@ -35,7 +35,7 @@ JumperFactory& JumperFactory::instance() {
     return instance;
 }
 
-Jumper* JumperFactory::build(const NewJumpInfo& info) {
+Jumper* JumperFactory::build(const JumpInfo& info) {
     return build(info.packingType());
 }
 

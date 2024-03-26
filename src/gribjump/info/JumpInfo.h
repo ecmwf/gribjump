@@ -21,12 +21,12 @@
 
 namespace gribjump
 {
-class NewJumpInfo : public eckit::Streamable { // TODO rename to JumpInfo when finished.
+class JumpInfo : public eckit::Streamable { // TODO rename to JumpInfo when finished.
 
 public:
 
-    NewJumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
-    NewJumpInfo(eckit::Stream&); 
+    JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
+    JumpInfo(eckit::Stream&); 
 
     virtual void encode(eckit::Stream&) const override;
     std::string toString() const;
@@ -58,16 +58,16 @@ public:
 
 protected:
 
-    virtual bool equals(const NewJumpInfo& other) const;
+    virtual bool equals(const JumpInfo& other) const;
 
 private:
 
-    friend std::ostream& operator<<(std::ostream& s, const NewJumpInfo& f) {
+    friend std::ostream& operator<<(std::ostream& s, const JumpInfo& f) {
         f.print(s);
         return s;
     }
 
-    friend bool operator==(const NewJumpInfo& lhs, const NewJumpInfo& rhs) {
+    friend bool operator==(const JumpInfo& lhs, const JumpInfo& rhs) {
         return lhs.equals(rhs);
     }
 
