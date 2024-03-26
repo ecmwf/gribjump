@@ -18,43 +18,11 @@
 #include "eckit/serialisation/Stream.h"
 
 #include "gribjump/GribJump.h"
+#include "gribjump/ExtractionItem.h"
+#include "gribjump/remote/WorkQueue.h"
+#include "gribjump/Engine.h"
 
 namespace gribjump {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class Request;
-
-/// Unit of work to be executed in a worker thread
-/// Wrapped by WorkItem
-class Task {
-public:
-
-    enum Status {
-        DONE = 0,
-        PENDING = 1,
-        FAILED = 2
-    };
-
-    Task(size_t, Request* r);
-
-    virtual ~Task();
-
-    size_t id() const { return taskid_; }
-
-    /// executes the task to completion
-    virtual void execute(GribJump& gj) = 0;
-
-    /// notifies the completion of the task
-    virtual void notify();
-
-    /// notifies the error in execution of the task
-    virtual void notifyError(const std::string& s);
-
-private:
-    size_t taskid_; //< Task id within parent request
-    Request* clientRequest_; //< Parent request
-};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -65,22 +33,11 @@ public: // methods
 
     virtual ~Request();
     
-    /// Enqueue tasks to be executed to complete this request
-    virtual void enqueueTasks() = 0;
-
-    /// Wait for all queued tasks to be executed
-    virtual void waitForTasks();
+    // Have engine execute the request
+    virtual void execute() = 0;
 
     /// Reply to the client with the results of the request
     virtual void replyToClient() = 0;
-
-    /// Notify that a task has been completed
-    /// potentially completing all the work for this request
-    virtual void notify(size_t taskid);
-
-    /// Notify that a task has finished with error
-    /// potentially completing all the work for this request
-    virtual void notifyError(size_t taskid, const std::string& s);
 
 protected: // methods
 
@@ -88,16 +45,76 @@ protected: // methods
 
 protected: // members
 
-    int counter_ = 0;  //< incremented by notify() or notifyError()
-
-    std::mutex m_;
-    std::condition_variable cv_;
-
-    std::vector<size_t> taskStatus_; //< stores tasks status, must be initialised by derived class
-    
-    std::vector<std::string> errors_; //< stores error messages, empty if no errors
-
     eckit::Stream& client_;
+
+    Engine engine_; //< Engine and schedule tasks based on request
 };
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ScanRequest : public Request {
+public:
+
+    ScanRequest(eckit::Stream& stream);
+
+    ~ScanRequest();
+
+    void execute() override;
+
+    void replyToClient() override;
+
+private:
+
+    std::vector<metkit::mars::MarsRequest> requests_;
+    bool byfiles_;
+
+    size_t nfiles_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ExtractRequest : public Request {
+public:
+
+    ExtractRequest(eckit::Stream& stream);
+
+    ~ExtractRequest();
+
+    void execute() override;
+
+    void replyToClient() override;
+
+private:
+
+    std::vector<std::vector<Range>> ranges_;
+    std::vector<metkit::mars::MarsRequest> marsRequests_;
+    bool flatten_;
+
+    std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> results_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class AxesRequest : public Request {
+public:
+
+    AxesRequest(eckit::Stream& stream);
+
+    ~AxesRequest();
+
+    void execute() override;
+
+    void replyToClient() override;
+
+private:
+
+    std::string request_; /// @todo why is this a string?
+    std::map<std::string, std::unordered_set<std::string>> axes_;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump

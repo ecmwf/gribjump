@@ -21,6 +21,8 @@
 
 namespace gribjump {
 
+//----------------------------------------------------------------------------------------------------------------------
+
 class WorkQueue : private eckit::NonCopyable {
 public:
 
@@ -37,5 +39,7 @@ private:
     eckit::Queue<WorkItem> queue_;
     std::vector<std::thread> workers_;
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace gribjump

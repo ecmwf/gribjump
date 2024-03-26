@@ -22,7 +22,6 @@
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
 
-#include "gribjump/GribInfoCache.h"
 
 
 namespace gribjump {
@@ -121,188 +120,7 @@ metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
 }
 
 
-static std::string thread_id_str() {
-    auto id = std::this_thread::get_id();
-    std::stringstream ss;
-    ss << id;
-    return ss.str();
-}
-
 } // namespace 
-//----------------------------------------------------------------------------------------------------------------------
-
-// Class for queueing tasks from a single user's requests.
-
-/// @todo rename and move to a separate file
-class TaskGroup {
-public:
-    TaskGroup() {}
-
-    ~TaskGroup() {
-        for (auto& t : tasks_) {
-            delete t;
-        }
-    }
-
-    void notify(size_t taskid) {
-        std::lock_guard<std::mutex> lock(m_);
-        taskStatus_[taskid] = Task::Status::DONE;
-        counter_++;
-        cv_.notify_one();
-    }
-
-    void enqueueTask(Task* task) {
-        taskStatus_.push_back(Task::Status::PENDING);
-        WorkItem w(task);
-        WorkQueue& queue = WorkQueue::instance();
-        queue.push(w);
-        LOG_DEBUG_LIB(LibGribJump) << "Queued task " <<  tasks_.size() << std::endl;
-    }
-    
-    void waitForTasks(){
-        ASSERT(taskStatus_.size() > 0);
-        LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
-        std::unique_lock<std::mutex> lock(m_);
-        cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
-        LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
-    }
-
-private:
-
-    int counter_ = 0;  //< incremented by notify() or notifyError()
-
-    std::mutex m_;
-    std::condition_variable cv_;
-    
-    std::vector<Task*> tasks_;
-    std::vector<size_t> taskStatus_;
-    std::vector<std::string> errors_; //< stores error messages, empty if no errors
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FileExtractionTask : public Task {
-public:
-
-    // Each extraction item is assumed to be for the same file.
-
-    FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems) :
-        Task(id, nullptr), // xxx todo, deal with the nullptr
-        taskgroup_(taskgroup),
-        fname_(fname),
-        extractionItems_(extractionItems)
-    {}
-
-    void execute(GribJump& gj) override { // todo, don't need gj?
-
-        eckit::Timer timer;
-        const std::string thread_id = thread_id_str();
-        eckit::Timer full_timer("Thread total time. Thread: " + thread_id);
-
-        // Sort extractionItems_ by offset
-        std::sort(extractionItems_.begin(), extractionItems_.end(), [](const ExtractionItem* a, const ExtractionItem* b) {
-            return a->offset() < b->offset();
-        });
-
-        timer.reset("FileExtractionTask : Sorted offsets Thread: " + thread_id);
-
-        extract();
-
-        notify();
-    }
-
-    void extract() {
-        std::vector<JumpInfo*> infos = getJumpInfos(); 
-        eckit::FileHandle fh(fname_);
-
-        fh.openForRead();
-
-        for (size_t i = 0; i < extractionItems_.size(); i++) {
-            ExtractionItem* extractionItem = extractionItems_[i];
-            const JumpInfo& info = *infos[i];
-
-            std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
-            jumper->extract(fh, info, *extractionItem);
-        }
-
-        fh.close();
-    }
-
-    std::vector<JumpInfo*> getJumpInfos() {
-
-        std::vector<eckit::Offset> offsets;
-
-        for (auto& extractionItem : extractionItems_) {
-            offsets.push_back(extractionItem->offset());
-        }
-
-        return GribInfoCache::instance().get(fname_, offsets);
-    }
-
-    void notify() override { //explicit override because we are not defining a client stream.
-        taskgroup_.notify(id());
-    }
-
-    void notifyError(const std::string& s) override { //explicit override because we are not defining a client stream.
-        NOTIMP;
-    }
-
-private:
-    TaskGroup& taskgroup_;
-    eckit::PathName fname_;
-    std::vector<ExtractionItem*>& extractionItems_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
-
-class FileScanTask : public Task {
-public:
-
-    // Each extraction item is assumed to be for the same file.
-
-    FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets) :
-        Task(id, nullptr), // xxx todo, deal with the nullptr
-        taskgroup_(taskgroup),
-        fname_(fname),
-        offsets_(offsets)
-    {}
-
-    void execute(GribJump& gj) override { // todo, don't need gj?
-        eckit::Timer timer;
-        eckit::Timer full_timer("Thread total time. Thread: " + thread_id_str());
-
-        std::sort(offsets_.begin(), offsets_.end());
-
-        scan();
-
-        notify();
-    }
-
-    void scan(){
-
-        if (offsets_.size() == 0) {
-            GribInfoCache::instance().scan(fname_);
-            return;
-        }
-
-        GribInfoCache::instance().scan(fname_, offsets_);
-    }
-
-    void notify() override { //explicit override because we are not defining a client stream.
-        taskgroup_.notify(id());
-    }
-
-    void notifyError(const std::string& s) override { //explicit override because we are not defining a client stream.
-        NOTIMP;
-    }
-
-private:
-    TaskGroup& taskgroup_;
-    eckit::PathName fname_;
-    std::vector<eckit::Offset> offsets_;
-};
-
-
 //----------------------------------------------------------------------------------------------------------------------
 
 Engine::Engine() {}
@@ -337,16 +155,13 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
     // Map files to ExtractionItem
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
 
-    // Schedule the extraction of the data. Probably in another class.
-    TaskGroup taskGroup;
 
     size_t counter = 0;
     for (auto& [fname, extractionItems] : filemap) {
-        taskGroup.enqueueTask(new FileExtractionTask(taskGroup, counter++, fname, extractionItems));
+        taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
     }
     
-    // Wait for the tasks to complete
-    taskGroup.waitForTasks();
+    taskGroup_.waitForTasks();
 
     // Create map of base request to vector of extraction items
     std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> reqToExtractionItems;
@@ -363,27 +178,28 @@ size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
 
     const std::map< eckit::PathName, eckit::OffsetList > files = FDBLister::instance().filesOffsets(requests);
 
-    TaskGroup taskGroup;
-
     size_t counter = 0;
 
     if (byfiles){
         for (auto& [fname, offsets] : files) {
-            taskGroup.enqueueTask(new FileScanTask(taskGroup, counter++, fname, offsets));
+            taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
         }
     }
     else {
         for (auto& [fname, offsets] : files) {
-            taskGroup.enqueueTask(new FileScanTask(taskGroup, counter++, fname, {}));
+            taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, {}));
         }
     }
 
     // Wait for the tasks to complete
-    taskGroup.waitForTasks();
+    taskGroup_.waitForTasks();
 
     return files.size();
 }
 
+void Engine::reportErrors(eckit::Stream& client) {
+    taskGroup_.reportErrors(client);
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump

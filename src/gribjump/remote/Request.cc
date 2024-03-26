@@ -11,29 +11,10 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#include "eckit/log/Log.h"
-#include "eckit/log/Plural.h"
-
-#include "gribjump/LibGribJump.h"
 #include "gribjump/remote/Request.h"
+#include "gribjump/Engine.h"
 
 namespace gribjump {
-
-//----------------------------------------------------------------------------------------------------------------------
-
-Task::Task(size_t taskid, Request* r) : taskid_(taskid), clientRequest_(r) {
-    // ASSERT(clientRequest_);
-}
-
-Task::~Task() {}
-
-void Task::notify() {
-    clientRequest_->notify(id());
-}
-
-void Task::notifyError(const std::string& s) {
-    clientRequest_->notifyError(id(), s);
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -42,33 +23,153 @@ Request::Request(eckit::Stream& stream) : client_(stream) {
 
 Request::~Request() {}
 
-void Request::notify(size_t taskid) {
-    std::lock_guard<std::mutex> lock(m_);
-    taskStatus_[taskid] = Task::Status::DONE;
-    counter_++;
-    cv_.notify_one();
-}
-
-void Request::notifyError(size_t taskid, const std::string& s) {
-    std::lock_guard<std::mutex> lock(m_);
-    taskStatus_[taskid] = Task::Status::FAILED;
-    errors_.push_back(s);
-    counter_++;
-    cv_.notify_one();
-}
-
-void Request::waitForTasks() {
-    ASSERT(taskStatus_.size() > 0);
-    LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
-    std::unique_lock<std::mutex> lock(m_);
-    cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
-}
-
 void Request::reportErrors() {
-    client_ << errors_.size();
-    for (const auto& s : errors_) {
-        client_ << s;
+    engine_.reportErrors(client_);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
+
+    client_ >> byfiles_;
+
+    LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: byfiles=" << byfiles_ << std::endl;
+
+    size_t numRequests;
+    client_ >> numRequests;
+
+    LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: numRequests=" << numRequests << std::endl;
+
+    for (size_t i = 0; i < numRequests; i++) {
+        requests_.emplace_back(metkit::mars::MarsRequest(client_));
     }
 }
+
+ScanRequest::~ScanRequest() {
+}
+
+void ScanRequest::execute() {
+    nfiles_ = engine_.scan(requests_, byfiles_);
+}
+
+void ScanRequest::replyToClient() {
+    reportErrors();
+    client_ << nfiles_;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
+
+    // Receive the requests
+    // Temp, repackage the requests from old format into format the engine expects
+
+    size_t nRequests;
+    client_ >> nRequests;
+
+    std::vector<ExtractionRequest> requests;
+    for (size_t i = 0; i < nRequests; i++) {
+        ExtractionRequest req(client_);
+        requests.push_back(req);
+    }
+
+    for (auto& req : requests) {
+        marsRequests_.push_back(req.getRequest());
+        ranges_.push_back(req.getRanges());
+    }
+
+
+    flatten_ = false; // xxx hard coded for now
+}
+
+ExtractRequest::~ExtractRequest() {
+}
+
+void ExtractRequest::execute() {
+
+    results_ = engine_.extract(marsRequests_, ranges_, flatten_);
+
+    // tmp, debug
+    for (auto& pair : results_) {
+        LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
+        for (auto& item : pair.second) {
+            item->debug_print();
+        }
+    }
+
+}
+
+void ExtractRequest::replyToClient() {
+
+    reportErrors();
+
+    // Send the results, again repackage.
+
+    size_t nRequests = marsRequests_.size();
+    LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
+
+    for (size_t i = 0; i < nRequests; i++) {
+        LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
+
+        auto it = results_.find(marsRequests_[i]);
+        ASSERT(it != results_.end());
+        std::vector<ExtractionItem*> items = it->second;
+        size_t nfields = items.size();
+        client_ << nfields;
+        for (size_t i = 0; i < nfields; i++) {
+            ExtractionResult res(items[i]->values(), items[i]->mask());
+            client_ << res;
+        }
+    }
+
+    LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
+    client_ >> request_;
+}
+
+AxesRequest::~AxesRequest() {
+}
+
+void AxesRequest::execute() {
+    // @todo, use the engine.
+    // or, polytope should use pyfdb not gribjump for this.
+    GribJump gj;
+    axes_ = gj.axes(request_);
+}
+
+void AxesRequest::replyToClient() {
+
+    reportErrors();
+    
+    // @todo, reporting of axes errors, i.e. implemnt an AxesTask.
+    size_t nerror = 0;
+    client_ << nerror;
+
+    size_t naxes = axes_.size();
+    client_ << naxes;
+    for (auto& pair : axes_) {
+        client_ << pair.first;
+        size_t n = pair.second.size();
+        client_ << n;
+        for (auto& val : pair.second) {
+            client_ << val;
+        }
+    }
+
+    // print the axes we sent
+    for (auto& pair : axes_) {
+        eckit::Log::info() << pair.first << ": ";
+        for (auto& val : pair.second) {
+            eckit::Log::info() << val << ", ";
+        }
+        eckit::Log::info() << std::endl;
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace gribjump

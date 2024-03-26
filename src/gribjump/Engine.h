@@ -12,9 +12,10 @@
 
 #pragma once
 
+#include "eckit/serialisation/Stream.h"
 #include "metkit/mars/MarsRequest.h"
 #include "gribjump/ExtractionItem.h"
-#include "gribjump/remote/ExtractFileRequest.h" // todo move to not remote
+#include "gribjump/Task.h"
 
 namespace gribjump {
 
@@ -37,8 +38,12 @@ public:
     // byfiles: scan entire file, not just fields matching request
     size_t scan(const MarsRequests& requests, bool byfiles = false);
 
+    void reportErrors(eckit::Stream& client_);
+
 private:
-    // std::vector<Task*> tasks_; // Want one vector per user request, not one per engine
+
+    TaskGroup taskGroup_;
+
 };
 
 

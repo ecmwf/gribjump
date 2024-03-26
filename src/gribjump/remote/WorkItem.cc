@@ -14,15 +14,17 @@
 
 #include "gribjump/remote/WorkItem.h"
 #include "gribjump/remote/Request.h"
+#include "gribjump/Task.h"
+
 
 namespace gribjump {
 
 WorkItem::WorkItem(): task_(nullptr) {}
 WorkItem::WorkItem(Task* task): task_(task) {}
 
-void WorkItem::run(GribJump& gj) {
+void WorkItem::run() {
     if(!task_) return;
-    task_->execute(gj);
+    task_->execute();
 }
 
 void WorkItem::error(const std::string& s) {

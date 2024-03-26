@@ -60,6 +60,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     Engine.h
     Lister.cc
     Lister.h
+    Task.cc
+    Task.h
     ExtractionItem.cc
     ExtractionItem.h
 
@@ -88,10 +90,6 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     remote/Request.h
     remote/Request.cc
-    remote/ExtractFileRequest.h
-    remote/ExtractFileRequest.cc
-    remote/ScanRequest.h
-    remote/ScanRequest.cc
     remote/GribJumpServer.h
     remote/GribJumpService.h
     remote/GribJumpUser.cc

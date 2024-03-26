@@ -40,7 +40,7 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1
         workers_.emplace_back([this] {
 
             LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " starting" << std::endl;
-            GribJump gj = GribJump(); // one per thread
+            // GribJump gj = GribJump(); // one per thread
             
             for (;;) {
                 WorkItem item;
@@ -50,7 +50,7 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1
                 }
                 LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " new job" << std::endl;
                 try {
-                    item.run(gj);
+                    item.run();
                 }
                 catch (const std::exception& e) {
                     LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " exception: " << e.what() << std::endl;

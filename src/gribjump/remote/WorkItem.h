@@ -19,18 +19,24 @@ namespace gribjump {
 
 class Task;
 
+//----------------------------------------------------------------------------------------------------------------------
+
+/// @todo WorkItem wraps task, though currently it doesn't do anything in addition
+/// i.e., we could just use Task directly?
 class WorkItem {
 public:
 
     WorkItem();
     WorkItem(Task* task);
 
-    void run(GribJump& gj);
+    void run();
 
     void error(const std::string& s);
 
 private:
     Task* task_;
 };
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace gribjump
