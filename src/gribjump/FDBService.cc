@@ -110,7 +110,15 @@ std::map<std::string, std::unordered_set<std::string> > FDBService::axes(const f
         LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
         
         fdb5::IndexAxis ax = fdb_.axes(request);
-        values = ax.copyAxesMap();
+        ax.sort();
+        std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
+
+        for (const auto& kv : fdbValues) {
+            if (kv.second.empty()) {
+                continue;
+            }
+            values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
+        }
     }
     else {
 
