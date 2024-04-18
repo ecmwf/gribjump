@@ -9,32 +9,52 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
+
+#include "eckit/log/Timer.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/GribJumpFactory.h"
-
+#include "gribjump/GribJumpBase.h"
 
 namespace gribjump {
 
-GribJump::GribJump(){
-    std::string name = "localgribjump";
-    if (getenv("GRIBJUMP_REMOTE") != NULL) {
-        name = "remotegribjump";
-    }
-    internal_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(name));
+GribJump::GribJump() {
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(LibGribJump::instance().config()));
 }
 
-std::vector<std::vector<ExtractionResult>> GribJump::extract(std::vector<ExtractionRequest> requests) {
-    return internal_->extract(requests);
+GribJump::~GribJump() {
 }
 
-std::vector<ExtractionResult> GribJump::extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges){
-    return internal_->extract(request, ranges);
+size_t GribJump::scan(const eckit::PathName& path) {
+    size_t ret = impl_->scan(path);
+    return ret;
+}
+
+size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+    size_t ret = impl_->scan(requests, byfiles);
+    return ret;
+}
+
+
+std::vector<std::vector<ExtractionResult*>> GribJump::extract(const std::vector<ExtractionRequest>& requests) {
+    std::vector<std::vector<ExtractionResult*>> out = impl_->extract(requests);
+    return out;
+}
+
+std::vector<ExtractionResult*> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+    auto out = impl_->extract(path, offsets, ranges);
+    return out;
 }
 
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
-    return internal_->axes(request);
+    auto out = impl_->axes(request);
+    return out;
 }
 
-} // namespace GribJump
+void GribJump::stats() {
+    impl_->stats();
+}
+
+} // namespace gribjump

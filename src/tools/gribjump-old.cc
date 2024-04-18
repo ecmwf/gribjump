@@ -8,16 +8,20 @@
  * does it submit to any jurisdiction.
  */
 
+#include <chrono>
+#include <fstream>
+
 #include "eckit/option/SimpleOption.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/value/Value.h"
-#include "metkit/tool/MetkitTool.h"
-#include "gribjump/GribInfo.h"
-#include "gribjump/GribHandleData.h"
-#include <chrono>
-#include <fstream>
 #include "eckit/utils/StringTools.h"
-// using namespace metkit;
+#include "eckit/serialisation/FileStream.h"
+
+#include "metkit/tool/MetkitTool.h"
+
+#include "gribjump/GribInfo.h"
+#include "gribjump/JumpHandle.h"
+
 using namespace gribjump;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -50,8 +54,8 @@ private: // members
     eckit::PathName binFileName_;
     eckit::PathName timingFname_;
     std::vector<size_t> msgids_;
-    size_t singleIndex_;
-    std::vector<std::tuple<size_t, size_t>> rangesVector_;
+
+    std::vector<std::pair<size_t, size_t>> rangesVector_;
 };
 
 void GribJumpTool::usage(const std::string &tool) const {
@@ -95,51 +99,50 @@ void GribJumpTool::init(const eckit::option::CmdArgs& args) {
 
     if (!doQuery_) return;
 
-    if (args.count() == 2){
-        doRange_ = false;
-        std::cout << "Query single point" << std::endl;
-        std::cout << "index: " << args(1) << std::endl;
-        singleIndex_ = std::stoi(args(1));
-    } else {
-        doRange_ = true;
-        // note ranges must have a start and end
-        ASSERT(args.count() % 2 == 1);
-        std::cout << "Query range(s): ";
-        for (int i = 1; i < args.count(); i+=2){
-            std::cout << args(i) << "-" << args(i+1) << ", ";
-            rangesVector_.push_back({std::make_tuple(std::stoi(args(i)), std::stoi(args(i+1)))});
-        }
-        std::cout << std::endl;
+    doRange_ = true;
+    // note ranges must have a start and end
+    ASSERT(args.count() % 2 == 1);
+    std::cout << "Query range(s): ";
+    for (int i = 1; i < args.count(); i+=2){
+        std::cout << args(i) << "-" << args(i+1) << ", ";
+        rangesVector_.push_back({std::make_pair(std::stoi(args(i)), std::stoi(args(i+1)))});
     }
+    std::cout << std::endl;
 }
 
 void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
+    
     auto startTime = std::chrono::high_resolution_clock::now();
     Timing timing;
-    JumpInfo gribInfo;
     JumpHandle dataSource(gribFileName_);
 
     if (doExtract_) {
         std::cout << "Build jump info from " << gribFileName_ << std::endl;
         auto t0 = std::chrono::high_resolution_clock::now();
-        gribInfo = dataSource.extractInfoFromFile(binFileName_);
+        std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
         auto t1 = std::chrono::high_resolution_clock::now();
         timing.extractTime = std::chrono::duration<double>(t1 - t0).count();
-        std::cout << gribInfo << std::endl;
+
+        for(auto info : infos) {
+            std::cout << *info << std::endl;
+        }
+
+        write_jumpinfos_to_file(infos, binFileName_);
     }
 
     if (doQuery_){
+        JumpInfo gribInfo;
         for (auto msg : msgids_){
             std::cout << "Grib file: " << gribFileName_ << ", jump info file: " << binFileName_ << ", msg id: " << msg << std::endl;
-            gribInfo.fromFile(binFileName_, msg);
+            gribInfo = JumpInfo::fromFile(binFileName_, msg);
         
             ASSERT(gribInfo.ready());
 
             if (doRange_){
                 auto t0 = std::chrono::high_resolution_clock::now();
-                ExtractionResult r = gribInfo.extractRanges(dataSource, rangesVector_);
-                auto v = r.values(); // TODO: Is this making a copy?
-                auto mask = r.mask(); // TODO: Is this making a copy?
+                ExtractionResult* result = gribInfo.extractRanges(dataSource, rangesVector_);
+                auto v = result->values(); // TODO(Chris):  Don't make a copy
+                auto mask = result->mask(); // TODO(Chris): Don't make a copy
                 auto t1 = std::chrono::high_resolution_clock::now();
                 timing.msgTimes.push_back(std::chrono::duration<double>(t1 - t0).count());
                 for (auto r : v){
@@ -149,12 +152,6 @@ void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
                     }
                     std::cout << std::endl;
                 }
-            }
-            else{
-                size_t index = std::stoi(args(1));
-                std::cout << "Query index " << index << " in " << gribFileName_ << std::endl;
-                double v = gribInfo.extractValue(dataSource, index);
-                std::cout << "Value: " << v << std::endl;
             }
         }
     }
@@ -184,8 +181,8 @@ void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int main(int argc,char **argv)
+int main(int argc, char **argv)
 {
-    GribJumpTool tool(argc,argv);
+    GribJumpTool tool(argc, argv);
     return tool.start();
 }

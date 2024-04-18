@@ -1,3 +1,7 @@
+compile_commands.json
+tags
+*analyzerinfo
+*snalyzerinfo
 build/
 .vscode/
 tests/*.grib

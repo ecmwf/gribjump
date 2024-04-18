@@ -20,7 +20,6 @@
 #include "eckit/log/Log.h"
 
 #include "gribjump/gribjump_version.h"
-// #include "gribjump/config/Config.h"
 
 namespace gribjump {
 
@@ -28,11 +27,22 @@ namespace gribjump {
 
 REGISTER_LIBRARY(LibGribJump);
 
-LibGribJump::LibGribJump() : Library("gribjump") {}
+LibGribJump::LibGribJump() : Library("gribjump") {
+    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
+        config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
+    } 
+    else {
+        eckit::Log::debug() << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
+    }
+}
 
 LibGribJump& LibGribJump::instance() {
-    static LibGribJump libfdb;
-    return libfdb;
+    static LibGribJump lib;
+    return lib;
+}
+
+const Config& LibGribJump::config() const {
+    return config_;
 }
 
 std::string LibGribJump::version() const {

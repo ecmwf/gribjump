@@ -9,30 +9,38 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 
 #pragma once
 
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribInfo.h"
+#include "gribjump/GribInfoCache.h"
 
 namespace gribjump {
+
 class LocalGribJump : public GribJumpBase {
-public: 
-    LocalGribJump();
+
+public:
+
+    explicit LocalGribJump(const Config& config);
     ~LocalGribJump();
-    std::vector<std::vector<ExtractionResult>> extract(std::vector<ExtractionRequest>) override;
-    std::vector<ExtractionResult> extract(const metkit::mars::MarsRequest request, const std::vector<Range> ranges) override;
+
+    /// @brief Scans the full grib file, looking for GRIB messages and populates cache
+    /// @param path full path to grib file
+    size_t scan(const eckit::PathName& path) override;
+
+    size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
+
+    std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
+
+    std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>) override;
     
-    ExtractionResult directJump(eckit::DataHandle* handle, std::vector<Range> allRanges, JumpInfo info) const;
-
-    JumpInfo extractInfo(eckit::DataHandle* handle) const;
-
-    bool isCached(std::string) const override {return false;} // not imp
-
+    JumpInfoHandle extractInfo(const fdb5::FieldLocation& loc);
+    JumpInfoHandle extractInfo(const eckit::PathName& path, const eckit::Offset& offset);
+    
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
-
-private:
-    // std::map<Key, std::tuple<FieldLocation*, JumpInfo> > cache_; // not imp
 };
+
 } // namespace gribjump

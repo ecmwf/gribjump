@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+/// @author Tiago Quintino
 /// @date   Dec 2023
 
 #pragma once
@@ -18,8 +19,9 @@
 
 #include "eckit/system/Library.h"
 
-namespace gribjump {
+#include "gribjump/Config.h"
 
+namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -29,12 +31,17 @@ public:
 
     static LibGribJump& instance();
 
+    const Config& config() const;
+
 protected:
     virtual std::string version() const;
 
     virtual std::string gitsha1(unsigned int count) const;
 
 private:
+
+    Config config_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

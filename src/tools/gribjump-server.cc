@@ -8,40 +8,34 @@
  * does it submit to any jurisdiction.
  */
 
-
 #include "gribjump/remote/GribJumpServer.h"
 #include "eckit/runtime/Application.h"
 
 #include <unistd.h>
 #include <fstream>
 
+#include "eckit/config/Resource.h"
 #include "eckit/net/Port.h"
-#include "eckit/net/TCPSocket.h"
-#include "eckit/net/TCPClient.h"
-#include "eckit/net/TCPStream.h"
 
 namespace gribjump {
 
 
-class debugApp : public eckit::Application {
+class GribJumpServerApp : public eckit::Application, public GribJumpServer {
 public:
-    debugApp(int argc, char** argv) : Application(argc, argv) {}
-    ~debugApp() {}
+    GribJumpServerApp(int argc, char** argv) : 
+        Application(argc, argv), 
+        GribJumpServer(eckit::net::Port("gribJumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", 9777)))
+        {}
+
+    ~GribJumpServerApp() {}
 
 private:
-    debugApp(const debugApp&);
-
-    virtual void run() override {
-        eckit::Log::info() << "debug app running" << std::endl;
-        
-        // connect to server
-        eckit::net::TCPClient client;
-        eckit::net::InstantTCPStream stream(client.connect("localhost", 9001));
-        eckit::Log::info() << "connected" << std::endl;
-
-        stream << "EXTRACT";
-        eckit::Log::info() << "sent: EXTRACT" << std::endl;
-
+    GribJumpServerApp(const GribJumpServerApp&);
+    void run() override {
+        unique();
+        for (;;) {
+            ::sleep(10);
+        }
     }
 };
 
@@ -51,7 +45,8 @@ private:
 
 
 int main(int argc, char** argv) {
-    gribjump::debugApp app(argc, argv);
+    eckit::Log::info() << "Starting gribjump server" << std::endl;
+    gribjump::GribJumpServerApp app(argc, argv);
     app.start();
     return 0;
 }

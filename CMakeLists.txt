@@ -6,6 +6,7 @@ project( gribjump LANGUAGES C CXX )
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ########################################################################################################################
 ### dependencies and options
@@ -14,11 +15,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 
-# TODO: these version requirements have been chosen arbitrarily...
-ecbuild_find_package( NAME eckit  VERSION 1.24.4 REQUIRED )
-ecbuild_find_package( NAME eccodes VERSION 2.10 REQUIRED )
+ecbuild_find_package( NAME eckit VERSION 1.25.2 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
-ecbuild_find_package( NAME fdb5 VERSION 5.11 REQUIRED ) # TODO: Will have to support axes requests...
+
+# Set "GRIBJUMP_LOCAL_EXTRACT" to build everything. If it is off, build only minimal clientside functionality.
+ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
+                    DEFAULT ON
+                    DESCRIPTION "Build local extraction and serverside functionality")
+
+if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
+
+  ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
+  ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
+  ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED ) # todo make optional?
+
+endif()
 
 ########################################################################################################################
 # contents
@@ -27,7 +38,11 @@ include(cmake/compiler_warnings.cmake) # optionally handle compiler specific war
 
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( ${gribjump_INCLUDE_DIRS} )
+include_directories( 
+  ${AEC_INCLUDE_DIRS}
+  ${gribjump_INCLUDE_DIRS}
+  ${eckit_INCLUDE_DIRS}
+  )
 
 set_directory_properties( PROPERTIES COMPILE_DEFINITIONS "${ECKIT_DEFINITIONS};${ECCODES_DEFINITIONS}" )
 get_directory_property( gribjump_DEFINITIONS COMPILE_DEFINITIONS )
@@ -35,7 +50,10 @@ get_directory_property( gribjump_DEFINITIONS COMPILE_DEFINITIONS )
 ### source files
 
 add_subdirectory( src )
-add_subdirectory( tests )
+
+if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
+  add_subdirectory( tests )
+endif()
 
 
 ### finalize

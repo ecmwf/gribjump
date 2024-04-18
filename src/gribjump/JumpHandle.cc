@@ -12,13 +12,19 @@
 
 #include <iomanip>
 #include <fstream>
+
 #include "eccodes.h"
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/serialisation/FileStream.h"
+
 #include "metkit/codes/GribHandle.h"
-#include "gribjump/GribHandleData.h"
+
+#include "gribjump/JumpHandle.h"
 #include "gribjump/GribInfo.h"
+#include "gribjump/LibGribJump.h"
 
 namespace gribjump {
 
@@ -56,7 +62,7 @@ void JumpHandle::close() const {
 eckit::Offset JumpHandle::seek(const eckit::Offset& offset) const {
     open();
     eckit::Offset pos = handle_->seek(offset);
-    return (long long)pos;
+    return pos;
 }
 
 long JumpHandle::read(void* buffer, long len) const {
@@ -64,60 +70,71 @@ long JumpHandle::read(void* buffer, long len) const {
     return handle_->read(buffer, len);
 }
 
-eckit::Offset JumpHandle::position(){ 
+eckit::Offset JumpHandle::position(){
     open();
     return handle_->position();
 }
 
-eckit::Length JumpHandle::size(){ 
+eckit::Length JumpHandle::size(){
     open();
     return handle_->size();
 }
 
-// todo: now we're supporting non file handles, further refactor here would be good.
-const JumpInfo& JumpHandle::extractInfoFromFile(eckit::PathName& outName){
+std::vector<JumpInfo*> JumpHandle::extractInfoFromFile() {
 
     ASSERT(path_.asString().size() > 0);
 
-    // count number of messages in file
     grib_context* c = nullptr;
     int n = 0;
-    int err = codes_count_in_filename(c, path_.asString().c_str(), &n);
+    off_t* offsets;
+    int err = codes_extract_offsets_malloc(c, path_.asString().c_str(), PRODUCT_GRIB, &offsets, &n, 1);
     ASSERT(!err);
 
-    // extract metadata from each message to a binary file
-    eckit::Offset offset = 0;
-    for (size_t i = 0; i < n; i++) {
-        open();
-        metkit::grib::GribHandle h(*handle_, offset);
-        info_.update(h);
-        unsigned long fp = handle_->position();
-        info_.setStartOffset(fp - info_.length());
-        offset = handle_->position();
-        info_.toFile(outName, i!=0);
+    std::vector<JumpInfo*> infos;
 
-        // XXX: On linux, fp is wrong if handle is not closed and reopened.
-        close();
-    }
-    return info_;
-}
-
-const JumpInfo& JumpHandle::extractInfo(){
-    // Note: Requires handle at start of message, and will advance handle to end of message.
     open();
 
-    // Explicitly check we are at beginning of GRIB message
-    eckit::Offset initialPos = handle_->position();
-    // char buffer[4]; // todo: avoid the rewind. move this logic outside. wip.
-    // ASSERT(read(buffer, 4) == 4);
-    // ASSERT(strncmp(buffer, "GRIB", 4) == 0);
-    // ASSERT(seek(initialPos) == initialPos);
+    for (size_t i = 0; i < n; i++) {
+        
+        LOG_DEBUG_LIB(LibGribJump) << "Extracting info for message " << i << " from file " << path_ << std::endl;
 
+        metkit::grib::GribHandle h(*handle_, offsets[i]);
+        
+        JumpInfo* info = new JumpInfo(h);
+
+        info->setStartOffset(offsets[i]);
+        info->updateCcsdsOffsets(*this, offsets[i]);
+
+        infos.push_back(info);
+    }
+
+    close();
+
+    free(offsets);
+
+    return infos;
+}
+
+void write_jumpinfos_to_file(const std::vector<JumpInfo*> infos, const eckit::PathName& path) {
+    eckit::FileStream out(path, "w");
+    size_t nInfo = infos.size();
+    out << nInfo;
+    for (const auto& info : infos) {
+        out << *info;
+        eckit::Log::debug() << "Wrote info to file: " << *info << std::endl;
+    }
+    out.close();    
+}
+
+JumpInfo* JumpHandle::extractInfo() {
+    // Note: Requires handle at start of message.
+    open();
+    eckit::Offset initialPos = handle_->position();
     metkit::grib::GribHandle h(*handle_, initialPos);
-    info_.update(h);
-    eckit::Offset endOfField = initialPos + eckit::Offset(info_.length());
-    // ASSERT(seek(endOfField) == endOfField); // In anticipation of next call
-    return info_;
+    JumpInfo* info = new JumpInfo(h);
+    info->updateCcsdsOffsets(*this, initialPos); 
+    info->setStartOffset(initialPos);
+    return info;
 }
 
 void JumpHandle::print(std::ostream& s) const {
