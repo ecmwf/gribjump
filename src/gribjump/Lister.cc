@@ -168,7 +168,6 @@ std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(std::vect
 }
 
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request) {
-    
     eckit::AutoLock<FDBLister> lock(this);
 
     bool DEBUG_USE_FDBAXES = eckit::Resource<bool>("$GRIBJUMP_USE_FDBAXES", true);
@@ -180,7 +179,15 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fd
         LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
         
         fdb5::IndexAxis ax = fdb_.axes(request);
-        values = ax.copyAxesMap();
+        ax.sort();
+        std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
+
+        for (const auto& kv : fdbValues) {
+            if (kv.second.empty()) {
+                continue;
+            }
+            values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
+        }
     }
     else {
 
