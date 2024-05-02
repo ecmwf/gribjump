@@ -88,7 +88,6 @@ CASE( "test_gribjump_api_extract" ) {
         - roots:
           - path: ")XX" + tmpdir + R"XX("
     )XX");
-    std::cout << config_str << std::endl;
 
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
 

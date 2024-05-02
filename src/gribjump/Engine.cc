@@ -197,6 +197,10 @@ size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
     return files.size();
 }
 
+std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request) {
+    return FDBLister::instance().axes(request);
+}
+
 void Engine::reportErrors(eckit::Stream& client) {
     taskGroup_.reportErrors(client);
 }

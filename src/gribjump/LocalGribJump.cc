@@ -125,16 +125,12 @@ std::map<MarsRequest, std::vector<ExtractionItem*>> LocalGribJump::extract(const
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
-    // bare bones implementation: jut a wrapper around list.
-    // TODO(Chris): implement a proper axes function inside FDB.
 
     // Note: This is likely to be removed from GribJump, and moved to FDB.
     // Here for now to support polytope.
 
-    std::vector<fdb5::FDBToolRequest> requests = fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
-    ASSERT(requests.size() == 1);
-
-    return FDBService::instance().axes(requests.front());
+    Engine engine;
+    return engine.axes(request);
 }
 
 static GribJumpBuilder<LocalGribJump> builder("local");

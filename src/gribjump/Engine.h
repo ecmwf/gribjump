@@ -38,6 +38,8 @@ public:
     // byfiles: scan entire file, not just fields matching request
     size_t scan(const MarsRequests& requests, bool byfiles = false);
 
+    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request);
+
     void reportErrors(eckit::Stream& client_);
 
 private:

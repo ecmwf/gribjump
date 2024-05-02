@@ -167,42 +167,35 @@ std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(std::vect
     return files;
 }
 
+std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const std::string& request) {
+    std::vector<fdb5::FDBToolRequest> requests = fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
+    ASSERT(requests.size() == 1); // i.e. assume string is a single request.
+
+    return axes(requests.front());
+}
+
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request) {
     eckit::AutoLock<FDBLister> lock(this);
-
-    bool DEBUG_USE_FDBAXES = eckit::Resource<bool>("$GRIBJUMP_USE_FDBAXES", true);
-
     std::map<std::string, std::unordered_set<std::string>> values;
 
-    if (DEBUG_USE_FDBAXES) {
-        
-        LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
-        
-        fdb5::IndexAxis ax = fdb_.axes(request);
-        ax.sort();
-        std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
+    LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
+    
+    fdb5::IndexAxis ax = fdb_.axes(request);
+    ax.sort();
+    std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
 
-        for (const auto& kv : fdbValues) {
-            if (kv.second.empty()) {
-                continue;
-            }
-            values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
-        }
+    for (const auto& kv : fdbValues) {
+        // {
+            // Ignore if the value is a single empty string
+            // e.g. FDB returns "levellist:{''}" for levtype=sfc.
+            // Required for consistency with the old axes impl.
+            // if (kv.second.empty() || (kv.second.size() == 1 && kv.second.find("") != kv.second.end())) {
+            //     continue;
+            // }
+        // }
+        values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
     }
-    else {
 
-        LOG_DEBUG_LIB(LibGribJump) << "Using GribJump's (old) axes impl" << std::endl;
-
-        auto listIter = fdb_.list(request, true);
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-            for (const auto& key : elem.key()) {
-                for (const auto& param : key) {
-                    values[param.first].insert(param.second);
-                }
-            }
-        }
-    }
 
     return values;
 }
