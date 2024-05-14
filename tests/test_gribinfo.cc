@@ -220,54 +220,6 @@ CASE ("test_ExtractionItem_extract") {
 
 //-----------------------------------------------------------------------------
 
-CASE ("test_combine") {
-
-    // XXX: Note, not a test, just here to see how to generate multiple messages in one file
-    // remove when this is reimplemented.
-
-    eckit::PathName path = "combine.grib";
-
-    grib_context* c = nullptr;
-    int n = 0;
-    off_t* offsets;
-    int err = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets, &n, 1);
-    ASSERT(!err);
-
-    eckit::FileHandle fh(path);
-    fh.openForRead();
-
-    std::vector<std::unique_ptr<JumpInfo>> infos;
-
-    for (size_t i = 0; i < n; i++) {
-        
-        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
-        ASSERT(info);
-        infos.push_back(std::move(info));
-    }
-
-    fh.close();
-
-    free(offsets);
-
-    eckit::PathName filename = "xyx";
-    std::string filepath = filename.asString();
-    {
-        eckit::FileStream sout(filepath.c_str(), "w");
-        auto c = eckit::closer(sout);
-        sout << *infos[0];
-    }
-    {
-        eckit::FileStream sin(filepath.c_str(), "r");
-        auto c             = eckit::closer(sin);
-        std::unique_ptr<JumpInfo> t2(eckit::Reanimator<JumpInfo>::reanimate(sin));
-
-        ASSERT(*t2 == *infos[0]);
-    }
-    
-    if (filename.exists()) filename.unlink();
-}
-//-----------------------------------------------------------------------------
-
 }  // namespace test
 }  // namespace gribjump
 
