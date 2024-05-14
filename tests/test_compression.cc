@@ -62,7 +62,7 @@ std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
         }
         masks.push_back(mask64);
     }
-    assert(masks.size() == (size + 63) / 64);
+    ASSERT(masks.size() == (size + 63) / 64);
     return masks;
 }
 
