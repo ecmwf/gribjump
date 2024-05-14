@@ -109,6 +109,7 @@ JumpInfo::JumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> md5GridSection_;
     s >> binaryMultiplier_;
     s >> decimalMultiplier_;
+    s >> packingType_;
 }
 
 void JumpInfo::encode(eckit::Stream& s) const {
@@ -130,6 +131,7 @@ void JumpInfo::encode(eckit::Stream& s) const {
     s << md5GridSection_;
     s << binaryMultiplier_;
     s << decimalMultiplier_;
+    s << packingType_;
 }
 
 std::string JumpInfo::toString() const {
@@ -155,7 +157,7 @@ void JumpInfo::print(std::ostream& s) const {
       << "sphericalHarmonics=" << sphericalHarmonics_ << ","
       << "md5GridSection=" << md5GridSection_ << ","
       << "binaryMultiplier=" << binaryMultiplier_ << ","
-      << "decimalMultiplier=" << decimalMultiplier_;
+      << "packingType=" << packingType_;
 }
 
 bool JumpInfo::equals(const JumpInfo& rhs) const {
@@ -175,7 +177,8 @@ bool JumpInfo::equals(const JumpInfo& rhs) const {
            sphericalHarmonics() == rhs.sphericalHarmonics() &&
            md5GridSection() == rhs.md5GridSection() &&
            binaryMultiplier() == rhs.binaryMultiplier() &&
-           decimalMultiplier() == rhs.decimalMultiplier();
+           decimalMultiplier() == rhs.decimalMultiplier() &&
+           packingType() == rhs.packingType();
 }
 
 // --------------------------------------------------------------------------------------------
