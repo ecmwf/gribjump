@@ -32,7 +32,6 @@ std::vector<Values> SimpleJumper::readValues(eckit::DataHandle& dh, const JumpIn
 
 
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor2>(dh, mc::Range{info.msgStartOffset() + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()}); // TODO XXX
-    std::cout << info.bitsPerValue() << std::endl;
     mc::SimpleDecompressor<double> simple{};
     simple
         .bits_per_value(info.bitsPerValue())

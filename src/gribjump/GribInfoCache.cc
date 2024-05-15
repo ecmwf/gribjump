@@ -47,7 +47,7 @@ GribInfoCache::GribInfoCache() {
     static_assert(sizeof(off_t) == sizeof(eckit::Offset), "off_t and eckit::Offset must be the same size"); // dont think this is required anymore
 
     std::string cache = eckit::Resource<std::string>("gribJumpCacheDir;$GRIBJUMP_CACHE_DIR", "");
-    std::cout << "cache: " << cache << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "Cache directory " << cache << std::endl;
 
     if(cache.empty()) {
         cacheDir_ = eckit::PathName();
@@ -81,7 +81,6 @@ GribInfoCache::FileCache&  GribInfoCache::getFileCache(const filename_t& f) {
     cache_.insert(std::make_pair(f, filecache));
     return *filecache;
 }
-
 
 JumpInfo* GribInfoCache::get(const eckit::URI& uri) {
     

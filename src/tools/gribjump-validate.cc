@@ -62,7 +62,6 @@ void GJCompareEccodes::usage(const std::string &tool) const {
 
 
 void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
-    std::cout << "GJCompareEccodes::execute" << std::endl;
     bool raw = args.getBool("raw", false);
 
     // Build request(s) from input

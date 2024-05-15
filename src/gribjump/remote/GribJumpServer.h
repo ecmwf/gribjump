@@ -26,7 +26,7 @@ namespace gribjump {
 class GribJumpServer : private eckit::NonCopyable {
 public:
     GribJumpServer(int port): svc_(new GribJumpService(port)), tcsvc_(svc_) {
-        std::cout << "Starting GribJumpServer on port " << port << std::endl;
+        eckit::Log::info() << "Starting GribJumpServer on port " << port << std::endl;
         WorkQueue::instance(); // start the work queue
         tcsvc_.start();
     }

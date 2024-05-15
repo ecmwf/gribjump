@@ -46,7 +46,7 @@ private: // types
                 decode(s);
                 s.close();
             } else {
-                eckit::Log::warning() << "Cache file " << path_ << " does not exist" << std::endl;
+                LOG_DEBUG_LIB(LibGribJump) << "Cache file " << path_ << " does not exist" << std::endl;
             }
         }
 
