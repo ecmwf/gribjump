@@ -60,55 +60,32 @@ void CompressedRequestTree::set_parent(CompressedRequestTree *node)
     _parent = node;
 }
 
-// bool CompressedRequestTree::operator==(const CompressedRequestTree &other) const
-// {
-//     return _axis == other._axis && _value == other._value;
-// }
+ostream &operator<<(std::ostream &os, const CompressedRequestTree &obj)
+{
+    if (obj._axis != "root")
+    {
+        os << obj._axis << "="
+           << "[";
+        for (int i = 0; i < size(obj._values); i++)
+        {
+            os << obj._values[i] << ",";
+        }
+        os << "]";
+        return os;
+    }
+    else
+    {
+        os << obj._axis;
+        return os;
+    }
+}
 
-// bool CompressedRequestTree::operator<(const CompressedRequestTree &other) const
-// {
-//     return _axis < other._axis || (_axis == other._axis && _value < other._value);
-// }
-
-// ostream &operator<<(std::ostream &os, const CompressedRequestTree &obj)
-// {
-//     if (obj._axis != "root")
-//     {
-//         os << obj._axis << "=" << obj._value;
-//         return os;
-//     }
-//     else
-//     {
-//         os << obj._axis;
-//         return os;
-//     }
-// }
-
-// CompressedRequestTree *CompressedRequestTree::find_child(CompressedRequestTree *node)
-// {
-//     multiset<CompressedRequestTree> children;
-//     for (CompressedRequestTree *c : _children)
-//     {
-//         children.insert(*c);
-//     }
-//     auto it = children.find(*node);
-//     if (it == children.end())
-//     {
-//         return nullptr;
-//     }
-//     if (not(*it == *node))
-//     {
-//         return nullptr;
-//     }
-//     return const_cast<CompressedRequestTree *>(&(*it));
-// }
-
-// void CompressedRequestTree::pprint(int level)
-// {
-//     string tabs(level, '\t');
-//     cout << tabs << "\u21b3" << *this << endl;
-//     for (const CompressedRequestTree *child : _children)
-//     {
-//         (*const_cast<CompressedRequestTree *>(child)).pprint(level + 1);
-//     }
-// }
+void CompressedRequestTree::pprint(int level)
+{
+    string tabs(level, '\t');
+    cout << tabs << "\u21b3" << *this << endl;
+    for (const CompressedRequestTree *child : _children)
+    {
+        (*const_cast<CompressedRequestTree *>(child)).pprint(level + 1);
+    }
+}

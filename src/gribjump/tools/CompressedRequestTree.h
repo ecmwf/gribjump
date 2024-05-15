@@ -32,24 +32,7 @@ public:
     void add_child(CompressedRequestTree *node);
     void set_parent(CompressedRequestTree *node);
 
-    vector friend struct std::hash<CompressedRequestTree>;
+    friend ostream &operator<<(std::ostream &os, const CompressedRequestTree &obj);
 
-    //     bool operator==(const CompressedRequestTree &other) const;
-    //     bool operator<(const CompressedRequestTree &other) const;
-    //     friend ostream &operator<<(std::ostream &os, const CompressedRequestTree &obj);
-
-    //     CompressedRequestTree *find_child(CompressedRequestTree *node);
-    //     void pprint(int level = 0);
+    void pprint(int level = 0);
 };
-
-namespace std
-{
-    template <>
-    struct hash<CompressedRequestTree>
-    {
-        std::size_t operator()(const CompressedRequestTree &obj) const
-        {
-            return std::hash<string>()((obj._axis)) ^ std::hash<vector<string>>()(obj._values);
-        }
-    };
-}
