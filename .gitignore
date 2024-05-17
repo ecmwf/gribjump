@@ -6,3 +6,8 @@ build/
 .vscode/
 tests/*.grib
 __pycache__
+tmp/
+Testing/
+CMakeFiles/
+CMakeCache.txt
+*.bak
