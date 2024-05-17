@@ -143,11 +143,17 @@ void AxesRequest::execute() {
 
 void AxesRequest::replyToClient() {
 
+    // @todo, reporting of axes errors, i.e. implement an AxesTask.
     reportErrors();
-    
-    // @todo, reporting of axes errors, i.e. implemnt an AxesTask.
-    size_t nerror = 0;
-    client_ << nerror;
+
+    // print the axes we are sending
+    for (auto& pair : axes_) {
+        eckit::Log::info() << pair.first << ": ";
+        for (auto& val : pair.second) {
+            eckit::Log::info() << val << ", ";
+        }
+        eckit::Log::info() << std::endl;
+    }
 
     size_t naxes = axes_.size();
     client_ << naxes;
@@ -160,14 +166,6 @@ void AxesRequest::replyToClient() {
         }
     }
 
-    // print the axes we sent
-    for (auto& pair : axes_) {
-        eckit::Log::info() << pair.first << ": ";
-        for (auto& val : pair.second) {
-            eckit::Log::info() << val << ", ";
-        }
-        eckit::Log::info() << std::endl;
-    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
