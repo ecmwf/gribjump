@@ -1,6 +1,8 @@
 
 import os
-os.environ['GRIBJUMP_HOME'] = '/Users/maby/repo/mars-client-bundle/build/'
+os.environ['GRIBJUMP_HOME'] = "/path/to/gribjump/build"
+os.environ['GRIBJUMP_CONFIG_FILE'] = "/path/to/gribjump/config.yaml"
+
 import pygribjump as pygj
 
 gj = pygj.GribJump()
