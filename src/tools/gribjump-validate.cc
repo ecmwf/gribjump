@@ -27,7 +27,6 @@
 #include "fdb5/tools/FDBTool.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/FDBService.h"
 #include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/EccodesExtract.h"
 

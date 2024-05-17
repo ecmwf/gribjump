@@ -18,9 +18,9 @@
 #include "eckit/filesystem/LocalPathName.h"
 
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/FDBService.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "metkit/mars/MarsParser.h"

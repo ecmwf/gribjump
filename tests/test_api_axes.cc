@@ -20,7 +20,6 @@
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/FDBService.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "metkit/mars/MarsParser.h"

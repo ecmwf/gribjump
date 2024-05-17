@@ -28,7 +28,6 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/FDBService.h"
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LocalGribJump.h"

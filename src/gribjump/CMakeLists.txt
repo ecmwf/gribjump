@@ -53,8 +53,6 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     LocalGribJump.cc
     LocalGribJump.h
     GribJumpDataAccessor.h
-    FDBService.h
-    FDBService.cc
 
     Engine.cc
     Engine.h

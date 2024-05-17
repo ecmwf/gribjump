@@ -18,7 +18,8 @@
 
 #include "metkit/codes/GribHandle.h"
 
-#include "gribjump/FDBService.h"
+// #include "gribjump/FDBService.h"
+#include "gribjump/Lister.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 
@@ -26,7 +27,7 @@ namespace gribjump {
 
 std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges){  
 
-    std::map< eckit::PathName, eckit::OffsetList > map = FDBService::instance().filesOffsets({request});
+    std::map< eckit::PathName, eckit::OffsetList > map = FDBLister::instance().filesOffsets({request});
    
     std::vector<std::vector<std::vector<double>>> results;
     for (const auto& entry : map) {
