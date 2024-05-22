@@ -31,7 +31,10 @@ list( APPEND gribjump_srcs
 
     tools/ToolUtils.h
     tools/ToolUtils.cc
-    
+
+    tools/CompressedRequestTree.h
+    tools/CompressedRequestTree.cc
+
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
 
@@ -62,6 +65,9 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     tools/EccodesExtract.h
     tools/EccodesExtract.cc
+
+    tools/CompressedRequestTree.h
+    tools/CompressedRequestTree.cc
 
     
     remote/Request.h

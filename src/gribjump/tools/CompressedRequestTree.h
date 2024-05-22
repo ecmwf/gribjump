@@ -15,7 +15,7 @@ public:
     multiset<CompressedRequestTree *> _children;
 
     vector<string> _values;
-    const string _axis;
+    string _axis;
     vector<int> _indexes; // this is for the indexes of the grid
 
     vector<double> _results;
