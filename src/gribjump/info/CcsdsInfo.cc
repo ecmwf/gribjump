@@ -59,6 +59,33 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
     ccsdsOffsets_ = ccsds.offsets().value();
 }
 
+CcsdsInfo::CcsdsInfo(const eckit::message::Message& msg) : JumpInfo(msg) {
+    ccsdsFlags_ = msg.getLong("ccsdsFlags");
+    ccsdsBlockSize_ = msg.getLong("ccsdsBlockSize");
+    ccsdsRsi_ = msg.getLong("ccsdsRsi");
+
+    eckit::Length len = offsetAfterData_ - offsetBeforeData_;
+    eckit::Buffer buffer(len);
+    std::unique_ptr<eckit::DataHandle> dh(msg.readHandle());
+    dh->openForRead();
+    dh->seek(offsetBeforeData_);
+    dh->read(buffer, len);
+
+    mc::CcsdsDecompressor<double> ccsds{};
+    ccsds
+        .flags(ccsdsFlags_)
+        .bits_per_sample(bitsPerValue_)
+        .block_size(ccsdsBlockSize_)
+        .rsi(ccsdsRsi_)
+        .reference_value(referenceValue_)
+        .binary_scale_factor(binaryScaleFactor_)
+        .decimal_scale_factor(decimalScaleFactor_);
+    ccsds.n_elems(numberOfValues_);
+    ccsds.decode(buffer);
+
+    ccsdsOffsets_ = ccsds.offsets().value();
+}
+
 CcsdsInfo::CcsdsInfo(eckit::Stream& s) : JumpInfo(s) {
     s >> ccsdsFlags_;
     s >> ccsdsBlockSize_;

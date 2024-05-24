@@ -13,6 +13,7 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
+#include "eckit/message/Message.h"
 #include "gribjump/info/JumpInfo.h"
 
 namespace gribjump {
@@ -23,10 +24,12 @@ public:
     InfoExtractor();
     ~InfoExtractor();
 
+
     std::vector<JumpInfo*> extract(const eckit::PathName& path);
     std::vector<JumpInfo*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
     JumpInfo* extract(const eckit::PathName& path, const eckit::Offset& offset);
 
+    JumpInfo* extract(const eckit::message::Message& msg, bool anyPacking=false);
 };
 
 }  // namespace gribjump

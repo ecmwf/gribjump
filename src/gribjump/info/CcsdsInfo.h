@@ -21,6 +21,7 @@ class CcsdsInfo : public JumpInfo {
 public:
 
     CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
+    CcsdsInfo(const eckit::message::Message& msg);
     CcsdsInfo(eckit::Stream& s);
 
     virtual void encode(eckit::Stream&) const override;

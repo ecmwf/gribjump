@@ -90,6 +90,59 @@ JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startO
     decimalMultiplier_ = grib_power(-decimalScaleFactor_, 10);
 }
 
+// XXX Need to do something about message start offset ...
+// Stop using it.
+
+JumpInfo::JumpInfo(const eckit::message::Message& msg):
+    version_(currentVersion_), msgStartOffset_(0) {
+
+    editionNumber_      = msg.getLong("editionNumber");
+    packingType_        = msg.getString("packingType");
+    if (editionNumber_ != 1 && editionNumber_ != 2) {
+        std::stringstream ss;
+        ss << "Unsupported GRIB edition number: " << editionNumber_;
+        throw JumpException(ss.str(), Here());
+    }
+    
+    binaryScaleFactor_  = msg.getLong("binaryScaleFactor");
+    decimalScaleFactor_ = msg.getLong("decimalScaleFactor");
+    referenceValue_     = msg.getDouble("referenceValue");
+    md5GridSection_     = msg.getString("md5GridSection");
+
+    // XXX: would use getSize, but it seems to not work correctly? Always returns 1 or 0.
+    // Also, the gribaccessor above secretly uses get_long for the unsigned_longs, rather than size as I would have expected.
+
+    bitsPerValue_       = msg.getLong("bitsPerValue");
+    offsetBeforeData_   = msg.getLong("offsetBeforeData");
+    offsetAfterData_    = msg.getLong("offsetAfterData");
+    numberOfDataPoints_ = msg.getLong("numberOfDataPoints");
+    numberOfValues_     = msg.getLong("numberOfValues");
+    totalLength_        = msg.getLong("totalLength");
+
+    long bitmapPresent_ = msg.getLong("bitmapPresent");
+    
+    if (bitmapPresent_) {
+        constexpr size_t offsetToBitmap = 6;
+        offsetBeforeBitmap_ = editionNumber_ == 1? msg.getLong("offsetBeforeBitmap") : msg.getLong("offsetBSection6") + offsetToBitmap;
+    }
+    else {
+        offsetBeforeBitmap_ = 0;
+    }
+
+    binaryMultiplier_ = grib_power(binaryScaleFactor_, 2);
+    decimalMultiplier_ = grib_power(-decimalScaleFactor_, 10);
+
+
+    // A bit gross, but the keyword is optional.
+    // XXX: I suspect we actually need "sphericalHarmonics", if packingType=spectral_... is a reliable indicator.
+    // Find out.
+    try{
+        sphericalHarmonics_ = msg.getLong("sphericalHarmonics");
+    }
+    catch(const eckit::Exception& e){
+    }
+}
+
 
 JumpInfo::JumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> version_;

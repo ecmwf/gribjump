@@ -24,6 +24,7 @@
 #include "eckit/serialisation/FileStream.h"
 
 #include "metkit/codes/GribHandle.h"
+#include "metkit/codes/CodesContent.h"
 
 #include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/SimpleJumper.h"
@@ -91,6 +92,44 @@ CASE( "test_reanimate_info" ) {
 }
 
 //-----------------------------------------------------------------------------
+
+CASE( "test_build_from_message" ) {
+    
+    // Build from an eckit message, compare with the same info built from a file
+
+    std::vector<eckit::PathName> paths = {
+        "2t_O1280.grib",   // simple packed
+        "ceil_O1280.grib", // ccsds
+    };
+    for (auto path : paths) {
+
+        // Make the message.
+        eckit::AutoStdFile f(path);
+        int err = 0;
+        codes_handle* h = codes_handle_new_from_file(nullptr, f, PRODUCT_GRIB, &err);
+        EXPECT(err == 0);
+        metkit::codes::CodesContent* content = new metkit::codes::CodesContent(h, true);
+        eckit::message::Message msg(content);
+
+        std::unique_ptr<JumpInfo> infoFromMessage(InfoFactory::instance().build(msg));
+
+
+        eckit::FileHandle fh(path);
+        fh.openForRead();
+
+        eckit::Offset offset = 0;
+
+        std::unique_ptr<JumpInfo> infoFromFile(InfoFactory::instance().build(fh, offset));
+
+        std::cout << "from Message: " << *infoFromMessage << std::endl;
+        std::cout << "from File: " << *infoFromFile << std::endl;
+
+        EXPECT(*infoFromMessage == *infoFromFile);
+
+        fh.close();
+    }
+}
+//-----------------------------------------------------------------------------
 const size_t O1280_size = 6599680; // O1280
 
 CASE ("test_jumpers_filehandle") {
@@ -148,7 +187,7 @@ CASE ("test_wrong_jumper") {
 
         try {
             std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
-            EXPECT(false);
+            EXPECT(false); // Reaching here is an error!
         } catch (BadJumpInfoException& e) {
             // As expected!
         }

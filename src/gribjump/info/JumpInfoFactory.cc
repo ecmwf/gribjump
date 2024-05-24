@@ -41,13 +41,24 @@ InfoFactory& InfoFactory::instance() {
     return instance;
 }
 
-JumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
+JumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset, bool allowMissing) {
     
     metkit::grib::GribHandle gh(h, msgOffset); // Note: eccodes will read message into memory
 
-    InfoBuilderBase* builder = get(packingType(gh));
+    InfoBuilderBase* builder = get(packingType(gh), allowMissing);
+
+    if (!builder) return nullptr;
 
     return builder->make(h, gh, msgOffset);
+}
+
+JumpInfo* InfoFactory::build(const eckit::message::Message& msg, bool allowMissing) {
+    
+    InfoBuilderBase* builder = get(msg.getString("packingType"), allowMissing);
+
+    if (!builder) return nullptr;
+
+    return builder->make(msg);
 }
 
 void InfoFactory::enregister(const std::string& name, InfoBuilderBase* builder) {
@@ -71,11 +82,13 @@ void InfoFactory::deregister(const std::string& name) {
     builders_.erase(it);
 }
 
-InfoBuilderBase* InfoFactory::get(const std::string& name) {
+InfoBuilderBase* InfoFactory::get(const std::string& name, bool allowMissing) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto it = builders_.find(name);
+
     if (it == builders_.end()) {
+        if (allowMissing) return nullptr;
         throw eckit::SeriousBug("No entry in InfoFactory: " + name, Here());
     }
 

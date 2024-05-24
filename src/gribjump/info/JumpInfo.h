@@ -16,6 +16,7 @@
 #include "eckit/io/Offset.h"
 #include "eckit/types/FixedString.h"
 #include "eckit/serialisation/Streamable.h"
+#include "eckit/message/Message.h"
 
 #include "metkit/codes/GribHandle.h"
 
@@ -26,6 +27,7 @@ class JumpInfo : public eckit::Streamable { // TODO rename to JumpInfo when fini
 public:
 
     JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
+    JumpInfo(const eckit::message::Message& msg);
     JumpInfo(eckit::Stream&); 
 
     virtual void encode(eckit::Stream&) const override;
