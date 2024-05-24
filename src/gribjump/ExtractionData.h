@@ -21,72 +21,74 @@
 
 using Range = std::pair<size_t, size_t>;
 
-namespace gribjump {
+namespace gribjump
+{
 
-//----------------------------------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------------------------------
 
-class ExtractionResult  {
-public: // methods
+    class ExtractionResult
+    {
+    public: // methods
+        ExtractionResult();
+        ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
+        explicit ExtractionResult(eckit::Stream &s);
 
-    ExtractionResult();
-    ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
-    explicit ExtractionResult(eckit::Stream& s);
+        const std::vector<std::vector<double>> &values() const { return values_; }
+        const std::vector<std::vector<std::bitset<64>>> &mask() const { return mask_; }
 
-    const std::vector<std::vector<double>>& values() const {return values_;}
-    const std::vector<std::vector<std::bitset<64>>>& mask() const {return mask_;}
-
-    size_t nrange() const {return values_.size();}
-    size_t nvalues(size_t i) const {return values_[i].size();}
-    size_t total_values() const {
-        size_t total = 0;
-        for (auto& v : values_) {
-            total += v.size();
+        size_t nrange() const { return values_.size(); }
+        size_t nvalues(size_t i) const { return values_[i].size(); }
+        size_t total_values() const
+        {
+            size_t total = 0;
+            for (auto &v : values_)
+            {
+                total += v.size();
+            }
+            return total;
         }
-        return total;
-    }
 
-    // For exposing buffers to C
-    // Use carefully, as the vector values_ still owns the data.
-    void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
+        // For exposing buffers to C
+        // Use carefully, as the vector values_ still owns the data.
+        void values_ptr(double ***values, unsigned long *nrange, unsigned long **nvalues);
 
-private: // methods
-    void encode(eckit::Stream& s) const;
-    void print(std::ostream&) const;
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o);
-    friend std::ostream& operator<<(std::ostream& s, const ExtractionResult& r);
+    private: // methods
+        void encode(eckit::Stream &s) const;
+        void print(std::ostream &) const;
+        friend eckit::Stream &operator<<(eckit::Stream &s, const ExtractionResult &o);
+        friend std::ostream &operator<<(std::ostream &s, const ExtractionResult &r);
 
+    private: // members
+        std::vector<std::vector<double>> values_;
+        std::vector<std::vector<std::bitset<64>>> mask_;
+    };
 
-private: // members
-    std::vector<std::vector<double>> values_;
-    std::vector<std::vector<std::bitset<64>>> mask_;
-};
+    //----------------------------------------------------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------------------------------------------------
+    class ExtractionRequest
+    {
 
-class ExtractionRequest {
+    public: // methods
+        ExtractionRequest();
+        ExtractionRequest(metkit::mars::MarsRequest, std::vector<Range>);
+        explicit ExtractionRequest(eckit::Stream &s);
 
-public: // methods
+        std::vector<ExtractionRequest> split(const std::vector<std::string> &keys) const;
+        std::vector<ExtractionRequest> split(const std::string &key) const;
+        const std::vector<Range> &getRanges() const { return ranges_; }
+        const metkit::mars::MarsRequest &getRequest() const { return request_; }
 
-    ExtractionRequest();
-    ExtractionRequest(metkit::mars::MarsRequest, std::vector<Range>);
-    explicit ExtractionRequest(eckit::Stream& s);
+    private: // methods
+        void print(std::ostream &) const;
+        void encode(eckit::Stream &s) const;
+        friend eckit::Stream &operator<<(eckit::Stream &s, const ExtractionRequest &o);
+        friend std::ostream &operator<<(std::ostream &s, const ExtractionRequest &r);
 
-    std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
-    std::vector<ExtractionRequest> split(const std::string& key) const;
-    const std::vector<Range>& getRanges() const {return ranges_;}
-    const metkit::mars::MarsRequest& getRequest() const {return request_;}
+    private: // members
+        std::vector<Range> ranges_;
+        metkit::mars::MarsRequest request_;
+    };
 
-private: // methods
-    void print(std::ostream&) const;
-    void encode(eckit::Stream& s) const;
-    friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o);
-    friend std::ostream& operator<<(std::ostream& s, const ExtractionRequest& r);
-
-private: // members
-    std::vector<Range> ranges_;
-    metkit::mars::MarsRequest request_;
-};
-
-//----------------------------------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump

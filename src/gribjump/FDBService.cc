@@ -18,125 +18,145 @@
 
 #include "gribjump/GribJump.h"
 
-namespace gribjump {
+namespace gribjump
+{
 
-FDBService& FDBService::instance() {
-    static FDBService instance_;
-    return instance_;
-}
-
-FDBService::FDBService() {
-}
-
-FDBService::~FDBService() {
-}
-
-std::vector<eckit::PathName> FDBService::listFilesInRequest(std::vector<metkit::mars::MarsRequest> requests) {
-        
-    eckit::AutoLock<FDBService> lock(this);
-
-    std::set< eckit::PathName > files;
-
-    for (auto& request : requests) {
-
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, true);
-
-        fdb5::ListElement elem;
-        eckit::PathName last;
-        while (listIter.next(elem)) {
-            const fdb5::FieldLocation& loc = elem.location();
-            LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
-            eckit::PathName path = loc.uri().path();
-            if(path != last) { 
-                files.insert(path); // minor optimisation
-            }
-            last = path;
-        }
+    FDBService &FDBService::instance()
+    {
+        static FDBService instance_;
+        return instance_;
     }
 
-    std::vector<eckit::PathName> output;
-    std::copy(files.begin(), files.end(), std::back_inserter(output));
-
-    return output;
-}
-
-std::map< eckit::PathName, eckit::OffsetList > FDBService::filesOffsets(std::vector<metkit::mars::MarsRequest> requests) {
-
-    eckit::AutoLock<FDBService> lock(this);
-
-    std::map< eckit::PathName, eckit::OffsetList > files; 
-
-    for (auto& request : requests) {
-
-        size_t count = request.count(); // worse case scenario all fields in one file
-
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, true);
-
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-                        
-            const fdb5::FieldLocation& loc = elem.location();
-
-            eckit::PathName path = loc.uri().path();
-
-            auto it = files.find(path);
-            if(it == files.end()) {
-                eckit::OffsetList offsets;
-                offsets.reserve(count);
-                offsets.push_back(loc.offset());
-                files.emplace(path, offsets);
-            }
-            else {
-                it->second.push_back(loc.offset());
-            }
-        }
+    FDBService::FDBService()
+    {
     }
 
-    return files;
-}
-
-std::map<std::string, std::unordered_set<std::string> > FDBService::axes(const fdb5::FDBToolRequest& request) {
-
-    eckit::AutoLock<FDBService> lock(this);
-
-    bool DEBUG_USE_FDBAXES = eckit::Resource<bool>("$GRIBJUMP_USE_FDBAXES", true);
-
-    std::map<std::string, std::unordered_set<std::string>> values;
-
-    if (DEBUG_USE_FDBAXES) {
-        
-        LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
-        
-        fdb5::IndexAxis ax = fdb_.axes(request);
-        ax.sort();
-        std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
-
-        for (const auto& kv : fdbValues) {
-            if (kv.second.empty()) {
-                continue;
-            }
-            values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
-        }
+    FDBService::~FDBService()
+    {
     }
-    else {
 
-        LOG_DEBUG_LIB(LibGribJump) << "Using GribJump's (old) axes impl" << std::endl;
+    std::vector<eckit::PathName> FDBService::listFilesInRequest(std::vector<metkit::mars::MarsRequest> requests)
+    {
 
-        auto listIter = fdb_.list(request, true);
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-            for (const auto& key : elem.key()) {
-                for (const auto& param : key) {
-                    values[param.first].insert(param.second);
+        eckit::AutoLock<FDBService> lock(this);
+
+        std::set<eckit::PathName> files;
+
+        for (auto &request : requests)
+        {
+
+            fdb5::FDBToolRequest fdbreq(request);
+            auto listIter = fdb_.list(fdbreq, true);
+
+            fdb5::ListElement elem;
+            eckit::PathName last;
+            while (listIter.next(elem))
+            {
+                const fdb5::FieldLocation &loc = elem.location();
+                LOG_DEBUG_LIB(LibGribJump) << loc << std::endl;
+                eckit::PathName path = loc.uri().path();
+                if (path != last)
+                {
+                    files.insert(path); // minor optimisation
+                }
+                last = path;
+            }
+        }
+
+        std::vector<eckit::PathName> output;
+        std::copy(files.begin(), files.end(), std::back_inserter(output));
+
+        return output;
+    }
+
+    std::map<eckit::PathName, eckit::OffsetList> FDBService::filesOffsets(std::vector<metkit::mars::MarsRequest> requests)
+    {
+
+        eckit::AutoLock<FDBService> lock(this);
+
+        std::map<eckit::PathName, eckit::OffsetList> files;
+
+        for (auto &request : requests)
+        {
+
+            size_t count = request.count(); // worse case scenario all fields in one file
+
+            fdb5::FDBToolRequest fdbreq(request);
+            auto listIter = fdb_.list(fdbreq, true);
+
+            fdb5::ListElement elem;
+            while (listIter.next(elem))
+            {
+
+                const fdb5::FieldLocation &loc = elem.location();
+
+                eckit::PathName path = loc.uri().path();
+
+                auto it = files.find(path);
+                if (it == files.end())
+                {
+                    eckit::OffsetList offsets;
+                    offsets.reserve(count);
+                    offsets.push_back(loc.offset());
+                    files.emplace(path, offsets);
+                }
+                else
+                {
+                    it->second.push_back(loc.offset());
                 }
             }
         }
+
+        return files;
     }
 
-    return values;
-}
+    std::map<std::string, std::unordered_set<std::string>> FDBService::axes(const fdb5::FDBToolRequest &request)
+    {
 
+        eckit::AutoLock<FDBService> lock(this);
+
+        bool DEBUG_USE_FDBAXES = eckit::Resource<bool>("$GRIBJUMP_USE_FDBAXES", true);
+
+        std::map<std::string, std::unordered_set<std::string>> values;
+
+        if (DEBUG_USE_FDBAXES)
+        {
+
+            LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
+
+            fdb5::IndexAxis ax = fdb_.axes(request);
+            ax.sort();
+            std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
+
+            for (const auto &kv : fdbValues)
+            {
+                if (kv.second.empty())
+                {
+                    continue;
+                }
+                values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
+            }
+        }
+        else
+        {
+
+            LOG_DEBUG_LIB(LibGribJump) << "Using GribJump's (old) axes impl" << std::endl;
+
+            auto listIter = fdb_.list(request, true);
+            fdb5::ListElement elem;
+            while (listIter.next(elem))
+            {
+                for (const auto &key : elem.key())
+                {
+                    for (const auto &param : key)
+                    {
+                        values[param.first].insert(param.second);
+                    }
+                }
+            }
+        }
+
+        return values;
+    }
 
 } // namespace gribjump

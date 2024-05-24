@@ -10,13 +10,14 @@ CompressedRequestTree::CompressedRequestTree(const string axis, vector<string> v
     _values = values;
     _axis = axis;
     _parent = NoneTree.get();
+    _results = nullptr;
 }
 
 CompressedRequestTree::~CompressedRequestTree()
 {
 }
 
-void CompressedRequestTree::set_result(vector<double> results)
+void CompressedRequestTree::set_result(vector<double> *results)
 {
     _results = results;
 }

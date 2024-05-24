@@ -18,13 +18,13 @@ public:
     string _axis;
     vector<int> _indexes; // this is for the indexes of the grid
 
-    vector<double> _results;
+    vector<double> *_results;
     vector<int> _result_size;
 
     CompressedRequestTree(const string axis = "root", vector<string> values = {""});
     ~CompressedRequestTree();
 
-    void set_result(vector<double> results);
+    void set_result(vector<double> *results);
     void set_indexes(vector<int> indexes);
     void set_result_size(vector<int> result_size);
 

@@ -13,144 +13,171 @@
 #include "gribjump/ExtractionData.h"
 #include "eckit/value/Value.h"
 
-namespace gribjump {
+namespace gribjump
+{
 
-ExtractionResult::ExtractionResult(){}
+    ExtractionResult::ExtractionResult() {}
 
-ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask): 
-    values_(std::move(values)),
-    mask_(std::move(mask))
-    {}
+    ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask) : values_(std::move(values)),
+                                                                                                                                  mask_(std::move(mask))
+    {
+    }
 
-ExtractionResult::ExtractionResult(eckit::Stream& s){
-    s >> values_;
-    std::vector<std::vector<std::string>> bitsetStrings;
-    s >> bitsetStrings;
-    for (auto& v : bitsetStrings) {
-        std::vector<std::bitset<64>> bitset;
-        for (auto& b : v) {
-            bitset.push_back(std::bitset<64>(b));
+    ExtractionResult::ExtractionResult(eckit::Stream &s)
+    {
+        s >> values_;
+        std::vector<std::vector<std::string>> bitsetStrings;
+        s >> bitsetStrings;
+        for (auto &v : bitsetStrings)
+        {
+            std::vector<std::bitset<64>> bitset;
+            for (auto &b : v)
+            {
+                bitset.push_back(std::bitset<64>(b));
+            }
+            mask_.push_back(bitset);
         }
-        mask_.push_back(bitset);
     }
-}
 
-void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues) {
-    *nrange = values_.size();
-    *values = new double*[*nrange];
-    *nvalues = new unsigned long[*nrange];
-    for (size_t i = 0; i < *nrange; i++) {
-        (*nvalues)[i] = values_[i].size();
-        (*values)[i] = values_[i].data();
-    }
-}
-
-void ExtractionResult::encode(eckit::Stream& s) const {
-    s << values_;
-    std::vector<std::vector<std::string>> bitsetStrings;
-    for (auto& v : mask_) {
-        std::vector<std::string> bitsetString;
-        for (auto& b : v) {
-            bitsetString.push_back(b.to_string());
+    void ExtractionResult::values_ptr(double ***values, unsigned long *nrange, unsigned long **nvalues)
+    {
+        *nrange = values_.size();
+        *values = new double *[*nrange];
+        *nvalues = new unsigned long[*nrange];
+        for (size_t i = 0; i < *nrange; i++)
+        {
+            (*nvalues)[i] = values_[i].size();
+            (*values)[i] = values_[i].data();
         }
-        bitsetStrings.push_back(bitsetString);
     }
-    s << bitsetStrings;
-}
 
-void ExtractionResult::print(std::ostream& s) const {
-    s << "ExtractionResult[Values:[";
-    for (auto& v : values_) {
-        s << v << ", ";
-    }
-    s << "]; Masks:[";
-    for (auto& v : mask_) {
-        s << "[";
-        for (auto& b : v) {
-            s << std::hex << b.to_ullong() << std::dec << ", ";
+    void ExtractionResult::encode(eckit::Stream &s) const
+    {
+        s << values_;
+        std::vector<std::vector<std::string>> bitsetStrings;
+        for (auto &v : mask_)
+        {
+            std::vector<std::string> bitsetString;
+            for (auto &b : v)
+            {
+                bitsetString.push_back(b.to_string());
+            }
+            bitsetStrings.push_back(bitsetString);
         }
-        s << "], ";
+        s << bitsetStrings;
     }
-    s << "]" << std::endl;
-}
 
-std::ostream& operator<<(std::ostream& s, const ExtractionResult& o) {
-    o.print(s);
-    return s;
-}
-
-eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
-    o.encode(s);
-    return s;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges):
-    ranges_(std::move(ranges)),
-    request_(std::move(request))
-    {}
-ExtractionRequest::ExtractionRequest(){}
-
-ExtractionRequest::ExtractionRequest(eckit::Stream& s){
-    request_ = metkit::mars::MarsRequest(s);
-    size_t numRanges;
-    s >> numRanges;
-    for (size_t j = 0; j < numRanges; j++) {
-        size_t start, end;
-        s >> start >> end;
-        ranges_.push_back(std::make_pair(start, end));
+    void ExtractionResult::print(std::ostream &s) const
+    {
+        s << "ExtractionResult[Values:[";
+        for (auto &v : values_)
+        {
+            s << v << ", ";
+        }
+        s << "]; Masks:[";
+        for (auto &v : mask_)
+        {
+            s << "[";
+            for (auto &b : v)
+            {
+                s << std::hex << b.to_ullong() << std::dec << ", ";
+            }
+            s << "], ";
+        }
+        s << "]" << std::endl;
     }
-}
 
-std::vector<ExtractionRequest> ExtractionRequest::split(const std::string& key) const {
-
-    std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
-
-    std::vector<ExtractionRequest> requests;
-    requests.reserve(reqs.size());
-    for (auto& r : reqs) {
-        requests.push_back(ExtractionRequest(r, ranges_));
+    std::ostream &operator<<(std::ostream &s, const ExtractionResult &o)
+    {
+        o.print(s);
+        return s;
     }
-    return requests;
-}
 
-std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string>& keys) const {
-    
-    std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
-
-    std::vector<ExtractionRequest> requests;
-    requests.reserve(reqs.size());
-    for (auto& r : reqs) {
-        requests.push_back(ExtractionRequest(r, ranges_));
+    eckit::Stream &operator<<(eckit::Stream &s, const ExtractionResult &o)
+    {
+        o.encode(s);
+        return s;
     }
-    return requests;
-}
 
-eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
-    o.encode(s);
-    return s;
-}
+    //---------------------------------------------------------------------------------------------------------------------
 
-void ExtractionRequest::encode(eckit::Stream& s) const {
-    s << request_;
-    s << ranges_.size();
-    for (auto& [start, end] : ranges_) {
-        s << start << end;
+    ExtractionRequest::ExtractionRequest(metkit::mars::MarsRequest request, std::vector<Range> ranges) : ranges_(std::move(ranges)),
+                                                                                                         request_(std::move(request))
+    {
     }
-}
+    ExtractionRequest::ExtractionRequest() {}
 
-void ExtractionRequest::print(std::ostream& s) const {
-    s << "ExtractionRequest[Request: " << request_ << "; Ranges: ";
-    for (auto& [start, end] : ranges_) {
-        s << "(" << start << ", " << end << "), ";
+    ExtractionRequest::ExtractionRequest(eckit::Stream &s)
+    {
+        request_ = metkit::mars::MarsRequest(s);
+        size_t numRanges;
+        s >> numRanges;
+        for (size_t j = 0; j < numRanges; j++)
+        {
+            size_t start, end;
+            s >> start >> end;
+            ranges_.push_back(std::make_pair(start, end));
+        }
     }
-    s << "]";
-}
 
-std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {
-    o.print(s);
-    return s;
-}
+    std::vector<ExtractionRequest> ExtractionRequest::split(const std::string &key) const
+    {
+
+        std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
+
+        std::vector<ExtractionRequest> requests;
+        requests.reserve(reqs.size());
+        for (auto &r : reqs)
+        {
+            requests.push_back(ExtractionRequest(r, ranges_));
+        }
+        return requests;
+    }
+
+    std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string> &keys) const
+    {
+
+        std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
+
+        std::vector<ExtractionRequest> requests;
+        requests.reserve(reqs.size());
+        for (auto &r : reqs)
+        {
+            requests.push_back(ExtractionRequest(r, ranges_));
+        }
+        return requests;
+    }
+
+    eckit::Stream &operator<<(eckit::Stream &s, const ExtractionRequest &o)
+    {
+        o.encode(s);
+        return s;
+    }
+
+    void ExtractionRequest::encode(eckit::Stream &s) const
+    {
+        s << request_;
+        s << ranges_.size();
+        for (auto &[start, end] : ranges_)
+        {
+            s << start << end;
+        }
+    }
+
+    void ExtractionRequest::print(std::ostream &s) const
+    {
+        s << "ExtractionRequest[Request: " << request_ << "; Ranges: ";
+        for (auto &[start, end] : ranges_)
+        {
+            s << "(" << start << ", " << end << "), ";
+        }
+        s << "]";
+    }
+
+    std::ostream &operator<<(std::ostream &s, const ExtractionRequest &o)
+    {
+        o.print(s);
+        return s;
+    }
 
 } // namespace gribjump
