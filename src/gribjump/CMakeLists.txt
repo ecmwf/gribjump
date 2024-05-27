@@ -11,6 +11,8 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/gribjump_config.h
 # gribjump library
 find_package(Protobuf REQUIRED)
 include_directories(${protobuf_INCLUDE_DIR})
+include_directories(${Protobuf_INCLUDE_DIRS})
+protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS tools/index_tree.proto)
 
 list( APPEND gribjump_srcs
     ${CMAKE_CURRENT_BINARY_DIR}/gribjump_version.c
@@ -36,6 +38,9 @@ list( APPEND gribjump_srcs
 
     tools/CompressedRequestTree.h
     tools/CompressedRequestTree.cc
+
+    tools/index_tree.pb.h
+    tools/index_tree.pb.cc
 
     tools/TreeEncodings.h
     tools/TreeEncodings.cc
@@ -73,6 +78,9 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     tools/CompressedRequestTree.h
     tools/CompressedRequestTree.cc
+
+    tools/index_tree.pb.h
+    tools/index_tree.pb.cc
 
     tools/TreeEncodings.h
     tools/TreeEncodings.cc
