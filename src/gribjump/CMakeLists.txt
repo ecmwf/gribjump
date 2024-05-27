@@ -12,7 +12,9 @@ install( FILES ${CMAKE_CURRENT_BINARY_DIR}/gribjump_config.h
 find_package(Protobuf REQUIRED)
 include_directories(${protobuf_INCLUDE_DIR})
 include_directories(${Protobuf_INCLUDE_DIRS})
+# include_directories(${ProtobufIncludePath})
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS tools/index_tree.proto)
+# target_link_libraries(gribjump ${Protobuf_LIBRARIES})
 
 list( APPEND gribjump_srcs
     ${CMAKE_CURRENT_BINARY_DIR}/gribjump_version.c
@@ -141,5 +143,6 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
+        ${Protobuf_LIBRARIES}
         ${SERVER_LIBS}
 )
