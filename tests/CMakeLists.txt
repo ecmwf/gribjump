@@ -68,3 +68,11 @@ ecbuild_add_test( TARGET "gribjump_test_compressed_tree"
     # TEST_DEPENDS gribjump_test_O1280_data_files
     NO_AS_NEEDED
     LIBS      gribjump)
+
+ecbuild_add_test( TARGET    "gribjump_test_protobuf_encoding"
+    SOURCES   "test_protobuf_encoding.cc"
+    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT   "${gribjump_env}"
+    # TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS      gribjump)

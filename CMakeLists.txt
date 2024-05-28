@@ -17,6 +17,7 @@ set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b
 
 ecbuild_find_package( NAME eckit VERSION 1.25.2 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
+# ecbuild_find_package( NAME Protobuf REQUIRED)
 
 # Set "GRIBJUMP_LOCAL_EXTRACT" to build everything. If it is off, build only minimal clientside functionality.
 ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
@@ -28,6 +29,7 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
   ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED ) # todo make optional?
+  # ecbuild_find_package( NAME Protobuf REQUIRED)
 
 endif()
 
