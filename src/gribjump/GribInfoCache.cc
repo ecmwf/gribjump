@@ -70,7 +70,7 @@ eckit::PathName GribInfoCache::cacheFilePath(const eckit::PathName& path) const 
     return cacheDir_ / path.baseName() + file_ext;
 }
 
-GribInfoCache::FileCache&  GribInfoCache::getFileCache(const filename_t& f) {
+FileCache& GribInfoCache::getFileCache(const filename_t& f) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = cache_.find(f);
     if(it != cache_.end()) return *(it->second);
@@ -267,5 +267,113 @@ void GribInfoCache::print(std::ostream& s) const {
     s << "]";
 }
 
+
+// ------------------------------------------------------------------------------------------------------
+
+FileCache::FileCache(const eckit::PathName& path): path_(path) {
+    if (path_.exists()) {
+        
+        LOG_DEBUG_LIB(LibGribJump) << "Loading file cache from " << path_ << std::endl;
+
+        eckit::FileStream s(path_, "r");
+        decode(s);
+        s.close();
+    } else {
+        LOG_DEBUG_LIB(LibGribJump) << "Cache file " << path_ << " does not exist" << std::endl;
+    }
+}
+
+FileCache::FileCache(eckit::Stream& s) {
+    decode(s);
+}
+
+FileCache::~FileCache() {
+    for (auto& entry : map_) {
+        delete entry.second; 
+    }
+}
+
+void FileCache::encode(eckit::Stream& s) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    s << map_.size();
+    for (auto& entry : map_) {
+        s << entry.first;
+        s << *entry.second;
+    }
+}
+
+void FileCache::decode(eckit::Stream& s) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    size_t size;
+    s >> size;
+    for (size_t i = 0; i < size; i++) {
+        eckit::Offset offset;
+        s >> offset;
+        JumpInfo* info = eckit::Reanimator<JumpInfo>::reanimate(s);
+
+        map_.insert(std::make_pair(offset, info));
+    }
+}
+
+void FileCache::merge(FileCache& other) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    other.lock();
+    for (auto& entry : other.map()) {
+        map_.insert(entry);
+    }
+    other.unlock();
+}
+
+void FileCache::persist(bool merge) {
+
+
+    if (merge && path_.exists()) {
+        // Load an existing cache and merge with this
+        // Note: if same entry exists in both, the one in *this will be used
+        FileCache other(path_);
+        this->merge(other);
+    }
+
+    // create a unique filename for the cache file before (atomically) moving it into place
+
+    eckit::PathName uniqPath = eckit::PathName::unique(path_);
+
+    LOG_DEBUG_LIB(LibGribJump) << "Writing GribInfo to temporary file " << uniqPath << std::endl;
+    eckit::FileStream s(uniqPath, "w");
+    encode(s);
+    s.close();
+
+    // atomically move the file into place
+    LOG_DEBUG_LIB(LibGribJump) << "Moving temp file cache to " << path_ << std::endl;
+    eckit::PathName::rename(uniqPath, path_);
+}
+
+void FileCache::insert(eckit::Offset offset, JumpInfo* info) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    map_.insert(std::make_pair(offset, info));
+}
+
+
+void FileCache::insert(std::vector<JumpInfo*> infos) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    for (auto& info : infos) {
+        map_.insert(std::make_pair(info->msgStartOffset(), info));
+    }
+}
+
+// wrapper around map_.find()
+JumpInfo* FileCache::find(eckit::Offset offset) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it = map_.find(offset);
+    if (it != map_.end()) {
+        return it->second;
+    }
+    return nullptr;
+}
+
+size_t FileCache::count() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return map_.size();
+}
 
 }  // namespace gribjump
