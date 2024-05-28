@@ -19,7 +19,6 @@
 #include "gribjump/Lister.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/remote/WorkQueue.h"
-#include "gribjump/info/JumpInfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
 
 

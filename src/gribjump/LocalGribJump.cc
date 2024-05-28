@@ -31,7 +31,7 @@
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LocalGribJump.h"
-#include "gribjump/GribInfoCache.h"
+#include "gribjump/info/InfoCache.h"
 
 #include "gribjump/Engine.h"
 #include "gribjump/info/InfoExtractor.h"
@@ -52,7 +52,7 @@ size_t LocalGribJump::scan(const eckit::PathName& path) {
     NOTIMP;
     // JumpHandle dataSource(path);
     // std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
-    // GribInfoCache::instance().insert(path, infos);
+    // InfoCache::instance().insert(path, infos);
     // return infos.size();
 }
 
@@ -131,6 +131,16 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     Engine engine;
     return engine.axes(request);
 }
+
+
+void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::URI& location){
+    infoAggregator_.add(key, location);
+};
+
+void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::message::Message& msg){
+    infoAggregator_.add(key, msg);
+};
+
 
 static GribJumpBuilder<LocalGribJump> builder("local");
 

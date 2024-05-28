@@ -16,7 +16,7 @@
 
 #include "gribjump/compression/compressors/Ccsds.h"
 #include "gribjump/info/CcsdsInfo.h"
-#include "gribjump/info/JumpInfoFactory.h"
+#include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {
 

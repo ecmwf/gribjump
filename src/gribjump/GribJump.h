@@ -52,6 +52,10 @@ public:
 
     void stats();
 
+    // Note: Only implemented if FDB is enabled
+    void aggregate(const fdb5::Key& key, const eckit::URI& location);
+    void aggregate(const fdb5::Key& key, const eckit::message::Message& msg);
+
 private:
     std::unique_ptr<GribJumpBase> impl_;
 };

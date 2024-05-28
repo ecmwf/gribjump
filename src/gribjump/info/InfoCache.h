@@ -27,7 +27,7 @@
 namespace gribjump {
 
 class FileCache;
-class GribInfoCache {
+class InfoCache {
 
 private: // types
 
@@ -36,7 +36,7 @@ private: // types
 
 public:
 
-    static GribInfoCache& instance();
+    static InfoCache& instance();
 
     /// @brief Scans grib file at provided offsets and populates cache
     /// @param path full path to grib file
@@ -65,9 +65,9 @@ public:
 
 private: // methods
 
-    GribInfoCache();
+    InfoCache();
     
-    ~GribInfoCache();
+    ~InfoCache();
 
     FileCache& getFileCache(const filename_t& f);
 
@@ -82,13 +82,15 @@ private: // members
 
     bool persistentCache_ = false;
 
+    bool shadowCache_ = false; //< if true, cache files are persisted next to the original data files (e.g. in FDB)
+                               //  This takes precedence over cacheDir_.
 };
 
 // owns the JumpInfo objects, all of which correspond to a single file.
-// NB: No public constructor, only GribInfoCache can create these.
+// NB: No public constructor, only InfoCache can create these.
 class FileCache {
 
-friend class GribInfoCache; 
+friend class InfoCache; 
 
 private:
 

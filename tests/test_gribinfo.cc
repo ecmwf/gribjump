@@ -26,7 +26,7 @@
 #include "metkit/codes/GribHandle.h"
 #include "metkit/codes/CodesContent.h"
 
-#include "gribjump/info/JumpInfoFactory.h"
+#include "gribjump/info/InfoFactory.h"
 #include "gribjump/jumper/SimpleJumper.h"
 #include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/jumper/JumperFactory.h"

@@ -12,7 +12,7 @@
 #include "eckit/log/Plural.h"
 
 #include "gribjump/Task.h"
-#include "gribjump/GribInfoCache.h"
+#include "gribjump/info/InfoCache.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/remote/WorkQueue.h"
@@ -76,7 +76,7 @@ void TaskGroup::enqueueTask(Task* task) {
 }
 
 void TaskGroup::waitForTasks(){
-    ASSERT(taskStatus_.size() > 0);
+    ASSERT(taskStatus_.size() > 0); // todo Might want to allow for "no tasks" case, though be careful with the lock / counter.
     LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
     std::unique_lock<std::mutex> lock(m_);
     cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
@@ -124,7 +124,7 @@ void FileExtractionTask::extract() {
         offsets.push_back(extractionItem->offset());
     }
 
-    std::vector<JumpInfo*> infos = GribInfoCache::instance().get(fname_, offsets);
+    std::vector<JumpInfo*> infos = InfoCache::instance().get(fname_, offsets);
 
 
     // Extract
@@ -167,11 +167,11 @@ void FileScanTask::execute() {
 void FileScanTask::scan(){
 
     if (offsets_.size() == 0) {
-        GribInfoCache::instance().scan(fname_);
+        InfoCache::instance().scan(fname_);
         return;
     }
 
-    GribInfoCache::instance().scan(fname_, offsets_);
+    InfoCache::instance().scan(fname_, offsets_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

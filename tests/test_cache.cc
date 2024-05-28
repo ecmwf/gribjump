@@ -15,7 +15,7 @@
 #include "eckit/filesystem/TmpDir.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/GribInfoCache.h"
+#include "gribjump/info/InfoCache.h"
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/InfoExtractor.h"
 
@@ -54,24 +54,24 @@ CASE( "test_cache" ){
     // pre-populate the cache
     for (size_t i = 0; i < locations.size(); i++) {
         JumpInfo* info = extractor.extract(locations[i].first, locations[i].second);
-        GribInfoCache::instance().insert(locations[i].first, locations[i].second, info);
+        InfoCache::instance().insert(locations[i].first, locations[i].second, info);
     }
     
     // Test 1: getting fields from cache.
     
     for (size_t i = 0; i < locations.size(); i++) {
-        JumpInfo* info = GribInfoCache::instance().get(locations[i].first, locations[i].second);
+        JumpInfo* info = InfoCache::instance().get(locations[i].first, locations[i].second);
         EXPECT(info);
         EXPECT(*info == *infos[i]);
     }
 
-    GribInfoCache::instance().persist();
-    GribInfoCache::instance().clear();
+    InfoCache::instance().persist();
+    InfoCache::instance().clear();
 
     // Test 2: Get fields, reanimated from disk.
 
     for (size_t i = 0; i < locations.size(); i++) {
-        JumpInfo* info = GribInfoCache::instance().get(locations[i].first, locations[i].second);
+        JumpInfo* info = InfoCache::instance().get(locations[i].first, locations[i].second);
         EXPECT(info);
         EXPECT(*info == *infos[i]);
     }

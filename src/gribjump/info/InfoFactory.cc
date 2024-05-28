@@ -14,7 +14,7 @@
 #include "metkit/codes/GribAccessor.h"
 #include "eckit/io/DataHandle.h"
 
-#include "gribjump/info/JumpInfoFactory.h"
+#include "gribjump/info/InfoFactory.h"
 
 static metkit::grib::GribAccessor<std::string>   packingType("packingType");
 

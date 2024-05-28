@@ -15,6 +15,7 @@
 
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/info/InfoAggregator.h"
 
 namespace gribjump {
 
@@ -36,6 +37,8 @@ public:
     // new API!
     std::map<MarsRequest, std::vector<ExtractionItem*>> extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten);
 
+    void aggregate(const fdb5::Key& key, const eckit::URI& location) override;
+    void aggregate(const fdb5::Key& key, const eckit::message::Message& msg) override;
 
     // old API
     std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
@@ -43,6 +46,8 @@ public:
     
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
+private:
+    InfoAggregator infoAggregator_;
 };
 
 } // namespace gribjump

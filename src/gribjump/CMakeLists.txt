@@ -48,8 +48,6 @@ list( APPEND gribjump_srcs
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     list( APPEND gribjump_srcs
-    GribInfoCache.cc
-    GribInfoCache.h
     LocalGribJump.cc
     LocalGribJump.h
     GribJumpDataAccessor.h
@@ -72,10 +70,14 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     info/SimpleInfo.cc
     info/CcsdsInfo.h
     info/CcsdsInfo.cc
-    info/JumpInfoFactory.h
-    info/JumpInfoFactory.cc
+    info/InfoFactory.h
+    info/InfoFactory.cc
     info/InfoExtractor.h
     info/InfoExtractor.cc
+    info/InfoAggregator.h
+    info/InfoAggregator.cc
+    info/InfoCache.cc
+    info/InfoCache.h
 
     jumper/Jumper.h
     jumper/Jumper.cc

@@ -13,7 +13,7 @@
 #include "eccodes.h"
 #include "eckit/io/FileHandle.h"
 #include "gribjump/info/InfoExtractor.h"
-#include "gribjump/info/JumpInfoFactory.h"
+#include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {
 

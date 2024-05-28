@@ -11,7 +11,7 @@
 /// @author Christopher Bradley
 
 #include "gribjump/info/SimpleInfo.h"
-#include "gribjump/info/JumpInfoFactory.h"
+#include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {
 
