@@ -41,7 +41,7 @@ public:
     void aggregate(const fdb5::Key& key, const eckit::message::Message& msg) override;
 
     // old API
-    std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
+    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
     std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>) override;
     
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;

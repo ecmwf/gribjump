@@ -55,6 +55,8 @@ size_t expectedCount(std::vector<std::vector<Interval>> allIntervals){
 
 CASE ("test_engine_basic") {
 
+    // --- Setup
+
     eckit::PathName gribName = "extract_ranges.grib";
 
     std::string s = eckit::LocalPathName::cwd();
@@ -79,6 +81,7 @@ CASE ("test_engine_basic") {
     fdb.archive(*gribName.fileHandle());
     fdb.flush();
 
+    // --- Extract (test 1)
 
     std::vector<metkit::mars::MarsRequest> requests;
     {
@@ -86,6 +89,7 @@ CASE ("test_engine_basic") {
             "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc\n"
             "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc\n"
             "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc\n"
+            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type=fc\n" // no data
             );
         metkit::mars::MarsParser parser(s);
         auto parsedRequests = parser.parse();
@@ -94,6 +98,7 @@ CASE ("test_engine_basic") {
     }
 
     std::vector<std::vector<Interval>> allIntervals = {
+        {std::make_pair(0, 5),  std::make_pair(20, 30)},
         {std::make_pair(0, 5),  std::make_pair(20, 30)},
         {std::make_pair(0, 5),  std::make_pair(20, 30)},
         {std::make_pair(0, 5),  std::make_pair(20, 30)}
@@ -113,7 +118,7 @@ CASE ("test_engine_basic") {
 
     // Check correct values 
     size_t count = 0;
-    for (size_t i = 0; i < requests.size(); i++) {
+    for (size_t i = 0; i < 3; i++) {
         metkit::mars::MarsRequest req = requests[i];
         std::vector<Interval> intervals = allIntervals[i];
         auto exs = results[req];
@@ -133,19 +138,28 @@ CASE ("test_engine_basic") {
             }
         }
     }
+    // only count the 3 intervals with data
+    EXPECT(count == 45);
 
-    EXPECT(count == expectedCount(allIntervals));
+    // Check missing data has no values.
+    ExtractionItem* ex = results[requests[3]][0];
+    EXPECT(ex->values().size() == 0);
 
 
-    // Test 2
+    // --- Extract (test 2)
+
+    // Same request, all in one (test flattening)
+
+    /// @todo, currently, the user cannot know order of the results after flattening, making this feature not very useful.
+    /// We impose an order internally (currently, alphabetical).
+
     
     allIntervals = {
         {std::make_pair(0, 5),  std::make_pair(20, 30)},
     };
-    // Same request, all in one (test flattening)
     {
         std::istringstream s(
-            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc\n"
+            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3/1000,stream=oper,time=1200,type=fc\n"
             );
         metkit::mars::MarsParser parser(s);
         auto parsedRequests = parser.parse();
@@ -167,26 +181,27 @@ CASE ("test_engine_basic") {
 
     metkit::mars::MarsRequest req = requests[0];
     auto exs = results[req];
-    auto comparisonValues = eccodesExtract(req, allIntervals[0]);
+    auto comparisonValues = eccodesExtract(req, allIntervals[0])[0]; // [0] Because each archived field has identical values.
     count = 0;
     for (size_t j = 0; j < exs.size(); j++) {
-        for (size_t k = 0; k < comparisonValues[j].size(); k++) {
-            for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
+        auto values = exs[j]->values();
+        for (size_t k = 0; k < values.size(); k++) {
+            for (size_t l = 0; l < values[k].size(); l++) {
                 count++;
-                double v = exs[j]->values()[k][l];
+                double v = values[k][l];
                 if (std::isnan(v)) {
-                    EXPECT(comparisonValues[j][k][l] == 9999);
+                    EXPECT(comparisonValues[k][l] == 9999);
                     continue;
                 }
 
-                EXPECT(comparisonValues[j][k][l] == v);
+                EXPECT(comparisonValues[k][l] == v);
             }
         }
     }
-    EXPECT(count == (3*expectedCount(allIntervals)));
+    EXPECT(count == 45);
 
-    
-    /// @todo: request touching multiple files
+    /// @todo: request touching multiple files?
+    /// @todo: request involving unsupported packingType?
 
 }
 

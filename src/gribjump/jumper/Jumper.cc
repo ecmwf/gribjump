@@ -73,46 +73,18 @@ void Jumper::extract(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem
     ASSERT(checkIntervals(extractionItem.intervals()));
     ASSERT(!info.sphericalHarmonics());
 
-    /// @todo... actually put the contents into the extractionItem
-    /// @todo... remove the other extract method
+    if (info.bitsPerValue() == 0) return extractConstant(info, extractionItem);
 
-    // if (info.bitsPerValue() == 0) return extractConstant(info, intervals);
+    if (!info.offsetBeforeBitmap()) return extractNoMask(dh, info, extractionItem);
 
-    // if (!info.offsetBeforeBitmap()) return extractNoMask(dh, info, intervals);
-
-    // return extractMasked(dh, info, intervals);
-
-
-    auto intervals = extractionItem.intervals();
-    auto result = extract(dh, info, intervals);
-
-    /// @XXX: copy into extractionItem
-
-    const std::vector<std::vector<double>>& values = result->values();
-    const std::vector<std::vector<std::bitset<64>>>& mask = result->mask();
-
-    extractionItem.values(values);
-    extractionItem.mask(mask);
-
-    return;
+    return extractMasked(dh, info, extractionItem);
 }
 
 
-ExtractionResult* Jumper::extract(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {
-    ASSERT(checkIntervals(intervals));
-    ASSERT(!info.sphericalHarmonics());
+void Jumper::extractNoMask(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem) {
 
-    if (info.bitsPerValue() == 0) return extractConstant(info, intervals);
-
-    if (!info.offsetBeforeBitmap()) return extractNoMask(dh, info, intervals);
-
-    return extractMasked(dh, info, intervals);
-}
-
-
-ExtractionResult* Jumper::extractNoMask(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {
-
-    std::vector<Values> all_values = readValues(dh, info, intervals);
+     const std::vector<Interval>& intervals = extractionItem.intervals();
+    readValues(dh, info, intervals, extractionItem);
 
     std::vector<std::vector<std::bitset<64>>> all_masks; // all present
 
@@ -120,23 +92,26 @@ ExtractionResult* Jumper::extractNoMask(eckit::DataHandle& dh, const JumpInfo& i
         return toBitset(std::vector(interval.second - interval.first, true));
     });
 
-    return new ExtractionResult(all_values, all_masks);
+    extractionItem.mask(std::move(all_masks));
+    return;
     
 }
 
-ExtractionResult* Jumper::extractMasked(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals) {
-    auto fullbitmap = readBitmap(dh, info);
-    auto [new_intervals, new_bitmaps] = calculateMaskedIntervals(intervals, fullbitmap);
-    auto all_decoded_values = readValues(dh, info, new_intervals);
+void Jumper::extractMasked(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem) {
 
-    // XXX: Eventually, the ExtractionItem object will store values and masks, and pre-reserve space based on the ranges
+    const std::vector<Interval>& old_intervals = extractionItem.intervals();
+    auto fullbitmap = readBitmap(dh, info);
+    auto [new_intervals, new_bitmaps] = calculateMaskedIntervals(old_intervals, fullbitmap);
+
+    readValues(dh, info, new_intervals, extractionItem);
+    auto all_decoded_values = extractionItem.values();
+
     std::vector<Values> all_values;
     std::vector<std::vector<std::bitset<64>>> all_masks;
 
-
-    for (size_t i = 0; i < intervals.size(); ++i) {
+    /// @todo: Can we avoid copying the values?
+    for (size_t i = 0; i < old_intervals.size(); ++i) {
         Values values;
-        // reserve
         values.reserve(new_bitmaps[i].size());
         for (size_t count = 0, j = 0; j < new_bitmaps[i].size(); ++j) {
             values.push_back(new_bitmaps[i][j] ? all_decoded_values[i][count++] : MISSING_VALUE);
@@ -145,13 +120,18 @@ ExtractionResult* Jumper::extractMasked(eckit::DataHandle& dh, const JumpInfo& i
         all_masks.push_back(toBitset(new_bitmaps[i]));
     }
 
-    return new ExtractionResult(all_values, all_masks);
+    extractionItem.values(std::move(all_values));
+    extractionItem.mask(std::move(all_masks));
+
+    return;
 }
 
 // Constant fields
-ExtractionResult* Jumper::extractConstant(const JumpInfo& info, const std::vector<Interval>& intervals) {
+void Jumper::extractConstant(const JumpInfo& info, ExtractionItem& extractionItem) {
 
-    // ASSERT(!info.offsetBeforeBitmap()); // todo: handle constant fields with bitmaps <- It looks like eccodes ignores the bitmap?
+    // ASSERT(!info.offsetBeforeBitmap()); /// @todo: handle constant fields with bitmaps <- It looks like eccodes ignores the bitmap?
+
+    const std::vector<Interval>& intervals = extractionItem.intervals();
 
     std::vector<std::vector<std::bitset<64>>> all_masks;
     std::vector<Values> all_values;
@@ -165,7 +145,9 @@ ExtractionResult* Jumper::extractConstant(const JumpInfo& info, const std::vecto
         return toBitset(std::vector(interval.second - interval.first, true));
     });
 
-    return new ExtractionResult(all_values, all_masks);
+    extractionItem.values(std::move(all_values));
+    extractionItem.mask(std::move(all_masks));
+    return;
 }
 
 

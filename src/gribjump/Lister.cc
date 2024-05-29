@@ -91,11 +91,10 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
 
         // Set the URI in the ExtractionItem
-        eckit::URI uri = elem.location().uri();
-        uri.fragment(std::to_string(elem.location().offset())); // fdb's URIs don't contain the offset fragment (!?)   <---- Maybe location().fullUri() is better?
+        eckit::URI uri = elem.location().fullUri();
 
         ExtractionItem* extractionItem = reqToExtractionItem.at(key);
-        extractionItem->URI(new eckit::URI(uri)); // XXX: second copy of the uri
+        extractionItem->URI(uri);
 
         // Add to filemap
         eckit::PathName fname = uri.path();

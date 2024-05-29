@@ -22,7 +22,7 @@ SimpleJumper::SimpleJumper(): Jumper() {}
 
 SimpleJumper::~SimpleJumper() {}
 
-std::vector<Values> SimpleJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Range>& intervals){
+void SimpleJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
 
     const SimpleInfo* psimple = dynamic_cast<const SimpleInfo*>(&info_in);
 
@@ -42,7 +42,9 @@ std::vector<Values> SimpleJumper::readValues(eckit::DataHandle& dh, const JumpIn
     // TODO(maee): Optimize this
     auto ranges = toRanges(intervals);
 
-    return simple.decode(data_accessor, ranges);
+    simple.decode(data_accessor, ranges, item.values());
+
+    return;
 }
 
 static JumperBuilder<SimpleJumper> simpleJumperBuilder("grid_simple");

@@ -108,7 +108,7 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
     return result;
 }
 
-std::vector<ExtractionResult*> RemoteGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+std::vector<std::unique_ptr<ExtractionItem>> RemoteGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
     NOTIMP;
 }
 

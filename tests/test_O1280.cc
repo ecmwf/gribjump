@@ -85,7 +85,7 @@ void test(eckit::PathName gribname){
         };
 
         const std::vector<eckit::Offset> offsets = {0};
-        std::unique_ptr<ExtractionResult> output(gj.extract(gribname, offsets, {ranges})[0]);
+        std::unique_ptr<ExtractionItem> output(std::move(gj.extract(gribname, offsets, {ranges})[0]));
         auto values = output->values();
         
         EXPECT(values.size() == ranges.size());
@@ -116,7 +116,7 @@ void test(eckit::PathName gribname){
 
     std::vector<eckit::Offset> offsets = {0};
 
-    std::unique_ptr<ExtractionResult> output(gj.extract(gribname, offsets, {singlePoints})[0]);
+    std::unique_ptr<ExtractionItem> output(std::move(gj.extract(gribname, offsets, {singlePoints})[0]));
 
     auto values = output->values();
 

@@ -205,8 +205,14 @@ CASE( "test_gribjump_api_extract" ) {
         rangesRepeat.push_back(ranges);
     }
     
-    std::vector<ExtractionResult*> output3 = gj.extract(paths[0], offsets, rangesRepeat);
-    EXPECT(output3.size() == 3);
+    std::vector<std::unique_ptr<ExtractionItem>> outputItems3 = gj.extract(paths[0], offsets, rangesRepeat);
+    EXPECT(outputItems3.size() == 3);
+
+    /// @todo temp: convert to extractionResult
+    std::vector<ExtractionResult*> output3;
+    for (size_t i = 0; i < outputItems3.size(); i++) {
+        output3.push_back(new ExtractionResult(outputItems3[i]->values(), outputItems3[i]->mask()));
+    }
 
     // Expect output to be the same as output2[0]
     compareValues(expectedValues, {output3});

@@ -134,12 +134,13 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
 
 
     // A bit gross, but the keyword is optional.
-    // XXX: I suspect we actually need "sphericalHarmonics", if packingType=spectral_... is a reliable indicator.
+    // XXX: I suspect we don't actually need "sphericalHarmonics", if packingType=spectral_... is a reliable indicator.
     // Find out.
     try{
         sphericalHarmonics_ = msg.getLong("sphericalHarmonics");
     }
     catch(const eckit::Exception& e){
+        sphericalHarmonics_ = 0;
     }
 }
 

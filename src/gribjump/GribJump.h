@@ -23,6 +23,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "gribjump/ExtractionItem.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/Config.h"
 #include "gribjump/GribJumpBase.h"
@@ -46,7 +47,7 @@ public:
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false);
 
     std::vector<std::vector<ExtractionResult*>> extract(const std::vector<ExtractionRequest>& requests);
-    std::vector<ExtractionResult*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges);
+    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 

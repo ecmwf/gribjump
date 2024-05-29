@@ -103,7 +103,7 @@ void test_compression() {
             return interval.second <= numberOfDataPoints && interval.first < interval.second;
         });
 
-        std::unique_ptr<ExtractionResult> result(gribjump.extract(data.gribFileName, {0}, {intervals})[0]);
+        std::unique_ptr<ExtractionItem> result(std::move(gribjump.extract(data.gribFileName, {0}, {intervals})[0]));
         auto actual_all = result->values();
         auto mask_all = result->mask();
 

@@ -23,7 +23,7 @@ CcsdsJumper::CcsdsJumper(): Jumper() {}
 
 CcsdsJumper::~CcsdsJumper() {}
 
-std::vector<Values> CcsdsJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Range>& intervals){
+void CcsdsJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(&info_in);
 
@@ -50,7 +50,9 @@ std::vector<Values> CcsdsJumper::readValues(eckit::DataHandle& dh, const JumpInf
     // TODO(maee): Optimize this
     auto ranges = toRanges(intervals);
 
-    return ccsds.decode(data_accessor, ranges);
+    ccsds.decode(data_accessor, ranges, item.values());
+
+    return;
 }
 
 static JumperBuilder<CcsdsJumper> ccsdsJumperBuilder("grid_ccsds");

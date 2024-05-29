@@ -151,18 +151,22 @@ CASE ("test_jumpers_filehandle") {
         auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
 
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
-        std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
+        ExtractionItem extractionItem(intervals);
+        jumper->extract(fh, *info, extractionItem);
 
         fh.close();
 
         // Check correct values 
         std::vector<std::vector<double>> comparisonValues = eccodesExtract(path, {offset}, intervals)[0];
+        std::vector<std::vector<double>> values = extractionItem.values();
         EXPECT(comparisonValues.size() == 3);
+        EXPECT(values.size() == comparisonValues.size());
 
         for (size_t i = 0; i < comparisonValues.size(); i++) {
             EXPECT(comparisonValues[i].size() == 10);
+            EXPECT(comparisonValues[i].size() == values[i].size());
             for (size_t j = 0; j < comparisonValues[i].size(); j++) {
-                EXPECT(comparisonValues[i][j] == res->values()[i][j]);
+                EXPECT(comparisonValues[i][j] == extractionItem.values()[i][j]);
             }
         }
     }
@@ -186,7 +190,8 @@ CASE ("test_wrong_jumper") {
         std::unique_ptr<Jumper> jumper(new CcsdsJumper());
 
         try {
-            std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
+            ExtractionItem item(intervals);
+            jumper->extract(fh, *info, item);
             EXPECT(false); // Reaching here is an error!
         } catch (BadJumpInfoException& e) {
             // As expected!
@@ -210,7 +215,8 @@ CASE ("test_wrong_jumper") {
         std::unique_ptr<Jumper> jumper(new SimpleJumper());
 
         try {
-            std::unique_ptr<ExtractionResult> res(jumper->extract(fh, *info, intervals));
+            ExtractionItem item(intervals);
+            jumper->extract(fh, *info, item);
             EXPECT(false);
         } catch (BadJumpInfoException& e) {
             // As expected!
@@ -229,7 +235,7 @@ CASE ("test_ExtractionItem_extract") {
 
     eckit::PathName path = "2t_O1280.grib";
 
-    exItem.URI(new eckit::URI(path));
+    exItem.URI(eckit::URI(path));
 
     eckit::FileHandle fh(path);
     fh.openForRead();

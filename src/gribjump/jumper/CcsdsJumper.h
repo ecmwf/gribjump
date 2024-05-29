@@ -22,7 +22,7 @@ public:
     ~CcsdsJumper();
 
 private:
-    virtual std::vector<Values> readValues(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Range>& intervals) override;
+    virtual void readValues(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem& ExtractionItem) override;
 };
 
 } // namespace gribjump

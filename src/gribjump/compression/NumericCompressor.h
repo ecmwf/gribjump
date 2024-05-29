@@ -42,8 +42,14 @@ public:
 
   virtual std::vector<Values> decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Range>& ranges) {
     using Values = typename NumericDecompressor<ValueType>::Values;
-
     std::vector<Values> result;
+    decode(accessor, ranges, result);
+    return result;
+  }
+
+  virtual void decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Range>& ranges, std::vector<Values>& result) {
+    using Values = typename NumericDecompressor<ValueType>::Values;
+    
     std::unordered_map<Range, std::pair<Range, std::shared_ptr<Values>>> ranges_map;
 
     // find which sub_ranges are in which buckets
@@ -70,8 +76,6 @@ public:
       Values values(data_start, data_start + user_range_size);
       result.push_back(std::move(values));
     }
-
-    return result;
 
   }
 };

@@ -21,16 +21,15 @@
 
 namespace gribjump {
 
-typedef std::vector<std::pair<size_t, size_t>> Ranges;
-
-typedef std::vector<std::vector<double>> ExValues; // assumes 1 to 1 map between request and result
-typedef std::vector<std::vector<std::bitset<64>>> ExMask;
+using Ranges = std::vector<std::pair<size_t, size_t>>;
+using ExValues = std::vector<std::vector<double>>;
+using ExMask = std::vector<std::vector<std::bitset<64>>>;
 
 // An object for grouping request, uri and result information together.
 // Note, this is a one to one mapping between request and result.
 // i.e. the request is assumed to be of cardinality 1. /// No it isn't! It's the base request
 
-class ExtractionItem {
+class ExtractionItem : public eckit::NonCopyable {
 
 public:
 
@@ -40,42 +39,36 @@ public:
             /// @note We're not always going to have mars requests (e.g. file name, tree, ...) More generic object?
     }
 
-    ~ExtractionItem() {
-        delete uri_;
-        delete values_;
-        delete mask_;
-    }
+    ExtractionItem(const Ranges& ranges) : request_(""), ranges_(ranges) {} // Because sometimes we dont use marsrequests.
+
+    ~ExtractionItem() {};
     
-    const eckit::URI& URI() const { return *uri_; }
-    const ExValues& values() const { return *values_; }
-    const ExMask& mask() const { return *mask_; }
+    const eckit::URI& URI() const { return uri_; }
+    // const ExValues& values() const { return values_; }
+    ExValues& values() { return values_; }
+    const ExMask& mask() const { return mask_; }
     const Ranges& intervals() const { return ranges_; }
     const metkit::mars::MarsRequest& request() const { return request_; }
     
     /// @note alternatively we could store the offset directly instead of the uri.
     eckit::Offset offset() const {
-        ASSERT(uri_);
         
-        std::string fragment =  uri_->fragment();
+        std::string fragment =  uri_.fragment();
         eckit::Offset offset;
         
         try {
             offset = std::stoll(fragment);
         } catch (std::invalid_argument& e) {
-            throw eckit::BadValue("Invalid offset: '" + fragment + "' in URI: " + uri_->asString(), Here());
+            throw eckit::BadValue("Invalid offset: '" + fragment + "' in URI: " + uri_.asString(), Here());
         }
 
         return offset;
     }
 
-    void URI(eckit::URI* uri) { uri_ = uri; }
-    // void values(Values* values) { values_ = values; }
-    // void mask(Mask* mask) { mask_ = mask; }
+    void URI(const eckit::URI& uri) { uri_ = uri; }
 
-    /// @todo, dont do this. only for temp compatability 
-    // Make a copy of the input values / mask
-    void values(const ExValues& values) { values_ = new ExValues(values); }
-    void mask(const ExMask& mask) { mask_ = new ExMask(mask); }
+    void values(ExValues values) { values_ = std::move(values); }
+    void mask(ExMask mask) { mask_ = std::move(mask); }
 
     void debug_print() const {
         std::cout << "ExtractionItem: {" << std::endl;
@@ -84,41 +77,41 @@ public:
         for (auto& r : ranges_) {
             std::cout << "   {" << r.first << ", " << r.second << "}" << std::endl;
         }
-        if (uri_) std::cout << "  URI: " << uri_->asString() << ", fragment: " << uri_->fragment() << std::endl;
-        if (values_){
-            std::cout << "  Values: " << std::endl;
-            for (auto& v : *values_) {
-                std::cout << "   {";
-                for (auto& d : v) {
-                    std::cout << d << ", ";
-                }
-                std::cout << "}" << std::endl;
+
+        std::cout << "  Values: {" << std::endl;
+        for (auto& v : values_) {
+            std::cout << "   {";
+            for (auto& d : v) {
+                std::cout << d << ", ";
             }
+            std::cout << "}" << std::endl;
         }
-        if (mask_){
-            std::cout << "  Mask: " << std::endl;
-            for (auto& v : *mask_) {
-                std::cout << "   {";
-                for (auto& d : v) {
-                    std::cout << d << ", ";
-                }
-                std::cout << "}" << std::endl;
+        std::cout << "}" << std::endl;
+
+        std::cout << "  Mask: {" << std::endl;
+        for (auto& v : mask_) {
+            std::cout << "   {";
+            for (auto& d : v) {
+                std::cout << d << ", ";
             }
+            std::cout << "}" << std::endl;
         }
+        std::cout << "}" << std::endl;
+        
         std::cout << "}" << std::endl;
     }
 
 private:
 
-    const metkit::mars::MarsRequest& request_;
+    const metkit::mars::MarsRequest request_;
     const Ranges& ranges_;
 
     // Set on Listing
-    eckit::URI* uri_;
+    eckit::URI uri_;
 
     // Set on Extraction
-    ExValues* values_;
-    ExMask* mask_;
+    ExValues values_;
+    ExMask mask_;
 };
 
 // ------------------------------------------------------------------

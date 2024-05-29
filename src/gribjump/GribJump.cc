@@ -43,7 +43,7 @@ std::vector<std::vector<ExtractionResult*>> GribJump::extract(const std::vector<
     return out;
 }
 
-std::vector<ExtractionResult*> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
     auto out = impl_->extract(path, offsets, ranges);
     return out;
 }
