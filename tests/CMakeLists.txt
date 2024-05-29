@@ -75,4 +75,7 @@ ecbuild_add_test( TARGET    "gribjump_test_protobuf_encoding"
     ENVIRONMENT   "${gribjump_env}"
     # TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS      gribjump
+    )
+
+

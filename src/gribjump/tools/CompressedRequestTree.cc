@@ -13,6 +13,11 @@ CompressedRequestTree::CompressedRequestTree(const string axis, vector<string> v
     _results = nullptr;
 }
 
+string CompressedRequestTree::get_axis()
+{
+    return _axis;
+}
+
 CompressedRequestTree::~CompressedRequestTree()
 {
 }

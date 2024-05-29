@@ -25,7 +25,7 @@
 #include "google/protobuf/metadata_lite.h"
 #include "google/protobuf/generated_message_reflection.h"
 #include "google/protobuf/message.h"
-#include "google/protobuf/repeated_field.h" // IWYU pragma: export
+#include "google/protobuf/repeated_field.h"  // IWYU pragma: export
 #include "google/protobuf/extension_set.h"  // IWYU pragma: export
 #include "google/protobuf/unknown_field_set.h"
 // @@protoc_insertion_point(includes)
@@ -35,789 +35,682 @@
 
 #define PROTOBUF_INTERNAL_EXPORT_index_5ftree_2eproto
 
-namespace google
-{
-  namespace protobuf
-  {
-    namespace internal
-    {
-      class AnyMetadata;
-    } // namespace internal
-  }   // namespace protobuf
-} // namespace google
+namespace google {
+namespace protobuf {
+namespace internal {
+class AnyMetadata;
+}  // namespace internal
+}  // namespace protobuf
+}  // namespace google
 
 // Internal implementation detail -- do not use these members.
-struct TableStruct_index_5ftree_2eproto
-{
+struct TableStruct_index_5ftree_2eproto {
   static const ::uint32_t offsets[];
 };
 extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_index_5ftree_2eproto;
-namespace index_tree
-{
-  class Node;
-  struct NodeDefaultTypeInternal;
-  extern NodeDefaultTypeInternal _Node_default_instance_;
-} // namespace index_tree
-namespace google
-{
-  namespace protobuf
-  {
-  } // namespace protobuf
-} // namespace google
+namespace index_tree {
+class Node;
+struct NodeDefaultTypeInternal;
+extern NodeDefaultTypeInternal _Node_default_instance_;
+}  // namespace index_tree
+namespace google {
+namespace protobuf {
+}  // namespace protobuf
+}  // namespace google
 
-namespace index_tree
-{
+namespace index_tree {
 
-  // ===================================================================
+// ===================================================================
 
-  // -------------------------------------------------------------------
 
-  class Node final : public ::google::protobuf::Message
-  /* @@protoc_insertion_point(class_definition:index_tree.Node) */ {
-  public:
-    inline Node() : Node(nullptr) {}
-    ~Node() override;
-    template <typename = void>
-    explicit PROTOBUF_CONSTEXPR Node(
-        ::google::protobuf::internal::ConstantInitialized);
+// -------------------------------------------------------------------
 
-    inline Node(const Node &from) : Node(nullptr, from) {}
-    inline Node(Node &&from) noexcept
-        : Node(nullptr, std::move(from)) {}
-    inline Node &operator=(const Node &from)
-    {
-      CopyFrom(from);
-      return *this;
-    }
-    inline Node &operator=(Node &&from) noexcept
-    {
-      if (this == &from)
-        return *this;
-      if (GetArena() == from.GetArena()
+class Node final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:index_tree.Node) */ {
+ public:
+  inline Node() : Node(nullptr) {}
+  ~Node() override;
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR Node(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline Node(const Node& from) : Node(nullptr, from) {}
+  inline Node(Node&& from) noexcept
+      : Node(nullptr, std::move(from)) {}
+  inline Node& operator=(const Node& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline Node& operator=(Node&& from) noexcept {
+    if (this == &from) return *this;
+    if (GetArena() == from.GetArena()
 #ifdef PROTOBUF_FORCE_COPY_IN_MOVE
-          && GetArena() != nullptr
-#endif // !PROTOBUF_FORCE_COPY_IN_MOVE
-      )
-      {
-        InternalSwap(&from);
-      }
-      else
-      {
-        CopyFrom(from);
-      }
-      return *this;
+        && GetArena() != nullptr
+#endif  // !PROTOBUF_FORCE_COPY_IN_MOVE
+    ) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
     }
+    return *this;
+  }
 
-    inline const ::google::protobuf::UnknownFieldSet &unknown_fields() const
-        ABSL_ATTRIBUTE_LIFETIME_BOUND
-    {
-      return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
-    }
-    inline ::google::protobuf::UnknownFieldSet *mutable_unknown_fields()
-        ABSL_ATTRIBUTE_LIFETIME_BOUND
-    {
-      return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
-    }
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
 
-    static const ::google::protobuf::Descriptor *descriptor()
-    {
-      return GetDescriptor();
-    }
-    static const ::google::protobuf::Descriptor *GetDescriptor()
-    {
-      return default_instance().GetMetadata().descriptor;
-    }
-    static const ::google::protobuf::Reflection *GetReflection()
-    {
-      return default_instance().GetMetadata().reflection;
-    }
-    static const Node &default_instance()
-    {
-      return *internal_default_instance();
-    }
-    static inline const Node *internal_default_instance()
-    {
-      return reinterpret_cast<const Node *>(
-          &_Node_default_instance_);
-    }
-    static constexpr int kIndexInFileMessages = 0;
-    friend void swap(Node &a, Node &b) { a.Swap(&b); }
-    inline void Swap(Node *other)
-    {
-      if (other == this)
-        return;
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const Node& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const Node* internal_default_instance() {
+    return reinterpret_cast<const Node*>(
+        &_Node_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 0;
+  friend void swap(Node& a, Node& b) { a.Swap(&b); }
+  inline void Swap(Node* other) {
+    if (other == this) return;
 #ifdef PROTOBUF_FORCE_COPY_IN_SWAP
-      if (GetArena() != nullptr && GetArena() == other->GetArena())
-      {
-#else  // PROTOBUF_FORCE_COPY_IN_SWAP
-      if (GetArena() == other->GetArena())
-      {
-#endif // !PROTOBUF_FORCE_COPY_IN_SWAP
-        InternalSwap(other);
-      }
-      else
-      {
-        ::google::protobuf::internal::GenericSwap(this, other);
-      }
-    }
-    void UnsafeArenaSwap(Node *other)
-    {
-      if (other == this)
-        return;
-      ABSL_DCHECK(GetArena() == other->GetArena());
+    if (GetArena() != nullptr && GetArena() == other->GetArena()) {
+#else   // PROTOBUF_FORCE_COPY_IN_SWAP
+    if (GetArena() == other->GetArena()) {
+#endif  // !PROTOBUF_FORCE_COPY_IN_SWAP
       InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
     }
+  }
+  void UnsafeArenaSwap(Node* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
 
-    // implements Message ----------------------------------------------
+  // implements Message ----------------------------------------------
 
-    Node *New(::google::protobuf::Arena *arena = nullptr) const final
-    {
-      return ::google::protobuf::Message::DefaultConstruct<Node>(arena);
-    }
-    using ::google::protobuf::Message::CopyFrom;
-    void CopyFrom(const Node &from);
-    using ::google::protobuf::Message::MergeFrom;
-    void MergeFrom(const Node &from) { Node::MergeImpl(*this, from); }
+  Node* New(::google::protobuf::Arena* arena = nullptr) const final {
+    return ::google::protobuf::Message::DefaultConstruct<Node>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const Node& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const Node& from) { Node::MergeImpl(*this, from); }
 
   private:
-    static void MergeImpl(
-        ::google::protobuf::MessageLite &to_msg,
-        const ::google::protobuf::MessageLite &from_msg);
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
 
   public:
-    ABSL_ATTRIBUTE_REINITIALIZES void Clear() final;
-    bool IsInitialized() const final;
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
 
-    ::size_t ByteSizeLong() const final;
-    const char *_InternalParse(const char *ptr, ::google::protobuf::internal::ParseContext *ctx) final;
-    ::uint8_t *_InternalSerialize(
-        ::uint8_t *target,
-        ::google::protobuf::io::EpsCopyOutputStream *stream) const final;
-    int GetCachedSize() const { return _impl_._cached_size_.Get(); }
-
-  private:
-    void SharedCtor(::google::protobuf::Arena *arena);
-    void SharedDtor();
-    void InternalSwap(Node *other);
+  ::size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::google::protobuf::internal::ParseContext* ctx) final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
 
   private:
-    friend class ::google::protobuf::internal::AnyMetadata;
-    static ::absl::string_view FullMessageName() { return "index_tree.Node"; }
+  void SharedCtor(::google::protobuf::Arena* arena);
+  void SharedDtor();
+  void InternalSwap(Node* other);
+ private:
+  friend class ::google::protobuf::internal::AnyMetadata;
+  static ::absl::string_view FullMessageName() { return "index_tree.Node"; }
 
-  protected:
-    explicit Node(::google::protobuf::Arena *arena);
-    Node(::google::protobuf::Arena *arena, const Node &from);
-    Node(::google::protobuf::Arena *arena, Node &&from) noexcept
-        : Node(arena)
-    {
-      *this = ::std::move(from);
-    }
-    const ::google::protobuf::MessageLite::ClassData *GetClassData()
-        const final;
+ protected:
+  explicit Node(::google::protobuf::Arena* arena);
+  Node(::google::protobuf::Arena* arena, const Node& from);
+  Node(::google::protobuf::Arena* arena, Node&& from) noexcept
+      : Node(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::MessageLite::ClassData* GetClassData()
+      const final;
 
-  public:
-    ::google::protobuf::Metadata GetMetadata() const final;
-    // nested types ----------------------------------------------------
+ public:
+  ::google::protobuf::Metadata GetMetadata() const final;
+  // nested types ----------------------------------------------------
 
-    // accessors -------------------------------------------------------
-    enum : int
-    {
-      kValueFieldNumber = 2,
-      kIndexesFieldNumber = 3,
-      kResultFieldNumber = 4,
-      kSizeResultFieldNumber = 5,
-      kChildrenFieldNumber = 6,
-      kAxisFieldNumber = 1,
-    };
-    // repeated string value = 2;
-    int value_size() const;
-
-  private:
-    int _internal_value_size() const;
-
-  public:
-    void clear_value();
-    const std::string &value(int index) const;
-    std::string *mutable_value(int index);
-    void set_value(int index, const std::string &value);
-    void set_value(int index, std::string &&value);
-    void set_value(int index, const char *value);
-    void set_value(int index, const char *value, std::size_t size);
-    void set_value(int index, absl::string_view value);
-    std::string *add_value();
-    void add_value(const std::string &value);
-    void add_value(std::string &&value);
-    void add_value(const char *value);
-    void add_value(const char *value, std::size_t size);
-    void add_value(absl::string_view value);
-    const ::google::protobuf::RepeatedPtrField<std::string> &value() const;
-    ::google::protobuf::RepeatedPtrField<std::string> *mutable_value();
-
-  private:
-    const ::google::protobuf::RepeatedPtrField<std::string> &_internal_value() const;
-    ::google::protobuf::RepeatedPtrField<std::string> *_internal_mutable_value();
-
-  public:
-    // repeated int64 indexes = 3;
-    int indexes_size() const;
-
-  private:
-    int _internal_indexes_size() const;
-
-  public:
-    void clear_indexes();
-    ::int64_t indexes(int index) const;
-    void set_indexes(int index, ::int64_t value);
-    void add_indexes(::int64_t value);
-    const ::google::protobuf::RepeatedField<::int64_t> &indexes() const;
-    ::google::protobuf::RepeatedField<::int64_t> *mutable_indexes();
-
-  private:
-    const ::google::protobuf::RepeatedField<::int64_t> &_internal_indexes() const;
-    ::google::protobuf::RepeatedField<::int64_t> *_internal_mutable_indexes();
-
-  public:
-    // repeated double result = 4;
-    int result_size() const;
-
-  private:
-    int _internal_result_size() const;
-
-  public:
-    void clear_result();
-    double result(int index) const;
-    void set_result(int index, double value);
-    void add_result(double value);
-    const ::google::protobuf::RepeatedField<double> &result() const;
-    ::google::protobuf::RepeatedField<double> *mutable_result();
-
-  private:
-    const ::google::protobuf::RepeatedField<double> &_internal_result() const;
-    ::google::protobuf::RepeatedField<double> *_internal_mutable_result();
-
-  public:
-    // repeated int64 size_result = 5;
-    int size_result_size() const;
-
-  private:
-    int _internal_size_result_size() const;
-
-  public:
-    void clear_size_result();
-    ::int64_t size_result(int index) const;
-    void set_size_result(int index, ::int64_t value);
-    void add_size_result(::int64_t value);
-    const ::google::protobuf::RepeatedField<::int64_t> &size_result() const;
-    ::google::protobuf::RepeatedField<::int64_t> *mutable_size_result();
-
-  private:
-    const ::google::protobuf::RepeatedField<::int64_t> &_internal_size_result() const;
-    ::google::protobuf::RepeatedField<::int64_t> *_internal_mutable_size_result();
-
-  public:
-    // repeated .index_tree.Node children = 6;
-    int children_size() const;
-
-  private:
-    int _internal_children_size() const;
-
-  public:
-    void clear_children();
-    ::index_tree::Node *mutable_children(int index);
-    ::google::protobuf::RepeatedPtrField<::index_tree::Node> *mutable_children();
-
-  private:
-    const ::google::protobuf::RepeatedPtrField<::index_tree::Node> &_internal_children() const;
-    ::google::protobuf::RepeatedPtrField<::index_tree::Node> *_internal_mutable_children();
-
-  public:
-    const ::index_tree::Node &children(int index) const;
-    ::index_tree::Node *add_children();
-    const ::google::protobuf::RepeatedPtrField<::index_tree::Node> &children() const;
-    // string axis = 1;
-    void clear_axis();
-    const std::string &axis() const;
-    template <typename Arg_ = const std::string &, typename... Args_>
-    void set_axis(Arg_ &&arg, Args_... args);
-    std::string *mutable_axis();
-    PROTOBUF_NODISCARD std::string *release_axis();
-    void set_allocated_axis(std::string *value);
-
-  private:
-    const std::string &_internal_axis() const;
-    inline PROTOBUF_ALWAYS_INLINE void _internal_set_axis(
-        const std::string &value);
-    std::string *_internal_mutable_axis();
-
-  public:
-    // @@protoc_insertion_point(class_scope:index_tree.Node)
-  private:
-    class _Internal;
-    friend class ::google::protobuf::internal::TcParser;
-    static const ::google::protobuf::internal::TcParseTable<
-        3, 6, 1,
-        33, 2>
-        _table_;
-    friend class ::google::protobuf::MessageLite;
-    friend class ::google::protobuf::Arena;
-    template <typename T>
-    friend class ::google::protobuf::Arena::InternalHelper;
-    using InternalArenaConstructable_ = void;
-    using DestructorSkippable_ = void;
-    struct Impl_
-    {
-      inline explicit constexpr Impl_(
-          ::google::protobuf::internal::ConstantInitialized) noexcept;
-      inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
-                            ::google::protobuf::Arena *arena);
-      inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
-                            ::google::protobuf::Arena *arena, const Impl_ &from);
-      ::google::protobuf::RepeatedPtrField<std::string> value_;
-      ::google::protobuf::RepeatedField<::int64_t> indexes_;
-      mutable ::google::protobuf::internal::CachedSize _indexes_cached_byte_size_;
-      ::google::protobuf::RepeatedField<double> result_;
-      ::google::protobuf::RepeatedField<::int64_t> size_result_;
-      mutable ::google::protobuf::internal::CachedSize _size_result_cached_byte_size_;
-      ::google::protobuf::RepeatedPtrField<::index_tree::Node> children_;
-      ::google::protobuf::internal::ArenaStringPtr axis_;
-      mutable ::google::protobuf::internal::CachedSize _cached_size_;
-      PROTOBUF_TSAN_DECLARE_MEMBER
-    };
-    union
-    {
-      Impl_ _impl_;
-    };
-    friend struct ::TableStruct_index_5ftree_2eproto;
+  // accessors -------------------------------------------------------
+  enum : int {
+    kValueFieldNumber = 2,
+    kIndexesFieldNumber = 3,
+    kResultFieldNumber = 4,
+    kSizeResultFieldNumber = 5,
+    kChildrenFieldNumber = 6,
+    kAxisFieldNumber = 1,
   };
+  // repeated string value = 2;
+  int value_size() const;
+  private:
+  int _internal_value_size() const;
 
-  // ===================================================================
+  public:
+  void clear_value() ;
+  const std::string& value(int index) const;
+  std::string* mutable_value(int index);
+  void set_value(int index, const std::string& value);
+  void set_value(int index, std::string&& value);
+  void set_value(int index, const char* value);
+  void set_value(int index, const char* value, std::size_t size);
+  void set_value(int index, absl::string_view value);
+  std::string* add_value();
+  void add_value(const std::string& value);
+  void add_value(std::string&& value);
+  void add_value(const char* value);
+  void add_value(const char* value, std::size_t size);
+  void add_value(absl::string_view value);
+  const ::google::protobuf::RepeatedPtrField<std::string>& value() const;
+  ::google::protobuf::RepeatedPtrField<std::string>* mutable_value();
 
-  // ===================================================================
+  private:
+  const ::google::protobuf::RepeatedPtrField<std::string>& _internal_value() const;
+  ::google::protobuf::RepeatedPtrField<std::string>* _internal_mutable_value();
+
+  public:
+  // repeated int64 indexes = 3;
+  int indexes_size() const;
+  private:
+  int _internal_indexes_size() const;
+
+  public:
+  void clear_indexes() ;
+  ::int64_t indexes(int index) const;
+  void set_indexes(int index, ::int64_t value);
+  void add_indexes(::int64_t value);
+  const ::google::protobuf::RepeatedField<::int64_t>& indexes() const;
+  ::google::protobuf::RepeatedField<::int64_t>* mutable_indexes();
+
+  private:
+  const ::google::protobuf::RepeatedField<::int64_t>& _internal_indexes() const;
+  ::google::protobuf::RepeatedField<::int64_t>* _internal_mutable_indexes();
+
+  public:
+  // repeated double result = 4;
+  int result_size() const;
+  private:
+  int _internal_result_size() const;
+
+  public:
+  void clear_result() ;
+  double result(int index) const;
+  void set_result(int index, double value);
+  void add_result(double value);
+  const ::google::protobuf::RepeatedField<double>& result() const;
+  ::google::protobuf::RepeatedField<double>* mutable_result();
+
+  private:
+  const ::google::protobuf::RepeatedField<double>& _internal_result() const;
+  ::google::protobuf::RepeatedField<double>* _internal_mutable_result();
+
+  public:
+  // repeated int64 size_result = 5;
+  int size_result_size() const;
+  private:
+  int _internal_size_result_size() const;
+
+  public:
+  void clear_size_result() ;
+  ::int64_t size_result(int index) const;
+  void set_size_result(int index, ::int64_t value);
+  void add_size_result(::int64_t value);
+  const ::google::protobuf::RepeatedField<::int64_t>& size_result() const;
+  ::google::protobuf::RepeatedField<::int64_t>* mutable_size_result();
+
+  private:
+  const ::google::protobuf::RepeatedField<::int64_t>& _internal_size_result() const;
+  ::google::protobuf::RepeatedField<::int64_t>* _internal_mutable_size_result();
+
+  public:
+  // repeated .index_tree.Node children = 6;
+  int children_size() const;
+  private:
+  int _internal_children_size() const;
+
+  public:
+  void clear_children() ;
+  ::index_tree::Node* mutable_children(int index);
+  ::google::protobuf::RepeatedPtrField<::index_tree::Node>* mutable_children();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::index_tree::Node>& _internal_children() const;
+  ::google::protobuf::RepeatedPtrField<::index_tree::Node>* _internal_mutable_children();
+  public:
+  const ::index_tree::Node& children(int index) const;
+  ::index_tree::Node* add_children();
+  const ::google::protobuf::RepeatedPtrField<::index_tree::Node>& children() const;
+  // string axis = 1;
+  void clear_axis() ;
+  const std::string& axis() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_axis(Arg_&& arg, Args_... args);
+  std::string* mutable_axis();
+  PROTOBUF_NODISCARD std::string* release_axis();
+  void set_allocated_axis(std::string* value);
+
+  private:
+  const std::string& _internal_axis() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_axis(
+      const std::string& value);
+  std::string* _internal_mutable_axis();
+
+  public:
+  // @@protoc_insertion_point(class_scope:index_tree.Node)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      3, 6, 1,
+      33, 2>
+      _table_;
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from);
+    ::google::protobuf::RepeatedPtrField<std::string> value_;
+    ::google::protobuf::RepeatedField<::int64_t> indexes_;
+    mutable ::google::protobuf::internal::CachedSize _indexes_cached_byte_size_;
+    ::google::protobuf::RepeatedField<double> result_;
+    ::google::protobuf::RepeatedField<::int64_t> size_result_;
+    mutable ::google::protobuf::internal::CachedSize _size_result_cached_byte_size_;
+    ::google::protobuf::RepeatedPtrField< ::index_tree::Node > children_;
+    ::google::protobuf::internal::ArenaStringPtr axis_;
+    mutable ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_index_5ftree_2eproto;
+};
+
+// ===================================================================
+
+
+
+
+// ===================================================================
+
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
-#endif // __GNUC__
-  // -------------------------------------------------------------------
+#endif  // __GNUC__
+// -------------------------------------------------------------------
 
-  // Node
+// Node
 
-  // string axis = 1;
-  inline void Node::clear_axis()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.axis_.ClearToEmpty();
-  }
-  inline const std::string &Node::axis() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_get:index_tree.Node.axis)
-    return _internal_axis();
-  }
-  template <typename Arg_, typename... Args_>
-  inline PROTOBUF_ALWAYS_INLINE void Node::set_axis(Arg_ &&arg,
-                                                    Args_... args)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.axis_.Set(static_cast<Arg_ &&>(arg), args..., GetArena());
-    // @@protoc_insertion_point(field_set:index_tree.Node.axis)
-  }
-  inline std::string *Node::mutable_axis() ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    std::string *_s = _internal_mutable_axis();
-    // @@protoc_insertion_point(field_mutable:index_tree.Node.axis)
-    return _s;
-  }
-  inline const std::string &Node::_internal_axis() const
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return _impl_.axis_.Get();
-  }
-  inline void Node::_internal_set_axis(const std::string &value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.axis_.Set(value, GetArena());
-  }
-  inline std::string *Node::_internal_mutable_axis()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    return _impl_.axis_.Mutable(GetArena());
-  }
-  inline std::string *Node::release_axis()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    // @@protoc_insertion_point(field_release:index_tree.Node.axis)
-    return _impl_.axis_.Release();
-  }
-  inline void Node::set_allocated_axis(std::string *value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.axis_.SetAllocated(value, GetArena());
-#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    if (_impl_.axis_.IsDefault())
-    {
-      _impl_.axis_.Set("", GetArena());
-    }
-#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-    // @@protoc_insertion_point(field_set_allocated:index_tree.Node.axis)
-  }
+// string axis = 1;
+inline void Node::clear_axis() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.axis_.ClearToEmpty();
+}
+inline const std::string& Node::axis() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:index_tree.Node.axis)
+  return _internal_axis();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void Node::set_axis(Arg_&& arg,
+                                                     Args_... args) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.axis_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:index_tree.Node.axis)
+}
+inline std::string* Node::mutable_axis() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_axis();
+  // @@protoc_insertion_point(field_mutable:index_tree.Node.axis)
+  return _s;
+}
+inline const std::string& Node::_internal_axis() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.axis_.Get();
+}
+inline void Node::_internal_set_axis(const std::string& value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.axis_.Set(value, GetArena());
+}
+inline std::string* Node::_internal_mutable_axis() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _impl_.axis_.Mutable( GetArena());
+}
+inline std::string* Node::release_axis() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  // @@protoc_insertion_point(field_release:index_tree.Node.axis)
+  return _impl_.axis_.Release();
+}
+inline void Node::set_allocated_axis(std::string* value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.axis_.SetAllocated(value, GetArena());
+  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+        if (_impl_.axis_.IsDefault()) {
+          _impl_.axis_.Set("", GetArena());
+        }
+  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+  // @@protoc_insertion_point(field_set_allocated:index_tree.Node.axis)
+}
 
-  // repeated string value = 2;
-  inline int Node::_internal_value_size() const
-  {
-    return _internal_value().size();
-  }
-  inline int Node::value_size() const
-  {
-    return _internal_value_size();
-  }
-  inline void Node::clear_value()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.value_.Clear();
-  }
-  inline std::string *Node::add_value()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    std::string *_s = _internal_mutable_value()->Add();
-    // @@protoc_insertion_point(field_add_mutable:index_tree.Node.value)
-    return _s;
-  }
-  inline const std::string &Node::value(int index) const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_get:index_tree.Node.value)
-    return _internal_value().Get(index);
-  }
-  inline std::string *Node::mutable_value(int index)
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable:index_tree.Node.value)
-    return _internal_mutable_value()->Mutable(index);
-  }
-  inline void Node::set_value(int index, const std::string &value)
-  {
-    _internal_mutable_value()->Mutable(index)->assign(value);
-    // @@protoc_insertion_point(field_set:index_tree.Node.value)
-  }
-  inline void Node::set_value(int index, std::string &&value)
-  {
-    _internal_mutable_value()->Mutable(index)->assign(std::move(value));
-    // @@protoc_insertion_point(field_set:index_tree.Node.value)
-  }
-  inline void Node::set_value(int index, const char *value)
-  {
-    ABSL_DCHECK(value != nullptr);
-    _internal_mutable_value()->Mutable(index)->assign(value);
-    // @@protoc_insertion_point(field_set_char:index_tree.Node.value)
-  }
-  inline void Node::set_value(int index, const char *value,
-                              std::size_t size)
-  {
-    _internal_mutable_value()->Mutable(index)->assign(
-        reinterpret_cast<const char *>(value), size);
-    // @@protoc_insertion_point(field_set_pointer:index_tree.Node.value)
-  }
-  inline void Node::set_value(int index, absl::string_view value)
-  {
-    _internal_mutable_value()->Mutable(index)->assign(
-        value.data(), value.size());
-    // @@protoc_insertion_point(field_set_string_piece:index_tree.Node.value)
-  }
-  inline void Node::add_value(const std::string &value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_value()->Add()->assign(value);
-    // @@protoc_insertion_point(field_add:index_tree.Node.value)
-  }
-  inline void Node::add_value(std::string &&value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_value()->Add(std::move(value));
-    // @@protoc_insertion_point(field_add:index_tree.Node.value)
-  }
-  inline void Node::add_value(const char *value)
-  {
-    ABSL_DCHECK(value != nullptr);
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_value()->Add()->assign(value);
-    // @@protoc_insertion_point(field_add_char:index_tree.Node.value)
-  }
-  inline void Node::add_value(const char *value, std::size_t size)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_value()->Add()->assign(
-        reinterpret_cast<const char *>(value), size);
-    // @@protoc_insertion_point(field_add_pointer:index_tree.Node.value)
-  }
-  inline void Node::add_value(absl::string_view value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_value()->Add()->assign(value.data(),
-                                             value.size());
-    // @@protoc_insertion_point(field_add_string_piece:index_tree.Node.value)
-  }
-  inline const ::google::protobuf::RepeatedPtrField<std::string> &
-  Node::value() const ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_list:index_tree.Node.value)
-    return _internal_value();
-  }
-  inline ::google::protobuf::RepeatedPtrField<std::string> *
-  Node::mutable_value() ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable_list:index_tree.Node.value)
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    return _internal_mutable_value();
-  }
-  inline const ::google::protobuf::RepeatedPtrField<std::string> &
-  Node::_internal_value() const
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return _impl_.value_;
-  }
-  inline ::google::protobuf::RepeatedPtrField<std::string> *
-  Node::_internal_mutable_value()
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return &_impl_.value_;
-  }
+// repeated string value = 2;
+inline int Node::_internal_value_size() const {
+  return _internal_value().size();
+}
+inline int Node::value_size() const {
+  return _internal_value_size();
+}
+inline void Node::clear_value() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.value_.Clear();
+}
+inline std::string* Node::add_value()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  std::string* _s = _internal_mutable_value()->Add();
+  // @@protoc_insertion_point(field_add_mutable:index_tree.Node.value)
+  return _s;
+}
+inline const std::string& Node::value(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:index_tree.Node.value)
+  return _internal_value().Get(index);
+}
+inline std::string* Node::mutable_value(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:index_tree.Node.value)
+  return _internal_mutable_value()->Mutable(index);
+}
+inline void Node::set_value(int index, const std::string& value) {
+  _internal_mutable_value()->Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set:index_tree.Node.value)
+}
+inline void Node::set_value(int index, std::string&& value) {
+  _internal_mutable_value()->Mutable(index)->assign(std::move(value));
+  // @@protoc_insertion_point(field_set:index_tree.Node.value)
+}
+inline void Node::set_value(int index, const char* value) {
+  ABSL_DCHECK(value != nullptr);
+  _internal_mutable_value()->Mutable(index)->assign(value);
+  // @@protoc_insertion_point(field_set_char:index_tree.Node.value)
+}
+inline void Node::set_value(int index, const char* value,
+                              std::size_t size) {
+  _internal_mutable_value()->Mutable(index)->assign(
+      reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_set_pointer:index_tree.Node.value)
+}
+inline void Node::set_value(int index, absl::string_view value) {
+  _internal_mutable_value()->Mutable(index)->assign(
+      value.data(), value.size());
+  // @@protoc_insertion_point(field_set_string_piece:index_tree.Node.value)
+}
+inline void Node::add_value(const std::string& value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_value()->Add()->assign(value);
+  // @@protoc_insertion_point(field_add:index_tree.Node.value)
+}
+inline void Node::add_value(std::string&& value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_value()->Add(std::move(value));
+  // @@protoc_insertion_point(field_add:index_tree.Node.value)
+}
+inline void Node::add_value(const char* value) {
+  ABSL_DCHECK(value != nullptr);
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_value()->Add()->assign(value);
+  // @@protoc_insertion_point(field_add_char:index_tree.Node.value)
+}
+inline void Node::add_value(const char* value, std::size_t size) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_value()->Add()->assign(
+      reinterpret_cast<const char*>(value), size);
+  // @@protoc_insertion_point(field_add_pointer:index_tree.Node.value)
+}
+inline void Node::add_value(absl::string_view value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_value()->Add()->assign(value.data(),
+                                                     value.size());
+  // @@protoc_insertion_point(field_add_string_piece:index_tree.Node.value)
+}
+inline const ::google::protobuf::RepeatedPtrField<std::string>&
+Node::value() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:index_tree.Node.value)
+  return _internal_value();
+}
+inline ::google::protobuf::RepeatedPtrField<std::string>*
+Node::mutable_value() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:index_tree.Node.value)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _internal_mutable_value();
+}
+inline const ::google::protobuf::RepeatedPtrField<std::string>&
+Node::_internal_value() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.value_;
+}
+inline ::google::protobuf::RepeatedPtrField<std::string>*
+Node::_internal_mutable_value() {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return &_impl_.value_;
+}
 
-  // repeated int64 indexes = 3;
-  inline int Node::_internal_indexes_size() const
-  {
-    return _internal_indexes().size();
-  }
-  inline int Node::indexes_size() const
-  {
-    return _internal_indexes_size();
-  }
-  inline void Node::clear_indexes()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.indexes_.Clear();
-  }
-  inline ::int64_t Node::indexes(int index) const
-  {
-    // @@protoc_insertion_point(field_get:index_tree.Node.indexes)
-    return _internal_indexes().Get(index);
-  }
-  inline void Node::set_indexes(int index, ::int64_t value)
-  {
-    _internal_mutable_indexes()->Set(index, value);
-    // @@protoc_insertion_point(field_set:index_tree.Node.indexes)
-  }
-  inline void Node::add_indexes(::int64_t value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_indexes()->Add(value);
-    // @@protoc_insertion_point(field_add:index_tree.Node.indexes)
-  }
-  inline const ::google::protobuf::RepeatedField<::int64_t> &Node::indexes() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_list:index_tree.Node.indexes)
-    return _internal_indexes();
-  }
-  inline ::google::protobuf::RepeatedField<::int64_t> *Node::mutable_indexes()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable_list:index_tree.Node.indexes)
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    return _internal_mutable_indexes();
-  }
-  inline const ::google::protobuf::RepeatedField<::int64_t> &
-  Node::_internal_indexes() const
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return _impl_.indexes_;
-  }
-  inline ::google::protobuf::RepeatedField<::int64_t> *Node::_internal_mutable_indexes()
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return &_impl_.indexes_;
-  }
+// repeated int64 indexes = 3;
+inline int Node::_internal_indexes_size() const {
+  return _internal_indexes().size();
+}
+inline int Node::indexes_size() const {
+  return _internal_indexes_size();
+}
+inline void Node::clear_indexes() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.indexes_.Clear();
+}
+inline ::int64_t Node::indexes(int index) const {
+  // @@protoc_insertion_point(field_get:index_tree.Node.indexes)
+  return _internal_indexes().Get(index);
+}
+inline void Node::set_indexes(int index, ::int64_t value) {
+  _internal_mutable_indexes()->Set(index, value);
+  // @@protoc_insertion_point(field_set:index_tree.Node.indexes)
+}
+inline void Node::add_indexes(::int64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_indexes()->Add(value);
+  // @@protoc_insertion_point(field_add:index_tree.Node.indexes)
+}
+inline const ::google::protobuf::RepeatedField<::int64_t>& Node::indexes() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:index_tree.Node.indexes)
+  return _internal_indexes();
+}
+inline ::google::protobuf::RepeatedField<::int64_t>* Node::mutable_indexes()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:index_tree.Node.indexes)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _internal_mutable_indexes();
+}
+inline const ::google::protobuf::RepeatedField<::int64_t>&
+Node::_internal_indexes() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.indexes_;
+}
+inline ::google::protobuf::RepeatedField<::int64_t>* Node::_internal_mutable_indexes() {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return &_impl_.indexes_;
+}
 
-  // repeated double result = 4;
-  inline int Node::_internal_result_size() const
-  {
-    return _internal_result().size();
-  }
-  inline int Node::result_size() const
-  {
-    return _internal_result_size();
-  }
-  inline void Node::clear_result()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.result_.Clear();
-  }
-  inline double Node::result(int index) const
-  {
-    // @@protoc_insertion_point(field_get:index_tree.Node.result)
-    return _internal_result().Get(index);
-  }
-  inline void Node::set_result(int index, double value)
-  {
-    _internal_mutable_result()->Set(index, value);
-    // @@protoc_insertion_point(field_set:index_tree.Node.result)
-  }
-  inline void Node::add_result(double value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_result()->Add(value);
-    // @@protoc_insertion_point(field_add:index_tree.Node.result)
-  }
-  inline const ::google::protobuf::RepeatedField<double> &Node::result() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_list:index_tree.Node.result)
-    return _internal_result();
-  }
-  inline ::google::protobuf::RepeatedField<double> *Node::mutable_result()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable_list:index_tree.Node.result)
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    return _internal_mutable_result();
-  }
-  inline const ::google::protobuf::RepeatedField<double> &
-  Node::_internal_result() const
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return _impl_.result_;
-  }
-  inline ::google::protobuf::RepeatedField<double> *Node::_internal_mutable_result()
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return &_impl_.result_;
-  }
+// repeated double result = 4;
+inline int Node::_internal_result_size() const {
+  return _internal_result().size();
+}
+inline int Node::result_size() const {
+  return _internal_result_size();
+}
+inline void Node::clear_result() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.result_.Clear();
+}
+inline double Node::result(int index) const {
+  // @@protoc_insertion_point(field_get:index_tree.Node.result)
+  return _internal_result().Get(index);
+}
+inline void Node::set_result(int index, double value) {
+  _internal_mutable_result()->Set(index, value);
+  // @@protoc_insertion_point(field_set:index_tree.Node.result)
+}
+inline void Node::add_result(double value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_result()->Add(value);
+  // @@protoc_insertion_point(field_add:index_tree.Node.result)
+}
+inline const ::google::protobuf::RepeatedField<double>& Node::result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:index_tree.Node.result)
+  return _internal_result();
+}
+inline ::google::protobuf::RepeatedField<double>* Node::mutable_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:index_tree.Node.result)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _internal_mutable_result();
+}
+inline const ::google::protobuf::RepeatedField<double>&
+Node::_internal_result() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.result_;
+}
+inline ::google::protobuf::RepeatedField<double>* Node::_internal_mutable_result() {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return &_impl_.result_;
+}
 
-  // repeated int64 size_result = 5;
-  inline int Node::_internal_size_result_size() const
-  {
-    return _internal_size_result().size();
-  }
-  inline int Node::size_result_size() const
-  {
-    return _internal_size_result_size();
-  }
-  inline void Node::clear_size_result()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.size_result_.Clear();
-  }
-  inline ::int64_t Node::size_result(int index) const
-  {
-    // @@protoc_insertion_point(field_get:index_tree.Node.size_result)
-    return _internal_size_result().Get(index);
-  }
-  inline void Node::set_size_result(int index, ::int64_t value)
-  {
-    _internal_mutable_size_result()->Set(index, value);
-    // @@protoc_insertion_point(field_set:index_tree.Node.size_result)
-  }
-  inline void Node::add_size_result(::int64_t value)
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _internal_mutable_size_result()->Add(value);
-    // @@protoc_insertion_point(field_add:index_tree.Node.size_result)
-  }
-  inline const ::google::protobuf::RepeatedField<::int64_t> &Node::size_result() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_list:index_tree.Node.size_result)
-    return _internal_size_result();
-  }
-  inline ::google::protobuf::RepeatedField<::int64_t> *Node::mutable_size_result()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable_list:index_tree.Node.size_result)
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    return _internal_mutable_size_result();
-  }
-  inline const ::google::protobuf::RepeatedField<::int64_t> &
-  Node::_internal_size_result() const
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return _impl_.size_result_;
-  }
-  inline ::google::protobuf::RepeatedField<::int64_t> *Node::_internal_mutable_size_result()
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return &_impl_.size_result_;
-  }
+// repeated int64 size_result = 5;
+inline int Node::_internal_size_result_size() const {
+  return _internal_size_result().size();
+}
+inline int Node::size_result_size() const {
+  return _internal_size_result_size();
+}
+inline void Node::clear_size_result() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.size_result_.Clear();
+}
+inline ::int64_t Node::size_result(int index) const {
+  // @@protoc_insertion_point(field_get:index_tree.Node.size_result)
+  return _internal_size_result().Get(index);
+}
+inline void Node::set_size_result(int index, ::int64_t value) {
+  _internal_mutable_size_result()->Set(index, value);
+  // @@protoc_insertion_point(field_set:index_tree.Node.size_result)
+}
+inline void Node::add_size_result(::int64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_size_result()->Add(value);
+  // @@protoc_insertion_point(field_add:index_tree.Node.size_result)
+}
+inline const ::google::protobuf::RepeatedField<::int64_t>& Node::size_result() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:index_tree.Node.size_result)
+  return _internal_size_result();
+}
+inline ::google::protobuf::RepeatedField<::int64_t>* Node::mutable_size_result()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:index_tree.Node.size_result)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _internal_mutable_size_result();
+}
+inline const ::google::protobuf::RepeatedField<::int64_t>&
+Node::_internal_size_result() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.size_result_;
+}
+inline ::google::protobuf::RepeatedField<::int64_t>* Node::_internal_mutable_size_result() {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return &_impl_.size_result_;
+}
 
-  // repeated .index_tree.Node children = 6;
-  inline int Node::_internal_children_size() const
-  {
-    return _internal_children().size();
-  }
-  inline int Node::children_size() const
-  {
-    return _internal_children_size();
-  }
-  inline void Node::clear_children()
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    _impl_.children_.Clear();
-  }
-  inline ::index_tree::Node *Node::mutable_children(int index)
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable:index_tree.Node.children)
-    return _internal_mutable_children()->Mutable(index);
-  }
-  inline ::google::protobuf::RepeatedPtrField<::index_tree::Node> *Node::mutable_children()
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_mutable_list:index_tree.Node.children)
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    return _internal_mutable_children();
-  }
-  inline const ::index_tree::Node &Node::children(int index) const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_get:index_tree.Node.children)
-    return _internal_children().Get(index);
-  }
-  inline ::index_tree::Node *Node::add_children() ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
-    ::index_tree::Node *_add = _internal_mutable_children()->Add();
-    // @@protoc_insertion_point(field_add:index_tree.Node.children)
-    return _add;
-  }
-  inline const ::google::protobuf::RepeatedPtrField<::index_tree::Node> &Node::children() const
-      ABSL_ATTRIBUTE_LIFETIME_BOUND
-  {
-    // @@protoc_insertion_point(field_list:index_tree.Node.children)
-    return _internal_children();
-  }
-  inline const ::google::protobuf::RepeatedPtrField<::index_tree::Node> &
-  Node::_internal_children() const
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return _impl_.children_;
-  }
-  inline ::google::protobuf::RepeatedPtrField<::index_tree::Node> *
-  Node::_internal_mutable_children()
-  {
-    PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
-    return &_impl_.children_;
-  }
+// repeated .index_tree.Node children = 6;
+inline int Node::_internal_children_size() const {
+  return _internal_children().size();
+}
+inline int Node::children_size() const {
+  return _internal_children_size();
+}
+inline void Node::clear_children() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.children_.Clear();
+}
+inline ::index_tree::Node* Node::mutable_children(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:index_tree.Node.children)
+  return _internal_mutable_children()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::index_tree::Node>* Node::mutable_children()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:index_tree.Node.children)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _internal_mutable_children();
+}
+inline const ::index_tree::Node& Node::children(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:index_tree.Node.children)
+  return _internal_children().Get(index);
+}
+inline ::index_tree::Node* Node::add_children() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  ::index_tree::Node* _add = _internal_mutable_children()->Add();
+  // @@protoc_insertion_point(field_add:index_tree.Node.children)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::index_tree::Node>& Node::children() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:index_tree.Node.children)
+  return _internal_children();
+}
+inline const ::google::protobuf::RepeatedPtrField<::index_tree::Node>&
+Node::_internal_children() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.children_;
+}
+inline ::google::protobuf::RepeatedPtrField<::index_tree::Node>*
+Node::_internal_mutable_children() {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return &_impl_.children_;
+}
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif // __GNUC__
+#endif  // __GNUC__
 
-  // @@protoc_insertion_point(namespace_scope)
-} // namespace index_tree
+// @@protoc_insertion_point(namespace_scope)
+}  // namespace index_tree
+
 
 // @@protoc_insertion_point(global_scope)
 
 #include "google/protobuf/port_undef.inc"
 
-#endif // GOOGLE_PROTOBUF_INCLUDED_index_5ftree_2eproto_2epb_2eh
+#endif  // GOOGLE_PROTOBUF_INCLUDED_index_5ftree_2eproto_2epb_2eh

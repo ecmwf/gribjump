@@ -24,6 +24,8 @@ public:
     CompressedRequestTree(const string axis = "root", vector<string> values = {""});
     ~CompressedRequestTree();
 
+    string get_axis();
+
     void set_result(vector<double> *results);
     void set_indexes(vector<int> indexes);
     void set_result_size(vector<int> result_size);
