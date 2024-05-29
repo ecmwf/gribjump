@@ -28,28 +28,19 @@ namespace gribjump
 
             CompressedRequestTree *decoded_tree = decode(encoded_tree);
 
-            auto iter = decoded_tree->_children.cbegin();
-            advance(iter, 1);
-
             CompressedRequestTree *decoded_child1 = *(decoded_tree->_children.begin());
 
             EXPECT((root_node->_children).size() == decoded_tree->_children.size());
             EXPECT(decoded_tree->_children.size() == 2);
 
-            cout << "HERE NWO IN THRE TEST" << endl;
-            cout << decoded_child1->get_axis() << endl;
-
-            // EXPECT(decoded_child1->get_axis() == "child1");
             if (decoded_child1->get_axis() == "child1")
             {
                 EXPECT((*decoded_child1)._children.size() == 1);
                 CompressedRequestTree *decoded_grandchild1 = *(decoded_child1->_children.begin());
-                cout << decoded_grandchild1->_axis << endl;
                 EXPECT(decoded_grandchild1->get_axis() == "grandchild1");
             }
             else
             {
-                // CompressedRequestTree *decoded_child2 = *(decoded_tree->_children.begin());
                 auto iter = decoded_tree->_children.cbegin();
                 advance(iter, 1);
                 CompressedRequestTree *decoded_child2 = *iter;
