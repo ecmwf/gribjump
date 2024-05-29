@@ -2,7 +2,7 @@
 #include "CompressedRequestTree.h"
 using namespace std;
 
-void encode_child(CompressedRequestTree &tree, CompressedRequestTree *child, index_tree::Node *node, vector<int> result_size = {})
+void encode_child(CompressedRequestTree &tree, CompressedRequestTree *child, index_tree::Node *node)
 {
     index_tree::Node *child_node = node->add_children();
 
@@ -10,17 +10,20 @@ void encode_child(CompressedRequestTree &tree, CompressedRequestTree *child, ind
 
     if (size(child->_children) == 0)
     {
-        result_size.push_back(size(child->_values));
-        for (int size : result_size)
+        for (int size : child->_result_size)
         {
             child_node->add_size_result(size);
         }
-    }
-    if (child->_results != nullptr)
-    {
-        for (double result : *(child->_results))
+        for (int index : child->_indexes)
         {
-            child_node->add_result(result);
+            child_node->add_indexes(index);
+        }
+        if (child->_results != nullptr)
+        {
+            for (double result : *(child->_results))
+            {
+                child_node->add_result(result);
+            }
         }
     }
     for (string child_val : child->_values)
@@ -29,9 +32,7 @@ void encode_child(CompressedRequestTree &tree, CompressedRequestTree *child, ind
     }
     for (CompressedRequestTree *c : child->_children)
     {
-        vector<int> new_result_size = result_size;
-        new_result_size.push_back(size(child->_values));
-        encode_child(*child, c, child_node, new_result_size);
+        encode_child(*child, c, child_node);
     }
 }
 
@@ -67,6 +68,10 @@ void decode_child(index_tree::Node *node, CompressedRequestTree *tree)
         for (int i = 0; i < node->size_result_size(); i++)
         {
             tree->_result_size.push_back(node->size_result(i));
+        }
+        for (int i = 0; i < node->indexes_size(); i++)
+        {
+            tree->_indexes.push_back(node->indexes(i));
         }
     }
     for (int i = 0; i < node->children_size(); i++)
