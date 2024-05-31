@@ -47,7 +47,7 @@ InfoCache::InfoCache(): cacheDir_(eckit::PathName()) {
     static_assert(sizeof(off_t) == sizeof(eckit::Offset), "off_t and eckit::Offset must be the same size"); // dont think this is required anymore
 
     shadowCache_ = eckit::Resource<bool>("gribJumpFDBShadow;$GRIBJUMP_FDB_SHADOW", false);
-    ASSERT(shadowCache_);
+
     if (shadowCache_) return;
 
     std::string cache = eckit::Resource<std::string>("gribJumpCacheDir;$GRIBJUMP_CACHE_DIR", "");
@@ -69,7 +69,6 @@ InfoCache::InfoCache(): cacheDir_(eckit::PathName()) {
 }
 
 eckit::PathName InfoCache::cacheFilePath(const eckit::PathName& path) const {
-    ASSERT(shadowCache_);
     if (shadowCache_) {
         return path + file_ext;
     }
