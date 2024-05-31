@@ -42,15 +42,18 @@ InfoCache::~InfoCache() {
     }
 }
 
-InfoCache::InfoCache() {
+InfoCache::InfoCache(): cacheDir_(eckit::PathName()) {
 
     static_assert(sizeof(off_t) == sizeof(eckit::Offset), "off_t and eckit::Offset must be the same size"); // dont think this is required anymore
+
+    shadowCache_ = eckit::Resource<bool>("gribJumpFDBShadow;$GRIBJUMP_FDB_SHADOW", false);
+    ASSERT(shadowCache_);
+    if (shadowCache_) return;
 
     std::string cache = eckit::Resource<std::string>("gribJumpCacheDir;$GRIBJUMP_CACHE_DIR", "");
     LOG_DEBUG_LIB(LibGribJump) << "Cache directory " << cache << std::endl;
 
     if(cache.empty()) {
-        cacheDir_ = eckit::PathName();
         persistentCache_ = false; 
 
         LOG_DEBUG_LIB(LibGribJump) << "Warning, cache persistence is disabled" << std::endl;
@@ -59,7 +62,6 @@ InfoCache::InfoCache() {
     }
 
     cacheDir_ = eckit::PathName(cache);
-    persistentCache_ = true;
 
     if (!cacheDir_.exists()) {
         throw eckit::BadValue("Cache directory " + cacheDir_ + " does not exist");
@@ -67,16 +69,24 @@ InfoCache::InfoCache() {
 }
 
 eckit::PathName InfoCache::cacheFilePath(const eckit::PathName& path) const {
+    ASSERT(shadowCache_);
+    if (shadowCache_) {
+        return path + file_ext;
+    }
+
     return cacheDir_ / path.baseName() + file_ext;
 }
 
-FileCache& InfoCache::getFileCache(const filename_t& f) {
+// FileCache& InfoCache::getFileCache(const filename_t& f) {
+FileCache& InfoCache::getFileCache(const eckit::PathName& path) { 
     std::lock_guard<std::mutex> lock(mutex_);
+    const filename_t& f = path.baseName();
     auto it = cache_.find(f);
     if(it != cache_.end()) return *(it->second);
     
     eckit::Log::info() << "New InfoCache entry for file " << f << std::endl;
-    eckit::PathName cachePath = cacheFilePath(f);
+    eckit::PathName cachePath = cacheFilePath(path);
+    eckit::Log::info() << "Full cache path: " << cachePath << std::endl;
     FileCache* filecache = new FileCache(cachePath); // this will load the cache file into memory if it exists
     cache_.insert(std::make_pair(f, filecache));
     return *filecache;
@@ -94,15 +104,14 @@ JumpInfo* InfoCache::get(const eckit::URI& uri) {
 
 JumpInfo* InfoCache::get(const eckit::PathName& path, const eckit::Offset offset) {
 
-    filename_t f = path.baseName();
-    FileCache& filecache = getFileCache(f);
+    FileCache& filecache = getFileCache(path);
 
     // return it if in memory cache
     {   
         JumpInfo* info = filecache.find(offset);
         if (info) return info;
 
-        LOG_DEBUG_LIB(LibGribJump) << "InfoCache file " << f << " does not contain JumpInfo for field at offset " << offset << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "InfoCache file " << path << " does not contain JumpInfo for field at offset " << offset << std::endl;
 
     }
 
@@ -118,8 +127,7 @@ JumpInfo* InfoCache::get(const eckit::PathName& path, const eckit::Offset offset
 
 std::vector<JumpInfo*> InfoCache::get(const eckit::PathName& path, const eckit::OffsetList& offsets) {
 
-    filename_t f = path.baseName();
-    FileCache& filecache = getFileCache(f);
+    FileCache& filecache = getFileCache(path);
 
     std::vector<eckit::Offset> missingOffsets;
 
@@ -153,31 +161,34 @@ std::vector<JumpInfo*> InfoCache::get(const eckit::PathName& path, const eckit::
 
 void InfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info) {
 
-    filename_t f = path.baseName();
-    LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << f << ":" << offset << std::endl;
-    FileCache& filecache = getFileCache(f);
+    LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << path << ":" << offset << std::endl;
+    FileCache& filecache = getFileCache(path);
     filecache.insert(offset, info);
 }
 
 
 void InfoCache::insert(const eckit::PathName& path, std::vector<JumpInfo*> infos) {
 
-    filename_t f = path.baseName();
-    LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << f << "" << infos.size() << " fields" << std::endl;
-    FileCache& filecache = getFileCache(f);
+    LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << path << "" << infos.size() << " fields" << std::endl;
+    FileCache& filecache = getFileCache(path);
     filecache.insert(infos);
 }
 
 
 void InfoCache::persist(bool merge){
     if (!persistentCache_) {
-        LOG_DEBUG_LIB(LibGribJump) << "Warning, InfoCache::persist called but cache persistence is disabled" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "Warning, InfoCache::persist called but cache persistence is disabled. Returning." << std::endl;
         return;
     }
     std::lock_guard<std::mutex> lock(mutex_);
+    size_t filecount = 0;
     for (auto& [filename, filecache] : cache_) {
         filecache->persist(merge);
+        filecount++;
     }
+
+    LOG_DEBUG_LIB(LibGribJump) << "Persisted " << filecount << " files" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "cache_ size " << cache_.size() << std::endl;
 }
 
 void InfoCache::clear() {
@@ -197,12 +208,9 @@ void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Of
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " at " << eckit::Plural(offsets.size(), "offsets") << std::endl;
 
-    auto base = fdbpath.baseName();
-    auto cachePath = cacheFilePath(base);
 
     // if cache exists load so we can merge with memory cache
-    FileCache& filecache = getFileCache(base);
-
+    FileCache& filecache = getFileCache(fdbpath);
 
     // Find which offsets are not already in file cache
     std::vector<eckit::Offset> newOffsets;
@@ -238,11 +246,11 @@ void InfoCache::scan(const eckit::PathName& fdbpath) {
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning whole file " << fdbpath << std::endl;
 
-    auto base = fdbpath.baseName();
-    auto cachePath = cacheFilePath(base);
+    // auto base = fdbpath.baseName();
+    // auto cachePath = cacheFilePath(base);
 
     // if cache exists load so we can merge with memory cache
-    FileCache& filecache = getFileCache(base);
+    FileCache& filecache = getFileCache(fdbpath);
 
     InfoExtractor extractor;
     std::vector<JumpInfo*> infos = extractor.extract(fdbpath);

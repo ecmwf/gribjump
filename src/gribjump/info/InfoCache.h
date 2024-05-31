@@ -69,7 +69,7 @@ private: // methods
     
     ~InfoCache();
 
-    FileCache& getFileCache(const filename_t& f);
+    FileCache& getFileCache(const eckit::PathName& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
 
@@ -80,7 +80,7 @@ private: // members
     mutable std::mutex mutex_; //< mutex for cache_
     cache_t cache_;
 
-    bool persistentCache_ = false;
+    bool persistentCache_ = true;
 
     bool shadowCache_ = false; //< if true, cache files are persisted next to the original data files (e.g. in FDB)
                                //  This takes precedence over cacheDir_.

@@ -24,7 +24,6 @@ URI convert(const eckit::URI& uri){
 } // anonymous namespace
 
 void InfoAggregator::add(const fdb5::Key& key, const eckit::message::Message& message){
-    LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::add(key, message)" << " key = " << key <<  std::endl;
     
     bool anyPacking = true; // Return null for unsupported packing, rather than throw an exception.
 
@@ -34,8 +33,9 @@ void InfoAggregator::add(const fdb5::Key& key, const eckit::message::Message& me
 
     keyToJumpInfo[key] = info;
 
-    if (keyToLocation.find(key) == keyToLocation.end()){
-        locationToJumpInfo[keyToLocation[key]] = info;
+    if (keyToLocation.find(key) != keyToLocation.end()){
+        const URI& location = keyToLocation[key];
+        locationToJumpInfo[location] = info;
         count_++;
     }
 }
@@ -43,7 +43,6 @@ void InfoAggregator::add(const fdb5::Key& key, const eckit::message::Message& me
 // Store the location provided by fdb callback
 void InfoAggregator::add(const fdb5::Key& key, const eckit::URI& location_in){
     URI location = convert(location_in);
-    LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::add(key, location)" << " key = " << key << " location = " << location << std::endl;
     
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -52,8 +51,9 @@ void InfoAggregator::add(const fdb5::Key& key, const eckit::URI& location_in){
 
     keyToLocation[key] = location;
 
-    if (keyToJumpInfo.find(key) == keyToJumpInfo.end()){
-        locationToJumpInfo[location] = keyToJumpInfo[key];
+    if (keyToJumpInfo.find(key) != keyToJumpInfo.end()){
+        JumpInfo* info = keyToJumpInfo[key];
+        locationToJumpInfo[location] = info;
         count_++;
     }
 }
@@ -74,12 +74,6 @@ void InfoAggregator::flush(){
     ASSERT(keyToJumpInfo.size() == count_);
     ASSERT(locationToJumpInfo.size() == count_);
 
-    // NB: Being null is not an error, it just means the packing was not supported.
-    size_t countNull = 0;
-    for (const auto& [key, info] : keyToJumpInfo){
-        if (!info) countNull++;
-    }
-
 
     // Give to the gribjump cache to persist
     // Might need to do some cleverness to make sure we match the files to the correct JumpInfo.
@@ -90,13 +84,19 @@ void InfoAggregator::flush(){
 
     InfoCache& cache = InfoCache::instance();
 
-    // Let's write some rough code for persisting to disk.
+    // NB: Being null is not an error, it just means the packing was not supported.
+    size_t countNull = 0;
     for (const auto& [location, info] : locationToJumpInfo){
-        if (!info) continue; // Skip nulls. TODO: In general, how do we handle nulls?
+        if (!info) {
+            countNull++;
+            continue; // Skip nulls. TODO: In general, how do we want to handle nulls?
+        }
         eckit::PathName path = locationToPathAndOffset[location].first;
         eckit::Offset offset = locationToPathAndOffset[location].second;
         // Perhaps use unique ptr and then std move here.
-        cache.insert(path, offset, info); // Takes ownership of info // We could just create this instead of the locationToJumpInfo
+        cache.insert(path, offset, info); // Takes ownership of info // We could just create this instead of the locationToJumpInfo (if so, null handling needs to be inside cache...)
+
+        LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::flush: Inserting info" << " at " << path << " offset " << offset << std::endl;
     }
 
     cache.persist();
@@ -110,8 +110,6 @@ void InfoAggregator::flush(){
     locationToJumpInfo.clear();
     locationToPathAndOffset.clear();
     count_ = 0;
-
-
 }
 
 } // namespace gribjump
