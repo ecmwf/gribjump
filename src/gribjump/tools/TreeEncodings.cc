@@ -73,6 +73,10 @@ void decode_child(index_tree::Node *node, CompressedRequestTree *tree)
         {
             tree->_indexes.push_back(node->indexes(i));
         }
+        for (int i = 0; i < node->size_indexes_branch_size(); i++)
+        {
+            tree->_indexes_branch_size.push_back(node->size_indexes_branch(i));
+        }
     }
     for (int i = 0; i < node->children_size(); i++)
     {

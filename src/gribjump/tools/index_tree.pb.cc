@@ -32,6 +32,8 @@ inline constexpr Node::Impl_::Impl_(
         size_result_{},
         _size_result_cached_byte_size_{0},
         children_{},
+        size_indexes_branch_{},
+        _size_indexes_branch_cached_byte_size_{0},
         axis_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
@@ -73,6 +75,7 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::index_tree::Node, _impl_.result_),
         PROTOBUF_FIELD_OFFSET(::index_tree::Node, _impl_.size_result_),
         PROTOBUF_FIELD_OFFSET(::index_tree::Node, _impl_.children_),
+        PROTOBUF_FIELD_OFFSET(::index_tree::Node, _impl_.size_indexes_branch_),
 };
 
 static const ::_pbi::MigrationSchema
@@ -84,17 +87,17 @@ static const ::_pb::Message* const file_default_instances[] = {
 };
 const char descriptor_table_protodef_index_5ftree_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
-    "\n\020index_tree.proto\022\nindex_tree\"}\n\004Node\022\014"
-    "\n\004axis\030\001 \001(\t\022\r\n\005value\030\002 \003(\t\022\017\n\007indexes\030\003"
-    " \003(\003\022\016\n\006result\030\004 \003(\001\022\023\n\013size_result\030\005 \003("
-    "\003\022\"\n\010children\030\006 \003(\0132\020.index_tree.Nodeb\006p"
-    "roto3"
+    "\n\020index_tree.proto\022\nindex_tree\"\232\001\n\004Node\022"
+    "\014\n\004axis\030\001 \001(\t\022\r\n\005value\030\002 \003(\t\022\017\n\007indexes\030"
+    "\003 \003(\003\022\016\n\006result\030\004 \003(\001\022\023\n\013size_result\030\005 \003"
+    "(\003\022\"\n\010children\030\006 \003(\0132\020.index_tree.Node\022\033"
+    "\n\023size_indexes_branch\030\007 \003(\003b\006proto3"
 };
 static ::absl::once_flag descriptor_table_index_5ftree_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_index_5ftree_2eproto = {
     false,
     false,
-    165,
+    195,
     descriptor_table_protodef_index_5ftree_2eproto,
     "index_tree.proto",
     &descriptor_table_index_5ftree_2eproto_once,
@@ -145,6 +148,8 @@ inline PROTOBUF_NDEBUG_INLINE Node::Impl_::Impl_(
         size_result_{visibility, arena, from.size_result_},
         _size_result_cached_byte_size_{0},
         children_{visibility, arena, from.children_},
+        size_indexes_branch_{visibility, arena, from.size_indexes_branch_},
+        _size_indexes_branch_cached_byte_size_{0},
         axis_(arena, from.axis_),
         _cached_size_{0} {}
 
@@ -170,6 +175,8 @@ inline PROTOBUF_NDEBUG_INLINE Node::Impl_::Impl_(
         size_result_{visibility, arena},
         _size_result_cached_byte_size_{0},
         children_{visibility, arena},
+        size_indexes_branch_{visibility, arena},
+        _size_indexes_branch_cached_byte_size_{0},
         axis_(arena),
         _cached_size_{0} {}
 
@@ -213,6 +220,7 @@ PROTOBUF_NOINLINE void Node::Clear() {
   _impl_.result_.Clear();
   _impl_.size_result_.Clear();
   _impl_.children_.Clear();
+  _impl_.size_indexes_branch_.Clear();
   _impl_.axis_.ClearToEmpty();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -225,15 +233,15 @@ const char* Node::_InternalParse(
 
 
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<3, 6, 1, 33, 2> Node::_table_ = {
+const ::_pbi::TcParseTable<3, 7, 1, 33, 2> Node::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    6, 56,  // max_field_number, fast_idx_mask
+    7, 56,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967232,  // skipmap
+    4294967168,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    6,  // num_field_entries
+    7,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     &_Node_default_instance_._instance,
@@ -261,7 +269,9 @@ const ::_pbi::TcParseTable<3, 6, 1, 33, 2> Node::_table_ = {
     // repeated .index_tree.Node children = 6;
     {::_pbi::TcParser::FastMtR1,
      {50, 63, 0, PROTOBUF_FIELD_OFFSET(Node, _impl_.children_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // repeated int64 size_indexes_branch = 7;
+    {::_pbi::TcParser::FastV64P1,
+     {58, 63, 0, PROTOBUF_FIELD_OFFSET(Node, _impl_.size_indexes_branch_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -283,6 +293,9 @@ const ::_pbi::TcParseTable<3, 6, 1, 33, 2> Node::_table_ = {
     // repeated .index_tree.Node children = 6;
     {PROTOBUF_FIELD_OFFSET(Node, _impl_.children_), 0, 0,
     (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // repeated int64 size_indexes_branch = 7;
+    {PROTOBUF_FIELD_OFFSET(Node, _impl_.size_indexes_branch_), 0, 0,
+    (0 | ::_fl::kFcRepeated | ::_fl::kPackedInt64)},
   }}, {{
     {::_pbi::TcParser::GetTable<::index_tree::Node>()},
   }}, {{
@@ -348,6 +361,15 @@ const ::_pbi::TcParseTable<3, 6, 1, 33, 2> Node::_table_ = {
         ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
             6, repfield, repfield.GetCachedSize(),
             target, stream);
+  }
+
+  // repeated int64 size_indexes_branch = 7;
+  {
+    int byte_size = _impl_._size_indexes_branch_cached_byte_size_.Get();
+    if (byte_size > 0) {
+      target = stream->WriteInt64Packed(
+          7, _internal_size_indexes_branch(), byte_size, target);
+    }
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -416,6 +438,19 @@ const ::_pbi::TcParseTable<3, 6, 1, 33, 2> Node::_table_ = {
   for (const auto& msg : this->_internal_children()) {
     total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
   }
+  // repeated int64 size_indexes_branch = 7;
+  {
+    std::size_t data_size = ::_pbi::WireFormatLite::Int64Size(
+        this->_internal_size_indexes_branch())
+    ;
+    _impl_._size_indexes_branch_cached_byte_size_.Set(::_pbi::ToCachedSize(data_size));
+    std::size_t tag_size = data_size == 0
+        ? 0
+        : 1 + ::_pbi::WireFormatLite::Int32Size(
+                            static_cast<int32_t>(data_size))
+    ;
+    total_size += tag_size + data_size;
+  }
   // string axis = 1;
   if (!this->_internal_axis().empty()) {
     total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
@@ -440,6 +475,7 @@ void Node::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::pr
   _this->_internal_mutable_size_result()->MergeFrom(from._internal_size_result());
   _this->_internal_mutable_children()->MergeFrom(
       from._internal_children());
+  _this->_internal_mutable_size_indexes_branch()->MergeFrom(from._internal_size_indexes_branch());
   if (!from._internal_axis().empty()) {
     _this->_internal_set_axis(from._internal_axis());
   }
@@ -467,6 +503,7 @@ void Node::InternalSwap(Node* PROTOBUF_RESTRICT other) {
   _impl_.result_.InternalSwap(&other->_impl_.result_);
   _impl_.size_result_.InternalSwap(&other->_impl_.size_result_);
   _impl_.children_.InternalSwap(&other->_impl_.children_);
+  _impl_.size_indexes_branch_.InternalSwap(&other->_impl_.size_indexes_branch_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.axis_, &other->_impl_.axis_, arena);
 }
 

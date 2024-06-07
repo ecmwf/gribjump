@@ -20,6 +20,7 @@ public:
 
     vector<double> *_results;
     vector<int> _result_size;
+    vector<int> _indexes_branch_size;
 
     CompressedRequestTree(const string axis = "root", vector<string> values = {""});
     ~CompressedRequestTree();

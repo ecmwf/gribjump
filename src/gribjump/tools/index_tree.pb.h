@@ -196,6 +196,7 @@ class Node final : public ::google::protobuf::Message
     kResultFieldNumber = 4,
     kSizeResultFieldNumber = 5,
     kChildrenFieldNumber = 6,
+    kSizeIndexesBranchFieldNumber = 7,
     kAxisFieldNumber = 1,
   };
   // repeated string value = 2;
@@ -297,6 +298,24 @@ class Node final : public ::google::protobuf::Message
   const ::index_tree::Node& children(int index) const;
   ::index_tree::Node* add_children();
   const ::google::protobuf::RepeatedPtrField<::index_tree::Node>& children() const;
+  // repeated int64 size_indexes_branch = 7;
+  int size_indexes_branch_size() const;
+  private:
+  int _internal_size_indexes_branch_size() const;
+
+  public:
+  void clear_size_indexes_branch() ;
+  ::int64_t size_indexes_branch(int index) const;
+  void set_size_indexes_branch(int index, ::int64_t value);
+  void add_size_indexes_branch(::int64_t value);
+  const ::google::protobuf::RepeatedField<::int64_t>& size_indexes_branch() const;
+  ::google::protobuf::RepeatedField<::int64_t>* mutable_size_indexes_branch();
+
+  private:
+  const ::google::protobuf::RepeatedField<::int64_t>& _internal_size_indexes_branch() const;
+  ::google::protobuf::RepeatedField<::int64_t>* _internal_mutable_size_indexes_branch();
+
+  public:
   // string axis = 1;
   void clear_axis() ;
   const std::string& axis() const;
@@ -318,7 +337,7 @@ class Node final : public ::google::protobuf::Message
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      3, 6, 1,
+      3, 7, 1,
       33, 2>
       _table_;
   friend class ::google::protobuf::MessageLite;
@@ -341,6 +360,8 @@ class Node final : public ::google::protobuf::Message
     ::google::protobuf::RepeatedField<::int64_t> size_result_;
     mutable ::google::protobuf::internal::CachedSize _size_result_cached_byte_size_;
     ::google::protobuf::RepeatedPtrField< ::index_tree::Node > children_;
+    ::google::protobuf::RepeatedField<::int64_t> size_indexes_branch_;
+    mutable ::google::protobuf::internal::CachedSize _size_indexes_branch_cached_byte_size_;
     ::google::protobuf::internal::ArenaStringPtr axis_;
     mutable ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -699,6 +720,51 @@ inline ::google::protobuf::RepeatedPtrField<::index_tree::Node>*
 Node::_internal_mutable_children() {
   PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
   return &_impl_.children_;
+}
+
+// repeated int64 size_indexes_branch = 7;
+inline int Node::_internal_size_indexes_branch_size() const {
+  return _internal_size_indexes_branch().size();
+}
+inline int Node::size_indexes_branch_size() const {
+  return _internal_size_indexes_branch_size();
+}
+inline void Node::clear_size_indexes_branch() {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _impl_.size_indexes_branch_.Clear();
+}
+inline ::int64_t Node::size_indexes_branch(int index) const {
+  // @@protoc_insertion_point(field_get:index_tree.Node.size_indexes_branch)
+  return _internal_size_indexes_branch().Get(index);
+}
+inline void Node::set_size_indexes_branch(int index, ::int64_t value) {
+  _internal_mutable_size_indexes_branch()->Set(index, value);
+  // @@protoc_insertion_point(field_set:index_tree.Node.size_indexes_branch)
+}
+inline void Node::add_size_indexes_branch(::int64_t value) {
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  _internal_mutable_size_indexes_branch()->Add(value);
+  // @@protoc_insertion_point(field_add:index_tree.Node.size_indexes_branch)
+}
+inline const ::google::protobuf::RepeatedField<::int64_t>& Node::size_indexes_branch() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:index_tree.Node.size_indexes_branch)
+  return _internal_size_indexes_branch();
+}
+inline ::google::protobuf::RepeatedField<::int64_t>* Node::mutable_size_indexes_branch()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:index_tree.Node.size_indexes_branch)
+  PROTOBUF_TSAN_WRITE(&_impl_._tsan_detect_race);
+  return _internal_mutable_size_indexes_branch();
+}
+inline const ::google::protobuf::RepeatedField<::int64_t>&
+Node::_internal_size_indexes_branch() const {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return _impl_.size_indexes_branch_;
+}
+inline ::google::protobuf::RepeatedField<::int64_t>* Node::_internal_mutable_size_indexes_branch() {
+  PROTOBUF_TSAN_READ(&_impl_._tsan_detect_race);
+  return &_impl_.size_indexes_branch_;
 }
 
 #ifdef __GNUC__
