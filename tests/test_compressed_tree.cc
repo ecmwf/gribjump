@@ -58,8 +58,8 @@ namespace gribjump
             root_node->add_child(child1);
             root_node->add_child(child2);
             child1->add_child(grandchild1);
-            multiset<CompressedRequestTree *> children_multiset;
-            children_multiset.insert(grandchild1);
+            vector<CompressedRequestTree *> children_multiset;
+            children_multiset.push_back(grandchild1);
             EXPECT((*child1)._children == children_multiset);
             delete grandchild1;
             delete child1;

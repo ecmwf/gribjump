@@ -12,7 +12,7 @@ public:
     static std::unique_ptr<CompressedRequestTree> NoneTree;
 
     CompressedRequestTree *_parent;
-    multiset<CompressedRequestTree *> _children;
+    vector<CompressedRequestTree *> _children;
 
     vector<string> _values;
     string _axis;

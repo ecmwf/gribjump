@@ -47,7 +47,7 @@ CompressedRequestTree *CompressedRequestTree::create_child(const string axis, ve
 
 void CompressedRequestTree::add_child(CompressedRequestTree *node)
 {
-    _children.insert(node);
+    _children.push_back(node);
     (node)->set_parent(this);
 }
 
@@ -56,8 +56,8 @@ void CompressedRequestTree::set_parent(CompressedRequestTree *node)
     const string axis = (_parent)->_axis;
     if (axis != "None")
     {
-        auto it = (*_parent)._children.find(this);
-        multiset<CompressedRequestTree *> *parents_children = &(*_parent)._children;
+        auto it = find((*_parent)._children.begin(), (*_parent)._children.end(), this);
+        vector<CompressedRequestTree *> *parents_children = &(*_parent)._children;
         if (it != parents_children->end())
         {
             parents_children->erase(it);
