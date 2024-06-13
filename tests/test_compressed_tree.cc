@@ -67,6 +67,41 @@ namespace gribjump
             delete root_node;
         }
 
+        CASE("test_iterate_tree")
+        {
+            string axis1 = "grandchild1";
+            string axis2 = "child1";
+            string axis3 = "child2";
+            CompressedRequestTree *grandchild1 = new CompressedRequestTree(axis1);
+            CompressedRequestTree *child1 = new CompressedRequestTree(axis2);
+            CompressedRequestTree *child2 = new CompressedRequestTree(axis3);
+            CompressedRequestTree *root_node = new CompressedRequestTree();
+            root_node->add_child(child1);
+            root_node->add_child(child2);
+            child1->add_child(grandchild1);
+
+            auto print_path = [](stack<CompressedRequestTree *> path)
+            {
+                cout << "{";
+                while (!path.empty())
+                {
+                    cout << path.top()->_axis << ", ";
+                    path.pop();
+                }
+                cout << "}" << endl;
+            };
+
+            for (auto &path : *root_node)
+            {
+                print_path(path);
+            }
+
+            delete grandchild1;
+            delete child1;
+            delete child2;
+            delete root_node;
+        }
+
         CASE("test_create_child")
         {
             string axis1 = "grandchild1";

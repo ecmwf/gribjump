@@ -3,6 +3,78 @@
 
 using namespace std;
 
+CompressedRequestTree *Iterator::find_next_sibling(CompressedRequestTree *parent, CompressedRequestTree *child)
+{
+    auto it = find(parent->_children.begin(), parent->_children.end(), child);
+    if (it != parent->_children.end())
+    {
+        ++it;
+        if (it != parent->_children.end())
+        {
+            return *it;
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+    return nullptr;
+}
+
+void Iterator::go_to_first_leaf_from(Path &path)
+{
+    while (!path.top()->_children.empty())
+    {
+        path.push(path.top()->_children[0]);
+    }
+}
+
+Iterator &
+Iterator::operator++()
+{
+    if (!val_.empty())
+    {
+        assert(val_.top()->_children.empty());
+        // do something
+
+        for (;;)
+        {
+            CompressedRequestTree *current_child = val_.top();
+            val_.pop();
+            // assert(!val_.empty());
+            if (val_.empty())
+            {
+                // very end of iteration where we have no more leaves
+                break;
+            }
+
+            CompressedRequestTree *parent = val_.top();
+            CompressedRequestTree *next_sibling = find_next_sibling(parent, current_child);
+            if (next_sibling != nullptr)
+            {
+                val_.push(next_sibling);
+                go_to_first_leaf_from(val_);
+                break;
+            }
+        }
+    }
+
+    return *this;
+}
+
+Iterator Iterator::operator++(int)
+{
+    This current(val_);
+    ++(*this);
+    return current;
+}
+
+Iterator::Iterator(CompressedRequestTree *root)
+{
+    val_.push(root);
+    go_to_first_leaf_from(val_);
+}
+
 std::unique_ptr<CompressedRequestTree> CompressedRequestTree::NoneTree = std::make_unique<CompressedRequestTree>(CompressedRequestTree("None"));
 
 CompressedRequestTree::CompressedRequestTree(const string axis, vector<string> values)
