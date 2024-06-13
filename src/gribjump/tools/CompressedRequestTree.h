@@ -14,7 +14,7 @@ class CompressedRequestTree;
 struct Iterator
 {
     using ChildIt = typename vector<CompressedRequestTree *>::iterator;
-    using Path = std::stack<pair<CompressedRequestTree *, ChildIt>>;
+    using Path = std::stack<CompressedRequestTree *>;
 
     using This = Iterator;
 
@@ -23,7 +23,7 @@ struct Iterator
     using value_type = Path;
     using pointer = const value_type *;
     using reference = const value_type &;
-    // using ItPath = stack<ChildIt>;
+    using ItPath = stack<ChildIt>;
 
     // using const_ref = const value_type &;
     // using const_ptr = const value_type *;
@@ -32,6 +32,7 @@ struct Iterator
     friend class CompressedRequestTree;
 
     value_type val_;
+    ItPath its_;
 
     reference operator*() const { return val_; }
     reference operator*() { return val_; }
@@ -52,7 +53,7 @@ struct Iterator
 
     CompressedRequestTree *find_next_sibling(CompressedRequestTree *parent, CompressedRequestTree *child);
 
-    void go_to_first_leaf_from(Path &path);
+    void go_to_first_leaf_from(Path &path, ItPath &its);
 
     This &
     operator++();

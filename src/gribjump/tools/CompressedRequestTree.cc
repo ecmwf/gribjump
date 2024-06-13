@@ -21,17 +21,18 @@ using namespace std;
 //     return nullptr;
 // }
 
-void Iterator::go_to_first_leaf_from(Path &path)
+void Iterator::go_to_first_leaf_from(Path &path, ItPath &its)
 {
     // while (!path.top().first->_children.empty())
     // {
     //     auto it = path.top().first->_children.begin();
     //     path.push({*it, move(it)});
     // }
-    while (path.top().second != path.top().first->_children.end())
+    while (its.top() != path.top()->_children.end())
     {
-        auto &t = path.top();
-        path.push({*t.second, (*t.second)->_children.begin()});
+        auto &t = its.top();
+        path.push(*t);
+        its.push((*t)->_children.begin());
     }
 }
 
@@ -40,24 +41,26 @@ Iterator::operator++()
 {
     if (!val_.empty())
     {
-        assert(val_.top().first->_children.empty());
+        assert(val_.top()->_children.empty());
         // do something
 
         for (;;)
         {
             val_.pop();
+            its_.pop();
             if (val_.empty())
             {
                 // very end of iteration where we have no more leaves
                 break;
             }
 
-            auto next = ++val_.top().second;
+            auto next = ++its_.top();
 
-            if (next != val_.top().first->_children.end())
+            if (next != val_.top()->_children.end())
             {
-                val_.push({*next, (*next)->_children.begin()});
-                go_to_first_leaf_from(val_);
+                val_.push(*next);
+                its_.push((*next)->_children.begin());
+                go_to_first_leaf_from(val_, its_);
                 break;
             }
         }
@@ -75,8 +78,9 @@ Iterator Iterator::operator++(int)
 
 Iterator::Iterator(CompressedRequestTree *root)
 {
-    val_.push({root, root->_children.begin()});
-    go_to_first_leaf_from(val_);
+    val_.push(root);
+    its_.push(root->_children.begin());
+    go_to_first_leaf_from(val_, its_);
 }
 
 std::unique_ptr<CompressedRequestTree> CompressedRequestTree::NoneTree = std::make_unique<CompressedRequestTree>(CompressedRequestTree("None"));
