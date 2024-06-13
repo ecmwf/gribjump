@@ -23,6 +23,7 @@ struct Iterator
     using value_type = Path;
     using pointer = const value_type *;
     using reference = const value_type &;
+    // using ItPath = stack<ChildIt>;
 
     // using const_ref = const value_type &;
     // using const_ptr = const value_type *;

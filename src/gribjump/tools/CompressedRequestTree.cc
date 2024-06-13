@@ -23,10 +23,15 @@ using namespace std;
 
 void Iterator::go_to_first_leaf_from(Path &path)
 {
-    while (!path.top().first->_children.empty())
+    // while (!path.top().first->_children.empty())
+    // {
+    //     auto it = path.top().first->_children.begin();
+    //     path.push({*it, move(it)});
+    // }
+    while (path.top().second != path.top().first->_children.end())
     {
-        auto it = path.top().first->_children.begin();
-        path.push({*it, move(it)});
+        auto &t = path.top();
+        path.push({*t.second, (*t.second)->_children.begin()});
     }
 }
 
@@ -40,12 +45,7 @@ Iterator::operator++()
 
         for (;;)
         {
-            cout << "here before" << endl;
-            cout << val_.top().first->_axis << endl;
             val_.pop();
-            cout << "here now" << endl;
-            cout << val_.top().first->_axis << endl;
-            // assert(!val_.empty());
             if (val_.empty())
             {
                 // very end of iteration where we have no more leaves
@@ -54,18 +54,12 @@ Iterator::operator++()
 
             auto next = ++val_.top().second;
 
-            if (next == val_.top().first->_children.end())
+            if (next != val_.top().first->_children.end())
             {
                 val_.push({*next, (*next)->_children.begin()});
                 go_to_first_leaf_from(val_);
                 break;
             }
-            // val_.push({*next, (*next)->_children.begin()});
-            // else
-            // {
-            //     go_to_first_leaf_from(val_);
-            //     break;
-            // }
         }
     }
 
