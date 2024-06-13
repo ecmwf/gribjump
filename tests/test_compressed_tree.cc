@@ -85,8 +85,8 @@ namespace gribjump
                 cout << "{";
                 while (!path.empty())
                 {
-                    cout << path.top()->_axis << ", ";
-                    path.pop();
+                    cout << path.back()->_axis << ", ";
+                    path.pop_back();
                 }
                 cout << "}" << endl;
             };

@@ -28,11 +28,11 @@ void Iterator::go_to_first_leaf_from(Path &path, ItPath &its)
     //     auto it = path.top().first->_children.begin();
     //     path.push({*it, move(it)});
     // }
-    while (its.top() != path.top()->_children.end())
+    while (its.back() != path.back()->_children.end())
     {
-        auto &t = its.top();
-        path.push(*t);
-        its.push((*t)->_children.begin());
+        auto &t = its.back();
+        path.push_back(*t);
+        its.push_back((*t)->_children.begin());
     }
 }
 
@@ -41,25 +41,25 @@ Iterator::operator++()
 {
     if (!val_.empty())
     {
-        assert(val_.top()->_children.empty());
+        assert(val_.back()->_children.empty());
         // do something
 
         for (;;)
         {
-            val_.pop();
-            its_.pop();
+            val_.pop_back();
+            its_.pop_back();
             if (val_.empty())
             {
                 // very end of iteration where we have no more leaves
                 break;
             }
 
-            auto next = ++its_.top();
+            auto next = ++its_.back();
 
-            if (next != val_.top()->_children.end())
+            if (next != val_.back()->_children.end())
             {
-                val_.push(*next);
-                its_.push((*next)->_children.begin());
+                val_.push_back(*next);
+                its_.push_back((*next)->_children.begin());
                 go_to_first_leaf_from(val_, its_);
                 break;
             }
@@ -78,8 +78,8 @@ Iterator Iterator::operator++(int)
 
 Iterator::Iterator(CompressedRequestTree *root)
 {
-    val_.push(root);
-    its_.push(root->_children.begin());
+    val_.push_back(root);
+    its_.push_back(root->_children.begin());
     go_to_first_leaf_from(val_, its_);
 }
 

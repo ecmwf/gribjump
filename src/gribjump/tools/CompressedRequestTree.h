@@ -14,7 +14,7 @@ class CompressedRequestTree;
 struct Iterator
 {
     using ChildIt = typename vector<CompressedRequestTree *>::iterator;
-    using Path = std::stack<CompressedRequestTree *>;
+    using Path = deque<CompressedRequestTree *>;
 
     using This = Iterator;
 
@@ -23,7 +23,7 @@ struct Iterator
     using value_type = Path;
     using pointer = const value_type *;
     using reference = const value_type &;
-    using ItPath = stack<ChildIt>;
+    using ItPath = deque<ChildIt>;
 
     // using const_ref = const value_type &;
     // using const_ptr = const value_type *;
