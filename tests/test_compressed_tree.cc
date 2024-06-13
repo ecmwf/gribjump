@@ -80,12 +80,12 @@ namespace gribjump
             root_node->add_child(child2);
             child1->add_child(grandchild1);
 
-            auto print_path = [](stack<CompressedRequestTree *> path)
+            auto print_path = [](typename Iterator::value_type path)
             {
                 cout << "{";
                 while (!path.empty())
                 {
-                    cout << path.top()->_axis << ", ";
+                    cout << path.top().first->_axis << ", ";
                     path.pop();
                 }
                 cout << "}" << endl;

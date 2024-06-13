@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stack>
 #include <iterator>
+#include <utility>
 
 using namespace std;
 
@@ -12,7 +13,8 @@ class CompressedRequestTree;
 
 struct Iterator
 {
-    using Path = std::stack<CompressedRequestTree *>;
+    using ChildIt = typename vector<CompressedRequestTree *>::iterator;
+    using Path = std::stack<pair<CompressedRequestTree *, ChildIt>>;
 
     using This = Iterator;
 

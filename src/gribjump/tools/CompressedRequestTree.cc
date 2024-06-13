@@ -3,29 +3,30 @@
 
 using namespace std;
 
-CompressedRequestTree *Iterator::find_next_sibling(CompressedRequestTree *parent, CompressedRequestTree *child)
-{
-    auto it = find(parent->_children.begin(), parent->_children.end(), child);
-    if (it != parent->_children.end())
-    {
-        ++it;
-        if (it != parent->_children.end())
-        {
-            return *it;
-        }
-        else
-        {
-            return nullptr;
-        }
-    }
-    return nullptr;
-}
+// CompressedRequestTree *Iterator::find_next_sibling(CompressedRequestTree *parent, CompressedRequestTree *child)
+// {
+//     auto it = find(parent->_children.begin(), parent->_children.end(), child);
+//     if (it != parent->_children.end())
+//     {
+//         ++it;
+//         if (it != parent->_children.end())
+//         {
+//             return *it;
+//         }
+//         else
+//         {
+//             return nullptr;
+//         }
+//     }
+//     return nullptr;
+// }
 
 void Iterator::go_to_first_leaf_from(Path &path)
 {
-    while (!path.top()->_children.empty())
+    while (!path.top().first->_children.empty())
     {
-        path.push(path.top()->_children[0]);
+        auto it = path.top().first->_children.begin();
+        path.push({*it, move(it)});
     }
 }
 
@@ -34,13 +35,16 @@ Iterator::operator++()
 {
     if (!val_.empty())
     {
-        assert(val_.top()->_children.empty());
+        assert(val_.top().first->_children.empty());
         // do something
 
         for (;;)
         {
-            CompressedRequestTree *current_child = val_.top();
+            cout << "here before" << endl;
+            cout << val_.top().first->_axis << endl;
             val_.pop();
+            cout << "here now" << endl;
+            cout << val_.top().first->_axis << endl;
             // assert(!val_.empty());
             if (val_.empty())
             {
@@ -48,14 +52,20 @@ Iterator::operator++()
                 break;
             }
 
-            CompressedRequestTree *parent = val_.top();
-            CompressedRequestTree *next_sibling = find_next_sibling(parent, current_child);
-            if (next_sibling != nullptr)
+            auto next = ++val_.top().second;
+
+            if (next == val_.top().first->_children.end())
             {
-                val_.push(next_sibling);
+                val_.push({*next, (*next)->_children.begin()});
                 go_to_first_leaf_from(val_);
                 break;
             }
+            // val_.push({*next, (*next)->_children.begin()});
+            // else
+            // {
+            //     go_to_first_leaf_from(val_);
+            //     break;
+            // }
         }
     }
 
@@ -71,7 +81,7 @@ Iterator Iterator::operator++(int)
 
 Iterator::Iterator(CompressedRequestTree *root)
 {
-    val_.push(root);
+    val_.push({root, root->_children.begin()});
     go_to_first_leaf_from(val_);
 }
 
