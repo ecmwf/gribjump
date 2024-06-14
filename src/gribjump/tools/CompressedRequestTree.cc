@@ -3,6 +3,86 @@
 
 using namespace std;
 
+// CompressedRequestTree *Iterator::find_next_sibling(CompressedRequestTree *parent, CompressedRequestTree *child)
+// {
+//     auto it = find(parent->_children.begin(), parent->_children.end(), child);
+//     if (it != parent->_children.end())
+//     {
+//         ++it;
+//         if (it != parent->_children.end())
+//         {
+//             return *it;
+//         }
+//         else
+//         {
+//             return nullptr;
+//         }
+//     }
+//     return nullptr;
+// }
+
+void Iterator::go_to_first_leaf_from(Path &path, ItPath &its)
+{
+    // while (!path.top().first->_children.empty())
+    // {
+    //     auto it = path.top().first->_children.begin();
+    //     path.push({*it, move(it)});
+    // }
+    while (its.back() != path.back()->_children.end())
+    {
+        auto &t = its.back();
+        path.push_back(*t);
+        its.push_back((*t)->_children.begin());
+    }
+}
+
+Iterator &
+Iterator::operator++()
+{
+    if (!val_.empty())
+    {
+        assert(val_.back()->_children.empty());
+        // do something
+
+        for (;;)
+        {
+            val_.pop_back();
+            its_.pop_back();
+            if (val_.empty())
+            {
+                // very end of iteration where we have no more leaves
+                break;
+            }
+
+            auto next = ++its_.back();
+
+            if (next != val_.back()->_children.end())
+            {
+                val_.push_back(*next);
+                its_.push_back((*next)->_children.begin());
+                go_to_first_leaf_from(val_, its_);
+                break;
+            }
+        }
+    }
+
+    return *this;
+}
+
+Iterator Iterator::operator++(int)
+{
+    This current(val_);
+    ++(*this);
+    return current;
+}
+
+Iterator::Iterator(CompressedRequestTree *root)
+{
+    val_.push_back(root);
+    its_.push_back(root->_children.begin());
+    go_to_first_leaf_from(val_, its_);
+}
+
 std::unique_ptr<CompressedRequestTree> CompressedRequestTree::NoneTree = std::make_unique<CompressedRequestTree>(CompressedRequestTree("None"));
 
 CompressedRequestTree::CompressedRequestTree(const string axis, vector<string> values)
