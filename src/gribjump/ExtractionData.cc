@@ -12,8 +12,30 @@
 
 #include "gribjump/ExtractionData.h"
 #include "eckit/value/Value.h"
+#include "eckit/io/Buffer.h"
 
 namespace gribjump {
+
+namespace {
+
+void encodeVector(eckit::Stream& s, const std::vector<double>& v) {
+    size_t size = v.size();
+    s << size;
+    eckit::Buffer buffer(v.data(), size * sizeof(double));
+    s << buffer;
+}
+
+std::vector<double> decodeVector(eckit::Stream& s) {
+    size_t size;
+    s >> size;
+    eckit::Buffer buffer(size * sizeof(double));
+    s >> buffer;
+    double* data = (double*) buffer.data();
+
+    return std::vector<double>(data, data + size);
+}
+
+} // namespace
 
 ExtractionResult::ExtractionResult(){}
 
@@ -23,7 +45,12 @@ ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values, std:
     {}
 
 ExtractionResult::ExtractionResult(eckit::Stream& s){
-    s >> values_;
+    size_t numRanges;
+    s >> numRanges;
+    for (size_t i = 0; i < numRanges; i++) {
+        values_.push_back(decodeVector(s));
+    }
+
     std::vector<std::vector<std::string>> bitsetStrings;
     s >> bitsetStrings;
     for (auto& v : bitsetStrings) {
@@ -46,7 +73,12 @@ void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsig
 }
 
 void ExtractionResult::encode(eckit::Stream& s) const {
-    s << values_;
+
+    s << values_.size(); // vector of vectors
+    for (auto& v : values_) {
+        encodeVector(s, v);
+    }
+
     std::vector<std::vector<std::string>> bitsetStrings;
     for (auto& v : mask_) {
         std::vector<std::string> bitsetString;
