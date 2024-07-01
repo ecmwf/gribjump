@@ -39,60 +39,73 @@ ecbuild_get_test_multidata( TARGET gribjump_test_O1280_data_files
 #     NO_AS_NEEDED
 #     LIBS      gribjump)
 
-ecbuild_add_test( TARGET    "gribjump_test_compression"
-    SOURCES   "test_compression.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test( 
+    TARGET "gribjump_test_compression"
+    SOURCES "test_compression.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)
 
-ecbuild_add_test( TARGET "gribjump_test_api"
-    SOURCES   "test_api.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test(
+    TARGET "gribjump_test_api"
+    SOURCES "test_api.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)
 
-
-ecbuild_add_test( TARGET "gribjump_test_api_axes"
-    SOURCES   "test_api_axes.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test(
+    TARGET "gribjump_test_api_axes"
+    SOURCES "test_api_axes.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)
 
-ecbuild_add_test( TARGET "gribjump_test_O1280"
-    SOURCES   "test_O1280.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test(
+    TARGET "gribjump_test_O1280"
+    SOURCES "test_O1280.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_O1280_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)
 
 
-    ecbuild_add_test( TARGET "gribjump_test_gribinfo"
-    SOURCES   "test_gribinfo.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test(
+    TARGET "gribjump_test_gribinfo"
+    SOURCES "test_gribinfo.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_O1280_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)
 
-ecbuild_add_test( TARGET "gribjump_test_engine"
-    SOURCES   "test_engine.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test(
+    TARGET "gribjump_test_engine"
+    SOURCES "test_engine.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_O1280_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)
 
-ecbuild_add_test( TARGET "gribjump_test_cache"
-    SOURCES   "test_cache.cc"
-    INCLUDES  "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT   "${gribjump_env}"
+ecbuild_add_test(
+    TARGET "gribjump_test_cache"
+    SOURCES "test_cache.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
-    LIBS      gribjump)
+    LIBS gribjump
+)

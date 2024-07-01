@@ -22,7 +22,7 @@
 
 namespace gribjump
 {
-class JumpInfo : public eckit::Streamable { // TODO rename to JumpInfo when finished.
+class JumpInfo : public eckit::Streamable {
 
 public:
 
