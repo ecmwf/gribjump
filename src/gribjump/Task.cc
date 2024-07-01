@@ -10,12 +10,17 @@
 
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
+#include "eckit/message/Message.h"
+#include "eckit/message/Reader.h"
+
+#include "fdb5/api/FDB.h"
 
 #include "gribjump/Task.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/remote/WorkQueue.h"
+#include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {
 
@@ -126,7 +131,6 @@ void FileExtractionTask::extract() {
 
     std::vector<JumpInfo*> infos = InfoCache::instance().get(fname_, offsets);
 
-
     // Extract
     eckit::FileHandle fh(fname_);
 
@@ -143,6 +147,41 @@ void FileExtractionTask::extract() {
     fh.close();
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems):
+    FileExtractionTask(taskgroup, id, fname, extractionItems) {
+}
+
+void InefficientFileExtractionTask::extract(){
+
+    fdb5::FDB fdb;
+
+    // One message at a time
+    for (auto& extractionItem : extractionItems_) {
+        eckit::URI uri = extractionItem->URI();
+        if (uri.scheme() != "fdb") {
+            throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
+        }
+
+        std::unique_ptr<eckit::DataHandle> handle(fdb.read(uri));
+
+        eckit::message::Message msg;
+        eckit::message::Reader reader(*handle);
+
+        while ( (msg = reader.next()) ) {
+ 
+            // Straight to factory, don't even check the cache
+            std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(msg));
+
+            std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
+            handle2->openForRead();
+            std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
+            jumper->extract(*handle2, *info, *extractionItem);
+
+
+        }
+    }
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -103,11 +103,25 @@ public:
 
     void execute() override;
 
-    void extract();
+    virtual void extract();
 
-private:
+protected:
     eckit::PathName fname_;
     std::vector<ExtractionItem*>& extractionItems_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+// InefficientFileExtractionTask extracts from the file, but by reading entire messages into memory first.
+// Ideally, never need this, but currently required for remotefdb.
+// Because it reads the full message, we do not check the cache for the infos, instead we create them on the fly.
+class InefficientFileExtractionTask : public FileExtractionTask {
+public:
+
+    InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems);
+
+    void extract() override;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

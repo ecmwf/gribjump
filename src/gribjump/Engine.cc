@@ -118,6 +118,9 @@ metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
     return unionRequest;
 }
 
+bool isRemote(eckit::URI uri){
+    return uri.scheme() == "fdb";
+}
 
 } // namespace 
 //----------------------------------------------------------------------------------------------------------------------
@@ -154,10 +157,14 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
     // Map files to ExtractionItem
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
 
-
     size_t counter = 0;
     for (auto& [fname, extractionItems] : filemap) {
-        taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+        if (isRemote(extractionItems[0]->URI())) {
+            taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+        }
+        else {
+            taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+        }
     }
     
     taskGroup_.waitForTasks();
