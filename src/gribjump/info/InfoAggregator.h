@@ -14,13 +14,12 @@
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/message/Message.h"
-#include "fdb5/database/Key.h"
 #include "gribjump/info/InfoExtractor.h"
+
 
 namespace gribjump {
 
-// Ideally we would use eckit URI, but in a map it uses .asString, which IGNORES THE FRAGMENT i.e. the offset, so is no good for us.
-using URI = std::string;
+using Key = std::string;
 
 class InfoAggregator { // rename...
 
@@ -28,24 +27,25 @@ public:
     InfoAggregator() = default;
 
     // Extract the JumpInfo from a message.
-    void add(const fdb5::Key& key, const eckit::message::Message& message);
+    void add(const Key& key, eckit::DataHandle& handle);
 
     // Store the location provided by fdb callback
-    void add(const fdb5::Key& key, const eckit::URI& location);
+    void add(const Key& key, const eckit::URI& location);
 
-    // Give  infos to the cache and persist them.
+    // Give infos to the cache and persist them.
     void flush();
+
+private:
+
+    // When both adds have been called, the second will call insert.
+    void insert(const eckit::URI& uri, JumpInfo* info);
 
 private:
     std::mutex mutex_; // Must lock before touching any maps
 
     // should be references or pointers, most likely.
-    std::map<fdb5::Key, URI> keyToLocation;
-    std::map<fdb5::Key, JumpInfo*> keyToJumpInfo;
-
-    std::map<URI, JumpInfo*> locationToJumpInfo;
-
-    std::map<URI, std::pair<eckit::PathName, eckit::Offset>> locationToPathAndOffset; // Feels unnecessary...
+    std::map<Key, eckit::URI> keyToLocation;
+    std::map<Key, JumpInfo*> keyToJumpInfo;
 
     size_t count_ = 0; // Should always equal size of location_to_jumpinfo_
 

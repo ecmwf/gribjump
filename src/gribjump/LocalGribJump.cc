@@ -132,13 +132,13 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     return engine.axes(request);
 }
 
-
+// TODO: remove these, plugin should use aggregator directly (which has its own config).
 void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::URI& location){
-    infoAggregator_.add(key, location);
+    NOTIMP;
 };
 
 void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::message::Message& msg){
-    infoAggregator_.add(key, msg);
+    NOTIMP;
 };
 
 

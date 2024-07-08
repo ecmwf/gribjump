@@ -18,14 +18,21 @@
 #include <vector>
 
 #include "eckit/system/Library.h"
+#include "eckit/system/Plugin.h"
 
 #include "gribjump/Config.h"
+
+
+namespace fdb5 {
+    class FDB;
+}
 
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class LibGribJump : public eckit::system::Library {
+class LibGribJump : public eckit::system::Plugin {
+// class LibGribJump : public eckit::system::Library {
 public:
     LibGribJump();
 
@@ -33,10 +40,12 @@ public:
 
     const Config& config() const;
 
-protected:
-    virtual std::string version() const;
+    void setup(fdb5::FDB& fdb) const;
 
-    virtual std::string gitsha1(unsigned int count) const;
+protected:
+    virtual std::string version() const override;
+
+    virtual std::string gitsha1(unsigned int count) const override;
 
 private:
 

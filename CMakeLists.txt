@@ -24,11 +24,15 @@ ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
                     DESCRIPTION "Build local extraction and serverside functionality")
 
 if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
-
   ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
   ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED ) # todo make optional?
+endif()
 
+# TODO: What's the ecbuild version of this?
+find_package(fdb5)
+if (fdb5_FOUND)
+    set(GRIBJUMP_HAVE_FDB 1)
 endif()
 
 ########################################################################################################################

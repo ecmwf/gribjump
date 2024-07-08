@@ -19,7 +19,6 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/FileStream.h"
 
-#include "fdb5/LibFdb5.h"
 
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/LibGribJump.h"

@@ -114,6 +114,9 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     compression/compressors/algorithms/SimplePacking.h
     compression/compressors/algorithms/LibEccodes.h
     compression/compressors/algorithms/LibEccodes.cc
+
+    FDBPlugin.cc
+    FDBPlugin.h
     )
 
     set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )

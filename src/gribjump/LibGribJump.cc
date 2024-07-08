@@ -20,6 +20,11 @@
 #include "eckit/log/Log.h"
 
 #include "gribjump/gribjump_version.h"
+#include "gribjump/gribjump_config.h"
+
+#ifdef GRIBJUMP_HAVE_FDB
+#include "gribjump/FDBPlugin.h"
+#endif
 
 namespace gribjump {
 
@@ -27,7 +32,8 @@ namespace gribjump {
 
 REGISTER_LIBRARY(LibGribJump);
 
-LibGribJump::LibGribJump() : Library("gribjump") {
+// LibGribJump::LibGribJump() : Plugin("gribjump", "gribjump-plugin") {
+LibGribJump::LibGribJump() : Plugin("gribjump") {
     if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
         config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
     } 
@@ -58,6 +64,25 @@ std::string LibGribJump::gitsha1(unsigned int count) const {
     return sha1.substr(0, std::min(count, 40u));
 }
 
+
+#ifdef GRIBJUMP_HAVE_FDB
+void LibGribJump::setup(fdb5::FDB& fdb) const {
+    FDBPlugin::instance(fdb);
+}
+
+#else
+void LibGribJump::setup(fdb5::FDB& fdb) const {
+    std::stringstream ss;
+    ss << "GribJump has been compiled without FDB support." << std::endl;
+    throw eckit::UserError(ss.str(), Here());
+}
+#endif
+
 //----------------------------------------------------------------------------------------------------------------------
+
+// To allow an FDB object to pass itself to the plugin
+extern "C" void gribjump_plugin_setup(fdb5::FDB& fdb) {
+    LibGribJump::instance().setup(fdb);
+}
 
 }  // namespace gribjump
