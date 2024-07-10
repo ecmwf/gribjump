@@ -140,6 +140,7 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
         sphericalHarmonics_ = msg.getLong("sphericalHarmonics");
     }
     catch(const eckit::Exception& e){
+        eckit::Log::warning() << "JumpInfo caught (and ignored by setting sphericalHarmonics_=0): " << e.what() << std::endl;
         sphericalHarmonics_ = 0;
     }
 }

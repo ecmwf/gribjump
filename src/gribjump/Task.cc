@@ -12,6 +12,9 @@
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/Length.h"
 
 #include "fdb5/api/FDB.h"
 
@@ -150,6 +153,9 @@ void FileExtractionTask::extract() {
 //----------------------------------------------------------------------------------------------------------------------
 InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems):
     FileExtractionTask(taskgroup, id, fname, extractionItems) {
+
+    LOG_DEBUG_LIB(LibGribJump) << "Created InefficientFileExtractionTask" << std::endl;
+
 }
 
 void InefficientFileExtractionTask::extract(){
@@ -159,27 +165,46 @@ void InefficientFileExtractionTask::extract(){
     // One message at a time
     for (auto& extractionItem : extractionItems_) {
         eckit::URI uri = extractionItem->URI();
+
         if (uri.scheme() != "fdb") {
             throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
         }
 
-        std::unique_ptr<eckit::DataHandle> handle(fdb.read(uri));
+        std::cout << "URI ::: " << uri << std::endl;
+    
+        std::string s = uri.query("length");
+        ASSERT(!s.empty());
+        eckit::Length length(std::stoi(s));
 
-        eckit::message::Message msg;
-        eckit::message::Reader reader(*handle);
+        eckit::Buffer buffer(length);
+        eckit::MemoryHandle mem(buffer);
 
-        while ( (msg = reader.next()) ) {
- 
-            // Straight to factory, don't even check the cache
-            std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(msg));
+        std::unique_ptr<eckit::DataHandle> handle;
 
-            std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
-            handle2->openForRead();
-            std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
-            jumper->extract(*handle2, *info, *extractionItem);
+        handle = std::unique_ptr<eckit::DataHandle>(fdb.read(uri));
 
+        {
+            // eckit::AutoLock lock(taskGroup_.debugMutex_); // Force single-threaded execution
+            handle->read(buffer, length);
 
+            // handle(fdb.read(uri)); // Also not thread safe: Unexpected answer for clientID recieved (4). ABORTING
+            // eckit::message::Reader reader(*handle); // XXX Also not thread safe not be done multithreaded!
+            // msg = reader.next(); // Also also not thread safe.
+            // ASSERT(!reader.next()); // Only one URI, so expect one message.
         }
+            
+        // Straight to factory, don't even check the cache
+        mem.openForRead();
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(mem, 0));
+
+        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
+        jumper->extract(mem, *info, *extractionItem);
+
+
+
+        // std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
+        // handle2->openForRead();
+
     }
 }
 

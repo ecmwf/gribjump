@@ -158,15 +158,23 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
 
     size_t counter = 0;
+
+    size_t count_remote = 0;
+    size_t count_local = 0;
     for (auto& [fname, extractionItems] : filemap) {
         if (isRemote(extractionItems[0]->URI())) {
             taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            count_remote++;
         }
         else {
+            // Reaching here is an error on the databridge, as it means we think the file is local...
             taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            count_local++;
         }
     }
     
+    ASSERT(count_local == 0);
+
     taskGroup_.waitForTasks();
 
     // Create map of base request to vector of extraction items
