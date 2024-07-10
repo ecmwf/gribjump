@@ -85,6 +85,10 @@ public:
 private:
 
     int counter_ = 0;  //< incremented by notify() or notifyError()
+    int logcounter_ = 1; //< used to log progress
+    int logincrement_ = 1; //< used to log progress
+    bool waiting_ = false;
+
 
     std::mutex m_;
     std::condition_variable cv_;

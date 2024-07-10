@@ -63,6 +63,15 @@ void TaskGroup::notify(size_t taskid) {
     std::lock_guard<std::mutex> lock(m_);
     taskStatus_[taskid] = Task::Status::DONE;
     counter_++;
+
+    // Logging progress
+    if (waiting_) {
+        if (counter_ == logcounter_) {
+            eckit::Log::info() << "Gribjump Progress: " << counter_ << " of " << taskStatus_.size() << " tasks complete" << std::endl;
+            logcounter_ += logincrement_;
+        }
+    }
+
     cv_.notify_one();
 }
 
@@ -87,7 +96,13 @@ void TaskGroup::waitForTasks(){
     ASSERT(taskStatus_.size() > 0); // todo Might want to allow for "no tasks" case, though be careful with the lock / counter.
     LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
     std::unique_lock<std::mutex> lock(m_);
+    waiting_ = true;
+    logincrement_ = taskStatus_.size() / 10;
+    if (logincrement_ == 0) {
+        logincrement_ = 1;
+    }
     cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
+    waiting_ = false;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
 }
 
@@ -107,16 +122,13 @@ FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, co
 }
 
 void FileExtractionTask::execute()  {
-    eckit::Timer timer;
     const std::string thread_id = thread_id_str();
-    eckit::Timer full_timer("Thread total time. Thread: " + thread_id);
+    eckit::Timer full_timer("Thread total time. Thread: " + thread_id, eckit::Log::debug());
 
     // Sort extractionItems_ by offset
     std::sort(extractionItems_.begin(), extractionItems_.end(), [](const ExtractionItem* a, const ExtractionItem* b) {
         return a->offset() < b->offset();
     });
-
-    timer.reset("FileExtractionTask : Sorted offsets Thread: " + thread_id);
 
     extract();
 
@@ -159,6 +171,7 @@ InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgrou
 }
 
 void InefficientFileExtractionTask::extract(){
+    const std::string thread_id = thread_id_str();
 
     fdb5::FDB fdb;
 
@@ -170,40 +183,29 @@ void InefficientFileExtractionTask::extract(){
             throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
         }
 
-        std::cout << "URI ::: " << uri << std::endl;
-    
         std::string s = uri.query("length");
         ASSERT(!s.empty());
-        eckit::Length length(std::stoi(s));
+        eckit::Length length(std::stoll(s));
 
         eckit::Buffer buffer(length);
-        eckit::MemoryHandle mem(buffer);
+        eckit::MemoryHandle memHandle(buffer);
 
-        std::unique_ptr<eckit::DataHandle> handle;
-
-        handle = std::unique_ptr<eckit::DataHandle>(fdb.read(uri));
+        std::unique_ptr<eckit::DataHandle> remoteHandle(fdb.read(uri));
 
         {
             // eckit::AutoLock lock(taskGroup_.debugMutex_); // Force single-threaded execution
-            handle->read(buffer, length);
-
-            // handle(fdb.read(uri)); // Also not thread safe: Unexpected answer for clientID recieved (4). ABORTING
-            // eckit::message::Reader reader(*handle); // XXX Also not thread safe not be done multithreaded!
-            // msg = reader.next(); // Also also not thread safe.
-            // ASSERT(!reader.next()); // Only one URI, so expect one message.
+            long read = 0;
+            long toRead = length;
+            while ((read = remoteHandle->read(buffer, toRead)) != 0) {
+                toRead -= read;
+            }
         }
             
         // Straight to factory, don't even check the cache
-        mem.openForRead();
-        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(mem, 0));
-
+        memHandle.openForRead();
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(memHandle, 0));
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
-        jumper->extract(mem, *info, *extractionItem);
-
-
-
-        // std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
-        // handle2->openForRead();
+        jumper->extract(memHandle, *info, *extractionItem);
 
     }
 }
