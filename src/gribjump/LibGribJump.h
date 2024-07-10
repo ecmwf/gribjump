@@ -23,10 +23,6 @@
 #include "gribjump/Config.h"
 
 
-namespace fdb5 {
-    class FDB;
-}
-
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -40,7 +36,7 @@ public:
 
     const Config& config() const;
 
-    void setup(fdb5::FDB& fdb) const;
+    void setup(void* fdb) override;
 
 protected:
     virtual std::string version() const override;

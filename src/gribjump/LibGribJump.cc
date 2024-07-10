@@ -66,12 +66,14 @@ std::string LibGribJump::gitsha1(unsigned int count) const {
 
 
 #ifdef GRIBJUMP_HAVE_FDB
-void LibGribJump::setup(fdb5::FDB& fdb) const {
-    FDBPlugin::instance(fdb);
+
+void LibGribJump::setup(void* fdb) {
+    fdb5::FDB* fdb_ptr = static_cast<fdb5::FDB*>(fdb);
+    FDBPlugin::instance(*fdb_ptr);
 }
 
 #else
-void LibGribJump::setup(fdb5::FDB& fdb) const {
+void LibGribJump::setup(void* fdb) {
     std::stringstream ss;
     ss << "GribJump has been compiled without FDB support." << std::endl;
     throw eckit::UserError(ss.str(), Here());
@@ -79,10 +81,5 @@ void LibGribJump::setup(fdb5::FDB& fdb) const {
 #endif
 
 //----------------------------------------------------------------------------------------------------------------------
-
-// To allow an FDB object to pass itself to the plugin
-extern "C" void gribjump_plugin_setup(fdb5::FDB& fdb) {
-    LibGribJump::instance().setup(fdb);
-}
 
 }  // namespace gribjump
