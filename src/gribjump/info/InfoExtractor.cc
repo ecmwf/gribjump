@@ -74,8 +74,8 @@ JumpInfo* InfoExtractor::extract(const eckit::PathName& path, const eckit::Offse
     return info;
 }
 
-JumpInfo* InfoExtractor::extract(const eckit::message::Message& msg, bool anyPacking){
-    return InfoFactory::instance().build(msg, anyPacking);
+JumpInfo* InfoExtractor::extract(const eckit::message::Message& msg){
+    return InfoFactory::instance().build(msg);
 }
 
 }  // namespace gribjump

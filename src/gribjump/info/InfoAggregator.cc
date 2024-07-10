@@ -24,10 +24,8 @@ URI convert(const eckit::URI& uri){
 } // anonymous namespace
 
 void InfoAggregator::add(const fdb5::Key& key, const eckit::message::Message& message){
-    
-    bool anyPacking = true; // Return null for unsupported packing, rather than throw an exception.
 
-    JumpInfo* info = extractor_.extract(message, anyPacking);
+    JumpInfo* info = extractor_.extract(message);
 
     std::lock_guard<std::mutex> lock(mutex_);
 

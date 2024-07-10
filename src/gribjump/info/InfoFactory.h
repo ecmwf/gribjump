@@ -49,13 +49,13 @@ public:
 
     static InfoFactory& instance();
 
-    JumpInfo* build(eckit::DataHandle& h, const eckit::Offset& offset, bool allowMissing=false);
-    JumpInfo* build(const eckit::message::Message& msg, bool allowMissing=false);
+    JumpInfo* build(eckit::DataHandle& h, const eckit::Offset& offset);
+    JumpInfo* build(const eckit::message::Message& msg);
 
     void enregister(const std::string& name, InfoBuilderBase* builder);
     void deregister(const std::string& name);
 
-    InfoBuilderBase* get(const std::string& name, bool allowMissing=false);
+    InfoBuilderBase* get(const std::string& name);
 
 private:
 

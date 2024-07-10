@@ -29,7 +29,7 @@ public:
     std::vector<JumpInfo*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
     JumpInfo* extract(const eckit::PathName& path, const eckit::Offset& offset);
 
-    JumpInfo* extract(const eckit::message::Message& msg, bool anyPacking=false);
+    JumpInfo* extract(const eckit::message::Message& msg);
 };
 
 }  // namespace gribjump
