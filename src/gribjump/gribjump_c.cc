@@ -136,7 +136,7 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
     return 0;
 }
 
-int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned short* nfields) {
+int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
     ExtractionRequest req = *request;
     std::vector<ExtractionResult*> results = handle->extract(std::vector<ExtractionRequest>{req})[0];
 
@@ -149,14 +149,14 @@ int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* req
 
     return 0;
 }
-int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned short nrequests, gribjump_extraction_result_t**** results_array, unsigned short** nfields) {
+int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields) {
     std::vector<ExtractionRequest> reqs;
     for (size_t i = 0; i < nrequests; i++) {
         reqs.push_back(*requests[i]);
     }
     std::vector<std::vector<ExtractionResult*>> results = handle->extract(reqs);
 
-    *nfields = new unsigned short[nrequests];
+    *nfields = new unsigned long[nrequests];
     *results_array = new gribjump_extraction_result_t**[nrequests];
 
     for (size_t i = 0; i < nrequests; i++) {

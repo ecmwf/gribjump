@@ -38,7 +38,7 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
     ccsdsRsi_ = grib::ccsdsRsi(h);
 
     // Read data section to get offsets.
-    handle.seek(msgStartOffset_ + offsetBeforeData_);
+    handle.seek(startOffset + offsetBeforeData_);
 
     eckit::Length len = offsetAfterData_ - offsetBeforeData_;
     eckit::Buffer buffer(len);

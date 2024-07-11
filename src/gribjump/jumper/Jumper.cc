@@ -69,22 +69,21 @@ Jumper::Jumper() {}
 Jumper::~Jumper() {}
 
 
-void Jumper::extract(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extract(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem) {
     ASSERT(checkIntervals(extractionItem.intervals()));
     ASSERT(!info.sphericalHarmonics());
 
     if (info.bitsPerValue() == 0) return extractConstant(info, extractionItem);
 
-    if (!info.offsetBeforeBitmap()) return extractNoMask(dh, info, extractionItem);
+    if (!info.offsetBeforeBitmap()) return extractNoMask(dh, offset, info, extractionItem);
 
-    return extractMasked(dh, info, extractionItem);
+    return extractMasked(dh, offset, info, extractionItem);
 }
 
+void Jumper::extractNoMask(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem) {
 
-void Jumper::extractNoMask(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem) {
-
-     const std::vector<Interval>& intervals = extractionItem.intervals();
-    readValues(dh, info, intervals, extractionItem);
+    const std::vector<Interval>& intervals = extractionItem.intervals();
+    readValues(dh, offset, info, intervals, extractionItem);
 
     std::vector<std::vector<std::bitset<64>>> all_masks; // all present
 
@@ -97,13 +96,13 @@ void Jumper::extractNoMask(eckit::DataHandle& dh, const JumpInfo& info, Extracti
     
 }
 
-void Jumper::extractMasked(eckit::DataHandle& dh, const JumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem) {
 
     const std::vector<Interval>& old_intervals = extractionItem.intervals();
-    auto fullbitmap = readBitmap(dh, info);
+    auto fullbitmap = readBitmap(dh, offset, info);
     auto [new_intervals, new_bitmaps] = calculateMaskedIntervals(old_intervals, fullbitmap);
 
-    readValues(dh, info, new_intervals, extractionItem);
+    readValues(dh, offset, info, new_intervals, extractionItem);
     auto all_decoded_values = extractionItem.values();
 
     std::vector<Values> all_values;
@@ -153,10 +152,10 @@ void Jumper::extractConstant(const JumpInfo& info, ExtractionItem& extractionIte
 
 // Read the entire bitmap from a GRIB file
 // TODO(maee): optimization: read only the bitmap for the requested interval
-Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const JumpInfo& info) const {
+Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info) const {
 
 
-    eckit::Offset offset = info.msgStartOffset() + info.offsetBeforeBitmap();
+    eckit::Offset bitmapOffset = offset + info.offsetBeforeBitmap();
     auto bitmapSize = (info.numberOfDataPoints() + 7) / 8;
 
     if (bitmapSize == 0)
@@ -167,7 +166,7 @@ Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const JumpInfo& info) const {
 
     eckit::Buffer binaryBitmap(info.numberOfDataPoints());
 
-    if (dh.seek(offset) != offset)
+    if (dh.seek(bitmapOffset) != bitmapOffset)
         throw std::runtime_error("Bitmap seek failed");
 
     if (dh.read(binaryBitmap, bitmapSize) != bitmapSize)

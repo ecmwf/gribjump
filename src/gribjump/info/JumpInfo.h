@@ -51,8 +51,7 @@ public:
     unsigned long numberOfValues() const { return numberOfValues_; }
     unsigned long numberOfDataPoints() const { return numberOfDataPoints_; }
     eckit::Length totalLength() const { return totalLength_; }
-    eckit::Offset msgStartOffset() const { return msgStartOffset_; }
-    long sphericalHarmonics() const { return sphericalHarmonics_; }
+    long sphericalHarmonics() const { return sphericalHarmonics_; } /* deprecate? can we just check the packing type? */
     std::string md5GridSection() const { return md5GridSection_; }
     std::string packingType() const { return packingType_; }
     double binaryMultiplier() const { return binaryMultiplier_; }
@@ -75,7 +74,7 @@ private:
 
 protected:
 
-    static constexpr uint8_t currentVersion_ = 4;
+    static constexpr uint8_t currentVersion_ = 5;
     uint8_t       version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
@@ -88,7 +87,6 @@ protected:
     unsigned long numberOfValues_;
     unsigned long numberOfDataPoints_;
     eckit::Length totalLength_;
-    eckit::Offset msgStartOffset_;
     long          sphericalHarmonics_;
     std::string   md5GridSection_;
     std::string   packingType_ = "none";

@@ -23,7 +23,7 @@ CcsdsJumper::CcsdsJumper(): Jumper() {}
 
 CcsdsJumper::~CcsdsJumper() {}
 
-void CcsdsJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
+void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(&info_in);
 
@@ -44,7 +44,7 @@ void CcsdsJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, con
         .offsets(info.ccsdsOffsets());
 
 
-    auto data_range = mc::Range{info.msgStartOffset() + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()};
+    auto data_range = mc::Range{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()};
     std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor2>(dh, data_range);
 
     // TODO(maee): Optimize this

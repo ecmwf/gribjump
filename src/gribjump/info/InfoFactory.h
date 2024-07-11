@@ -23,20 +23,20 @@ public:
     InfoBuilderBase(const std::string& name);
     virtual ~InfoBuilderBase();
 
-    virtual JumpInfo* make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) const = 0;
-    virtual JumpInfo* make(const eckit::message::Message& msg) const = 0;
+    virtual std::unique_ptr<JumpInfo> make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) const = 0;
+    virtual std::unique_ptr<JumpInfo> make(const eckit::message::Message& msg) const = 0;
 
 };
 
 template <class T>
 class InfoBuilder : public InfoBuilderBase {
    
-    JumpInfo* make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, eckit::Offset startOffset) const override {
-        return new T(h, gh, startOffset);
+    std::unique_ptr<JumpInfo> make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, eckit::Offset startOffset) const override {
+        return std::make_unique<T>(h, gh, startOffset);
     }
 
-    JumpInfo* make(const eckit::message::Message& msg) const override {
-        return new T(msg);
+    std::unique_ptr<JumpInfo> make(const eckit::message::Message& msg) const override {
+        return std::make_unique<T>(msg);
     }
 
 public:
@@ -49,13 +49,13 @@ public:
 
     static InfoFactory& instance();
 
-    JumpInfo* build(eckit::DataHandle& h, const eckit::Offset& offset, bool allowMissing=false);
-    JumpInfo* build(const eckit::message::Message& msg, bool allowMissing=false);
+    std::unique_ptr<JumpInfo> build(eckit::DataHandle& h, const eckit::Offset& offset);
+    std::unique_ptr<JumpInfo> build(const eckit::message::Message& msg);
 
     void enregister(const std::string& name, InfoBuilderBase* builder);
     void deregister(const std::string& name);
 
-    InfoBuilderBase* get(const std::string& name, bool allowMissing=false);
+    InfoBuilderBase* get(const std::string& name);
 
 private:
 

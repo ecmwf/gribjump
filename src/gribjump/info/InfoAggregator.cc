@@ -32,7 +32,7 @@ void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> inf
     eckit::Offset offset(std::stoll(uri.fragment()));
     eckit::PathName path = uri.path();
 
-    InfoCache::instance().insert(path, offset, info.release()); // InfoCache takes ownership // TODO: use std move, whenever I merge develop in here.
+    InfoCache::instance().insert(path, offset, std::move(info));
 
 }
 

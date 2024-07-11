@@ -25,11 +25,11 @@ public:
     ~InfoExtractor();
 
 
-    std::vector<JumpInfo*> extract(const eckit::PathName& path);
-    std::vector<JumpInfo*> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
-    JumpInfo* extract(const eckit::PathName& path, const eckit::Offset& offset);
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> extract(const eckit::PathName& path);
+    std::vector<std::unique_ptr<JumpInfo>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+    std::unique_ptr<JumpInfo> extract(const eckit::PathName& path, const eckit::Offset& offset);
 
-    JumpInfo* extract(const eckit::message::Message& msg, bool anyPacking=false);
+    std::unique_ptr<JumpInfo> extract(const eckit::message::Message& msg);
 };
 
 }  // namespace gribjump
