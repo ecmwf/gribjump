@@ -21,33 +21,23 @@ namespace gribjump {
 
 using Key = std::string;
 
-class InfoAggregator { // rename...
+
+// TODO: With recent improvements, we may no longer need this class, perhaps the callback can call the cache directly.
+class InfoAggregator {
 
 public:
     InfoAggregator() = default;
 
-    // Extract the JumpInfo from a message.
-    void add(const Key& key, eckit::DataHandle& handle);
+    void add(const eckit::URI& uri, eckit::DataHandle& handle, eckit::Offset offset);
 
-    // Store the location provided by fdb callback
-    void add(const Key& key, const eckit::URI& location);
-
-    // Give infos to the cache and persist them.
     void flush();
 
 private:
 
-    // When both adds have been called, the second will call insert.
-    void insert(const eckit::URI& uri, JumpInfo* info);
+    void insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info);
 
 private:
     std::mutex mutex_; // Must lock before touching any maps
-
-    // should be references or pointers, most likely.
-    std::map<Key, eckit::URI> keyToLocation;
-    std::map<Key, JumpInfo*> keyToJumpInfo;
-
-    size_t count_ = 0; // Should always equal size of location_to_jumpinfo_
 
     InfoExtractor extractor_;
 };

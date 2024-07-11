@@ -33,21 +33,14 @@ FDBPlugin::FDBPlugin(FDB& fdb) : fdb_(fdb) {
 
     parseConfig(eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", ""));
 
-    fdb_.registerCallback([this](const fdb5::Key& key, const fdb5::FieldLocation& location) {
-        if (!matches(key)) return;
-        
-        LOG_DEBUG_LIB(LibGribJump) << "Archive callback for key " << key << std::endl;
-        aggregator_.add(key, location.fullUri());
-    });
-
-    fdb_.registerCallback([this](const fdb5::Key& key, const void* data, size_t length) {
+    fdb_.registerCallback([this](const fdb5::Key& key, const void* data, size_t length, const fdb5::FieldLocation& location) {
         if (!matches(key)) return;
 
-        LOG_DEBUG_LIB(LibGribJump) << "Post-archive callback for key " << key << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "archive callback for selected key " << key << std::endl;
         
         /* Can we assume at this stage that "data" is a GRIB? We are not explicitly checking this. */
         eckit::MemoryHandle handle(data, length);
-        aggregator_.add(key, handle);
+        aggregator_.add(location.fullUri(), handle, 0); // Memory handle starts from offset 0.
     });
 
     fdb_.registerCallback([this]() {

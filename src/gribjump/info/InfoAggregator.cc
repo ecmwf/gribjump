@@ -18,53 +18,26 @@
 
 namespace gribjump {
 
-void InfoAggregator::add(const Key& key, eckit::DataHandle& handle){
-    
+void InfoAggregator::add(const eckit::URI& uri, eckit::DataHandle& handle, eckit::Offset offset){
+
     handle.openForRead();
-    JumpInfo* info(InfoFactory::instance().build(handle, 0)); // memory handle starts at 0
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset)); // memory handle starts at 0
+    handle.close();
 
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    keyToJumpInfo[key] = info;
-
-    if (keyToLocation.find(key) != keyToLocation.end()){
-        const eckit::URI& uri = keyToLocation[key];
-        /* We could probably release the lock now, before calling insert */
-        insert(uri, info);
-    }
-}
-
-// Store the location provided by fdb callback
-void InfoAggregator::add(const Key& key, const eckit::URI& uri){
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    keyToLocation[key] = uri;
-
-    if (keyToJumpInfo.find(key) != keyToJumpInfo.end()){
-        /* We could probably release the lock now, before calling insert */
-        insert(uri, keyToJumpInfo[key]);
-    }
+    insert(uri, std::move(info));
 }
 
 // Give to the cache
-void InfoAggregator::insert(const eckit::URI& uri, JumpInfo* info){
+void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info){
     eckit::Offset offset(std::stoll(uri.fragment()));
     eckit::PathName path = uri.path();
 
-    InfoCache::instance().insert(path, offset, info); // cache handles its own locking
+    InfoCache::instance().insert(path, offset, info.release()); // InfoCache takes ownership // TODO: use std move, whenever I merge develop in here.
 
-    count_++;
 }
 
 void InfoAggregator::flush(){
-    // By calling flush, you are promising that you have added key,location,message in equal measure.
-    // If we need to wait, then wait before flushing.
-    // But if this is called *after* fdb flush, then we should be good (all location callbacks will have called).
     LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::flush()" << std::endl;
-
-    // Ensure both sides of the add have been called in equal measure
-    ASSERT(keyToLocation.size() == count_);
-    ASSERT(keyToJumpInfo.size() == count_);
 
     InfoCache::instance().persist();
 }
