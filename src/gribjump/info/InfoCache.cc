@@ -83,9 +83,9 @@ FileCache& InfoCache::getFileCache(const eckit::PathName& path) {
     auto it = cache_.find(f);
     if(it != cache_.end()) return *(it->second);
     
-    eckit::Log::info() << "New InfoCache entry for file " << f << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "New InfoCache entry for file " << f << std::endl;
     eckit::PathName cachePath = cacheFilePath(path);
-    eckit::Log::info() << "Full cache path: " << cachePath << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "Full cache path: " << cachePath << std::endl;
     FileCache* filecache = new FileCache(cachePath); // this will load the cache file into memory if it exists
     cache_.insert(std::make_pair(f, filecache));
     return *filecache;

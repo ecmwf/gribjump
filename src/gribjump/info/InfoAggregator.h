@@ -37,8 +37,8 @@ private:
     void insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info);
 
 private:
-    std::mutex mutex_; // Must lock before touching any maps
-
     InfoExtractor extractor_;
+    
+    std::map<std::string, size_t> count_; 
 };
 } // namespace gribjump

@@ -21,7 +21,7 @@ namespace gribjump {
 void InfoAggregator::add(const eckit::URI& uri, eckit::DataHandle& handle, eckit::Offset offset){
 
     handle.openForRead();
-    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset)); // memory handle starts at 0
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
     handle.close();
 
     insert(uri, std::move(info));
@@ -32,14 +32,21 @@ void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> inf
     eckit::Offset offset(std::stoll(uri.fragment()));
     eckit::PathName path = uri.path();
 
+    count_[info->packingType()]++;
+
     InfoCache::instance().insert(path, offset, std::move(info));
 
 }
 
 void InfoAggregator::flush(){
-    LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::flush()" << std::endl;
-
     InfoCache::instance().persist();
+
+    if (LibGribJump::instance().debug()){
+        LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
+        for (const auto& [key, value] : count_){
+            LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
+        }
+    }
 }
 
 } // namespace gribjump
