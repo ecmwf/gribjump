@@ -116,7 +116,7 @@ class GribJump:
 
         # results_array contains values, for each field, for each request.
         results_array = ffi.new('gribjump_extraction_result_t****')
-        nfields = ffi.new('unsigned short**')
+        nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
         lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields)
@@ -183,7 +183,7 @@ class GribJump:
         # resultarray[0] is pointer to array of pointers to results
         # resultarray[0][0] is pointer to first result
         resultarray = ffi.new('gribjump_extraction_result_t***')
-        nfields = ffi.new('unsigned short*')
+        nfields = ffi.new('unsigned long*')
         
         lib.extract_single(self.__gribjump, request.ctype, resultarray, nfields)
         res = [

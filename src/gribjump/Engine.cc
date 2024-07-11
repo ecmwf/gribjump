@@ -113,7 +113,7 @@ metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
         unionRequest.merge(requests[i]);
     }
     
-    LOG_DEBUG_LIB(LibGribJump) << "Union request " << unionRequest << std::endl;
+    eckit::Log::info() << "Gribjump: Union request is " << unionRequest << std::endl;
     
     return unionRequest;
 }
@@ -130,11 +130,10 @@ Engine::Engine() {}
 Engine::~Engine() {}
 
 Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, bool flatten) {
-
     typedef std::map<std::string, ExtractionItem*> keyToExItem_t;
-    typedef std::map<eckit::PathName, std::vector<ExtractionItem*>> filemap_t;
-
     keyToExItem_t keyToExtractionItem;
+
+    eckit::Timer timer;
 
     flattenedKeys_t flatKeys = buildFlatKeys(requests, flatten); // Map from base request to {flattened keys}
 
@@ -154,8 +153,11 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
 
     const metkit::mars::MarsRequest req = unionRequest(requests);
 
+    timer.reset("Gribjump Engine: Flattened requests and constructed union request");
+
     // Map files to ExtractionItem
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
+    timer.reset("Gribjump Engine: Called fdb.list and constructed file map");
 
     size_t counter = 0;
     for (auto& [fname, extractionItems] : filemap) {
@@ -163,11 +165,16 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
             taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
         }
         else {
+            // Reaching here is an error on the databridge, as it means we think the file is local...
             taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
         }
     }
-    
+
+    timer.reset("Gribjump Engine: Enqueued " + std::to_string(filemap.size()) + " file tasks");
+
     taskGroup_.waitForTasks();
+
+    timer.reset("Gribjump Engine: All tasks finished");
 
     // Create map of base request to vector of extraction items
     std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> reqToExtractionItems;
@@ -175,6 +182,8 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
     for (auto& [key, ex] : keyToExtractionItem) {
         reqToExtractionItems[ex->request()].push_back(ex);
     }
+
+    timer.reset("Gribjump Engine: Repackaged results");
 
     return reqToExtractionItems;
 

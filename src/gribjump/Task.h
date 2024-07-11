@@ -80,9 +80,15 @@ public:
 
     void reportErrors(eckit::Stream& client_);
 
+    std::mutex debugMutex_;
+    
 private:
 
     int counter_ = 0;  //< incremented by notify() or notifyError()
+    int logcounter_ = 1; //< used to log progress
+    int logincrement_ = 1; //< used to log progress
+    bool waiting_ = false;
+
 
     std::mutex m_;
     std::condition_variable cv_;
@@ -90,6 +96,7 @@ private:
     std::vector<Task*> tasks_; //< stores tasks status, must be initialised by derived class
     std::vector<size_t> taskStatus_;
     std::vector<std::string> errors_; //< stores error messages, empty if no errors
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

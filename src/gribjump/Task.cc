@@ -12,6 +12,9 @@
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/io/Length.h"
 
 #include "fdb5/api/FDB.h"
 
@@ -60,6 +63,15 @@ void TaskGroup::notify(size_t taskid) {
     std::lock_guard<std::mutex> lock(m_);
     taskStatus_[taskid] = Task::Status::DONE;
     counter_++;
+
+    // Logging progress
+    if (waiting_) {
+        if (counter_ == logcounter_) {
+            eckit::Log::info() << "Gribjump Progress: " << counter_ << " of " << taskStatus_.size() << " tasks complete" << std::endl;
+            logcounter_ += logincrement_;
+        }
+    }
+
     cv_.notify_one();
 }
 
@@ -84,7 +96,15 @@ void TaskGroup::waitForTasks(){
     ASSERT(taskStatus_.size() > 0); // todo Might want to allow for "no tasks" case, though be careful with the lock / counter.
     LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
     std::unique_lock<std::mutex> lock(m_);
+
+    waiting_ = true;
+    logincrement_ = taskStatus_.size() / 10;
+    if (logincrement_ == 0) {
+        logincrement_ = 1;
+    }
+
     cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
+    waiting_ = false;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
 }
 
@@ -104,16 +124,13 @@ FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, co
 }
 
 void FileExtractionTask::execute()  {
-    eckit::Timer timer;
     const std::string thread_id = thread_id_str();
-    eckit::Timer full_timer("Thread total time. Thread: " + thread_id);
+    eckit::Timer full_timer("Thread total time. Thread: " + thread_id, eckit::Log::debug());
 
     // Sort extractionItems_ by offset
     std::sort(extractionItems_.begin(), extractionItems_.end(), [](const ExtractionItem* a, const ExtractionItem* b) {
         return a->offset() < b->offset();
     });
-
-    timer.reset("FileExtractionTask : Sorted offsets Thread: " + thread_id);
 
     extract();
 
@@ -153,38 +170,42 @@ InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgrou
 }
 
 void InefficientFileExtractionTask::extract(){
-    
-    // Has been replaced in the databridge branch
-    // TODO: merge
-    
-    NOTIMP;
-    // fdb5::FDB fdb;
 
-    // // One message at a time
-    // for (auto& extractionItem : extractionItems_) {
-    //     eckit::URI uri = extractionItem->URI();
-    //     if (uri.scheme() != "fdb") {
-    //         throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
-    //     }
+    fdb5::FDB fdb;
 
-    //     std::unique_ptr<eckit::DataHandle> handle(fdb.read(uri));
+    // One message at a time
+    for (auto& extractionItem : extractionItems_) {
+        eckit::URI uri = extractionItem->URI();
 
-    //     eckit::message::Message msg;
-    //     eckit::message::Reader reader(*handle);
+        if (uri.scheme() != "fdb") {
+            throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
+        }
 
-    //     while ( (msg = reader.next()) ) {
- 
-    //         // Straight to factory, don't even check the cache
-    //         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(msg));
+        std::string s = uri.query("length");
+        ASSERT(!s.empty());
+        eckit::Length length(std::stoll(s));
 
-    //         std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
-    //         handle2->openForRead();
-    //         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
-    //         jumper->extract(*handle2, *info, *extractionItem);
+        eckit::Buffer buffer(length);
+        eckit::MemoryHandle memHandle(buffer);
 
+        std::unique_ptr<eckit::DataHandle> remoteHandle(fdb.read(uri));
 
-    //     }
-    // }
+        {
+            // eckit::AutoLock lock(taskGroup_.debugMutex_); // Force single-threaded execution
+            long read = 0;
+            long toRead = length;
+            while ((read = remoteHandle->read(buffer, toRead)) != 0) {
+                toRead -= read;
+            }
+        }
+            
+        // Straight to factory, don't even check the cache
+        memHandle.openForRead();
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(memHandle, 0));
+        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
+        jumper->extract(memHandle, 0, *info, *extractionItem);
+
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

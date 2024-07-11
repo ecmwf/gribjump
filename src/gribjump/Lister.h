@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include "eckit/filesystem/PathName.h"
 
 #include "fdb5/api/FDB.h"
@@ -47,7 +49,8 @@ private:
 
 //  ------------------------------------------------------------------
 using reqToXRR_t = std::map<std::string, ExtractionItem*>;
-using filemap_t = std::map<eckit::PathName, std::vector<ExtractionItem*>>;
+// We explicitly want this map to be randomly sorted.
+using filemap_t = std::unordered_map<std::string, std::vector<ExtractionItem*>>; // String is filepath, eckit::PathName is not hashable?
 
 class FDBLister : public Lister {
 public:
