@@ -375,4 +375,12 @@ size_t FileCache::count() {
     return map_.size();
 }
 
+void FileCache::print(std::ostream& s) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    s << "FileCache[" << path_ << " (" << map_.size() << " entries)]:" << std::endl;
+    for (auto& entry : map_) {
+        s << "  Offset:" << entry.first << " -> " << *entry.second << std::endl;
+    }
+}
+
 }  // namespace gribjump

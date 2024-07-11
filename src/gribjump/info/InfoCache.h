@@ -61,13 +61,14 @@ public:
 
     void print(std::ostream& s) const;
 
+    FileCache& getFileCache(const eckit::PathName& f);
+
 private: // methods
 
     InfoCache();
     
     ~InfoCache();
 
-    FileCache& getFileCache(const eckit::PathName& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
 
@@ -84,20 +85,23 @@ private: // members
                                //  This takes precedence over cacheDir_.
 };
 
-// owns the JumpInfo objects, all of which correspond to a single file.
-// NB: No public constructor, only InfoCache can create these.
+// Holds JumpInfo objects belonging to single file.
 class FileCache {
 
     using infomap_t = std::map<eckit::Offset, std::shared_ptr<JumpInfo>>;
     friend class InfoCache; 
 
-private:
+public:
 
     FileCache(const eckit::PathName& path);
 
     FileCache(eckit::Stream& s);
 
     ~FileCache();
+
+    void print(std::ostream& s);
+
+private: // Methods are only intended to be called from InfoCache
 
     void encode(eckit::Stream& s);
 
@@ -108,7 +112,6 @@ private:
     void persist(bool merge=true);
 
     void insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info);
-
 
     // wrapper around map_.find()
     std::shared_ptr<JumpInfo> find(eckit::Offset offset);
