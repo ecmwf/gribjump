@@ -22,7 +22,7 @@ SimpleJumper::SimpleJumper(): Jumper() {}
 
 SimpleJumper::~SimpleJumper() {}
 
-void SimpleJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
+void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
 
     const SimpleInfo* psimple = dynamic_cast<const SimpleInfo*>(&info_in);
 
@@ -31,7 +31,7 @@ void SimpleJumper::readValues(eckit::DataHandle& dh, const JumpInfo& info_in, co
     const SimpleInfo& info = *psimple;
 
 
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor2>(dh, mc::Range{info.msgStartOffset() + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()}); // TODO XXX
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor2>(dh, mc::Range{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()}); // TODO XXX
     mc::SimpleDecompressor<double> simple{};
     simple
         .bits_per_value(info.bitsPerValue())

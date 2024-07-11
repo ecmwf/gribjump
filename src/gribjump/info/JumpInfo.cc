@@ -54,7 +54,7 @@ static metkit::grib::GribAccessor<std::string>   packingType("packingType");
 // --------------------------------------------------------------------------------------------
 
 JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): 
-    version_(currentVersion_), msgStartOffset_(startOffset) {
+    version_(currentVersion_) {
 
     editionNumber_      = grib::editionNumber(h);
     packingType_        = grib::packingType(h);
@@ -94,7 +94,7 @@ JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startO
 // Stop using it.
 
 JumpInfo::JumpInfo(const eckit::message::Message& msg):
-    version_(currentVersion_), msgStartOffset_(0) {
+    version_(currentVersion_) {
 
     editionNumber_      = msg.getLong("editionNumber");
     packingType_        = msg.getString("packingType");
@@ -140,6 +140,7 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
         sphericalHarmonics_ = msg.getLong("sphericalHarmonics");
     }
     catch(const eckit::Exception& e){
+        eckit::Log::warning() << "JumpInfo caught (and ignored by setting sphericalHarmonics_=0): " << e.what() << std::endl;
         sphericalHarmonics_ = 0;
     }
 }
@@ -158,7 +159,6 @@ JumpInfo::JumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> numberOfValues_;
     s >> numberOfDataPoints_;
     s >> totalLength_;
-    s >> msgStartOffset_;
     s >> sphericalHarmonics_;
     s >> md5GridSection_;
     s >> binaryMultiplier_;
@@ -180,7 +180,6 @@ void JumpInfo::encode(eckit::Stream& s) const {
     s << numberOfValues_;
     s << numberOfDataPoints_;
     s << totalLength_;
-    s << msgStartOffset_;
     s << sphericalHarmonics_;
     s << md5GridSection_;
     s << binaryMultiplier_;
@@ -207,7 +206,6 @@ void JumpInfo::print(std::ostream& s) const {
       << "numberOfValues=" << numberOfValues_ << ","
       << "numberOfDataPoints=" << numberOfDataPoints_ << ","
       << "totalLength=" << totalLength_ << ","
-      << "msgStartOffset=" << msgStartOffset_ << ","
       << "sphericalHarmonics=" << sphericalHarmonics_ << ","
       << "md5GridSection=" << md5GridSection_ << ","
       << "binaryMultiplier=" << binaryMultiplier_ << ","
@@ -227,7 +225,6 @@ bool JumpInfo::equals(const JumpInfo& rhs) const {
            numberOfValues() == rhs.numberOfValues() &&
            numberOfDataPoints() == rhs.numberOfDataPoints() &&
            totalLength() == rhs.totalLength() &&
-           msgStartOffset() == rhs.msgStartOffset() &&
            sphericalHarmonics() == rhs.sphericalHarmonics() &&
            md5GridSection() == rhs.md5GridSection() &&
            binaryMultiplier() == rhs.binaryMultiplier() &&

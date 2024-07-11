@@ -77,7 +77,7 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
         JumpInfo& info = *infos[i];
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info));
         std::unique_ptr<ExtractionItem> item(new ExtractionItem(ranges[i]));
-        jumper->extract(fh, info, *item);
+        jumper->extract(fh, offsets[i], info, *item);
         results.push_back(std::move(item));
     }
 

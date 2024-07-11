@@ -46,15 +46,19 @@ CASE( "test_reanimate_info" ) {
     
     // Extract jumpinfos from a grib file, write to disk, reanimate and compare
 
+    // TODO! Add spectral.grib to nexus and to cmake!
+
     std::vector<eckit::PathName> paths = {
         "2t_O1280.grib",   // simple packed
         "ceil_O1280.grib", // ccsds
+        // "spectral.grib", // NB: Should build an UnsupportedInfo
         /* Todo: A file with a mix of both in a different test */
     };
 
     std::vector<std::string> expectedPacking = {
         "grid_simple",
         "grid_ccsds",
+        // "spectral_complex",
     };
 
     uint32_t count = 0;
@@ -152,7 +156,7 @@ CASE ("test_jumpers_filehandle") {
 
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
         ExtractionItem extractionItem(intervals);
-        jumper->extract(fh, *info, extractionItem);
+        jumper->extract(fh, offset, *info, extractionItem);
 
         fh.close();
 
@@ -191,7 +195,7 @@ CASE ("test_wrong_jumper") {
 
         try {
             ExtractionItem item(intervals);
-            jumper->extract(fh, *info, item);
+            jumper->extract(fh, offset, *info, item);
             EXPECT(false); // Reaching here is an error!
         } catch (BadJumpInfoException& e) {
             // As expected!
@@ -216,7 +220,7 @@ CASE ("test_wrong_jumper") {
 
         try {
             ExtractionItem item(intervals);
-            jumper->extract(fh, *info, item);
+            jumper->extract(fh, offset, *info, item);
             EXPECT(false);
         } catch (BadJumpInfoException& e) {
             // As expected!
@@ -247,7 +251,7 @@ CASE ("test_ExtractionItem_extract") {
 
     std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
 
-    jumper->extract(fh, *info, exItem);
+    jumper->extract(fh, offset, *info, exItem);
 
     exItem.debug_print();
     

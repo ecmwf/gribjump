@@ -21,7 +21,7 @@ InfoExtractor::InfoExtractor() {}
 
 InfoExtractor::~InfoExtractor() {}
 
-std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path){
+std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  InfoExtractor::extract(const eckit::PathName& path){
     
     grib_context* c = nullptr;
     int n = 0;
@@ -38,7 +38,15 @@ std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathN
 
     free(offsets_c);
 
-    return extract(path, eckit_offsets);
+    std::vector<std::unique_ptr<JumpInfo>> infos = extract(path, eckit_offsets);
+
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>> > result;
+
+    for (size_t i = 0; i < infos.size(); i++) {
+        result.push_back(std::make_pair(eckit_offsets[i], std::move(infos[i])));
+    }
+
+    return result;
 }
 
 std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){

@@ -141,7 +141,7 @@ void FileExtractionTask::extract() {
         const JumpInfo& info = *infos[i];
 
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
-        jumper->extract(fh, info, *extractionItem);
+        jumper->extract(fh, offsets[i], info, *extractionItem);
     }
 
     fh.close();
@@ -153,34 +153,38 @@ InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgrou
 }
 
 void InefficientFileExtractionTask::extract(){
+    
+    // Has been replaced in the databridge branch
+    // TODO: merge
+    
+    NOTIMP;
+    // fdb5::FDB fdb;
 
-    fdb5::FDB fdb;
+    // // One message at a time
+    // for (auto& extractionItem : extractionItems_) {
+    //     eckit::URI uri = extractionItem->URI();
+    //     if (uri.scheme() != "fdb") {
+    //         throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
+    //     }
 
-    // One message at a time
-    for (auto& extractionItem : extractionItems_) {
-        eckit::URI uri = extractionItem->URI();
-        if (uri.scheme() != "fdb") {
-            throw eckit::SeriousBug("InefficientFileExtractionTask::extract() called with non-fdb URI");
-        }
+    //     std::unique_ptr<eckit::DataHandle> handle(fdb.read(uri));
 
-        std::unique_ptr<eckit::DataHandle> handle(fdb.read(uri));
+    //     eckit::message::Message msg;
+    //     eckit::message::Reader reader(*handle);
 
-        eckit::message::Message msg;
-        eckit::message::Reader reader(*handle);
-
-        while ( (msg = reader.next()) ) {
+    //     while ( (msg = reader.next()) ) {
  
-            // Straight to factory, don't even check the cache
-            std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(msg));
+    //         // Straight to factory, don't even check the cache
+    //         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(msg));
 
-            std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
-            handle2->openForRead();
-            std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
-            jumper->extract(*handle2, *info, *extractionItem);
+    //         std::unique_ptr<eckit::DataHandle> handle2(msg.readHandle());
+    //         handle2->openForRead();
+    //         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
+    //         jumper->extract(*handle2, *info, *extractionItem);
 
 
-        }
-    }
+    //     }
+    // }
 }
 
 //----------------------------------------------------------------------------------------------------------------------

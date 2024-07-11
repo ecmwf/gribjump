@@ -49,7 +49,6 @@ public:
     /// Inserts a JumpInfo entry
     /// @param info JumpInfo to insert, takes ownership
     void insert(const eckit::PathName& path, const eckit::Offset offset, std::shared_ptr<JumpInfo> info);
-    void insert(const eckit::PathName& path, std::vector<std::shared_ptr<JumpInfo>> infos);
 
     /// Get JumpInfo from memory cache
     /// @return JumpInfo, null if not found
@@ -111,7 +110,6 @@ private:
 
     void insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info);
 
-    void insert(std::vector<std::shared_ptr<JumpInfo>> infos);
 
     // wrapper around map_.find()
     std::shared_ptr<JumpInfo> find(eckit::Offset offset);

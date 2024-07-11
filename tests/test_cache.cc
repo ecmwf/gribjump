@@ -42,30 +42,23 @@ CASE( "test_cache" ){
 
     eckit::PathName path = "extract_ranges.grib"; // TODO, use a file with mixed ccsds and simple grids
     InfoExtractor extractor;
-    std::vector<std::unique_ptr<JumpInfo>> uinfos = extractor.extract(path);
-    std::vector<std::shared_ptr<JumpInfo>> infos;
-    infos.reserve(uinfos.size());
-    std::move(uinfos.begin(), uinfos.end(), std::back_inserter(infos));
 
-    std::vector<std::pair<eckit::PathName, eckit::Offset>> locations;
-    for (size_t i = 0; i < infos.size(); i++) {
-        locations.push_back(std::make_pair(path, infos[i]->msgStartOffset()));
-    }
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  offsetInfos = extractor.extract(path);
 
     // --------------------------------------------------------------------------------------------
     
     // pre-populate the cache
-    for (size_t i = 0; i < locations.size(); i++) {
-        std::unique_ptr<JumpInfo> info(extractor.extract(locations[i].first, locations[i].second));
-        InfoCache::instance().insert(locations[i].first, locations[i].second, std::move(info));
+    for (size_t i = 0; i < offsetInfos.size(); i++) {
+        std::unique_ptr<JumpInfo> info(extractor.extract(path, offsetInfos[i].first));
+        InfoCache::instance().insert(path, offsetInfos[i].first, std::move(info));
     }
     
     // Test 1: getting fields from cache.
     
-    for (size_t i = 0; i < locations.size(); i++) {
-        std::shared_ptr<JumpInfo> info = InfoCache::instance().get(locations[i].first, locations[i].second);
+    for (size_t i = 0; i < offsetInfos.size(); i++) {
+        std::shared_ptr<JumpInfo> info = InfoCache::instance().get(path, offsetInfos[i].first);
         EXPECT(info);
-        EXPECT(*info == *infos[i]);
+        EXPECT(*info == *offsetInfos[i].second);
     }
 
     InfoCache::instance().persist();
@@ -73,10 +66,10 @@ CASE( "test_cache" ){
 
     // Test 2: Get fields, reanimated from disk.
 
-    for (size_t i = 0; i < locations.size(); i++) {
-        std::shared_ptr<JumpInfo> info = InfoCache::instance().get(locations[i].first, locations[i].second);
+    for (size_t i = 0; i < offsetInfos.size(); i++) {
+        std::shared_ptr<JumpInfo> info = InfoCache::instance().get(path, offsetInfos[i].first);
         EXPECT(info);
-        EXPECT(*info == *infos[i]);
+        EXPECT(*info == *offsetInfos[i].second);
     }
 
 }
