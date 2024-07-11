@@ -41,7 +41,7 @@ InfoFactory& InfoFactory::instance() {
     return instance;
 }
 
-JumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
+std::unique_ptr<JumpInfo> InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
     
     metkit::grib::GribHandle gh(h, msgOffset); // Note: eccodes will read message into memory
 
@@ -52,7 +52,7 @@ JumpInfo* InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffse
     return builder->make(h, gh, msgOffset);
 }
 
-JumpInfo* InfoFactory::build(const eckit::message::Message& msg) {
+std::unique_ptr<JumpInfo> InfoFactory::build(const eckit::message::Message& msg) {
     
     InfoBuilderBase* builder = get(msg.getString("packingType"));
 

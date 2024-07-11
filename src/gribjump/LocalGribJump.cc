@@ -66,7 +66,7 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
     // Directly from file, no cache, no queue, no threads
 
     InfoExtractor extractor;
-    std::vector<JumpInfo*> infos = extractor.extract(path, offsets);
+    std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(path, offsets);
 
     eckit::FileHandle fh(path);
     fh.openForRead();

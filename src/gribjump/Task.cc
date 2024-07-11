@@ -129,7 +129,7 @@ void FileExtractionTask::extract() {
         offsets.push_back(extractionItem->offset());
     }
 
-    std::vector<JumpInfo*> infos = InfoCache::instance().get(fname_, offsets);
+    std::vector<std::shared_ptr<JumpInfo>> infos = InfoCache::instance().get(fname_, offsets);
 
     // Extract
     eckit::FileHandle fh(fname_);

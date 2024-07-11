@@ -21,7 +21,7 @@ InfoExtractor::InfoExtractor() {}
 
 InfoExtractor::~InfoExtractor() {}
 
-std::vector<JumpInfo*> InfoExtractor::extract(const eckit::PathName& path){
+std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path){
     
     grib_context* c = nullptr;
     int n = 0;
@@ -41,18 +41,18 @@ std::vector<JumpInfo*> InfoExtractor::extract(const eckit::PathName& path){
     return extract(path, eckit_offsets);
 }
 
-std::vector<JumpInfo*> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){
+std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){
 
     eckit::FileHandle fh(path);
     fh.openForRead();
 
-    std::vector<JumpInfo*> infos;
+    std::vector<std::unique_ptr<JumpInfo>> infos;
 
     for (size_t i = 0; i < offsets.size(); i++) {
         
-        JumpInfo* info(InfoFactory::instance().build(fh, offsets[i]));
+        std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
-        infos.push_back(info);
+        infos.push_back(std::move(info));
     }
 
     fh.close();
@@ -60,13 +60,13 @@ std::vector<JumpInfo*> InfoExtractor::extract(const eckit::PathName& path, const
     return infos;
 }
 
-JumpInfo* InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset){
+std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset){
 
     eckit::FileHandle fh(path);
 
     fh.openForRead();
 
-    JumpInfo* info(InfoFactory::instance().build(fh, offset));
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
     ASSERT(info);
 
     fh.close();
@@ -74,7 +74,7 @@ JumpInfo* InfoExtractor::extract(const eckit::PathName& path, const eckit::Offse
     return info;
 }
 
-JumpInfo* InfoExtractor::extract(const eckit::message::Message& msg){
+std::unique_ptr<JumpInfo>InfoExtractor::extract(const eckit::message::Message& msg){
     return InfoFactory::instance().build(msg);
 }
 

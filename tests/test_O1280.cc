@@ -151,11 +151,10 @@ CASE( "test_ceil_O1280" ) {
 CASE( "test_ceil_offsets" ) {
     // this is grid_ccsds, grib 2, with bitmask.
     InfoExtractor extractor;
-    JumpInfo* info = extractor.extract("ceil_O1280.grib", 0);
+    std::unique_ptr<JumpInfo> info = extractor.extract("ceil_O1280.grib", 0);
 
-    const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(info);
-    EXPECT(pccsds);
-    const CcsdsInfo& ccsdsInfo = *pccsds;
+    
+    const  CcsdsInfo& ccsdsInfo = dynamic_cast<const CcsdsInfo&>(*info);
 
     std::vector<size_t> offsets = ccsdsInfo.ccsdsOffsets();
 

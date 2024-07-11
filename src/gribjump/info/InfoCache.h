@@ -31,8 +31,8 @@ class InfoCache {
 
 private: // types
 
-    typedef std::string filename_t;               //< key is fieldlocation's path basename
-    typedef std::map<filename_t, FileCache*> cache_t; //< map fieldlocation's to gribinfo
+    using filename_t = std::string;               //< key is fieldlocation's path basename
+    using cache_t = std::map<filename_t, FileCache*>; //< map fieldlocation's to gribinfo
 
 public:
 
@@ -48,15 +48,15 @@ public:
 
     /// Inserts a JumpInfo entry
     /// @param info JumpInfo to insert, takes ownership
-    void insert(const eckit::PathName& path, const eckit::Offset offset, JumpInfo* info); // offset is redundant since it is in info
-    void insert(const eckit::PathName& path, std::vector<JumpInfo*> infos);
+    void insert(const eckit::PathName& path, const eckit::Offset offset, std::shared_ptr<JumpInfo> info);
+    void insert(const eckit::PathName& path, std::vector<std::shared_ptr<JumpInfo>> infos);
 
     /// Get JumpInfo from memory cache
     /// @return JumpInfo, null if not found
-    JumpInfo* get(const eckit::PathName& path, const eckit::Offset offset);
-    JumpInfo* get(const eckit::URI& uri);
+    std::shared_ptr<JumpInfo>  get(const eckit::PathName& path, const eckit::Offset offset);
+    std::shared_ptr<JumpInfo>  get(const eckit::URI& uri);
 
-    std::vector<JumpInfo*> get(const eckit::PathName& path, const eckit::OffsetList& offsets); // this version will generate on the fly... inconsistent?
+    std::vector<std::shared_ptr<JumpInfo>> get(const eckit::PathName& path, const eckit::OffsetList& offsets); // this version will generate on the fly... inconsistent?
 
     void persist(bool merge=true);
     void clear();
@@ -90,7 +90,8 @@ private: // members
 // NB: No public constructor, only InfoCache can create these.
 class FileCache {
 
-friend class InfoCache; 
+    using infomap_t = std::map<eckit::Offset, std::shared_ptr<JumpInfo>>;
+    friend class InfoCache; 
 
 private:
 
@@ -108,24 +109,24 @@ private:
 
     void persist(bool merge=true);
 
-    void insert(eckit::Offset offset, JumpInfo* info);
+    void insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info);
 
-    void insert(std::vector<JumpInfo*> infos);
+    void insert(std::vector<std::shared_ptr<JumpInfo>> infos);
 
     // wrapper around map_.find()
-    JumpInfo* find(eckit::Offset offset);
+    std::shared_ptr<JumpInfo> find(eckit::Offset offset);
 
     size_t count();
 
     void lock() { mutex_.lock(); }
     void unlock() { mutex_.unlock(); }
-    const std::map<eckit::Offset, JumpInfo*>& map() const { return map_; }
+    const infomap_t& map() const { return map_; }
 
 private:
 
     eckit::PathName path_;
     std::mutex mutex_; //< mutex for map_
-    std::map<eckit::Offset, JumpInfo*> map_;
+    infomap_t map_;
 };
 
 }  // namespace gribjump
