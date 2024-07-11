@@ -54,8 +54,6 @@ public:
     long sphericalHarmonics() const { return sphericalHarmonics_; } /* deprecate? can we just check the packing type? */
     std::string md5GridSection() const { return md5GridSection_; }
     std::string packingType() const { return packingType_; }
-    double binaryMultiplier() const { return binaryMultiplier_; }
-    double decimalMultiplier() const { return decimalMultiplier_; }
 
 protected:
 
@@ -74,7 +72,7 @@ private:
 
 protected:
 
-    static constexpr uint8_t currentVersion_ = 5;
+    static constexpr uint8_t currentVersion_ = 6;
     uint8_t       version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
@@ -90,9 +88,6 @@ protected:
     long          sphericalHarmonics_;
     std::string   md5GridSection_;
     std::string   packingType_ = "none";
-
-    double binaryMultiplier_; // = 2^binaryScaleFactor_     // todo: check if used
-    double decimalMultiplier_; // = 10^-decimalScaleFactor_     // todo: check if used
 
 };
 
