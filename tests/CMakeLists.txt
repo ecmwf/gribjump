@@ -109,3 +109,5 @@ ecbuild_add_test(
     NO_AS_NEEDED
     LIBS gribjump
 )
+
+add_subdirectory(tools)
