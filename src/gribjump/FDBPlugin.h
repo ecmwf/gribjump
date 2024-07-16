@@ -1,4 +1,3 @@
-
 /*
  * (C) Copyright 2024- ECMWF.
  *
@@ -12,9 +11,9 @@
 #pragma once
 
 #include "eckit/utils/Regex.h"
+
 #include "fdb5/api/FDB.h"
 #include "gribjump/info/InfoAggregator.h"
-
 
 namespace gribjump {
 
@@ -22,20 +21,18 @@ namespace gribjump {
 class FDBPlugin {
 public:
 
-    static FDBPlugin& instance(fdb5::FDB& fdb);
+    static FDBPlugin& instance();
+    void addFDB(fdb5::FDB& fdb);
 
 private:
 
-    FDBPlugin(fdb5::FDB& fdb);
-    ~FDBPlugin();
+    FDBPlugin();
 
     void parseConfig(eckit::PathName path);
     bool matches(const fdb5::Key& key) const;
 
-
 private:
-    fdb5::FDB& fdb_;
-    gribjump::InfoAggregator aggregator_;
+    std::vector<std::shared_ptr<InfoAggregator>> aggregators_;
     std::map<std::string, eckit::Regex> selectDict_;
 
 };

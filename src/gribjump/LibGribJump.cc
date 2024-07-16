@@ -24,6 +24,7 @@
 
 #ifdef GRIBJUMP_HAVE_FDB
 #include "gribjump/FDBPlugin.h"
+#include "fdb5/LibFdb5.h"
 #endif
 
 namespace gribjump {
@@ -32,14 +33,24 @@ namespace gribjump {
 
 REGISTER_LIBRARY(LibGribJump);
 
-// LibGribJump::LibGribJump() : Plugin("gribjump", "gribjump-plugin") {
-LibGribJump::LibGribJump() : Plugin("gribjump") {
+LibGribJump::LibGribJump() : Plugin("gribjump-plugin", "gribjump") {
     if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
         config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
     } 
     else {
         eckit::Log::debug() << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
     }
+    #ifdef GRIBJUMP_HAVE_FDB
+    fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
+        bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+        bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
+        if (enableGribjump && !disableGribjump) {
+            FDBPlugin::instance().addFDB(fdb);
+        }
+    });
+    #endif
+
+
 }
 
 LibGribJump& LibGribJump::instance() {
@@ -63,22 +74,6 @@ std::string LibGribJump::gitsha1(unsigned int count) const {
 
     return sha1.substr(0, std::min(count, 40u));
 }
-
-
-#ifdef GRIBJUMP_HAVE_FDB
-
-void LibGribJump::setup(void* fdb) {
-    fdb5::FDB* fdb_ptr = static_cast<fdb5::FDB*>(fdb);
-    FDBPlugin::instance(*fdb_ptr);
-}
-
-#else
-void LibGribJump::setup(void* fdb) {
-    std::stringstream ss;
-    ss << "GribJump has been compiled without FDB support." << std::endl;
-    throw eckit::UserError(ss.str(), Here());
-}
-#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 

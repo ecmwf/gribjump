@@ -1,4 +1,3 @@
-
 /*
  * (C) Copyright 2024- ECMWF.
  *
@@ -8,7 +7,6 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
-
 
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
@@ -23,35 +21,40 @@ using namespace fdb5;
 
 namespace gribjump {
 
-// In principle, we could make this non-static, which would make multiple FDB instances possible. But then who owns it?
-FDBPlugin& FDBPlugin::instance(FDB& fdb) { 
-    static FDBPlugin instance_(fdb);
+FDBPlugin& FDBPlugin::instance() { 
+    static FDBPlugin instance_;
     return instance_;
 }
-
-FDBPlugin::FDBPlugin(FDB& fdb) : fdb_(fdb) {
-
+FDBPlugin::FDBPlugin() {
     parseConfig(eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", ""));
-
-    fdb_.registerCallback([this](const fdb5::Key& key, const void* data, size_t length, const fdb5::FieldLocation& location) {
-        if (!matches(key)) return;
-
-        LOG_DEBUG_LIB(LibGribJump) << "archive callback for selected key " << key << std::endl;
-        
-        /* Can we assume at this stage that "data" is a GRIB? We are not explicitly checking this. */
-        eckit::MemoryHandle handle(data, length);
-        aggregator_.add(location.fullUri(), handle, 0); // Memory handle starts from offset 0.
-    });
-
-    fdb_.registerCallback([this]() {
-        LOG_DEBUG_LIB(LibGribJump) << "Flush callback" << std::endl;
-        aggregator_.flush();
-    });
 }
 
+void FDBPlugin::addFDB(fdb5::FDB& fdb) {
+    auto aggregator = std::make_shared<InfoAggregator>(); // one per FDB instance, to keep queues separate
+    
+    fdb.registerArchiveCallback([this, aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future) mutable {
+        if (!matches(key)) return;
+        
+        LOG_DEBUG_LIB(LibGribJump) << "archive callback for selected key " << key << std::endl;
+
+        eckit::MemoryHandle handle(data, length);
+        aggregator->add(std::move(future), handle, 0);
+    });
+
+    fdb.registerFlushCallback([aggregator]() mutable {
+        LOG_DEBUG_LIB(LibGribJump) << "Flush callback" << std::endl;
+        aggregator->flush();
+    });
+
+    aggregators_.push_back(aggregator);
+}
+
+// TODO: Look also at the multio select functionality, which is more complete.
+// Which can specify match and exclusions, for instance. Which is probably nicer.
 void FDBPlugin::parseConfig(eckit::PathName path){
     
     if (!path.exists()) {
+        // TODO: Could instead use a default config and a warning?
         std::stringstream ss;
         ss << "Config file " << path << " does not exist" << std::endl;
         throw eckit::UserError(ss.str(), Here());
@@ -99,9 +102,6 @@ bool FDBPlugin::matches(const fdb5::Key& key) const {
     }
 
     return true;
-}
-
-FDBPlugin::~FDBPlugin() {
 }
 
 } // namespace gribjump

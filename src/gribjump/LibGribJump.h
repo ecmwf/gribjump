@@ -36,8 +36,6 @@ public:
 
     const Config& config() const;
 
-    void setup(void* fdb) override;
-
 protected:
     virtual std::string version() const override;
 

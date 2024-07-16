@@ -68,6 +68,7 @@ $fdbread --extract ${testdata} /dev/null > $requests
 export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
 unset FDB_ENABLE_GRIBJUMP
 
+echo "Writing to FDB without gribjump plugin or scan"
 $fdbwrite ${testdata}
 
 # -------------------------------------
@@ -76,6 +77,7 @@ $fdbwrite ${testdata}
 export FDB5_CONFIG_FILE=${bindir}/config_root2.yaml
 unset FDB_ENABLE_GRIBJUMP
 
+echo "Writing to FDB without gribjump plugin, then scanning"
 $fdbwrite ${testdata}
 
 $gjscan $requests
@@ -86,6 +88,7 @@ $gjscan $requests
 export FDB5_CONFIG_FILE=${bindir}/config_root3.yaml
 export FDB_ENABLE_GRIBJUMP=1
 
+echo "Writing to FDB with gribjump plugin"
 $fdbwrite ${testdata}
 
 # -------------------------------------
@@ -97,13 +100,20 @@ files3=$(find ${bindir}/root3 -name "*.gribjump" | sort)
 # Make sure they are the same number
 Nfiles=$(echo $files2 | wc -w)
 
+# Make sure that number for this test data.
+if [ $Nfiles -ne 5 ]; then
+    echo "Expected 5 .gribjump files, got $Nfiles"
+    exit 1
+fi
+
 if [ $Nfiles -ne $(echo $files3 | wc -w) ]; then
     echo "Different number of .gribjump files in 2 and 3"
     exit 1
 fi
 
 # Iterate over the files, make sure the first file matches the first, etc.
-# Note: if we ever store the full URI in the .gribjump file, this will need to be updated.
+# Note: if we ever store the full URI in the .gribjump file, this will need to be updated, as this will be different in 2 and 3.
+# In which case, use e.g., gribjump-dump-info for comparing.
 for i in $(seq 1 $Nfiles); do
     file_2=$(echo $files2 | cut -d' ' -f$i)
     file_3=$(echo $files3 | cut -d' ' -f$i)

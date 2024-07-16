@@ -12,24 +12,30 @@
 
 #pragma once
 
+#include <future>
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/container/Queue.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/message/Message.h"
 #include "gribjump/info/InfoExtractor.h"
 
+namespace fdb5 {
+    class FieldLocation;
+}
 
 namespace gribjump {
 
 using Key = std::string;
 
-
 // TODO: With recent improvements, we may no longer need this class, perhaps the callback can call the cache directly.
 class InfoAggregator {
+    using locPair = std::pair<std::future<std::shared_ptr<fdb5::FieldLocation>>, std::unique_ptr<JumpInfo>>;
 
 public:
-    InfoAggregator() = default;
+    InfoAggregator();
+    ~InfoAggregator();
 
-    void add(const eckit::URI& uri, eckit::DataHandle& handle, eckit::Offset offset);
-
+    void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
     void flush();
 
 private:
@@ -38,7 +44,8 @@ private:
 
 private:
     InfoExtractor extractor_;
-    
     std::map<std::string, size_t> count_; 
+    eckit::Queue<locPair> futures_;
+    std::thread consumer_;
 };
 } // namespace gribjump
