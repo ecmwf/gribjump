@@ -24,7 +24,7 @@ WorkQueue& WorkQueue::instance() {
     return wq;
 }
 
-WorkQueue::~WorkQueue(){
+WorkQueue::~WorkQueue() {
     queue_.close();
 
     for (auto& w : workers_) {

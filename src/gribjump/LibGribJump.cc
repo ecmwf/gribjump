@@ -29,7 +29,7 @@ namespace gribjump {
 REGISTER_LIBRARY(LibGribJump);
 
 LibGribJump::LibGribJump() : Plugin("gribjump-plugin", "gribjump") {
-    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
+    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr) {
         config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
     } 
     else {

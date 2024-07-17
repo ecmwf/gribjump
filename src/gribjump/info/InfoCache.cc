@@ -176,7 +176,7 @@ void InfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, 
 // }
 
 
-void InfoCache::persist(bool merge){
+void InfoCache::persist(bool merge) {
     if (!persistentCache_) {
         LOG_DEBUG_LIB(LibGribJump) << "Warning, InfoCache::persist called but cache persistence is disabled. Returning." << std::endl;
         return;

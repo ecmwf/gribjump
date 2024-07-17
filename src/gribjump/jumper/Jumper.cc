@@ -43,9 +43,9 @@ std::vector<std::bitset<64>> toBitset(const Bitmap& bitmap) {
 
 // Convert ranges to intervals
 // TODO(maee): Simplification: Switch to intervals or ranges
-std::vector<mc::Range> toRanges(const std::vector<Interval>& intervals){
+std::vector<mc::Range> toRanges(const std::vector<Interval>& intervals) {
     std::vector<mc::Range> ranges;
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(ranges), [](auto interval){
+    std::transform(intervals.begin(), intervals.end(), std::back_inserter(ranges), [](auto interval) {
         auto [begin, end] = interval;
         return mc::Range{begin, end - begin};
     });

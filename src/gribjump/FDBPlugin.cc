@@ -66,7 +66,7 @@ void FDBPlugin::addFDB(fdb5::FDB& fdb) {
 
 // TODO: Look also at the multio select functionality, which is more complete.
 // Which can specify match and exclusions, for instance. Which is probably nicer.
-void FDBPlugin::parseConfig(eckit::PathName path){
+void FDBPlugin::parseConfig(eckit::PathName path) {
     
     if (!path.exists()) {
         // TODO: Could instead use a default config and a warning?
@@ -98,7 +98,7 @@ void FDBPlugin::parseConfig(eckit::PathName path){
         selectDict_[kv[0]] = eckit::Regex(kv[1]);
     }
 
-    if (LibGribJump::instance().debug()){
+    if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Select dictionary:" << std::endl;
         for (const auto& kv : selectDict_) {
             LOG_DEBUG_LIB(LibGribJump) << "    " << kv.first << " => " << kv.second << std::endl;

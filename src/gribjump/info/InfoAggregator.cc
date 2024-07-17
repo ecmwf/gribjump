@@ -53,8 +53,9 @@ InfoAggregator::~InfoAggregator() {
 }
 
 void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
-    eckit::AutoClose closer(handle);
+
     handle.openForRead();
+    eckit::AutoClose closer(handle);
 
     if (!isGrib(handle)) {
         eckit::Log::warning() << "Warning: Gribjump InfoAggregator recieved non-grib message. Skipping..." << std::endl;
@@ -84,7 +85,7 @@ void InfoAggregator::flush() {
 
     if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
-        for (const auto& [key, value] : count_){
+        for (const auto& [key, value] : count_) {
             LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
         }
     }

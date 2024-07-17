@@ -23,7 +23,7 @@ CcsdsJumper::CcsdsJumper(): Jumper() {}
 
 CcsdsJumper::~CcsdsJumper() {}
 
-void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item){
+void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item) {
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(&info_in);
 

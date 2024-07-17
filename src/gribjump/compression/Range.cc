@@ -54,7 +54,7 @@ mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r)
     auto srb = srb_tmp; // not necessary in C++20
     auto sre = sre_tmp; // not necessary in C++20
 
-    auto r1 = std::find_if(buckets.begin(), buckets.end(), [&](const auto bucket){
+    auto r1 = std::find_if(buckets.begin(), buckets.end(), [&](const auto bucket) {
         const auto [bucket_range, _] = bucket;
         const auto [brb, bre] = begin_end(bucket_range);
         return brb <= srb && srb <= bre;
@@ -75,7 +75,7 @@ mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r)
         }
         return buckets;
     }
-    auto r2 = std::find_if(buckets.begin(), buckets.end(), [&](auto l){
+    auto r2 = std::find_if(buckets.begin(), buckets.end(), [&](auto l) {
         auto [l_begin, l_end] = begin_end(l.first);
         return l_begin <= sre && sre <= l_end;
     });

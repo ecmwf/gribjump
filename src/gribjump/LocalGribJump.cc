@@ -62,7 +62,7 @@ size_t LocalGribJump::scan(const std::vector<MarsRequest> requests, bool byfiles
 }
 
 
-std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges){
+std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
     // Directly from file, no cache, no queue, no threads
 
     InfoExtractor extractor;
@@ -87,7 +87,7 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 }
 
 /// @todo, change API, remove extraction request
-std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest){
+std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
 
     std::vector<MarsRequest> requests;
     std::vector<std::vector<Range>> ranges;
@@ -133,11 +133,11 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
 }
 
 // TODO: remove these, plugin should use aggregator directly (which has its own config).
-void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::URI& location){
+void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::URI& location) {
     NOTIMP;
 };
 
-void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::message::Message& msg){
+void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::message::Message& msg) {
     NOTIMP;
 };
 
