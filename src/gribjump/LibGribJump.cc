@@ -22,11 +22,6 @@
 #include "gribjump/gribjump_version.h"
 #include "gribjump/gribjump_config.h"
 
-#ifdef GRIBJUMP_HAVE_FDB
-#include "gribjump/FDBPlugin.h"
-#include "fdb5/LibFdb5.h"
-#endif
-
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -40,17 +35,6 @@ LibGribJump::LibGribJump() : Plugin("gribjump-plugin", "gribjump") {
     else {
         eckit::Log::debug() << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
     }
-    #ifdef GRIBJUMP_HAVE_FDB
-    fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
-        bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
-        bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
-        if (enableGribjump && !disableGribjump) {
-            FDBPlugin::instance().addFDB(fdb);
-        }
-    });
-    #endif
-
-
 }
 
 LibGribJump& LibGribJump::instance() {

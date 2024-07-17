@@ -14,6 +14,8 @@
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 
+#include "fdb5/LibFdb5.h"
+
 #include "gribjump/LibGribJump.h"
 #include "gribjump/FDBPlugin.h"
 
@@ -21,11 +23,24 @@ using namespace fdb5;
 
 namespace gribjump {
 
+namespace {
+    // Register the constructor callback immediately.
+    FDBPlugin& pluginInstance = FDBPlugin::instance();
+}
+
 FDBPlugin& FDBPlugin::instance() { 
     static FDBPlugin instance_;
     return instance_;
 }
 FDBPlugin::FDBPlugin() {
+    fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
+        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+        static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
+        if (enableGribjump && !disableGribjump) {
+            FDBPlugin::instance().addFDB(fdb);
+        }
+    });
+
     parseConfig(eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", ""));
 }
 
