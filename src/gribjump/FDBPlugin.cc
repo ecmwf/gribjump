@@ -32,6 +32,7 @@ FDBPlugin& FDBPlugin::instance() {
     static FDBPlugin instance_;
     return instance_;
 }
+
 FDBPlugin::FDBPlugin() {
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
         static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
@@ -40,11 +41,13 @@ FDBPlugin::FDBPlugin() {
             FDBPlugin::instance().addFDB(fdb);
         }
     });
-
-    parseConfig(eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", ""));
 }
 
 void FDBPlugin::addFDB(fdb5::FDB& fdb) {
+
+    static eckit::PathName configPath = eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", "");
+    parseConfig(configPath);
+
     auto aggregator = std::make_shared<InfoAggregator>(); // one per FDB instance, to keep queues separate
     
     fdb.registerArchiveCallback([this, aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future) mutable {
@@ -67,6 +70,8 @@ void FDBPlugin::addFDB(fdb5::FDB& fdb) {
 // TODO: Look also at the multio select functionality, which is more complete.
 // Which can specify match and exclusions, for instance. Which is probably nicer.
 void FDBPlugin::parseConfig(eckit::PathName path) {
+    if (configParsed_) return;
+    configParsed_ = true;
     
     if (!path.exists()) {
         // TODO: Could instead use a default config and a warning?

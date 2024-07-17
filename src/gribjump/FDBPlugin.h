@@ -32,6 +32,7 @@ private:
     bool matches(const fdb5::Key& key) const;
 
 private:
+    bool configParsed_ = false;
     std::vector<std::shared_ptr<InfoAggregator>> aggregators_;
     std::map<std::string, eckit::Regex> selectDict_;
 
