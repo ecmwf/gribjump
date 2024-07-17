@@ -27,12 +27,11 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
   ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED ) # todo make optional?
-endif()
-
-# TODO: What's the ecbuild version of this?
-find_package(fdb5)
-if (fdb5_FOUND)
-    set(GRIBJUMP_HAVE_FDB 1)
+  # TODO: What's the ecbuild version of this?
+  find_package(fdb5)
+  if (fdb5_FOUND)
+      set(GRIBJUMP_HAVE_FDB 1)
+  endif()
 endif()
 
 ########################################################################################################################
@@ -59,6 +58,16 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
 endif()
 
+# Write and install the manifest file for the plugin
+set( gribjump_plugin_file share/plugins/gribjump-plugin.yml )
+file( WRITE  ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "plugin:\n" )
+file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  name:      gribjump-plugin\n" )
+file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  namespace: int.ecmwf\n" )
+file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  url:       http://www.ecmwf.int\n" )
+file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  version:   ${${PROJECT_NAME}_VERSION}\n" ) # TODO set version
+file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  library:   gribjump\n" )
+
+install( FILES ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} DESTINATION share/plugins )
 
 ### finalize
 
