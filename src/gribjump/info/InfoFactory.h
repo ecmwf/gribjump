@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <memory>
 #include "gribjump/info/JumpInfo.h"
 
 namespace gribjump {
