@@ -52,19 +52,17 @@ std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  InfoExtractor:
 std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){
 
     eckit::FileHandle fh(path);
-    fh.openForRead();
-
     std::vector<std::unique_ptr<JumpInfo>> infos;
 
     for (size_t i = 0; i < offsets.size(); i++) {
-        
+        fh.openForRead();
+
         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
         infos.push_back(std::move(info));
+
+        fh.close(); // Required due to strange metkit/gribhandle behaviour.
     }
-
-    fh.close();
-
     return infos;
 }
 
