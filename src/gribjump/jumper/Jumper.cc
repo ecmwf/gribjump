@@ -11,6 +11,7 @@
 /// @author Christopher Bradley
 
 #include "eckit/io/DataHandle.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "gribjump/jumper/Jumper.h"
 #include "gribjump/ExtractionItem.h"
@@ -167,10 +168,10 @@ Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, con
     eckit::Buffer binaryBitmap(info.numberOfDataPoints());
 
     if (dh.seek(bitmapOffset) != bitmapOffset)
-        throw std::runtime_error("Bitmap seek failed");
+        throw eckit::ReadError("Bitmap seek failed", Here());
 
     if (dh.read(binaryBitmap, bitmapSize) != bitmapSize)
-        throw std::runtime_error("Bitmap read failed");
+        throw eckit::ReadError("Bitmap read failed", Here());
 
     Bitmap bitmap;
     for (size_t i = 0; i < info.numberOfDataPoints(); i++) {

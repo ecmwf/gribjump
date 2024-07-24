@@ -15,6 +15,7 @@
 
 #include <eckit/io/Buffer.h>
 #include <eckit/serialisation/MemoryStream.h>
+#include "eckit/exception/Exceptions.h"
 
 #include <stdlib.h>
 #include <optional>
@@ -78,11 +79,11 @@ public:
   std::pair<std::unique_ptr<NumericDecompressor<ValueType>>, CompressedData> encode(const Values& in_buf) override
   {
     if (sizeof(ValueType) == 1 && !(bits_per_sample_ > 0 && bits_per_sample_ <= 8))
-      throw std::runtime_error("bits_per_sample must be between 1 and 8 for 1-byte types");
+      throw eckit::BadValue("bits_per_sample must be between 1 and 8 for 1-byte types", Here());
     if (sizeof(ValueType) == 2 && !(bits_per_sample_ > 8 && bits_per_sample_ <= 16))
-      throw std::runtime_error("bits_per_sample must be between 1 and 16 for 2-byte types");
+      throw eckit::BadValue("bits_per_sample must be between 9 and 16 for 2-byte types", Here());
     if (sizeof(ValueType) == 4 && !(bits_per_sample_ > 16 && bits_per_sample_ <= 32))
-      throw std::runtime_error("bits_per_sample must be between 1 and 32 for 4-byte types");
+      throw eckit::BadValue("bits_per_sample must be between 17 and 32 for 4-byte types", Here());
 
     const size_t n_elems{in_buf.size()};
     CompressedData out_buf{n_elems * sizeof(ValueType) * 2 + 1000};
@@ -100,24 +101,24 @@ public:
     //print_aec_stream_info(&strm, "Compressing");
 
     if (aec_encode_init(&strm) != AEC_OK)
-      throw std::runtime_error("Error initializing encoder");
+      throw eckit::FailedLibraryCall("libaec", "aec_encode_init", "Error initializing encoder", Here());
 
     if (aec_encode_enable_offsets(&strm) != AEC_OK)
-      throw std::runtime_error("Error enabling offsets");
+      throw eckit::FailedLibraryCall("libaec", "aec_encode_enable_offsets", "Error enabling offsets", Here());
 
     if (aec_encode(&strm, AEC_FLUSH) != AEC_OK)
-      throw std::runtime_error("Error encoding buffer");
+      throw eckit::FailedLibraryCall("libaec", "aec_encode", "Error encoding buffer", Here());
 
     size_t offsets_count{0};
     if (aec_encode_count_offsets(&strm, &offsets_count) != AEC_OK)
-      throw std::runtime_error("Error counting offsets");
+      throw eckit::FailedLibraryCall("libaec", "aec_encode_count_offsets", "Error counting offsets", Here());
 
     std::vector<size_t> offsets(offsets_count);
     if (aec_encode_get_offsets(&strm, offsets.data(), offsets.size()) != AEC_OK)
-      throw std::runtime_error("Error getting offsets");
+      throw eckit::FailedLibraryCall("libaec", "aec_encode_get_offsets", "Error getting offsets", Here());
 
     if (aec_encode_end(&strm) != AEC_OK)
-      throw std::runtime_error("Error ending encoding");
+      throw eckit::FailedLibraryCall("libaec", "aec_encode_end", "Error ending encoding", Here());
 
     auto decompressor = std::unique_ptr<AecDecompressor<ValueType>>(new AecDecompressor<ValueType>{});
     decompressor->flags(flags_);
@@ -143,11 +144,11 @@ public:
 
   Values decode(const CompressedData& encoded) override {
     if (sizeof(ValueType) == 1 && !(bits_per_sample_ > 0 && bits_per_sample_ <= 8))
-      throw std::runtime_error("bits_per_sample must be between 1 and 8 for 1-byte types");
+      throw eckit::BadValue("bits_per_sample must be between 1 and 8 for 1-byte types", Here());
     if (sizeof(ValueType) == 2 && !(bits_per_sample_ > 8 && bits_per_sample_ <= 16))
-      throw std::runtime_error("bits_per_sample must be between 1 and 16 for 2-byte types");
+      throw eckit::BadValue("bits_per_sample must be between 9 and 16 for 2-byte types", Here());
     if (sizeof(ValueType) == 4 && !(bits_per_sample_ > 16 && bits_per_sample_ <= 32))
-      throw std::runtime_error("bits_per_sample must be between 1 and 32 for 4-byte types");
+      throw eckit::BadValue("bits_per_sample must be between 17 and 32 for 4-byte types", Here());
 
     Values decoded(n_elems_);
 
@@ -166,26 +167,26 @@ public:
     //print_aec_stream_info(&strm, "Decompressing");
 
     if (aec_decode_init(&strm) != AEC_OK)
-      throw std::runtime_error("Error initializing decoder");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode_init", "Error initializing decoder", Here());
 
     if (aec_decode_enable_offsets(&strm) != AEC_OK)
-      throw std::runtime_error("Error enabling offsets");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode_enable_offsets", "Error enabling offsets", Here());
 
     if (aec_decode(&strm, AEC_FLUSH) != AEC_OK)
-      throw std::runtime_error("Error decoding buffer");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode", "Error decoding buffer", Here());
 
     size_t offsets_count{0};
     if (aec_decode_count_offsets(&strm, &offsets_count) != AEC_OK)
-      throw std::runtime_error("Error counting offsets");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode_count_offsets", "Error counting offsets", Here());
 
     std::vector<size_t> offsets(offsets_count);
     if (aec_decode_get_offsets(&strm, offsets.data(), offsets.size()) != AEC_OK)
-      throw std::runtime_error("Error getting offsets");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode_get_offsets", "Error getting offsets", Here());
 
     //print_aec_stream_info(&strm, "Decompressing");
 
     if (aec_decode_end(&strm) != AEC_OK)
-      throw std::runtime_error("Error ending decoder");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode_end", "Error ending decoder", Here());
 
     offsets_ = std::move(offsets);
     return decoded;
@@ -195,14 +196,15 @@ public:
   Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override
   {
     if (sizeof(ValueType) == 1 && !(bits_per_sample_ > 0 && bits_per_sample_ <= 8))
-      throw std::runtime_error("bits_per_sample must be between 1 and 8 for 1-byte types");
+      throw eckit::Exception("bits_per_sample must be between 1 and 8 for 1-byte types", Here());
     if (sizeof(ValueType) == 2 && !(bits_per_sample_ > 8 && bits_per_sample_ <= 16))
-      throw std::runtime_error("bits_per_sample must be between 1 and 16 for 2-byte types");
+      throw eckit::Exception("bits_per_sample must be between 9 and 16 for 2-byte types", Here());
     if (sizeof(ValueType) == 4 && !(bits_per_sample_ > 16 && bits_per_sample_ <= 32))
-      throw std::runtime_error("bits_per_sample must be between 1 and 32 for 4-byte types");
+      throw eckit::Exception("bits_per_sample must be between 17 and 32 for 4-byte types", Here());
 
     if (offsets_.empty())
-      throw std::runtime_error("No offsets found");
+      throw eckit::Exception("No offsets found", Here());
+      
 
     auto [range_offset, range_size] = range;
     auto range_offset_bytes = range_offset * sizeof(ValueType);
@@ -263,10 +265,10 @@ public:
     size_t new_size_bytes = range_size_bytes;
 
     if (new_offsets.empty())
-      throw std::runtime_error("AEC offsets list is empty");
+      throw eckit::Exception("AEC offsets list is empty", Here());
 
     if ((err = aec_decode_range(&strm, new_offsets.data(), new_offsets.size(), new_offset_bytes, new_size_bytes)) != AEC_OK)
-      throw std::runtime_error("Error decoding buffer");
+      throw eckit::FailedLibraryCall("libaec", "aec_decode_range", "Error decoding buffer", Here());
 
     //print_aec_stream_info(&strm, "Decompressing");
     //print_binary("decode_range_d", decoded.data(), decoded.size());

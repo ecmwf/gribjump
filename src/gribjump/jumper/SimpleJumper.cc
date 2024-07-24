@@ -31,7 +31,7 @@ void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset,
     const SimpleInfo& info = *psimple;
 
 
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor2>(dh, mc::Range{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()}); // TODO XXX
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(dh, mc::Range{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()}); // TODO XXX
     mc::SimpleDecompressor<double> simple{};
     simple
         .bits_per_value(info.bitsPerValue())

@@ -45,7 +45,7 @@ void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, 
 
 
     auto data_range = mc::Range{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()};
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor2>(dh, data_range);
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(dh, data_range);
 
     // TODO(maee): Optimize this
     auto ranges = toRanges(intervals);
