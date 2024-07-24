@@ -10,9 +10,7 @@ ecbuild_configure_file( callback_vs_scan.sh.in gribjump_callback_vs_scan.sh @ONL
 
 ecbuild_add_test(
     TARGET   gribjump_callback_vs_scan
-    CONDITION HAVE_FDB_BUILD_TOOLS
     TYPE     SCRIPT
     COMMAND  gribjump_callback_vs_scan.sh
     TEST_DEPENDS gribjump_test_tools_data
-    
 )
