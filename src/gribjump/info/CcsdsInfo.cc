@@ -38,7 +38,7 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
     ccsdsRsi_ = grib::ccsdsRsi(h);
 
     // Special case: constant field (no data section)
-    if (bitsPerValue_ == 0) {
+    if (bitsPerValue_ == 0 || offsetAfterData_ == offsetBeforeData_) {
         ccsdsOffsets_ = {};
         return;
     }
@@ -47,6 +47,7 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
     handle.seek(startOffset + offsetBeforeData_);
 
     eckit::Length len = offsetAfterData_ - offsetBeforeData_;
+    ASSERT(len > 0);
     eckit::Buffer buffer(len);
     handle.read(buffer, len);
 

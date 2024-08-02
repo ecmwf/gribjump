@@ -48,4 +48,22 @@ private:
     eckit::Queue<locPair> futures_;
     std::thread consumer_;
 };
+
+class SerialAggregator {
+public:
+    SerialAggregator();
+    ~SerialAggregator();
+
+    void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    void flush();
+
+private:
+
+    void insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info);
+
+private:
+
+    InfoExtractor extractor_;
+    std::map<std::string, size_t> count_; 
+};
 } // namespace gribjump

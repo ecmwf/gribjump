@@ -33,6 +33,7 @@ namespace gribjump {
 static const size_t AGGREGATOR_QUEUE_SIZE = 8;
 
 InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
+    NOTIMP; // TODO: I don't think the shared_ptr<location> is thread safe, investigate/fix.
     consumer_ = std::thread([this]() {
         for (;;) {
             locPair elem;
@@ -58,7 +59,7 @@ void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> futur
     eckit::AutoClose closer(handle);
 
     if (!isGrib(handle)) {
-        eckit::Log::warning() << "Warning: Gribjump InfoAggregator recieved non-grib message. Skipping..." << std::endl;
+        eckit::Log::warning() << "Warning: Gribjump InfoAggregator received non-grib message. Skipping..." << std::endl;
         return;
     }
 
@@ -80,6 +81,49 @@ void InfoAggregator::flush() {
     futures_.close();
     consumer_.join();
     ASSERT(futures_.empty());
+
+    InfoCache::instance().persist();
+
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
+        for (const auto& [key, value] : count_) {
+            LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
+        }
+    }
+}
+
+SerialAggregator::SerialAggregator() {
+}
+
+SerialAggregator::~SerialAggregator() {
+}
+
+void SerialAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
+
+    handle.openForRead();
+    eckit::AutoClose closer(handle);
+
+    if (!isGrib(handle)) {
+        eckit::Log::warning() << "Warning: Gribjump SerialAggregator received non-grib message. Skipping..." << std::endl;
+        return;
+    }
+
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
+    std::shared_ptr<fdb5::FieldLocation> location = future.get();
+    insert(location->fullUri(), std::move(info));
+}
+
+void SerialAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info) {
+    eckit::Offset offset(std::stoll(uri.fragment()));
+    eckit::PathName path = uri.path();
+
+    count_[info->packingType()]++;
+
+    InfoCache::instance().insert(path, offset, std::move(info));
+}
+
+void SerialAggregator::flush() {
+    LOG_DEBUG_LIB(LibGribJump) << "SerialAggregator flush" << std::endl;
 
     InfoCache::instance().persist();
 
