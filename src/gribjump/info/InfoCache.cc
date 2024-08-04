@@ -254,8 +254,9 @@ void InfoCache::print(std::ostream& s) const {
     s << "InfoCache[";
     s << "cacheDir=" << cacheDir_ << std::endl;
     s << "cache=" << std::endl;
-    for (auto& entry : cache_) {
-        s << entry.first << " -> " << entry.second << std::endl;
+    for (const auto& [filename, filecache] : cache_) {
+        s << "  " << filename << ": ";
+        filecache->print(s);
     }
     s << "]";
 }
