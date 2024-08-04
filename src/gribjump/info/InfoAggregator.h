@@ -27,7 +27,8 @@ namespace gribjump {
 
 using Key = std::string;
 
-// TODO: With recent improvements, we may no longer need this class, perhaps the callback can call the cache directly.
+// NB: This object creates a consumer thread (in ctor) and accepts futures from producers (add(), flush()).
+// Note that it *is not* safe to have multiple producers calling add() and/or flush() concurrently.
 class InfoAggregator {
     using locPair = std::pair<std::future<std::shared_ptr<fdb5::FieldLocation>>, std::unique_ptr<JumpInfo>>;
 
@@ -36,19 +37,31 @@ public:
     ~InfoAggregator();
 
     void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    
     void flush();
 
 private:
 
     void insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info);
+    void close();
 
 private:
     InfoExtractor extractor_;
     std::map<std::string, size_t> count_; 
     eckit::Queue<locPair> futures_;
     std::thread consumer_;
+
+    // conditional variable, counting how many futures are ready
+    std::condition_variable cv_;
+    std::mutex mutex_;
+
+    // Counters for futures produced and consumed, reset on flush.
+    size_t produced_ = 0;
+    std::atomic<size_t> consumed_{0};
+
 };
 
+// Simpler aggregator which does not create a consumer thread. Instead, it blocks in add() while waiting for the future.
 class SerialAggregator {
 public:
     SerialAggregator();

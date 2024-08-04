@@ -33,7 +33,6 @@ namespace gribjump {
 static const size_t AGGREGATOR_QUEUE_SIZE = 8;
 
 InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
-    NOTIMP; // TODO: I don't think the shared_ptr<location> is thread safe, investigate/fix.
     consumer_ = std::thread([this]() {
         for (;;) {
             locPair elem;
@@ -41,16 +40,14 @@ InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
             std::shared_ptr<fdb5::FieldLocation> location = elem.first.get();
             std::unique_ptr<JumpInfo> info = std::move(elem.second);
             insert(location->fullUri(), std::move(info));
+            consumed_++;
+            cv_.notify_one();
         }
-        LOG_DEBUG_LIB(LibGribJump) << "InfoAggregator Consumer thread done" << std::endl;
     });
 }
 
 InfoAggregator::~InfoAggregator() {
-    futures_.close(); // should be closed by flush
-    if (consumer_.joinable()) {
-        consumer_.join();
-    }
+    close();
 }
 
 void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
@@ -65,6 +62,7 @@ void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> futur
 
     std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
     futures_.emplace(std::move(future), std::move(info));
+    produced_++;
 }
 
 void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info) {
@@ -77,18 +75,33 @@ void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> inf
 }
 
 void InfoAggregator::flush() {
-    LOG_DEBUG_LIB(LibGribJump) << "InfoAggregator closing queue and joining thread" << std::endl;
-    futures_.close();
-    consumer_.join();
-    ASSERT(futures_.empty());
+    LOG_DEBUG_LIB(LibGribJump) << "InfoAggregator flush" << std::endl;
 
-    InfoCache::instance().persist();
+    // NB: We don't close queue because we can have multiple flushes in the lifetime of the aggregator.
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this] { return produced_ == consumed_; });
+    ASSERT(produced_ == consumed_);
+    ASSERT(futures_.empty());
+    
+    bool append = true;
+    InfoCache::instance().flush(append);
 
     if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
         for (const auto& [key, value] : count_) {
             LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
         }
+    }
+
+    produced_ = 0;
+    consumed_ = 0;
+    count_.clear();
+}
+
+void InfoAggregator::close() {
+    futures_.close();
+    if (consumer_.joinable()) {
+        consumer_.join();
     }
 }
 
@@ -125,7 +138,8 @@ void SerialAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> i
 void SerialAggregator::flush() {
     LOG_DEBUG_LIB(LibGribJump) << "SerialAggregator flush" << std::endl;
 
-    InfoCache::instance().persist();
+    bool append = true;
+    InfoCache::instance().flush(append);
 
     if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;

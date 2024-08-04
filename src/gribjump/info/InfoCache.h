@@ -31,7 +31,7 @@ class InfoCache {
 private: // types
 
     using filename_t = std::string;               //< key is fieldlocation's path basename
-    using cache_t = std::map<filename_t, FileCache*>; //< map fieldlocation's to gribinfo
+    using cache_t = std::map<filename_t, std::unique_ptr<FileCache>>; //< map fieldlocation's to gribinfo
 
 public:
 
@@ -56,12 +56,12 @@ public:
 
     std::vector<std::shared_ptr<JumpInfo>> get(const eckit::PathName& path, const eckit::OffsetList& offsets); // this version will generate on the fly... inconsistent?
 
-    void persist(bool merge=true);
+    void flush(bool append);
     void clear();
 
     void print(std::ostream& s) const;
 
-    FileCache& getFileCache(const eckit::PathName& f);
+    FileCache& getFileCache(const eckit::PathName& f, bool load=true);
 
 private: // methods
 
@@ -93,13 +93,16 @@ class FileCache {
 
 public:
 
-    FileCache(const eckit::PathName& path);
-
-    FileCache(eckit::Stream& s);
+    FileCache(const eckit::PathName& path, bool load=true);
 
     ~FileCache();
 
+    void load();
     void print(std::ostream& s);
+    bool loaded() const { return loaded_; }
+
+    // For tests only
+    size_t size() const { return map_.size(); }
 
 private: // Methods are only intended to be called from InfoCache
 
@@ -109,9 +112,15 @@ private: // Methods are only intended to be called from InfoCache
 
     void merge(FileCache& other);
 
-    void persist(bool merge=true);
+    void write();
+    void flush(bool append);
+    void clear();
 
     void insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info);
+
+    void toNewFile(eckit::PathName path);
+    void appendToFile(eckit::PathName path);
+    void fromFile(eckit::PathName path);
 
     // wrapper around map_.find()
     std::shared_ptr<JumpInfo> find(eckit::Offset offset);
@@ -120,11 +129,16 @@ private: // Methods are only intended to be called from InfoCache
 
     void lock() { mutex_.lock(); }
     void unlock() { mutex_.unlock(); }
+
     const infomap_t& map() const { return map_; }
 
 private:
 
+    static constexpr uint8_t currentVersion_ = 1;
+    uint8_t version_;
+
     eckit::PathName path_;
+    bool loaded_ = false;
     std::mutex mutex_; //< mutex for map_
     infomap_t map_;
 };
