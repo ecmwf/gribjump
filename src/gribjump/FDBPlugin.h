@@ -33,8 +33,8 @@ private:
 
 private:
     bool configParsed_ = false;
-    // std::vector<std::shared_ptr<InfoAggregator>> aggregators_;
-    std::vector<std::shared_ptr<SerialAggregator>> aggregators_;
+    std::vector<std::shared_ptr<InfoAggregator>> aggregators_;
+    // std::vector<std::shared_ptr<SerialAggregator>> aggregators_;
     std::map<std::string, eckit::Regex> selectDict_;
 
 };

@@ -48,8 +48,8 @@ void FDBPlugin::addFDB(fdb5::FDB& fdb) {
     static eckit::PathName configPath = eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", "");
     parseConfig(configPath);
 
-    // auto aggregator = std::make_shared<InfoAggregator>(); // one per FDB instance, to keep queues separate
-    auto aggregator = std::make_shared<SerialAggregator>();
+    auto aggregator = std::make_shared<InfoAggregator>(); // one per FDB instance, to keep queues separate
+    // auto aggregator = std::make_shared<SerialAggregator>();
     
     fdb.registerArchiveCallback([this, aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future) mutable {
         if (!matches(key)) return;
