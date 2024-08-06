@@ -35,19 +35,21 @@ namespace test {
 // See also tests/tools/callback_vs_scan.sh.in
 CASE( "test_plugin" ){
 
-    ::setenv("FDB_ENABLE_GRIBJUMP", "1", 1);
-
     // write the test_plugin.yaml file
     std::string s1 = eckit::LocalPathName::cwd();
     eckit::PathName configPath(s1.c_str());
     configPath /= "test_plugin.yaml";
     std::ofstream ofs(configPath);
     ofs << "---\n"
-        << "select: expver=(xxx*)\n";
+        << "cache:\n"
+        << "  shadowfdb: true\n"
+        << "plugin:\n"
+        << "  enable: true\n"
+        << "  select: expver=(xxx*),step=(1|2)\n"
+        << std::endl;
     ofs.close();
 
-    ::setenv("GRIBJUMP_FDB_CONFIG_FILE", configPath.asString().c_str(), 1);
-    ::setenv("GRIBJUMP_FDB_SHADOW", "1", 1);
+    ::setenv("GRIBJUMP_CONFIG_FILE", configPath.asString().c_str(), 1);
 
     std::string s = eckit::LocalPathName::cwd();
 
@@ -65,9 +67,9 @@ CASE( "test_plugin" ){
     )XX");
     std::cout << config_str << std::endl;
 
-    eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
+    SetEnv env("FDB5_CONFIG", config_str.c_str());
 
-    eckit::PathName gribName = "extract_ranges.grib"; // contains 3 messages
+    eckit::PathName gribName = "extract_ranges.grib"; // contains 3 messages, expver=xxxx, step=1,2,3. Expect 2 messages selected by the regex
 
     fdb5::FDB fdb; // callback should be automatically registered
     fdb.archive(*gribName.fileHandle());
@@ -87,7 +89,7 @@ CASE( "test_plugin" ){
         std::cout << file << std::endl;
         FileCache cache = FileCache(file);
         cache.print(std::cout);
-        EXPECT(cache.size() == 6);
+        EXPECT(cache.size() == 4); // match 2 messages, twice.
     }
     EXPECT(count == 1 ); // because we should be appending to the same file
 }

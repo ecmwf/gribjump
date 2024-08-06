@@ -28,7 +28,7 @@ private:
 
     FDBPlugin();
 
-    void parseConfig(eckit::PathName path);
+    void parseConfig();
     bool matches(const fdb5::Key& key) const;
 
 private:
@@ -37,6 +37,7 @@ private:
     // std::vector<std::shared_ptr<SerialAggregator>> aggregators_;
     std::map<std::string, eckit::Regex> selectDict_;
 
+    std::mutex mutex_;
 };
 
 } // namespace fdb5

@@ -60,6 +60,7 @@ void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> futur
         return;
     }
 
+    // Note: it is important we build the info at this stage (and not in the consumer thread) as we don't want to extend the lifetime of the data.
     std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
     futures_.emplace(std::move(future), std::move(info));
     produced_++;

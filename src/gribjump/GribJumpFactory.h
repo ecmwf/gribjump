@@ -14,9 +14,6 @@
 
 namespace gribjump {
 
-// GribJumpFactory, which will create either a GribJump or a RemoteGribJump
-// depending on whether the environment variable GRIBJUMP_REMOTE is set.
-
 class GribJumpFactory {
     virtual GribJumpBase *make(const Config& config) const = 0;
 

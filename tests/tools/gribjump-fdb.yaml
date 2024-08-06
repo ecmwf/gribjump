@@ -1,2 +1,6 @@
 ---
-select: date=(2*) 
+plugin:
+  enable: true
+  select: date=(2*)
+cache:
+  shadowfdb: true

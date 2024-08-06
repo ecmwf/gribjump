@@ -13,7 +13,6 @@ set -eux
 # temp
 unset FDB_DEBUG
 unset GRIBJUMP_DEBUG
-unset FDB_ENABLE_GRIBJUMP # XXX even fdb read fails if this is set when the config isnt found
 # setup
 
 fdbwrite="$<TARGET_FILE:fdb-write>"
@@ -25,12 +24,10 @@ gjinfo="$<TARGET_FILE:gribjump-dump-info>"
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
-export FDB5_HOME=$bindir
-export GRIBJUMP_HOME=$bindir
-export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
+export GRIBJUMP_CONFIG_FILE=${srcdir}/gribjump-fdb.yaml
 
-export GRIBJUMP_FDB_CONFIG_FILE=${srcdir}/gribjump-fdb.yaml
-export GRIBJUMP_FDB_SHADOW=1 # would be nice to configure this some other way.
+export FDB5_HOME=$bindir
+export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
 export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
 
 ### cleanup and prepare test
@@ -142,5 +139,6 @@ diff ${bindir}/extract1.clean ${bindir}/extract3.clean
 
 # -------------------------------------
 # Done! Tidy up
-
 rm -rf ${bindir}/root1 ${bindir}/root2 ${bindir}/root3
+
+echo "Test finished"

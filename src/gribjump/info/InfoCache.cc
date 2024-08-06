@@ -41,22 +41,25 @@ InfoCache::~InfoCache() {
 
 InfoCache::InfoCache(): cacheDir_(eckit::PathName()) {
 
-    shadowCache_ = eckit::Resource<bool>("gribJumpFDBShadow;$GRIBJUMP_FDB_SHADOW", false);
+    const Config& config = LibGribJump::instance().config();
 
-    if (shadowCache_) return;
+    shadowCache_ = config.getBool("cache.shadowfdb", false);
+    if (shadowCache_) {
+        LOG_DEBUG_LIB(LibGribJump) << "Shadow FDB cache enabled" << std::endl;    
+        return;
+    }
 
-    std::string cache = eckit::Resource<std::string>("gribJumpCacheDir;$GRIBJUMP_CACHE_DIR", "");
-    LOG_DEBUG_LIB(LibGribJump) << "Cache directory " << cache << std::endl;
+    std::string cache = eckit::Resource<std::string>("$GRIBJUMP_CACHE_DIR", config.getString("cache.directory", ""));
+    bool enabled = config.getBool("cache.enabled", true);
 
-    if(cache.empty()) {
+    if(!enabled || cache.empty()) {
         persistentCache_ = false; 
-
         LOG_DEBUG_LIB(LibGribJump) << "Warning, cache persistence is disabled" << std::endl;
-
         return;
     }
 
     cacheDir_ = eckit::PathName(cache);
+    LOG_DEBUG_LIB(LibGribJump) << "Cache directory " << cacheDir_ << std::endl;
 
     if (!cacheDir_.exists()) {
         throw eckit::BadValue("Cache directory " + cacheDir_ + " does not exist");

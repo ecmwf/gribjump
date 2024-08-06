@@ -35,7 +35,8 @@ FDBPlugin& FDBPlugin::instance() {
 
 FDBPlugin::FDBPlugin() {
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
-        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+        const Config& config = LibGribJump::instance().config();
+        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump", config.getBool("plugin.enable", false));
         static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
         if (enableGribjump && !disableGribjump) {
             FDBPlugin::instance().addFDB(fdb);
@@ -45,12 +46,11 @@ FDBPlugin::FDBPlugin() {
 
 void FDBPlugin::addFDB(fdb5::FDB& fdb) {
 
-    static eckit::PathName configPath = eckit::Resource<eckit::PathName>("gribjumpFdbConfigFile;$GRIBJUMP_FDB_CONFIG_FILE", "");
-    parseConfig(configPath);
+    parseConfig();
 
     auto aggregator = std::make_shared<InfoAggregator>(); // one per FDB instance, to keep queues separate
     // auto aggregator = std::make_shared<SerialAggregator>();
-    
+
     fdb.registerArchiveCallback([this, aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future) mutable {
         if (!matches(key)) return;
         
@@ -65,27 +65,22 @@ void FDBPlugin::addFDB(fdb5::FDB& fdb) {
         aggregator->flush();
     });
 
-    aggregators_.push_back(aggregator);
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        aggregators_.push_back(aggregator);
+    }
 }
 
 // TODO: Look also at the multio select functionality, which is more complete.
 // Which can specify match and exclusions, for instance. Which is probably nicer.
-void FDBPlugin::parseConfig(eckit::PathName path) {
+void FDBPlugin::parseConfig() {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (configParsed_) return;
     configParsed_ = true;
-    
-    if (!path.exists()) {
-        // TODO: Could instead use a default config and a warning?
-        std::stringstream ss;
-        ss << "Config file " << path << " does not exist" << std::endl;
-        throw eckit::UserError(ss.str(), Here());
-    }
 
-    LOG_DEBUG_LIB(LibGribJump) << "Parsing config file " << path << std::endl;
+    const Config& config = LibGribJump::instance().config();
 
-    eckit::YAMLConfiguration config(path);
-
-    std::string select = config.getString("select", "");
+    std::string select = config.getString("plugin.select", "");
 
     std::vector<std::string> select_key_values;
     eckit::Tokenizer(',')(select, select_key_values);
@@ -97,7 +92,7 @@ void FDBPlugin::parseConfig(eckit::PathName path) {
 
         if (kv.size() != 2 || selectDict_.find(kv[0]) != selectDict_.end()) {
             std::stringstream ss;
-            ss << "Invalid select condition in gribjump-fdb config: " << select << std::endl;
+            ss << "Invalid select condition in gribjump config: " << select << std::endl;
             throw eckit::UserError(ss.str(), Here());
         }
 
@@ -105,7 +100,7 @@ void FDBPlugin::parseConfig(eckit::PathName path) {
     }
 
     if (LibGribJump::instance().debug()) {
-        LOG_DEBUG_LIB(LibGribJump) << "Select dictionary:" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin Select dictionary:" << std::endl;
         for (const auto& kv : selectDict_) {
             LOG_DEBUG_LIB(LibGribJump) << "    " << kv.first << " => " << kv.second << std::endl;
         }
@@ -115,6 +110,8 @@ void FDBPlugin::parseConfig(eckit::PathName path) {
 
 // Check if selectDict matches key
 bool FDBPlugin::matches(const fdb5::Key& key) const {
+
+    if (selectDict_.empty()) return false;
 
     for (const auto& kv : selectDict_) {
         std::string value = key.get(kv.first);
