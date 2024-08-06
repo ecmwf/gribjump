@@ -29,7 +29,7 @@ namespace gribjump {
 //   - `shadowfdb`   : If true, the cache files will be stored in the same directory as data files, instead of `directory`.
 //   - `enable`      : If false, the caching will be disabled.
 // - `plugin`        : Configuration for using GribJump as a plugin to FDB, which generates jumpinfos on the fly for fdb.archive()
-//   - `enable`      : Whether to enable the plugin. Default is false.
+//                     NOTE Plugin cannot be enabled from config, one must set the envar FDB_ENABLE_GRIBJUMP
 //                     NOTE Setting env FDB_DISABLE_GRIBJUMP will override this setting and disable the plugin.
 //   - `select`      : Defines regex for selecting which FDB keys to generate jumpinfo for. If unset, no jumpinfos will be generated.
 //                   : example `select: date=(20*),expver=(oper|test)`.

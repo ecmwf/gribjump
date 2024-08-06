@@ -44,12 +44,11 @@ CASE( "test_plugin" ){
         << "cache:\n"
         << "  shadowfdb: true\n"
         << "plugin:\n"
-        << "  enable: true\n"
         << "  select: expver=(xxx*),step=(1|2)\n"
         << std::endl;
     ofs.close();
-
     ::setenv("GRIBJUMP_CONFIG_FILE", configPath.asString().c_str(), 1);
+    ::setenv("FDB_ENABLE_GRIBJUMP", "1", 1);
 
     std::string s = eckit::LocalPathName::cwd();
 

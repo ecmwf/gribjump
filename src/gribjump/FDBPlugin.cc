@@ -36,7 +36,7 @@ FDBPlugin& FDBPlugin::instance() {
 FDBPlugin::FDBPlugin() {
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
         const Config& config = LibGribJump::instance().config();
-        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump", config.getBool("plugin.enable", false));
+        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); 
         static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
         if (enableGribjump && !disableGribjump) {
             FDBPlugin::instance().addFDB(fdb);

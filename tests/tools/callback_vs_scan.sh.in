@@ -29,7 +29,7 @@ export GRIBJUMP_CONFIG_FILE=${srcdir}/gribjump-fdb.yaml
 export FDB5_HOME=$bindir
 export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
 export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
-
+export FDB_ENABLE_GRIBJUMP=1
 ### cleanup and prepare test
 rm -rf ${bindir}/root1 ${bindir}/root2 ${bindir}/root3
 mkdir -p ${bindir}/root1 ${bindir}/root2 ${bindir}/root3
