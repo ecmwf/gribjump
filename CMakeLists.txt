@@ -11,10 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ########################################################################################################################
 ### dependencies and options
 
-### eckit
-
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
-
 ecbuild_find_package( NAME eckit VERSION 1.25.2 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
 
@@ -25,13 +22,24 @@ ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
 
 if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
+  set(GRIBJUMP_HAVE_FDB 1)
+
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
-  ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED ) # todo make optional?
-  # TODO: What's the ecbuild version of this?
-  find_package(fdb5)
-  if (fdb5_FOUND)
-      set(GRIBJUMP_HAVE_FDB 1)
+  
+  ### AEC
+  # Override eccodes' aec with our own: we need a newer version.
+  unset(AEC_INCLUDE_DIRS CACHE)
+  unset(AEC_LIBRARIES CACHE)
+  ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED )
+
+  # ecbuild_find_package's version checking does not work if the version is not specified in the package.
+  if (NOT AEC_VERSION)
+    message(FATAL_ERROR "AEC version is too old (version unspecified). Minimum supported version is 1.1.1.")
   endif()
+  if (AEC_VERSION VERSION_LESS 1.1.1)
+    message(FATAL_ERROR "AEC version is too old. Minimum supported version is 1.1.1. Found version: ${AEC_VERSION}")
+  endif()
+
 endif()
 
 ########################################################################################################################
