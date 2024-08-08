@@ -32,7 +32,7 @@ namespace gribjump {
 //                     NOTE Plugin cannot be enabled from config, one must set the envar FDB_ENABLE_GRIBJUMP
 //                     NOTE Setting env FDB_DISABLE_GRIBJUMP will override this setting and disable the plugin.
 //   - `select`      : Defines regex for selecting which FDB keys to generate jumpinfo for. If unset, no jumpinfos will be generated.
-//                   : example `select: date=(20*),expver=(oper|test)`.
+//                   : example `select: date=(20*),stream=(oper|test)`.
 
 Config::Config() {
 }

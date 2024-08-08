@@ -22,7 +22,7 @@ namespace {
 bool isGrib(eckit::DataHandle& handle) {
     char buffer[4];
     eckit::Offset offset = handle.position();
-    handle.read(buffer, 4);
+    ASSERT(handle.read(buffer, 4) == 4);
     handle.seek(offset);
     return buffer[0] == 'G' && buffer[1] == 'R' && buffer[2] == 'I' && buffer[3] == 'B';
 }
@@ -40,8 +40,6 @@ InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
             std::shared_ptr<fdb5::FieldLocation> location = elem.first.get();
             std::unique_ptr<JumpInfo> info = std::move(elem.second);
             insert(location->fullUri(), std::move(info));
-            consumed_++;
-            cv_.notify_one();
         }
     });
 }
@@ -63,7 +61,6 @@ void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> futur
     // Note: it is important we build the info at this stage (and not in the consumer thread) as we don't want to extend the lifetime of the data.
     std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
     futures_.emplace(std::move(future), std::move(info));
-    produced_++;
 }
 
 void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info) {
@@ -75,17 +72,14 @@ void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> inf
     InfoCache::instance().insert(path, offset, std::move(info));
 }
 
+// NB: Flush closes the queue, so the InfoAggregator object is no longer usable after this call.
 void InfoAggregator::flush() {
     LOG_DEBUG_LIB(LibGribJump) << "InfoAggregator flush" << std::endl;
 
-    // NB: We don't close queue because we can have multiple flushes in the lifetime of the aggregator.
-    std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this] { return produced_ == consumed_; });
-    ASSERT(produced_ == consumed_);
+    close();
     ASSERT(futures_.empty());
     
-    bool append = true;
-    InfoCache::instance().flush(append);
+    InfoCache::instance().flush(true);
 
     if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
@@ -93,10 +87,6 @@ void InfoAggregator::flush() {
             LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
         }
     }
-
-    produced_ = 0;
-    consumed_ = 0;
-    count_.clear();
 }
 
 void InfoAggregator::close() {
@@ -139,8 +129,7 @@ void SerialAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> i
 void SerialAggregator::flush() {
     LOG_DEBUG_LIB(LibGribJump) << "SerialAggregator flush" << std::endl;
 
-    bool append = true;
-    InfoCache::instance().flush(append);
+    InfoCache::instance().flush(true);
 
     if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;

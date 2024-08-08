@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <optional>
 #include "eckit/utils/Regex.h"
 
 #include "fdb5/api/FDB.h"
@@ -33,11 +34,12 @@ private:
 
 private:
     bool configParsed_ = false;
-    std::vector<std::shared_ptr<InfoAggregator>> aggregators_;
-    // std::vector<std::shared_ptr<SerialAggregator>> aggregators_;
     std::map<std::string, eckit::Regex> selectDict_;
 
     std::mutex mutex_;
+
+    std::vector<std::unique_ptr<std::optional<InfoAggregator>>> aggregators_;
+
 };
 
 } // namespace fdb5

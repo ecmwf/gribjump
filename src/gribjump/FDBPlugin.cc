@@ -34,8 +34,8 @@ FDBPlugin& FDBPlugin::instance() {
 }
 
 FDBPlugin::FDBPlugin() {
+    // NB: Can't access eckit::Resource outside the callback because eckit::main has not finished initialising
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
-        const Config& config = LibGribJump::instance().config();
         static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); 
         static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
         if (enableGribjump && !disableGribjump) {
@@ -47,28 +47,32 @@ FDBPlugin::FDBPlugin() {
 void FDBPlugin::addFDB(fdb5::FDB& fdb) {
 
     parseConfig();
+    std::lock_guard<std::mutex> lock(mutex_);
 
-    auto aggregator = std::make_shared<InfoAggregator>(); // one per FDB instance, to keep queues separate
-    // auto aggregator = std::make_shared<SerialAggregator>();
+    aggregators_.emplace_back(std::make_unique<std::optional<InfoAggregator>>());
+    std::optional<InfoAggregator>& aggregator = *aggregators_.back();
 
-    fdb.registerArchiveCallback([this, aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future) mutable {
-        if (!matches(key)) return;
-        
+    fdb.registerArchiveCallback([this, &aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future)  {
+        if (!matches(key) || length < 4)
+            return;
+
         LOG_DEBUG_LIB(LibGribJump) << "archive callback for selected key " << key << std::endl;
 
+        if (!aggregator) {
+            aggregator.emplace();
+        }
         eckit::MemoryHandle handle(data, length);
         aggregator->add(std::move(future), handle, 0);
     });
 
-    fdb.registerFlushCallback([aggregator]() mutable {
+
+    fdb.registerFlushCallback([&aggregator]() {
+        if (!aggregator) return; // It's possible that no keys ever matched, so the aggregator was never created.
         LOG_DEBUG_LIB(LibGribJump) << "Flush callback" << std::endl;
         aggregator->flush();
+        aggregator.reset();
     });
 
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        aggregators_.push_back(aggregator);
-    }
 }
 
 // TODO: Look also at the multio select functionality, which is more complete.

@@ -51,14 +51,6 @@ private:
     eckit::Queue<locPair> futures_;
     std::thread consumer_;
 
-    // conditional variable, counting how many futures are ready
-    std::condition_variable cv_;
-    std::mutex mutex_;
-
-    // Counters for futures produced and consumed, reset on flush.
-    size_t produced_ = 0;
-    std::atomic<size_t> consumed_{0};
-
 };
 
 // Simpler aggregator which does not create a consumer thread. Instead, it blocks in add() while waiting for the future.
