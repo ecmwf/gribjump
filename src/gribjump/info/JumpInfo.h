@@ -72,7 +72,7 @@ private:
 
 protected:
 
-    static constexpr uint8_t currentVersion_ = 6;
+    static constexpr uint8_t currentVersion_ = 1;
     uint8_t       version_;
     double        referenceValue_;
     long          binaryScaleFactor_;
