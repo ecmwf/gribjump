@@ -1,5 +1,3 @@
 ---
 plugin:
-  select: date=(2*)
-cache:
-  shadowfdb: true
+  select: expver=(xxxx)

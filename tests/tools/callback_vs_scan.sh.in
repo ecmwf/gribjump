@@ -20,6 +20,7 @@ fdbread="$<TARGET_FILE:fdb-read>"
 gjscan="$<TARGET_FILE:gribjump-scan>"
 gjextract="$<TARGET_FILE:gribjump-extract>"
 gjinfo="$<TARGET_FILE:gribjump-dump-info>"
+gribset="$<TARGET_FILE:grib_set>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
@@ -49,15 +50,21 @@ spaces:
 EOF
 done
 
-# Get the mars requests corresponding to the data, for scanning/extracting
+# Data from nexus
 supporteddata="${bindir}/supported.grib"
 unsupporteddata="${bindir}/unsupported.grib"
+
+# Group data based on whether we expect it to be selected by the filter.
+# We will be selecting expver=xxxx, and not xxxy.
+selected=${bindir}/selected.grib # data to be selected (all other data is filtered)
+unselected=${bindir}/unselected.grib # data to be filtered out
 testdata=${bindir}/alldata.grib
+cat $supporteddata $unsupporteddata > $selected
+$gribset -s "expver=xxxy" $selected $unselected
+cat $selected $unselected > $testdata
 
-cat $supporteddata $unsupporteddata > $testdata
-
-requests=${bindir}/requests
-$fdbread --extract ${testdata} /dev/null > $requests
+selectedrequests=${bindir}/requests
+$fdbread --extract ${selected} /dev/null > $selectedrequests
 
 # -------------------------------------
 # 1: Reference FDB
@@ -77,7 +84,7 @@ unset FDB_ENABLE_GRIBJUMP
 echo "Writing to FDB without gribjump plugin, then scanning"
 $fdbwrite ${testdata}
 
-$gjscan $requests
+$gjscan $selectedrequests
 
 # -------------------------------------
 # 3: FDB with gribjump plugin

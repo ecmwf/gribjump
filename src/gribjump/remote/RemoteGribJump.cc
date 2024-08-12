@@ -19,12 +19,25 @@
 
 namespace gribjump {
 
-RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config) {
-    if (!config.get("remote.host", host_))
-        throw eckit::UserError("RemoteGribJump requires host to be set in config", Here());
+RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
+    std::string uri = config.getString("uri", "");
     
-    if (!config.get("remote.port", port_))
-        throw eckit::UserError("RemoteGribJump requires port to be set in config", Here());
+    if (uri.empty())
+        throw eckit::UserError("RemoteGribJump requires uri to be set in config (format host:port)", Here());
+
+    // parse uri, expect format "host:port"
+    size_t pos = uri.find(':');
+
+    if (pos == std::string::npos)
+        throw eckit::UserError("RemoteGribJump uri must be in the format 'host:port'", Here());
+
+    host_ = uri.substr(0, pos);
+    if (host_.empty())
+        throw eckit::UserError("RemoteGribJump requires host to be set in uri", Here());
+
+    port_ = std::stoi(uri.substr(pos+1));
+    if (port_ == 0)
+        throw eckit::UserError("RemoteGribJump requires port to be set in uri", Here());
 }
 
 RemoteGribJump::~RemoteGribJump() {}
