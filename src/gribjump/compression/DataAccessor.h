@@ -17,6 +17,7 @@
 
 #include "Range.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 
 namespace mc {
@@ -39,7 +40,7 @@ public:
     }
 
     void write(const eckit::Buffer& buffer, const size_t offset) const override {
-        throw std::runtime_error("Not implemented");
+        NOTIMP;
     }
 
     eckit::Buffer read(const Range& range) const override {
@@ -48,8 +49,9 @@ public:
         ifs_.seekg(offset, std::ios::beg);
         ifs_.read(reinterpret_cast<char*>(buf.data()), size);
         if (!ifs_) {
-            std::cerr << "Error: only " << ifs_.gcount() << " could be read" << std::endl;
-            throw std::runtime_error("Error reading file");
+            std::stringstream ss;
+            ss << "Error: only " << ifs_.gcount() << " could be read";
+            throw eckit::ReadError(ss.str(), Here());
         }
         assert(size != 0);
         return eckit::Buffer{buf.data(), size};
@@ -62,8 +64,9 @@ public:
         eckit::Buffer buf(size);
         ifs_.read(reinterpret_cast<char*>(buf.data()), size);
         if (!ifs_) {
-            std::cerr << "Error: only " << ifs_.gcount() << " could be read" << std::endl;
-            throw std::runtime_error("Error reading file");
+            std::stringstream ss;
+            ss << "Error: only " << ifs_.gcount() << " could be read";
+            throw eckit::ReadError(ss.str(), Here());
         }
         assert(size != 0);
         return eckit::Buffer{buf.data(), size};
@@ -83,14 +86,15 @@ public:
     explicit MemoryAccessor(const eckit::Buffer& buffer) : buf_{buffer.data(), buffer.size()} {}
 
     void write(const eckit::Buffer& buffer, const size_t offset) const override {
-        throw std::runtime_error("Not implemented");
+        NOTIMP;
     }
 
     eckit::Buffer read(const Range& range) const override {
         const auto [offset, size] = range;
         if (offset + size > buf_.size()) {
-            std::cout << "offset: " << offset << ", size: " << size << ", buf size: " << buf_.size() << std::endl;
-            throw std::runtime_error("Out of range");
+            std::stringstream ss;
+            ss << "Out of range: offset: " << offset << ", size: " << size << ", buf size: " << buf_.size();
+            throw eckit::OutOfRange(ss.str(), Here());
         }
         return eckit::Buffer{reinterpret_cast<const char*>(buf_.data()) + offset, size};
     }

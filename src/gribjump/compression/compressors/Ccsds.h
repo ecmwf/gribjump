@@ -15,6 +15,7 @@
 
 #include <eckit/io/Buffer.h>
 #include <eckit/serialisation/MemoryStream.h>
+#include "eckit/exception/Exceptions.h"
 
 #include <stdlib.h>
 #include <optional>
@@ -116,7 +117,9 @@ public:
         std::tie(ccsds_decompressor, data) = encode_all_<uint32_t>(values, nbytes);
         break;
       default:
-        throw std::runtime_error("Unsupported number of bytes per value");
+        std::stringstream ss;
+        ss << nbytes;
+        throw eckit::SeriousBug("Unsupported number of bytes per value: " + ss.str(), Here());
     }
 
     //return std::make_pair(std::move(ccsds_decompressor), std::move(data)); 
@@ -192,7 +195,9 @@ public:
         values = decode_all_<uint32_t>(in_buf, bscale, dscale);
         break;
       default:
-        throw std::runtime_error("Invalid number of bytes per sample");
+        std::stringstream ss;
+        ss << nbytes;
+        throw eckit::SeriousBug("Invalid number of bytes per sample: " + ss.str(), Here());
     }
 
     return values;
@@ -223,7 +228,9 @@ public:
         values = decode_range_<uint32_t>(accessor, range, bscale, dscale);
         break;
       default:
-        throw std::runtime_error("Invalid number of bytes per sample");
+        std::stringstream ss;
+        ss << simple_nbytes;
+        throw eckit::SeriousBug("Invalid number of bytes per sample: " + ss.str(), Here());
     }
 
     return values;

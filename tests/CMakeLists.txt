@@ -109,3 +109,17 @@ ecbuild_add_test(
     NO_AS_NEEDED
     LIBS gribjump
 )
+
+ecbuild_add_test(
+    TARGET "gribjump_test_plugin"
+    SOURCES "test_plugin.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+if (ENABLE_FDB_BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()

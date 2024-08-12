@@ -12,43 +12,63 @@
 
 #pragma once
 
+#include <future>
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/container/Queue.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/message/Message.h"
-#include "fdb5/database/Key.h"
 #include "gribjump/info/InfoExtractor.h"
+
+namespace fdb5 {
+    class FieldLocation;
+}
 
 namespace gribjump {
 
-// Ideally we would use eckit URI, but in a map it uses .asString, which IGNORES THE FRAGMENT i.e. the offset, so is no good for us.
-using URI = std::string;
+using Key = std::string;
 
-class InfoAggregator { // rename...
+// NB: This object creates a consumer thread (in ctor) and accepts futures from producers (add(), flush()).
+// Note that it *is not* safe to have multiple producers calling add() and/or flush() concurrently.
+class InfoAggregator {
+    using locPair = std::pair<std::future<std::shared_ptr<fdb5::FieldLocation>>, std::unique_ptr<JumpInfo>>;
 
 public:
-    InfoAggregator() = default;
+    InfoAggregator();
+    ~InfoAggregator();
 
-    // Extract the JumpInfo from a message.
-    void add(const fdb5::Key& key, const eckit::message::Message& message);
-
-    // Store the location provided by fdb callback
-    void add(const fdb5::Key& key, const eckit::URI& location);
-
-    // Give  infos to the cache and persist them.
+    void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    
     void flush();
 
 private:
-    std::mutex mutex_; // Must lock before touching any maps
 
-    // should be references or pointers, most likely.
-    std::map<fdb5::Key, URI> keyToLocation;
-    std::map<fdb5::Key, JumpInfo*> keyToJumpInfo;
+    void insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info);
+    void close();
 
-    std::map<URI, JumpInfo*> locationToJumpInfo;
+private:
+    InfoExtractor extractor_;
+    std::map<std::string, size_t> count_; 
+    eckit::Queue<locPair> futures_;
+    std::thread consumer_;
 
-    std::map<URI, std::pair<eckit::PathName, eckit::Offset>> locationToPathAndOffset; // Feels unnecessary...
+};
 
-    size_t count_ = 0; // Should always equal size of location_to_jumpinfo_
+// Simpler aggregator which does not create a consumer thread. Instead, it blocks in add() while waiting for the future.
+class SerialAggregator {
+public:
+    SerialAggregator();
+    ~SerialAggregator();
+
+    void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    void flush();
+
+private:
+
+    void insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info);
+
+private:
 
     InfoExtractor extractor_;
+    std::map<std::string, size_t> count_; 
 };
 } // namespace gribjump

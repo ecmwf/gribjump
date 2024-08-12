@@ -1,0 +1,5 @@
+---
+plugin:
+  select: date=(2*)
+cache:
+  shadowfdb: true

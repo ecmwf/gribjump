@@ -25,7 +25,7 @@
 
 namespace gribjump {
 
-std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges){  
+std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges) {  
 
     std::map< eckit::PathName, eckit::OffsetList > map = FDBLister::instance().filesOffsets({request});
    
@@ -45,7 +45,7 @@ std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsR
 
 }
 
-std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets, std::vector<Range> ranges){ 
+std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets, std::vector<Range> ranges) { 
 
     std::vector<std::vector<std::vector<double>>> results;
     

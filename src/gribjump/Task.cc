@@ -51,7 +51,7 @@ void Task::notifyError(const std::string& s) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TaskGroup::TaskGroup(){}
+TaskGroup::TaskGroup() {}
 
 TaskGroup::~TaskGroup() {
     for (auto& t : tasks_) {
@@ -92,7 +92,7 @@ void TaskGroup::enqueueTask(Task* task) {
     LOG_DEBUG_LIB(LibGribJump) << "Queued task " <<  tasks_.size() << std::endl;
 }
 
-void TaskGroup::waitForTasks(){
+void TaskGroup::waitForTasks() {
     ASSERT(taskStatus_.size() > 0); // todo Might want to allow for "no tasks" case, though be careful with the lock / counter.
     LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(taskStatus_.size(), "task") << "..." << std::endl;
     std::unique_lock<std::mutex> lock(m_);
@@ -169,7 +169,7 @@ InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgrou
     FileExtractionTask(taskgroup, id, fname, extractionItems) {
 }
 
-void InefficientFileExtractionTask::extract(){
+void InefficientFileExtractionTask::extract() {
 
     fdb5::FDB fdb;
 
@@ -214,7 +214,7 @@ void InefficientFileExtractionTask::extract(){
 FileScanTask::FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets) :
     Task(taskgroup, id),
     fname_(fname),
-    offsets_(offsets){
+    offsets_(offsets) {
 }
 
 void FileScanTask::execute() {
@@ -228,7 +228,7 @@ void FileScanTask::execute() {
     notify();
 }
 
-void FileScanTask::scan(){
+void FileScanTask::scan() {
 
     if (offsets_.size() == 0) {
         InfoCache::instance().scan(fname_);

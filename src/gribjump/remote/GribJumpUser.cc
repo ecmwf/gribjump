@@ -22,11 +22,11 @@
 
 namespace gribjump {
 
-GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol){}
+GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol) {}
 
 GribJumpUser::~GribJumpUser() {}
 
-void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out){
+void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) {
 
     eckit::Timer timer_full("Connection closed");
 
@@ -111,7 +111,7 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
     timer.reset("Axes results sent");
 }
 
-void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer){ 
+void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) { 
 
     /// @todo, check if this is still working.
 

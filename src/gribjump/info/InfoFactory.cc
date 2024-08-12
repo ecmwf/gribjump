@@ -47,7 +47,7 @@ std::unique_ptr<JumpInfo> InfoFactory::build(eckit::DataHandle& h, const eckit::
 
     InfoBuilderBase* builder = get(packingType(gh));
 
-    if (!builder) return nullptr;
+    ASSERT(builder); // Unrecognised packingTypes use the "unsupported" builder
 
     return builder->make(h, gh, msgOffset);
 }
@@ -56,7 +56,7 @@ std::unique_ptr<JumpInfo> InfoFactory::build(const eckit::message::Message& msg)
     
     InfoBuilderBase* builder = get(msg.getString("packingType"));
 
-    if (!builder) return nullptr;
+    ASSERT(builder); // Unrecognised packingTypes use the "unsupported" builder
 
     return builder->make(msg);
 }

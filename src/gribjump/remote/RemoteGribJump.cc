@@ -19,11 +19,11 @@
 
 namespace gribjump {
 
-RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
-    if (!config.get("host", host_))
+RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config) {
+    if (!config.get("remote.host", host_))
         throw eckit::UserError("RemoteGribJump requires host to be set in config", Here());
     
-    if (!config.get("port", port_))
+    if (!config.get("remote.port", port_))
         throw eckit::UserError("RemoteGribJump requires port to be set in config", Here());
 }
 

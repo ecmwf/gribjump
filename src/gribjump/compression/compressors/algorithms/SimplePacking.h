@@ -16,6 +16,8 @@
 #include <algorithm>
 #include "LibEccodes.h"
 
+#include "eckit/exception/Exceptions.h"
+
 
 enum class FloatType {
     IEEE32,
@@ -126,12 +128,15 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     size_t n_vals = values.size();
 
     if (n_vals == 0)
-        throw std::runtime_error("No grib values");
+        throw eckit::Exception("No grib values", Here());
 
 
     /* check we don't encode bpv > max(ulong)-1 as it is not currently supported by the algorithm */
-    if (params.bits_per_value > (sizeof(long) * 8 - 1))
-        throw std::runtime_error("Invalid bits_per_value" + std::to_string(params.bits_per_value));
+    if (params.bits_per_value > (sizeof(long) * 8 - 1)){
+        std::stringstream ss;
+        ss << "Invalid bits_per_value: " << params.bits_per_value;
+        throw eckit::BadValue(ss.str(), Here());
+    }
 
     dirty_ = 1;
 
@@ -140,12 +145,13 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
     auto min = *min_ptr;
     auto max = *max_ptr;
 
-    if ((err = grib_check_data_values_range(min, max)) != LIB_ECCODES_SUCCESS)
-        throw std::runtime_error("grib_check_data_values_range");
+    if ((err = grib_check_data_values_range(min, max)) != LIB_ECCODES_SUCCESS) {
+        throw eckit::BadValue("Invalid data values range", Here());
+    }
 
     if (max == min) {
         if (grib_get_nearest_smaller_value(val[0], &params.reference_value) != LIB_ECCODES_SUCCESS) {
-            throw std::runtime_error("unable to find nearest_smaller_value");
+            throw eckit::Exception("unable to find nearest_smaller_value", Here());
         }
 
         if (large_constant_fields_) {
@@ -187,11 +193,13 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
 
         /* params.bits_per_value=(long)ceil(log((double)(imax-imin+1))/log(2.0)); */
         /* See GRIB-540 for why we use ceil */
-        if (number_of_bits((unsigned long)ceil(fabs(max - min)), &params.bits_per_value) != LIB_ECCODES_SUCCESS)
-            throw std::runtime_error("Range of values too large. Try a smaller value for decimal precision (less than %ld)");
+        if (number_of_bits((unsigned long)ceil(fabs(max - min)), &params.bits_per_value) != LIB_ECCODES_SUCCESS) {
+            throw eckit::Exception("Range of values too large. Try a smaller value for decimal precision", Here());
+        }
 
-        if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS)
-            throw std::runtime_error("unable to find nearest_smaller_value");
+        if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS){
+            throw eckit::Exception("unable to find nearest_smaller_value", Here());
+        }
         /* divisor=1; */
     }
     else {
@@ -203,15 +211,16 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
         if (max == min) {
             binary_scale_factor = 0;
             /* divisor=1; */
-            if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS)
-                throw std::runtime_error("unable to find nearest_smaller_value of %g for %s");
+            if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS) {
+                throw eckit::Exception("unable to find nearest_smaller_value", Here());
+            }
         }
         else if (optimize_scaling_factor_) {
             if ((err = grib_optimize_decimal_factor(
                                                     max, min, params.bits_per_value,
                                                     compat_gribex_, 1,
                                                     &decimal_scale_factor, &binary_scale_factor, &reference_value)) != LIB_ECCODES_SUCCESS)
-                throw std::runtime_error("grib_optimize_decimal_factor failed");
+                throw eckit::Exception("grib_optimize_decimal_factor failed", Here());
         }
         else {
             /* printf("max=%g reference_value=%g grib_power<double>(-last,2)=%g decimal_scale_factor=%ld params.bits_per_value=%ld\n",
@@ -239,12 +248,14 @@ std::pair<DecodeParameters<ValueType>, typename SimplePacking<ValueType>::Buffer
             }
 
             if (grib_get_nearest_smaller_value(min, &reference_value) != LIB_ECCODES_SUCCESS) {
-                throw std::runtime_error(std::string{"unable to find nearest_smaller_value of "} + std::to_string(min) + " for " + std::to_string(reference_value));
+                std::stringstream ss;
+                ss << "unable to find nearest_smaller_value of " << min << " for " << reference_value;
+                throw eckit::Exception(ss.str(), Here());
             }
 
             binary_scale_factor = grib_get_binary_scale_fact(max, reference_value, params.bits_per_value, &err);
             if (err) {
-                throw std::runtime_error("unable to compute binary_scale_factor");
+                throw eckit::Exception("unable to compute binary_scale_factor", Here());
             }
         }
     }
@@ -417,7 +428,7 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
     if (len < n_vals) {
         len = (long)n_vals;
         //return LIB_ECCODES_ARRAY_TOO_SMALL;
-        throw std::runtime_error("Array too small");
+        throw eckit::Exception("Array too small", Here());
     }
 
     //if ((err = grib_get_long_internal(gh, self->params.bits_per_value, &params.bits_per_value)) != LIB_ECCODES_SUCCESS)
@@ -428,7 +439,7 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
      * not currently supported by the algorithm
      */
     if (params.bits_per_value > (sizeof(long) * 8)) {
-        throw std::runtime_error("Invalid BPV");
+        throw eckit::BadValue("Invalid BPV", Here());
     }
 
     if (n_vals == 0) {
@@ -462,7 +473,7 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
         if (offsetAfterData > offsetBeforeData) {
             const long valuesSize = (params.bits_per_value * n_vals) / 8; /*in bytes*/
             if (offsetBeforeData + valuesSize > offsetAfterData) {
-                throw std::runtime_error("Values section size mismatch");
+                throw eckit::Exception("Values section size mismatch", Here());
             }
         }
     }

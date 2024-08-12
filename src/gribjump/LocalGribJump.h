@@ -47,7 +47,6 @@ public:
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
 private:
-    InfoAggregator infoAggregator_;
 };
 
 } // namespace gribjump
