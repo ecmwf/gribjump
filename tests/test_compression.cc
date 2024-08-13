@@ -13,6 +13,7 @@
 #include <filesystem>
 
 #include "eckit/testing/Test.h"
+#include "eckit/exception/Exceptions.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/info/InfoExtractor.h"
@@ -80,11 +81,11 @@ void test_compression() {
         size_t numberOfDataPoints = info->numberOfDataPoints();
 
         if (numberOfDataPoints != data.expectedData.size()) {
-            std::cerr << "numberOfDataPoints: " << numberOfDataPoints << std::endl;
-            std::cerr << "expectedData.size(): " << data.expectedData.size() << std::endl;
-            std::cerr << "numberOfDataPoints != data.expectedData.size()" << std::endl;
-            std::cerr << "Skipping test" << std::endl;
-            throw std::runtime_error("numberOfDataPoints != data.expectedData.size()");
+            std::stringstream ss;
+            ss << "numberOfDataPoints: " << numberOfDataPoints << std::endl;
+            ss << "expectedData.size(): " << data.expectedData.size() << std::endl;
+            ss << "numberOfDataPoints != data.expectedData.size()" << std::endl;
+            throw eckit::Exception(ss.str(), Here());
         }
         EXPECT(numberOfDataPoints == data.expectedData.size());
 
@@ -132,10 +133,10 @@ void test_compression() {
                 }
 
                 if (actual_values[i] != expected[start + i]){
-                    std::cerr << "actual: " << actual_values[i] << std::endl;
-                    std::cerr << "expected: " << expected[start + i] << std::endl;
                     print_result(intervals[index], {}, actual_values, expected);
-                    throw std::runtime_error("actual value does not match expected value");
+                    std::stringstream ss;
+                    ss << "actual: " << actual_values[i] << ", expected: " << expected[start + i] << std::endl;
+                    throw eckit::Exception("actual value does not match expected value " + ss.str(), Here());
                 }
 
                 EXPECT(actual_values[i] == expected[start + i]);

@@ -11,7 +11,6 @@
 /// @author Christopher Bradley
 
 #pragma once
-
 #include <memory>
 #include "gribjump/info/JumpInfo.h"
 

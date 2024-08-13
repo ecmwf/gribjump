@@ -20,6 +20,7 @@
 #include "eckit/log/Log.h"
 
 #include "gribjump/gribjump_version.h"
+#include "gribjump/gribjump_config.h"
 
 namespace gribjump {
 
@@ -27,13 +28,23 @@ namespace gribjump {
 
 REGISTER_LIBRARY(LibGribJump);
 
-LibGribJump::LibGribJump() : Library("gribjump") {
-    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr){
-        config_ = Config(getenv("GRIBJUMP_CONFIG_FILE"));
+LibGribJump::LibGribJump() : Plugin("gribjump-plugin", "gribjump") {}
+
+Config LibGribJump::loadConfig() {
+
+    if(getenv("GRIBJUMP_CONFIG_FILE") != nullptr) {
+        LOG_DEBUG_LIB(LibGribJump) << "Config file set to: " << getenv("GRIBJUMP_CONFIG_FILE") << std::endl;
+        return Config(getenv("GRIBJUMP_CONFIG_FILE"));
     } 
-    else {
-        eckit::Log::debug() << "GRIBJUMP_CONFIG_FILE not set, using default config" << std::endl;
-    }
+
+    eckit::PathName defaultPath = eckit::PathName("~gribjump/etc/gribjump/config.yaml");
+    if (defaultPath.exists()) {
+        LOG_DEBUG_LIB(LibGribJump) << "Found config file: " << defaultPath << std::endl;
+        return Config(defaultPath);
+    } 
+
+    LOG_DEBUG_LIB(LibGribJump) << "No config file found, using default config" << std::endl;
+    return Config();
 }
 
 LibGribJump& LibGribJump::instance() {
@@ -41,7 +52,12 @@ LibGribJump& LibGribJump::instance() {
     return lib;
 }
 
-const Config& LibGribJump::config() const {
+const Config& LibGribJump::config() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!configLoaded_) {
+        config_ = loadConfig();
+        configLoaded_ = true;
+    }
     return config_;
 }
 

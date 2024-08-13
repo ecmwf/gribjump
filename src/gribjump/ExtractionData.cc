@@ -37,14 +37,14 @@ std::vector<double> decodeVector(eckit::Stream& s) {
 
 } // namespace
 
-ExtractionResult::ExtractionResult(){}
+ExtractionResult::ExtractionResult() {}
 
 ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask): 
     values_(std::move(values)),
     mask_(std::move(mask))
     {}
 
-ExtractionResult::ExtractionResult(eckit::Stream& s){
+ExtractionResult::ExtractionResult(eckit::Stream& s) {
     size_t numRanges;
     s >> numRanges;
     for (size_t i = 0; i < numRanges; i++) {
@@ -122,9 +122,9 @@ ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, c
     ranges_(ranges),
     request_(request)
     {}
-ExtractionRequest::ExtractionRequest(){}
+ExtractionRequest::ExtractionRequest() {}
 
-ExtractionRequest::ExtractionRequest(eckit::Stream& s){
+ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
     request_ = metkit::mars::MarsRequest(s);
     size_t numRanges;
     s >> numRanges;

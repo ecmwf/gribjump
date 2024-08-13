@@ -6,4 +6,6 @@
 
 // features
 
+#define GRIBJUMP_HAVE_FDB @GRIBJUMP_HAVE_FDB@ 
+
 #endif // gribjump_gribjump_config_h

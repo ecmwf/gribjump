@@ -118,7 +118,7 @@ metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
     return unionRequest;
 }
 
-bool isRemote(eckit::URI uri){
+bool isRemote(eckit::URI uri) {
     return uri.scheme() == "fdb";
 }
 
@@ -195,7 +195,7 @@ size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
 
     size_t counter = 0;
 
-    if (byfiles){
+    if (byfiles) {
         for (auto& [fname, offsets] : files) {
             taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
         }

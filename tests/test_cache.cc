@@ -61,7 +61,7 @@ CASE( "test_cache" ){
         EXPECT(*info == *offsetInfos[i].second);
     }
 
-    InfoCache::instance().persist();
+    InfoCache::instance().flush(false);
     InfoCache::instance().clear();
 
     // Test 2: Get fields, reanimated from disk.

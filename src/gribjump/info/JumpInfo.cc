@@ -86,8 +86,6 @@ JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startO
         offsetBeforeBitmap_ = 0;
     }
 
-    binaryMultiplier_ = grib_power(binaryScaleFactor_, 2);
-    decimalMultiplier_ = grib_power(-decimalScaleFactor_, 10);
 }
 
 // XXX Need to do something about message start offset ...
@@ -129,17 +127,13 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
         offsetBeforeBitmap_ = 0;
     }
 
-    binaryMultiplier_ = grib_power(binaryScaleFactor_, 2);
-    decimalMultiplier_ = grib_power(-decimalScaleFactor_, 10);
-
-
     // A bit gross, but the keyword is optional.
     // XXX: I suspect we don't actually need "sphericalHarmonics", if packingType=spectral_... is a reliable indicator.
     // Find out.
     try{
         sphericalHarmonics_ = msg.getLong("sphericalHarmonics");
     }
-    catch(const eckit::Exception& e){
+    catch(const eckit::Exception& e) {
         eckit::Log::warning() << "JumpInfo caught (and ignored by setting sphericalHarmonics_=0): " << e.what() << std::endl;
         sphericalHarmonics_ = 0;
     }
@@ -161,8 +155,6 @@ JumpInfo::JumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> totalLength_;
     s >> sphericalHarmonics_;
     s >> md5GridSection_;
-    s >> binaryMultiplier_;
-    s >> decimalMultiplier_;
     s >> packingType_;
 }
 
@@ -182,8 +174,6 @@ void JumpInfo::encode(eckit::Stream& s) const {
     s << totalLength_;
     s << sphericalHarmonics_;
     s << md5GridSection_;
-    s << binaryMultiplier_;
-    s << decimalMultiplier_;
     s << packingType_;
 }
 
@@ -208,7 +198,6 @@ void JumpInfo::print(std::ostream& s) const {
       << "totalLength=" << totalLength_ << ","
       << "sphericalHarmonics=" << sphericalHarmonics_ << ","
       << "md5GridSection=" << md5GridSection_ << ","
-      << "binaryMultiplier=" << binaryMultiplier_ << ","
       << "packingType=" << packingType_;
 }
 
@@ -227,8 +216,6 @@ bool JumpInfo::equals(const JumpInfo& rhs) const {
            totalLength() == rhs.totalLength() &&
            sphericalHarmonics() == rhs.sphericalHarmonics() &&
            md5GridSection() == rhs.md5GridSection() &&
-           binaryMultiplier() == rhs.binaryMultiplier() &&
-           decimalMultiplier() == rhs.decimalMultiplier() &&
            packingType() == rhs.packingType();
 }
 

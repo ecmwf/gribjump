@@ -21,7 +21,7 @@ InfoExtractor::InfoExtractor() {}
 
 InfoExtractor::~InfoExtractor() {}
 
-std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  InfoExtractor::extract(const eckit::PathName& path){
+std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  InfoExtractor::extract(const eckit::PathName& path) {
     
     grib_context* c = nullptr;
     int n = 0;
@@ -49,25 +49,24 @@ std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  InfoExtractor:
     return result;
 }
 
-std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets){
+std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets) {
 
     eckit::FileHandle fh(path);
     std::vector<std::unique_ptr<JumpInfo>> infos;
 
     for (size_t i = 0; i < offsets.size(); i++) {
         fh.openForRead();
-        
+
         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
         infos.push_back(std::move(info));
 
         fh.close(); // Required due to strange metkit/gribhandle behaviour.
     }
-
     return infos;
 }
 
-std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset){
+std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset) {
 
     eckit::FileHandle fh(path);
 
@@ -81,7 +80,7 @@ std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, co
     return info;
 }
 
-std::unique_ptr<JumpInfo>InfoExtractor::extract(const eckit::message::Message& msg){
+std::unique_ptr<JumpInfo>InfoExtractor::extract(const eckit::message::Message& msg) {
     return InfoFactory::instance().build(msg);
 }
 

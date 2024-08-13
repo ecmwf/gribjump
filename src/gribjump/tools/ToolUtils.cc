@@ -18,7 +18,7 @@
 
 namespace gribjump {
 
-std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname){
+std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname) {
     
     // plain text file with the following format:
     //      10-20, 30-40

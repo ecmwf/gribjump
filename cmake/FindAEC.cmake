@@ -41,4 +41,21 @@ include(FindPackageHandleStandardArgs)
 
 find_package_handle_standard_args(AEC  DEFAULT_MSG AEC_LIBRARY AEC_INCLUDE_DIR)
 
+# Need to look explicitly in the header file for the version. Note that old versions of AEC (too old for gribjump) do not have version information.
+
+file(STRINGS ${AEC_INCLUDE_DIR}/libaec.h AEC_VERSION_MAJOR REGEX "#define AEC_VERSION_MAJOR")
+file(STRINGS ${AEC_INCLUDE_DIR}/libaec.h AEC_VERSION_MINOR REGEX "#define AEC_VERSION_MINOR")
+file(STRINGS ${AEC_INCLUDE_DIR}/libaec.h AEC_VERSION_PATCH REGEX "#define AEC_VERSION_PATCH")
+
+string(REGEX REPLACE "#define AEC_VERSION_MAJOR " "" AEC_VERSION_MAJOR "${AEC_VERSION_MAJOR}")
+string(REGEX REPLACE "#define AEC_VERSION_MINOR " "" AEC_VERSION_MINOR "${AEC_VERSION_MINOR}")
+string(REGEX REPLACE "#define AEC_VERSION_PATCH " "" AEC_VERSION_PATCH "${AEC_VERSION_PATCH}")
+
+# check that the version is not empty
+if(NOT AEC_VERSION_MAJOR OR NOT AEC_VERSION_MINOR OR NOT AEC_VERSION_PATCH)
+  set(AEC_VERSION "")
+else()
+  set(AEC_VERSION "${AEC_VERSION_MAJOR}.${AEC_VERSION_MINOR}.${AEC_VERSION_PATCH}")
+endif()
+
 mark_as_advanced(AEC_INCLUDE_DIR AEC_LIBRARY )

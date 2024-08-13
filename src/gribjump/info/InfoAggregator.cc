@@ -9,109 +9,134 @@
  */
 
 /// @author Christopher Bradley
+#include "eckit/io/DataHandle.h"
+
+#include "fdb5/database/FieldLocation.h"
 
 #include "gribjump/info/InfoAggregator.h"
+#include "gribjump/info/InfoFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/info/InfoCache.h"
 
+namespace {
+bool isGrib(eckit::DataHandle& handle) {
+    char buffer[4];
+    eckit::Offset offset = handle.position();
+    ASSERT(handle.read(buffer, 4) == 4);
+    handle.seek(offset);
+    return buffer[0] == 'G' && buffer[1] == 'R' && buffer[2] == 'I' && buffer[3] == 'B';
+}
+} // namespace
+
 namespace gribjump {
 
-namespace {
-URI convert(const eckit::URI& uri){
-    return uri.asRawString();
+static const size_t AGGREGATOR_QUEUE_SIZE = 8;
+
+InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
+    consumer_ = std::thread([this]() {
+        for (;;) {
+            locPair elem;
+            if (futures_.pop(elem) == -1) break;
+            std::shared_ptr<fdb5::FieldLocation> location = elem.first.get();
+            std::unique_ptr<JumpInfo> info = std::move(elem.second);
+            insert(location->fullUri(), std::move(info));
+        }
+    });
 }
 
-} // anonymous namespace
-
-// TO BE REPLACED
-
-void InfoAggregator::add(const fdb5::Key& key, const eckit::message::Message& message){
-    NOTIMP;
-    // JumpInfo* info = extractor_.extract(message);
-
-    // std::lock_guard<std::mutex> lock(mutex_);
-
-    // keyToJumpInfo[key] = info;
-
-    // if (keyToLocation.find(key) != keyToLocation.end()){
-    //     const URI& location = keyToLocation[key];
-    //     locationToJumpInfo[location] = info;
-    //     count_++;
-    // }
+InfoAggregator::~InfoAggregator() {
+    close();
 }
 
-// Store the location provided by fdb callback
-void InfoAggregator::add(const fdb5::Key& key, const eckit::URI& location_in){
-    NOTIMP;
-    // URI location = convert(location_in);
+void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
+
+    handle.openForRead();
+    eckit::AutoClose closer(handle);
+
+    if (!isGrib(handle)) {
+        eckit::Log::warning() << "Warning: Gribjump InfoAggregator received non-grib message. Skipping..." << std::endl;
+        return;
+    }
+
+    // Note: it is important we build the info at this stage (and not in the consumer thread) as we don't want to extend the lifetime of the data.
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
+    futures_.emplace(std::move(future), std::move(info));
+}
+
+void InfoAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info) {
+    eckit::Offset offset(std::stoll(uri.fragment()));
+    eckit::PathName path = uri.path();
+
+    count_[info->packingType()]++;
+
+    InfoCache::instance().insert(path, offset, std::move(info));
+}
+
+// NB: Flush closes the queue, so the InfoAggregator object is no longer usable after this call.
+void InfoAggregator::flush() {
+    LOG_DEBUG_LIB(LibGribJump) << "InfoAggregator flush" << std::endl;
+
+    close();
+    ASSERT(futures_.empty());
     
-    // std::lock_guard<std::mutex> lock(mutex_);
+    InfoCache::instance().flush(true);
 
-    // eckit::Offset offset(std::stoll(location_in.fragment()));
-    // locationToPathAndOffset[location] = {location_in.path(), offset};
-
-    // keyToLocation[key] = location;
-
-    // if (keyToJumpInfo.find(key) != keyToJumpInfo.end()){
-    //     JumpInfo* info = keyToJumpInfo[key];
-    //     locationToJumpInfo[location] = info;
-    //     count_++;
-    // }
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
+        for (const auto& [key, value] : count_) {
+            LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
+        }
+    }
 }
 
-void InfoAggregator::flush(){
-    NOTIMP;
-    // // By calling flush, you are promising that you have added key,location,message in equal measure.
-    // // If we need to wait, then wait before flushing.
-    // // But if this is called *after* fdb flush, then we should be good (all location callbacks will have called).
-    // LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::flush()" << std::endl;
+void InfoAggregator::close() {
+    futures_.close();
+    if (consumer_.joinable()) {
+        consumer_.join();
+    }
+}
 
-    // // debug print sizes
-    // LOG_DEBUG_LIB(LibGribJump) << "keyToLocation.size() = " << keyToLocation.size() << std::endl;
-    // LOG_DEBUG_LIB(LibGribJump) << "keyToJumpInfo.size() = " << keyToJumpInfo.size() << std::endl;
-    // LOG_DEBUG_LIB(LibGribJump) << "locationToJumpInfo.size() = " << locationToJumpInfo.size() << std::endl;
-    // LOG_DEBUG_LIB(LibGribJump) << "count_ = " << count_ << std::endl;
+SerialAggregator::SerialAggregator() {
+}
 
-    // ASSERT(keyToLocation.size() == count_);
-    // ASSERT(keyToJumpInfo.size() == count_);
-    // ASSERT(locationToJumpInfo.size() == count_);
+SerialAggregator::~SerialAggregator() {
+}
 
+void SerialAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
 
-    // // Give to the gribjump cache to persist
-    // // Might need to do some cleverness to make sure we match the files to the correct JumpInfo.
-    // // Also... normally the cache would take ownership of the infos, this might not be sensible here.
-    // // Maybe we don't really want to use the cache as is.
+    handle.openForRead();
+    eckit::AutoClose closer(handle);
 
-    // /*cache.persist(locationToJumpInfo)*/
+    if (!isGrib(handle)) {
+        eckit::Log::warning() << "Warning: Gribjump SerialAggregator received non-grib message. Skipping..." << std::endl;
+        return;
+    }
 
-    // InfoCache& cache = InfoCache::instance();
+    std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
+    std::shared_ptr<fdb5::FieldLocation> location = future.get();
+    insert(location->fullUri(), std::move(info));
+}
 
-    // // NB: Being null is not an error, it just means the packing was not supported.
-    // size_t countNull = 0;
-    // for (const auto& [location, info] : locationToJumpInfo){
-    //     if (!info) {
-    //         countNull++;
-    //         continue; // Skip nulls. TODO: In general, how do we want to handle nulls?
-    //     }
-    //     eckit::PathName path = locationToPathAndOffset[location].first;
-    //     eckit::Offset offset = locationToPathAndOffset[location].second;
-    //     // Perhaps use unique ptr and then std move here.
-    //     cache.insert(path, offset, info); // Takes ownership of info // We could just create this instead of the locationToJumpInfo (if so, null handling needs to be inside cache...)
+void SerialAggregator::insert(const eckit::URI& uri, std::unique_ptr<JumpInfo> info) {
+    eckit::Offset offset(std::stoll(uri.fragment()));
+    eckit::PathName path = uri.path();
 
-    //     LOG_DEBUG_LIB(LibGribJump) << "GribJump::InfoAggregator::flush: Inserting info" << " at " << path << " offset " << offset << std::endl;
-    // }
+    count_[info->packingType()]++;
 
-    // cache.persist();
+    InfoCache::instance().insert(path, offset, std::move(info));
+}
 
-    // LOG_DEBUG_LIB(LibGribJump)<< "GribJump::InfoAggregator::flush: " << countNull << " JumpInfo were null of " << count_ << std::endl;
+void SerialAggregator::flush() {
+    LOG_DEBUG_LIB(LibGribJump) << "SerialAggregator flush" << std::endl;
 
-    // // Clear the maps
-    // // I don't think this is needed, this object should be destroyed after flush.
-    // keyToLocation.clear();
-    // keyToJumpInfo.clear();
-    // locationToJumpInfo.clear();
-    // locationToPathAndOffset.clear();
-    // count_ = 0;
+    InfoCache::instance().flush(true);
+
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "Flush stats:" << std::endl;
+        for (const auto& [key, value] : count_) {
+            LOG_DEBUG_LIB(LibGribJump) << "  " << value << " " << key << std::endl;
+        }
+    }
 }
 
 } // namespace gribjump

@@ -16,32 +16,40 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 #include "eckit/system/Library.h"
+#include "eckit/system/Plugin.h"
 
 #include "gribjump/Config.h"
+
 
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class LibGribJump : public eckit::system::Library {
+class LibGribJump : public eckit::system::Plugin {
+// class LibGribJump : public eckit::system::Library {
 public:
     LibGribJump();
 
     static LibGribJump& instance();
 
-    const Config& config() const;
+    const Config& config();
 
 protected:
-    virtual std::string version() const;
+    virtual std::string version() const override;
 
-    virtual std::string gitsha1(unsigned int count) const;
+    virtual std::string gitsha1(unsigned int count) const override;
+
+private: 
+    Config loadConfig();
 
 private:
 
     Config config_;
-
+    bool configLoaded_ = false;
+    std::mutex mutex_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

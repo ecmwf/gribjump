@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+
+set -eux
+
+# This script tests gribjump's jumpinfo generation and interaction with fdb. It writes to three fdbs:
+#   1. FDB archive, no gribjump plugin and no jumpinfo cache.
+#   2. FDB archive, no gribjump plugin, but a gribjump-scan is run afterwards to generate jumpinfo cache.
+#   3. FDB archive, with gribjump plugin to automatically generate the jumpinfo cache.
+# Then, we perform the same extraction on all three fdbs and check for consistency.
+# 
+# The test data contains several grib messages with different packing types, some supported some not.
+
+# temp
+unset FDB_DEBUG
+unset GRIBJUMP_DEBUG
+# setup
+
+fdbwrite="$<TARGET_FILE:fdb-write>"
+fdbread="$<TARGET_FILE:fdb-read>"
+gjscan="$<TARGET_FILE:gribjump-scan>"
+gjextract="$<TARGET_FILE:gribjump-extract>"
+gjinfo="$<TARGET_FILE:gribjump-dump-info>"
+gribset="$<TARGET_FILE:grib_set>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+export GRIBJUMP_CONFIG_FILE=${srcdir}/gribjump-fdb.yaml
+
+export FDB5_HOME=$bindir
+export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
+export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
+export FDB_ENABLE_GRIBJUMP=1
+### cleanup and prepare test
+rm -rf ${bindir}/root1 ${bindir}/root2 ${bindir}/root3
+mkdir -p ${bindir}/root1 ${bindir}/root2 ${bindir}/root3
+
+cp ${srcdir}/schema $bindir
+
+for i in $(seq 1 3); do
+    cat <<EOF > ${bindir}/config_root${i}.yaml
+---
+type: local
+engine: toc
+schema: ./schema
+spaces:
+- handler: Default
+  roots:
+  - path: ./root${i}
+EOF
+done
+
+# Data from nexus
+supporteddata="${bindir}/supported.grib"
+unsupporteddata="${bindir}/unsupported.grib"
+
+# Group data based on whether we expect it to be selected by the filter.
+# We will be selecting expver=xxxx, and not xxxy.
+selected=${bindir}/selected.grib # data to be selected (all other data is filtered)
+unselected=${bindir}/unselected.grib # data to be filtered out
+testdata=${bindir}/alldata.grib
+cat $supporteddata $unsupporteddata > $selected
+$gribset -s "expver=xxxy" $selected $unselected
+cat $selected $unselected > $testdata
+
+selectedrequests=${bindir}/requests
+$fdbread --extract ${selected} /dev/null > $selectedrequests
+
+# -------------------------------------
+# 1: Reference FDB
+
+export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
+unset FDB_ENABLE_GRIBJUMP
+
+echo "Writing to FDB without gribjump plugin or scan"
+$fdbwrite ${testdata}
+
+# -------------------------------------
+# 2: FDB with scan post-process
+
+export FDB5_CONFIG_FILE=${bindir}/config_root2.yaml
+unset FDB_ENABLE_GRIBJUMP
+
+echo "Writing to FDB without gribjump plugin, then scanning"
+$fdbwrite ${testdata}
+
+$gjscan $selectedrequests
+
+# -------------------------------------
+# 3: FDB with gribjump plugin
+
+export FDB5_CONFIG_FILE=${bindir}/config_root3.yaml
+export FDB_ENABLE_GRIBJUMP=1
+
+echo "Writing to FDB with gribjump plugin"
+$fdbwrite ${testdata}
+
+# -------------------------------------
+# Inspect the .gribjump files from 2 and 3 and compare.
+
+files2=$(find ${bindir}/root2 -name "*.gribjump" | sort)
+files3=$(find ${bindir}/root3 -name "*.gribjump" | sort)
+
+# Make sure they are the same number
+Nfiles=$(echo $files2 | wc -w)
+
+# Make sure that number for this test data.
+if [ $Nfiles -ne 5 ]; then
+    echo "Expected 5 .gribjump files, got $Nfiles"
+    exit 1
+fi
+
+if [ $Nfiles -ne $(echo $files3 | wc -w) ]; then
+    echo "Different number of .gribjump files in 2 and 3"
+    exit 1
+fi
+
+# Iterate over the files, make sure the first file matches the first, etc.
+# Note: if we ever store the full URI in the .gribjump file, this will need to be updated, as this will be different in 2 and 3.
+# In which case, use e.g., gribjump-dump-info for comparing.
+for i in $(seq 1 $Nfiles); do
+    file_2=$(echo $files2 | cut -d' ' -f$i)
+    file_3=$(echo $files3 | cut -d' ' -f$i)
+    diff $file_2 $file_3
+done
+
+# -------------------------------------
+# Extract from all three fdbs and compare the output
+# TODO: Make sure we're actually looking for and using the jumpinfos, not always generating them from scratch.
+extractrequests=${bindir}/extractrequests
+$fdbread --extract ${supporteddata} /dev/null > $extractrequests
+
+ranges=${bindir}/ranges
+echo "0-10,20-30,40-50" > $ranges
+
+for i in $(seq 1 3); do
+    export FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml
+    $gjextract $extractrequests $ranges > ${bindir}/tmp
+    cat ${bindir}/tmp
+    sed -n '/Extracted values:/,$p' ${bindir}/tmp > ${bindir}/extract${i}.clean
+done
+rm ${bindir}/tmp
+
+diff ${bindir}/extract1.clean ${bindir}/extract2.clean
+diff ${bindir}/extract1.clean ${bindir}/extract3.clean
+
+# -------------------------------------
+# Done! Tidy up
+rm -rf ${bindir}/root1 ${bindir}/root2 ${bindir}/root3
+
+echo "Test finished"

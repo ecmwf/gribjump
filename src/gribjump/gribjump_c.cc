@@ -89,7 +89,7 @@ int gribjump_new_result(gribjump_extraction_result_t** result) { // not sure if 
     return 0;
 }
 
-int gribjump_result_values(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues){
+int gribjump_result_values(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues) {
     // makes a copy of the values
     ASSERT(result);
     std::vector<std::vector<double>> vals = result->values();
@@ -106,7 +106,7 @@ int gribjump_result_values(gribjump_extraction_result_t* result, double*** value
     return 0;
 }
 
-int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks){
+int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks) {
     // makes a copy of the mask, converting from bitset to uint64_t
     // TODO(Chris): Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
     ASSERT(result);
@@ -124,7 +124,7 @@ int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long lon
     return 0;
 }
 
-int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues){
+int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues) {
     ASSERT(result);
     result->values_ptr(values, nrange, nvalues);
     return 0;
