@@ -16,6 +16,7 @@
 
 #include "gribjump/GribJump.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {
     
@@ -122,12 +123,16 @@ protected:
 // InefficientFileExtractionTask extracts from the file, but by reading entire messages into memory first.
 // Ideally, never need this, but currently required for remotefdb.
 // Because it reads the full message, we do not check the cache for the infos, instead we create them on the fly.
-class InefficientFileExtractionTask : public FileExtractionTask {
+class RemoteFileExtractionTask : public FileExtractionTask {
 public:
 
-    InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems);
+    RemoteFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems);
 
     void extract() override;
+
+private:
+    void efficientExtract(std::vector<ExtractionItem*>& extractionItems, std::vector<std::shared_ptr<JumpInfo>>& infos);
+    void inefficientExtract(std::vector<ExtractionItem*>& extractionItems, std::vector<std::shared_ptr<JumpInfo>>& infos);
 
 };
 

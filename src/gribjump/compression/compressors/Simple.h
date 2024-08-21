@@ -104,6 +104,7 @@ public:
   SimpleDecompressor& buffer_size(size_t buffer_size) { buffer_size_ = buffer_size; return *this; }
 
   Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override {
+
     //SP sp{};
     using SP = SimplePacking<ValueType>;
     SimplePacking<double> sp{};
@@ -126,16 +127,36 @@ public:
     params.n_vals = new_size;
 
     size_t last_pos = std::min(bin_pos<ValueType>(new_size, bits_per_value_), accessor->eof() - bin_pos<ValueType>(new_offset, bits_per_value_));
-    Range data_range{bin_pos<ValueType>(new_offset, bits_per_value_), last_pos};
-    eckit::Buffer compressed = accessor->read(data_range);
+    Range data_range{bin_pos<ValueType>(new_offset, bits_per_value_), last_pos}; // XXX THIS is what Im after?
+    eckit::Buffer compressed = accessor->read(data_range); // This is offset, length. Very confusing from this code.
 
-    typename SP::Buffer data{(unsigned char*) compressed.data(), (unsigned char*) compressed.data() + data_range.second};
+    typename SP::Buffer data{(unsigned char*) compressed.data(), (unsigned char*) compressed.data() + data_range.second}; // this definitely implies  data_range.second is a length
     typename SP::Values decoded = sp.unpack(params, data);
 
     size_t shift_offset = offset - new_offset;
-    Values out_values{decoded.data() + shift_offset, decoded.data() + shift_offset + size};
+    Values out_values{decoded.data() + shift_offset, decoded.data() + shift_offset + size}; // what is this doing? Probably something, but I dont understand it.
 
     return out_values;
+  }
+
+  // Return the byte range (offset, length) matching this user? range.
+  Range byteRange(const Range& range){
+
+    DecodeParameters<ValueType> params{};
+    constexpr int VSIZE = sizeof(ValueType);
+
+    auto [offset, size] = range;
+
+    constexpr size_t chunk_nvals = 8;
+    size_t new_offset = offset / chunk_nvals * chunk_nvals;
+    size_t end = offset + size;
+    size_t new_end = (end + (chunk_nvals - 1)) / chunk_nvals * chunk_nvals;
+    size_t new_size = new_end - new_offset;
+
+    // size_t length = std::min(bin_pos<ValueType>(new_size, bits_per_value_), accessor->eof() - bin_pos<ValueType>(new_offset, bits_per_value_));
+    size_t length = bin_pos<ValueType>(new_size, bits_per_value_); // no accessor for eof check.
+    Range data_range{bin_pos<ValueType>(new_offset, bits_per_value_), length};
+    return data_range;
   }
 
 

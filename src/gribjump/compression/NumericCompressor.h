@@ -39,6 +39,7 @@ public:
   virtual Values decode(const CompressedData&) = 0;
   virtual Values decode(const std::shared_ptr<DataAccessor>, const Range&) = 0;
 
+  mc::Range byteRange(const std::shared_ptr<DataAccessor> accessor, const Range& range){ NOTIMP; }
 
   virtual std::vector<Values> decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Range>& ranges) {
     using Values = typename NumericDecompressor<ValueType>::Values;

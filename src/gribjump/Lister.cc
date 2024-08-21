@@ -174,26 +174,28 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const st
 }
 
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request) {
+
     eckit::AutoLock<FDBLister> lock(this);
     std::map<std::string, std::unordered_set<std::string>> values;
 
     LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
     
-    fdb5::IndexAxis ax = fdb_.axes(request);
-    ax.sort();
-    std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
+    NOTIMP;
+    // // fdb5::IndexAxis ax = fdb_.axes(request); // notimp on remotefdb
+    // ax.sort();
+    // std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
 
-    for (const auto& kv : fdbValues) {
-        // {
-            // Ignore if the value is a single empty string
-            // e.g. FDB returns "levellist:{''}" for levtype=sfc.
-            // Required for consistency with the old axes impl.
-            // if (kv.second.empty() || (kv.second.size() == 1 && kv.second.find("") != kv.second.end())) {
-            //     continue;
-            // }
-        // }
-        values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
-    }
+    // for (const auto& kv : fdbValues) {
+    //     // {
+    //         // Ignore if the value is a single empty string
+    //         // e.g. FDB returns "levellist:{''}" for levtype=sfc.
+    //         // Required for consistency with the old axes impl.
+    //         // if (kv.second.empty() || (kv.second.size() == 1 && kv.second.find("") != kv.second.end())) {
+    //         //     continue;
+    //         // }
+    //     // }
+    //     values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
+    // }
 
 
     return values;

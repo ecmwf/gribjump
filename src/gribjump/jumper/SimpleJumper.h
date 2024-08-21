@@ -21,6 +21,8 @@ public:
     SimpleJumper();
     ~SimpleJumper();
 
+    std::vector<mc::Range> byteRanges(const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals) override;
+
 private:
     virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem& item) override;
 };

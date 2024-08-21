@@ -162,7 +162,7 @@ Results Engine::extract(const MarsRequests& requests, const RangesList& ranges, 
     size_t counter = 0;
     for (auto& [fname, extractionItems] : filemap) {
         if (isRemote(extractionItems[0]->URI())) {
-            taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            taskGroup_.enqueueTask(new RemoteFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
         }
         else {
             // Reaching here is an error on the databridge, as it means we think the file is local...

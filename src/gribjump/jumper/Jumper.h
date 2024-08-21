@@ -23,15 +23,15 @@ typedef std::pair<size_t, size_t> Interval;
 typedef std::vector<double> Values;
 typedef std::vector<bool> Bitmap;
 
-// todo: factory
 // todo: avoid rebuilding jumpers: one per thread per type
 class Jumper {
 public:
     Jumper();
     virtual ~Jumper() = 0;
 
-    // void extract(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem&);
     void extract(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem);
+    virtual std::vector<mc::Range> byteRanges(const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals) {NOTIMP;}
+
 private:
 
     virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem& item) {NOTIMP;}
