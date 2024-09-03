@@ -8,8 +8,8 @@ build:
     - ecmwf/eckit@develop
     - ecmwf/metkit@develop
     - ecmwf/fdb@develop
-  cmake_options:
-    - -DENABLE_LUSTRE=OFF
+  dependency_cmake_options:
+    - "ecmwf/fdb: '-DENABLE_LUSTRE=OFF'"
   parallel: 64
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples
