@@ -26,7 +26,7 @@ public:
         Application(argc, argv), 
         GribJumpServer(eckit::net::Port(
             "gribJumpServer", 
-            eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", LibGribJump::instance().config().getInt("server.port", 9777)
+            eckit::Resource<int>("$GRIBJUMP_SERVER_PORT;gribjumpServerPort", LibGribJump::instance().config().getInt("server.port", 9777)
         )))
         {}
 
