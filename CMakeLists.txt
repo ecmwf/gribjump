@@ -40,6 +40,12 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
     message(FATAL_ERROR "AEC version is too old. Minimum supported version is 1.1.1. Found version: ${AEC_VERSION}")
   endif()
 
+  # Optional dependency: dhskit
+  ecbuild_find_package( NAME dhskit VERSION 0.8.6 )
+  if (dhskit_FOUND)
+    set(GRIBJUMP_HAVE_DHSKIT 1)
+  endif()
+
 endif()
 
 ########################################################################################################################
@@ -66,13 +72,15 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
 endif()
 
+########################################################################################################################
+# PLUGIN
 # Write and install the manifest file for the plugin
 set( gribjump_plugin_file share/plugins/gribjump-plugin.yml )
 file( WRITE  ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "plugin:\n" )
 file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  name:      gribjump-plugin\n" )
 file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  namespace: int.ecmwf\n" )
 file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  url:       http://www.ecmwf.int\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  version:   ${${PROJECT_NAME}_VERSION}\n" ) # TODO set version
+file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  version:   ${${PROJECT_NAME}_VERSION}\n" )
 file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  library:   gribjump\n" )
 
 install( FILES ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} DESTINATION share/plugins )
