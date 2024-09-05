@@ -125,6 +125,10 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
 endif()
 
+if (GRIBJUMP_HAVE_DHSKIT)
+list( APPEND SERVER_LIBS dhskit )
+endif()
+
 ecbuild_add_library(
 
     TARGET  gribjump

@@ -33,8 +33,8 @@ WorkQueue::~WorkQueue() {
 
 }
 
-WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE", 1024)) {
-    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS", LibGribJump::instance().config().getInt("threads", 1));
+WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gribjumpQueueSize", 1024)) {
+    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS;gribjumpThreads", LibGribJump::instance().config().getInt("threads", 1));
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] {

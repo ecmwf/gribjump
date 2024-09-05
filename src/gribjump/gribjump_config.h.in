@@ -7,5 +7,6 @@
 // features
 
 #define GRIBJUMP_HAVE_FDB @GRIBJUMP_HAVE_FDB@ 
+#cmakedefine GRIBJUMP_HAVE_DHSKIT
 
 #endif // gribjump_gribjump_config_h
