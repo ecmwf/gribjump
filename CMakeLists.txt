@@ -42,9 +42,7 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
   # Optional dependency: dhskit
   ecbuild_find_package( NAME dhskit VERSION 0.8.6 )
-  if (dhskit_FOUND)
-    set(GRIBJUMP_HAVE_DHSKIT 1)
-  endif()
+  set(GRIBJUMP_HAVE_DHSKIT ${dhskit_FOUND})
 
 endif()
 
