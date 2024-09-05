@@ -38,8 +38,8 @@ class GribJumpServerApp : public BaseApp, public GribJumpServer {
 public:
     GribJumpServerApp(int argc, char** argv) : 
         BaseApp(argc, argv), 
-        GribJumpServer(eckit::net::Port( // gribJumpServerPort
-            "gribJumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", LibGribJump::instance().config().getInt("server.port", 9777)
+        GribJumpServer(eckit::net::Port( // gribjumpServerPort
+            "gribjumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", LibGribJump::instance().config().getInt("server.port", 9777)
         )))
         {}
 
