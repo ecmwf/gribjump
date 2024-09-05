@@ -8,25 +8,38 @@
  * does it submit to any jurisdiction.
  */
 
-#include "gribjump/remote/GribJumpServer.h"
-#include "eckit/runtime/Application.h"
 
 #include <unistd.h>
 #include <fstream>
 
 #include "eckit/config/Resource.h"
 #include "eckit/net/Port.h"
+#include "eckit/runtime/Application.h"
+
+#include "gribjump/gribjump_config.h"
+#include "gribjump/remote/GribJumpServer.h"
+
+#ifdef GRIBJUMP_HAVE_DHSKIT
+#include "dhskit/runtime/DHSApplication.h"
+#endif
+
+namespace {
+#ifdef GRIBJUMP_HAVE_DHSKIT
+using BaseApp = dhskit::DHSApplication;
+#else
+using BaseApp = eckit::Application;
+#endif
+} // namespace
+
 
 namespace gribjump {
 
-
-class GribJumpServerApp : public eckit::Application, public GribJumpServer {
+class GribJumpServerApp : public BaseApp, public GribJumpServer {
 public:
     GribJumpServerApp(int argc, char** argv) : 
-        Application(argc, argv), 
-        GribJumpServer(eckit::net::Port(
-            "gribJumpServer", 
-            eckit::Resource<int>("$GRIBJUMP_SERVER_PORT;gribjumpServerPort", LibGribJump::instance().config().getInt("server.port", 9777)
+        BaseApp(argc, argv), 
+        GribJumpServer(eckit::net::Port( // gribjumpServerPort
+            "gribjumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", LibGribJump::instance().config().getInt("server.port", 9777)
         )))
         {}
 
@@ -48,7 +61,6 @@ private:
 
 
 int main(int argc, char** argv) {
-    eckit::Log::info() << "Starting gribjump server" << std::endl;
     gribjump::GribJumpServerApp app(argc, argv);
     app.start();
     return 0;
