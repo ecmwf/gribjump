@@ -61,7 +61,6 @@ private:
 
 
 int main(int argc, char** argv) {
-    eckit::Log::info() << "Starting gribjump server" << std::endl;
     gribjump::GribJumpServerApp app(argc, argv);
     app.start();
     return 0;
