@@ -78,6 +78,7 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     info/InfoAggregator.cc
     info/InfoCache.cc
     info/InfoCache.h
+    info/LRUCache.h
     info/UnsupportedInfo.h
     info/UnsupportedInfo.cc
 
