@@ -24,6 +24,7 @@
 #include "gribjump/Config.h"
 #include "gribjump/Stats.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/Types.h"
 
 namespace fdb5 {
     class Key;
@@ -32,7 +33,8 @@ namespace fdb5 {
 
 namespace gribjump {
 
-typedef std::pair<size_t, size_t> Range;
+using ResultsMap = std::map<metkit::mars::MarsRequest, std::vector<std::unique_ptr<ExtractionItem>>>;
+
 class GribJumpBase : public eckit::NonCopyable {
 public:
     
@@ -47,13 +49,8 @@ public:
     virtual std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) = 0;
     
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) = 0;
-
     
     virtual void stats();
-
-    // Note: Only implemented if FDB is enabled
-    virtual void aggregate(const fdb5::Key& key, const eckit::URI& location) {NOTIMP;}
-    virtual void aggregate(const fdb5::Key& key, const eckit::message::Message& msg) {NOTIMP;}
 
 protected: // members
 

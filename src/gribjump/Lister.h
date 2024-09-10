@@ -48,9 +48,8 @@ private:
 };
 
 //  ------------------------------------------------------------------
-using reqToXRR_t = std::map<std::string, ExtractionItem*>;
-// We explicitly want this map to be randomly sorted.
-using filemap_t = std::unordered_map<std::string, std::vector<ExtractionItem*>>; // String is filepath, eckit::PathName is not hashable?
+// filemap holds non-owning pointers to ExtractionItems
+using filemap_t = std::map<std::string, ExtractionItems>;
 
 class FDBLister : public Lister {
 public:
@@ -61,7 +60,7 @@ public:
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request) override;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request);
     
-    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const reqToXRR_t& reqToXRR); // Used during extraction
+    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToXRR); // Used during extraction
 
     std::map< eckit::PathName, eckit::OffsetList > filesOffsets(std::vector<metkit::mars::MarsRequest> requests); // Used during scan
 

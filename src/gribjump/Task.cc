@@ -117,7 +117,7 @@ void TaskGroup::reportErrors(eckit::Stream& client_) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems) :
+FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems) :
     Task(taskgroup, id),
     fname_(fname),
     extractionItems_(extractionItems) {
@@ -165,7 +165,10 @@ void FileExtractionTask::extract() {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems):
+
+
+//----------------------------------------------------------------------------------------------------------------------
+InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems):
     FileExtractionTask(taskgroup, id, fname, extractionItems) {
 }
 

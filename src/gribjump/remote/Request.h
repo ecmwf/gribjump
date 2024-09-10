@@ -91,7 +91,7 @@ private:
     std::vector<metkit::mars::MarsRequest> marsRequests_;
     bool flatten_;
 
-    std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> results_;
+    ResultsMap results_;
 
 };
 

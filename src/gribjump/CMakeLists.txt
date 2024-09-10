@@ -44,6 +44,7 @@ list( APPEND gribjump_srcs
     GribJumpException.h 
     ExtractionData.cc
     ExtractionData.h
+    Types.h
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )

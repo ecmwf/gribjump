@@ -113,7 +113,6 @@ CASE( "test_gribjump_api_extract" ) {
         requests = expand.expand(parsedRequests);
     }
 
-    using Interval = std::pair<size_t, size_t>;
 
     std::vector<std::vector<Interval>> allIntervals = {
         {
