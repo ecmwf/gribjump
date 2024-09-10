@@ -41,7 +41,7 @@ InfoCache::~InfoCache() {
 
 InfoCache::InfoCache(): 
     cacheDir_(eckit::PathName()), 
-    cache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 128))) {
+    cache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 64))) {
 
     const Config& config = LibGribJump::instance().config();
     

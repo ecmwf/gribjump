@@ -18,7 +18,7 @@
 
 namespace gribjump {
 
-// Note: not thread safe, use an external lock if needed
+// Note: not a thread safe container, use an external lock if needed
 template <typename K, typename V>
 class LRUCache {
 public:
@@ -39,21 +39,6 @@ public:
         map_[key] = value;
     }
 
-    // Remember that put may receive a unique_ptr
-    void put(const K& key, V&& value) {
-        if (map_.find(key) == map_.end()) {
-            if (list_.size() == capacity_) {
-                auto last = list_.back();
-                list_.pop_back();
-                map_.erase(last);
-            }
-            list_.push_front(key);
-        } else {
-            list_.remove(key);
-            list_.push_front(key);
-        }
-        map_[key] = std::move(value);
-    }
 
     V& get(const K& key) {
         if (map_.find(key) == map_.end()) {
@@ -64,16 +49,8 @@ public:
         return map_[key];
     }
 
-
-
     bool exists(const K& key) {
         return map_.find(key) != map_.end();
-    }
-
-    void print(std::ostream& s) {
-        for (auto& key : list_) {
-            s << key << " -> " << map_[key] << std::endl;
-        }
     }
 
     typename std::unordered_map<K, V>::const_iterator begin() const {
