@@ -120,6 +120,15 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+ecbuild_add_test(
+    TARGET "gribjump_test_misc_units"
+    SOURCES "test_misc_units.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
 if (ENABLE_FDB_BUILD_TOOLS)
     add_subdirectory(tools)
 endif()

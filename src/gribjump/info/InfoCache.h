@@ -19,8 +19,8 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/FileStream.h"
 
-
 #include "gribjump/info/JumpInfo.h"
+#include "gribjump/info/LRUCache.h"
 #include "gribjump/LibGribJump.h"
 
 namespace gribjump {
@@ -30,8 +30,8 @@ class InfoCache {
 
 private: // types
 
-    using filename_t = std::string;               //< key is fieldlocation's path basename
-    using cache_t = std::map<filename_t, std::unique_ptr<FileCache>>; //< map fieldlocation's to gribinfo
+    using filename_t = std::string; //< key is fieldlocation's path basename
+    using cache_t = LRUCache<filename_t, std::shared_ptr<FileCache>>; //< map fieldlocation's to gribinfo
 
 public:
 
@@ -61,14 +61,13 @@ public:
 
     void print(std::ostream& s) const;
 
-    FileCache& getFileCache(const eckit::PathName& f, bool load=true);
-
 private: // methods
 
     InfoCache();
     
     ~InfoCache();
 
+    std::shared_ptr<FileCache> getFileCache(const eckit::PathName& f, bool load=true);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
 
