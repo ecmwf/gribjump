@@ -39,6 +39,7 @@ class GribJumpBase : public eckit::NonCopyable {
 public:
     
     GribJumpBase(const Config& config);
+    GribJumpBase();
     
     virtual ~GribJumpBase();
 

@@ -48,7 +48,6 @@ public:
 private:
     GribJumpServerApp(const GribJumpServerApp&);
     void run() override {
-        unique();
         for (;;) {
             ::sleep(10);
         }

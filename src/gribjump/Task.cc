@@ -24,6 +24,7 @@
 #include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/remote/WorkQueue.h"
 #include "gribjump/info/InfoFactory.h"
+#include "gribjump/remote/RemoteGribJump.h"
 
 namespace gribjump {
 
@@ -166,6 +167,20 @@ void FileExtractionTask::extract() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// Forward the work to a remote server, and wait for the results.
+RemoteExtractionTask::RemoteExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap) :
+    Task(taskgroup, id),
+    endpoint_(endpoint),
+    filemap_(filemap)
+{}
+
+void RemoteExtractionTask::execute(){
+
+    RemoteGribJump remoteGribJump(endpoint_);
+    remoteGribJump.extract(filemap_);
+
+    notify();
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems):

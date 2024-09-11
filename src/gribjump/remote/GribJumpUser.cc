@@ -64,72 +64,68 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
     else if (request == "SCAN") {
         scan(s, timer);
     }
+    else if (request == "FORWARD_EXTRACT") {
+        forwardedExtract(s, timer);
+    }
     else {
         throw eckit::SeriousBug("Unknown request type: " + request);
     }
 }
+void GribJumpUser::forwardedExtract(eckit::Stream& s, eckit::Timer& timer) {
+    
+    timer.reset();
+
+    ForwardedExtractRequest request(s);
+    timer.reset("ForwardedExtract requests received");
+
+    request.execute();
+    timer.reset("ForwardedExtract tasks completed");
+
+    request.replyToClient();
+    timer.reset("ForwardedExtract results sent");
+
+}
 
 void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
-
-    /// @todo, check if this is still working.
 
     timer.reset();
 
     ScanRequest request(s);
-
     timer.reset("SCAN requests received");
 
     request.execute();
-    
     timer.reset("SCAN tasks completed");
 
     request.replyToClient();
-    
-    // s << size_t(0);
-
-    timer.reset("SCAN scan results sent");
+    timer.reset("SCAN results sent");
 }
 
 void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
 
-    /// @todo, check if this is still working.
-
     timer.reset();
 
     AxesRequest request(s);
-
     timer.reset("Axes request received");
 
     request.execute();
-    
     timer.reset("Axes tasks completed");
 
     request.replyToClient();
-    
-    // s << size_t(0);
-
     timer.reset("Axes results sent");
 }
 
 void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) { 
 
-    /// @todo, check if this is still working.
-
     timer.reset();
 
     ExtractRequest request(s);
-
     timer.reset("EXTRACT requests received");
 
     request.execute();
-    
     timer.reset("EXTRACT tasks completed");
 
     request.replyToClient();
-    
-    // s << size_t(0);
-
-    timer.reset("EXTRACT  results sent");
+    timer.reset("EXTRACT results sent");
 }
 
 

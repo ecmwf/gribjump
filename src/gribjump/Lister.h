@@ -48,8 +48,6 @@ private:
 };
 
 //  ------------------------------------------------------------------
-// filemap holds non-owning pointers to ExtractionItems
-using filemap_t = std::map<std::string, ExtractionItems>;
 
 class FDBLister : public Lister {
 public:

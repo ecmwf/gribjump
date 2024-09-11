@@ -97,6 +97,27 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class ForwardedExtractRequest : public Request {
+public:
+
+    ForwardedExtractRequest(eckit::Stream& stream);
+
+    ~ForwardedExtractRequest();
+
+    void execute() override;
+
+    void replyToClient() override;
+
+private:
+
+    std::vector<std::unique_ptr<ExtractionItem>> items_;
+    filemap_t filemap_;
+
+    ResultsMap results_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class AxesRequest : public Request {
 public:
 

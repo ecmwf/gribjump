@@ -23,6 +23,7 @@ class RemoteGribJump : public GribJumpBase {
 public: // methods
 
     RemoteGribJump(const Config& config);
+    RemoteGribJump(eckit::net::Endpoint endpoint);
     ~RemoteGribJump();
 
     size_t scan(const eckit::PathName& path) override;
@@ -30,6 +31,7 @@ public: // methods
 
     std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest> polyRequest) override;
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
+    void extract(filemap_t& filemap);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
@@ -38,8 +40,8 @@ protected: // methods
     bool receiveErrors(eckit::Stream& stream);
 
 private: // members
-    int port_;
     std::string host_;
+    int port_;
 };
 
 

@@ -97,7 +97,7 @@ public:
 private:
 
     const metkit::mars::MarsRequest request_;
-    const Ranges& ranges_;
+    const Ranges ranges_;
 
     // Set on Listing
     eckit::URI uri_;

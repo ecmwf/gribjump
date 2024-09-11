@@ -128,6 +128,56 @@ void ExtractRequest::replyToClient() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
+
+    size_t nFiles;
+    client_ >> nFiles;
+
+    LOG_DEBUG_LIB(LibGribJump) << "ForwardedExtractRequest: nFiles=" << nFiles << std::endl;
+
+    for (size_t i = 0; i < nFiles; i++) {
+        std::string fname;
+        size_t nItems;
+        client_ >> fname;
+        client_ >> nItems;
+        filemap_[fname] = std::vector<ExtractionItem*>(); // non-owning pointers
+        filemap_[fname].reserve(nItems);
+
+        for (size_t j = 0; j < nItems; j++) {
+            ExtractionRequest req(client_);
+            eckit::URI uri("file", eckit::URI(client_));
+            auto extractionItem = std::make_unique<ExtractionItem>(req.getRanges());
+            extractionItem->URI(uri);
+            filemap_[fname].push_back(extractionItem.get());
+            items_.push_back(std::move(extractionItem));
+        }
+    }
+}
+
+ForwardedExtractRequest::~ForwardedExtractRequest() {
+}
+
+void ForwardedExtractRequest::execute() {
+    engine_.scheduleTasks(filemap_);
+}
+
+void ForwardedExtractRequest::replyToClient() {
+
+    reportErrors();
+
+    for (auto& [fname, extractionItems] : filemap_) {
+        client_ << fname; // sanity check
+        size_t nItems = extractionItems.size();
+        client_ << nItems;
+        for (auto& item : extractionItems) {
+            ExtractionResult res(item->values(), item->mask());
+            client_ << res;
+        }
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
     client_ >> request_;
 }
