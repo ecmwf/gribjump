@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+#include <algorithm>
 
 #include "eckit/log/Log.h"
 #include "eckit/log/Timer.h"
