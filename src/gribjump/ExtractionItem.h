@@ -13,22 +13,15 @@
 #pragma once
 
 #include <bitset>
-
 #include "eckit/filesystem/URI.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/LibGribJump.h"
-
+#include "gribjump/Types.h"
 namespace gribjump {
 
-using Ranges = std::vector<std::pair<size_t, size_t>>;
-using ExValues = std::vector<std::vector<double>>;
-using ExMask = std::vector<std::vector<std::bitset<64>>>;
 
 // An object for grouping request, uri and result information together.
-// Note, this is a one to one mapping between request and result.
-// i.e. the request is assumed to be of cardinality 1. /// No it isn't! It's the base request
-
 class ExtractionItem : public eckit::NonCopyable {
 
 public:

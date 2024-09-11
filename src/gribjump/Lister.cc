@@ -72,8 +72,7 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 }
 
 // i.e. do all of the listing work I want...
-filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const reqToXRR_t& reqToExtractionItem) {
-
+filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
 
@@ -93,7 +92,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().fullUri();
 
-        ExtractionItem* extractionItem = reqToExtractionItem.at(key);
+        ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
         // Add to filemap

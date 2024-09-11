@@ -99,7 +99,7 @@ std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<E
         ranges.push_back(req.getRanges());
     }
 
-    std::map<MarsRequest, std::vector<ExtractionItem*>> results = extract(requests, ranges, flatten);
+    ResultsMap results = extract(requests, ranges, flatten);
 
     std::vector<std::vector<ExtractionResult*>> extractionResults;
     for (auto& req : polyRequest) {
@@ -117,10 +117,9 @@ std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<E
     return extractionResults;
 }
 
-std::map<MarsRequest, std::vector<ExtractionItem*>> LocalGribJump::extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten) {
+ResultsMap LocalGribJump::extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten) {
     Engine engine;
-    std::map<MarsRequest, std::vector<ExtractionItem*>> results = engine.extract(requests, ranges, flatten);
-    return results;
+    return engine.extract(requests, ranges, flatten);
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
@@ -131,16 +130,6 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     Engine engine;
     return engine.axes(request);
 }
-
-// TODO: remove these, plugin should use aggregator directly (which has its own config).
-void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::URI& location) {
-    NOTIMP;
-};
-
-void LocalGribJump::aggregate(const fdb5::Key& key, const eckit::message::Message& msg) {
-    NOTIMP;
-};
-
 
 static GribJumpBuilder<LocalGribJump> builder("local");
 

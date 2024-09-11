@@ -15,8 +15,7 @@
 
 #include "eckit/testing/Test.h"
 
-#include "gribjump/Interval.h"
-#include "gribjump/Bitmap.h"
+#include "gribjump/Types.h"
 
 #include "gribjump/tools/EccodesExtract.h"
 

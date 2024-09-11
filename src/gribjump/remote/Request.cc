@@ -89,14 +89,14 @@ void ExtractRequest::execute() {
 
     results_ = engine_.extract(marsRequests_, ranges_, flatten_);
 
-    // tmp, debug
-    for (auto& pair : results_) {
-        LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
-        for (auto& item : pair.second) {
-            item->debug_print();
+    if (LibGribJump::instance().debug()) {
+        for (auto& pair : results_) {
+            LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
+            for (auto& item : pair.second) {
+                item->debug_print();
+            }
         }
     }
-
 }
 
 void ExtractRequest::replyToClient() {
@@ -113,7 +113,8 @@ void ExtractRequest::replyToClient() {
 
         auto it = results_.find(marsRequests_[i]);
         ASSERT(it != results_.end());
-        std::vector<ExtractionItem*> items = it->second;
+        std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
+        // ExtractionItems items = it->second;
         size_t nfields = items.size();
         client_ << nfields;
         for (size_t i = 0; i < nfields; i++) {

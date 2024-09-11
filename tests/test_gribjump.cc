@@ -24,9 +24,6 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 
-
-using Range = std::pair<size_t, size_t>;
-
 void doTest(int i, JumpInfo gribInfo, JumpHandle &dataSource){
     EXPECT(gribInfo.ready());
     size_t numberOfDataPoints = gribInfo.getNumberOfDataPoints();
