@@ -30,13 +30,13 @@ using Key = std::string;
 // NB: This object creates a consumer thread (in ctor) and accepts futures from producers (add(), flush()).
 // Note that it *is not* safe to have multiple producers calling add() and/or flush() concurrently.
 class InfoAggregator {
-    using locPair = std::pair<std::future<std::shared_ptr<fdb5::FieldLocation>>, std::unique_ptr<JumpInfo>>;
+    using locPair = std::pair<std::future<std::shared_ptr<const fdb5::FieldLocation>>, std::unique_ptr<JumpInfo>>;
 
 public:
     InfoAggregator();
     ~InfoAggregator();
 
-    void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    void add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
     
     void flush();
 
@@ -59,7 +59,7 @@ public:
     SerialAggregator();
     ~SerialAggregator();
 
-    void add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    void add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
     void flush();
 
 private:
