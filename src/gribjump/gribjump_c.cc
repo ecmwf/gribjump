@@ -51,7 +51,7 @@ int gribjump_delete_handle(gribjump_handle_t* handle) {
     return 0;
 }
 
-int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr) {
+int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr, const char* gridhash) {
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
     
@@ -62,7 +62,6 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     ASSERT(requests.size() == 1);
     metkit::mars::MarsRequest mreq(requests[0]);
 
-
     // Parse the ranges string
     std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
     std::vector<Range> rangevec;
@@ -72,7 +71,8 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
         rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
     }
 
-    *request = new gribjump_extraction_request_t(mreq, rangevec);
+    std::string gridhash_str = gridhash ? std::string(gridhash) : "";
+    *request = new gribjump_extraction_request_t(mreq, rangevec, gridhash_str);
 
     return 0;
 }

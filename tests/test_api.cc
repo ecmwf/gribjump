@@ -143,7 +143,7 @@ CASE( "test_gribjump_api_extract" ) {
     // Eccodes expected values
     std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues;
     for (auto req : polyRequest1) {
-        expectedValues.push_back(eccodesExtract(req.getRequest(), req.getRanges()));
+        expectedValues.push_back(eccodesExtract(req.request(), req.ranges()));
     }
     compareValues(expectedValues, output1);
 
@@ -162,16 +162,27 @@ CASE( "test_gribjump_api_extract" ) {
     }
     
     std::vector<Interval> ranges = allIntervals[0];
-    PolyRequest polyRequest;
-    polyRequest.push_back(ExtractionRequest(requests[0], ranges));
+    PolyRequest polyRequest2;
+    polyRequest2.push_back(ExtractionRequest(requests[0], ranges));
 
-    std::vector<std::vector<ExtractionResult*>> output2 = gj.extract(polyRequest);
+    std::vector<std::vector<ExtractionResult*>> output2 = gj.extract(polyRequest2);
     EXPECT(output2.size() == 1);
     EXPECT(output2[0].size() == 3);
 
     expectedValues.clear();
     expectedValues.push_back(eccodesExtract(requests[0], ranges));
     compareValues(expectedValues, output2);
+
+    // --------------------------------------------------------------------------------------------
+
+    // Test 2.b: Extract but with an md5 hash
+    /// @todo, the task will raise an error, but it is caught. However, only remoteGribjump propagates the error to the user.
+    std::vector<std::vector<ExtractionResult*>> output2b = gj.extract({ExtractionRequest(requests[0], ranges, "wronghash")});
+    EXPECT_EQUAL(output2b[0][0]->total_values(), 0);
+    
+    // correct hash
+    std::vector<std::vector<ExtractionResult*>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, "33c7d6025995e1b4913811e77d38ec50")});
+    EXPECT_EQUAL(output2c[0][0]->total_values(), 15);
 
     // --------------------------------------------------------------------------------------------
 

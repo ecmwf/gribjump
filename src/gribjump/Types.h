@@ -18,11 +18,14 @@
 namespace gribjump {
 
 class ExtractionItem;
+class ExtractionRequest;
 
 using MarsRequests = std::vector<metkit::mars::MarsRequest>;
 using Range = std::pair<size_t, size_t>;
 using Interval = std::pair<size_t, size_t>;
 using RangesList = std::vector<std::vector<Range>>;
+using GridHashes = std::vector<std::string>;
+using ExtractionRequests = std::vector<ExtractionRequest>;
 using Bitmap = std::vector<bool>;
 
 using Ranges = std::vector<Range>;

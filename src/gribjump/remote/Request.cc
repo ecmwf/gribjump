@@ -67,15 +67,9 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
     size_t nRequests;
     client_ >> nRequests;
 
-    std::vector<ExtractionRequest> requests;
     for (size_t i = 0; i < nRequests; i++) {
         ExtractionRequest req(client_);
-        requests.push_back(req);
-    }
-
-    for (auto& req : requests) {
-        marsRequests_.push_back(req.getRequest());
-        ranges_.push_back(req.getRanges());
+        requests_.push_back(req);
     }
 
 
@@ -87,7 +81,7 @@ ExtractRequest::~ExtractRequest() {
 
 void ExtractRequest::execute() {
 
-    results_ = engine_.extract(marsRequests_, ranges_, flatten_);
+    results_ = engine_.extract(requests_, flatten_);
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
@@ -105,13 +99,13 @@ void ExtractRequest::replyToClient() {
 
     // Send the results, again repackage.
 
-    size_t nRequests = marsRequests_.size();
+    size_t nRequests = requests_.size();
     LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
 
     for (size_t i = 0; i < nRequests; i++) {
         LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
 
-        auto it = results_.find(marsRequests_[i]);
+        auto it = results_.find(requests_[i].request());
         ASSERT(it != results_.end());
         std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
         // ExtractionItems items = it->second;

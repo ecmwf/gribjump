@@ -104,8 +104,11 @@ CASE ("test_engine_basic") {
     };
 
     Engine engine;
-    ResultsMap results = engine.extract(requests, allIntervals, false);
-
+    ExtractionRequests exRequests;
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i]));
+    }
+    ResultsMap results = engine.extract(exRequests, false);
 
     // print contents of map
     for (auto& [req, exs] : results) {
@@ -168,7 +171,12 @@ CASE ("test_engine_basic") {
         requests = expand.expand(parsedRequests);
     }
 
-    results = engine.extract(requests, allIntervals, true);
+    exRequests.clear();
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[0]));
+    }
+
+    results = engine.extract(exRequests, true);
 
     // print contents of map
     for (auto& [req, exs] : results) {
