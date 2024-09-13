@@ -130,8 +130,6 @@ Engine::~Engine() {}
 ExItemMap Engine::buildKeyToExtractionItem(const MarsRequests& requests, const RangesList& ranges, bool flatten){
     ExItemMap keyToExtractionItem;
 
-    eckit::Timer timer;
-
     flattenedKeys_t flatKeys = buildFlatKeys(requests, flatten); // Map from base request to {flattened keys}
 
     LOG_DEBUG_LIB(LibGribJump) << "Built flat keys" << std::endl;
@@ -146,20 +144,15 @@ ExItemMap Engine::buildKeyToExtractionItem(const MarsRequests& requests, const R
         }
     }
 
-    LOG_DEBUG_LIB(LibGribJump) << "Built keyToExtractionItem" << std::endl;
-
     return keyToExtractionItem;
 }
 
 filemap_t Engine::buildFileMap(const MarsRequests& requests, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
-    eckit::Timer timer;
 
     const metkit::mars::MarsRequest req = unionRequest(requests);
-    timer.reset("Gribjump Engine: Flattened requests and constructed union request");
 
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
-    timer.reset("Gribjump Engine: Called fdb.list and constructed file map");
 
     return filemap;
 }
@@ -168,9 +161,13 @@ filemap_t Engine::buildFileMap(const MarsRequests& requests, ExItemMap& keyToExt
 
 ResultsMap Engine::extract(const MarsRequests& requests, const RangesList& ranges, bool flatten) {
 
+    eckit::Timer timer("Gribjump Engine: extract");
+
     ExItemMap keyToExtractionItem = buildKeyToExtractionItem(requests, ranges, flatten); // Owns the ExtractionItems
+    timer.reset("Gribjump Engine: Key to ExtractionItem map built");
+
     filemap_t filemap = buildFileMap(requests, keyToExtractionItem);
-    eckit::Timer timer;
+    timer.reset("Gribjump Engine: File map built");
 
     bool remoteExtraction = LibGribJump::instance().config().getBool("remoteExtraction", false);
     if (remoteExtraction) {
@@ -188,7 +185,7 @@ ResultsMap Engine::extract(const MarsRequests& requests, const RangesList& range
             }
         }
     }
-
+    timer.reset("Gribjump Engine: All tasks enqueued");
 
     taskGroup_.waitForTasks();
     timer.reset("Gribjump Engine: All tasks finished");

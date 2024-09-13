@@ -33,7 +33,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     eckit::Log::info() << "Serving new connection" << std::endl;
 
     try {
-        eckit::Timer timer;
+        eckit::Timer timer("Connection served");
         handle_client(s, timer);
     }
     catch (std::exception& e) {
