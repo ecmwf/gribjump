@@ -39,7 +39,6 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 
-using Interval = std::pair<size_t, size_t>;
 
 size_t expectedCount(std::vector<std::vector<Interval>> allIntervals){
     // count the number of values expected given the intervals
@@ -105,7 +104,7 @@ CASE ("test_engine_basic") {
     };
 
     Engine engine;
-    std::map<metkit::mars::MarsRequest, std::vector<ExtractionItem*>> results = engine.extract(requests, allIntervals, false);
+    ResultsMap results = engine.extract(requests, allIntervals, false);
 
 
     // print contents of map
@@ -121,7 +120,9 @@ CASE ("test_engine_basic") {
     for (size_t i = 0; i < 3; i++) {
         metkit::mars::MarsRequest req = requests[i];
         std::vector<Interval> intervals = allIntervals[i];
-        auto exs = results[req];
+        // auto exs = results[req];
+        // just get a reference to results[req] to avoid copying
+        auto& exs = results[req];
         auto comparisonValues = eccodesExtract(req, intervals);
         for (size_t j = 0; j < exs.size(); j++) {
             for (size_t k = 0; k < comparisonValues[j].size(); k++) {
@@ -142,8 +143,8 @@ CASE ("test_engine_basic") {
     EXPECT(count == 45);
 
     // Check missing data has no values.
-    ExtractionItem* ex = results[requests[3]][0];
-    EXPECT(ex->values().size() == 0);
+    ExtractionItem& ex = *results[requests[3]][0];
+    EXPECT(ex.values().size() == 0);
 
 
     // --- Extract (test 2)
@@ -180,7 +181,7 @@ CASE ("test_engine_basic") {
     // compare results
 
     metkit::mars::MarsRequest req = requests[0];
-    auto exs = results[req];
+    auto& exs = results[req];
     auto comparisonValues = eccodesExtract(req, allIntervals[0])[0]; // [0] Because each archived field has identical values.
     count = 0;
     for (size_t j = 0; j < exs.size(); j++) {

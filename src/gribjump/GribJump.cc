@@ -57,12 +57,4 @@ void GribJump::stats() {
     impl_->stats();
 }
 
-void GribJump::aggregate(const fdb5::Key& key, const eckit::URI& location) {
-    impl_->aggregate(key, location);
-}
-
-void GribJump::aggregate(const fdb5::Key& key, const eckit::message::Message& msg) {
-    impl_->aggregate(key, msg);
-}
-
 } // namespace gribjump

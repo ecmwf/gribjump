@@ -26,7 +26,6 @@ using namespace eckit::testing;
 namespace gribjump {
 namespace test {
 
-using Range = std::pair<size_t, size_t>;
 const size_t expectedNumberOfValues = 6599680; // O1280
 
 const std::vector<size_t> o1280_offsets = {

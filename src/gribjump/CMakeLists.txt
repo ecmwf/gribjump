@@ -44,6 +44,7 @@ list( APPEND gribjump_srcs
     GribJumpException.h 
     ExtractionData.cc
     ExtractionData.h
+    Types.h
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
@@ -78,6 +79,7 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     info/InfoAggregator.cc
     info/InfoCache.cc
     info/InfoCache.h
+    info/LRUCache.h
     info/UnsupportedInfo.h
     info/UnsupportedInfo.cc
 

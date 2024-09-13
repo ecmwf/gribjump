@@ -106,7 +106,7 @@ public:
 
     // Each extraction item is assumed to be for the same file.
 
-    FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems);
+    FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
 
     void execute() override;
 
@@ -114,7 +114,7 @@ public:
 
 protected:
     eckit::PathName fname_;
-    std::vector<ExtractionItem*>& extractionItems_;
+    ExtractionItems& extractionItems_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -125,7 +125,18 @@ protected:
 class InefficientFileExtractionTask : public FileExtractionTask {
 public:
 
-    InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<ExtractionItem*>& extractionItems);
+    InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
+
+    void extract() override;
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+// Task that forwards the work to a remote server, based on the URI of the extraction item.
+class RemoteFileExtractionTask : public FileExtractionTask {
+public:
+
+    RemoteFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
 
     void extract() override;
 

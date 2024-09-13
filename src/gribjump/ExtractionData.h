@@ -18,8 +18,7 @@
 
 #include "eckit/serialisation/Stream.h"
 #include "metkit/mars/MarsRequest.h"
-
-using Range = std::pair<size_t, size_t>;
+#include "gribjump/Types.h"
 
 namespace gribjump {
 
