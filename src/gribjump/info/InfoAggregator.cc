@@ -37,7 +37,7 @@ InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
         for (;;) {
             locPair elem;
             if (futures_.pop(elem) == -1) break;
-            std::shared_ptr<fdb5::FieldLocation> location = elem.first.get();
+            std::shared_ptr<const fdb5::FieldLocation> location = elem.first.get();
             std::unique_ptr<JumpInfo> info = std::move(elem.second);
             insert(location->fullUri(), std::move(info));
         }
@@ -48,7 +48,7 @@ InfoAggregator::~InfoAggregator() {
     close();
 }
 
-void InfoAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
+void InfoAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
 
     handle.openForRead();
     eckit::AutoClose closer(handle);
@@ -102,7 +102,7 @@ SerialAggregator::SerialAggregator() {
 SerialAggregator::~SerialAggregator() {
 }
 
-void SerialAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
+void SerialAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
 
     handle.openForRead();
     eckit::AutoClose closer(handle);
@@ -113,7 +113,7 @@ void SerialAggregator::add(std::future<std::shared_ptr<fdb5::FieldLocation>> fut
     }
 
     std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
-    std::shared_ptr<fdb5::FieldLocation> location = future.get();
+    std::shared_ptr<const fdb5::FieldLocation> location = future.get();
     insert(location->fullUri(), std::move(info));
 }
 
