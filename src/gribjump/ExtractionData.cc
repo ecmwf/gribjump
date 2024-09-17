@@ -35,6 +35,8 @@ std::vector<double> decodeVector(eckit::Stream& s) {
     return std::vector<double>(data, data + size);
 }
 
+// todo: encodeVectorVector ?
+
 } // namespace
 
 ExtractionResult::ExtractionResult() {}

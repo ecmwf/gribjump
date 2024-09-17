@@ -128,6 +128,7 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
     request.replyToClient();
     
     // s << size_t(0);
+    request.reportMetrics();
 
     timer.reset("EXTRACT  results sent");
 }

@@ -18,7 +18,7 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Request::Request(eckit::Stream& stream) : client_(stream) {    
+Request::Request(eckit::Stream& stream, LogContext ctx) : client_(stream), metrics_(ctx) {
 }
 
 Request::~Request() {}
@@ -63,6 +63,7 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
     // Receive the requests
     // Temp, repackage the requests from old format into format the engine expects
+    eckit::Timer timer;
 
     size_t nRequests;
     client_ >> nRequests;
@@ -78,16 +79,20 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         ranges_.push_back(req.getRanges());
     }
 
-
     flatten_ = false; // xxx hard coded for now
+
+    metrics_.nRequests = nRequests;
+    metrics_.timeReceive = timer.elapsed();
 }
 
 ExtractRequest::~ExtractRequest() {
 }
 
 void ExtractRequest::execute() {
+    eckit::Timer timer;
 
     results_ = engine_.extract(marsRequests_, ranges_, flatten_);
+    engine_.updateMetrics(metrics_);
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
@@ -97,9 +102,11 @@ void ExtractRequest::execute() {
             }
         }
     }
+    metrics_.timeExecute = timer.elapsed();
 }
 
 void ExtractRequest::replyToClient() {
+    eckit::Timer timer;
 
     reportErrors();
 
@@ -124,6 +131,8 @@ void ExtractRequest::replyToClient() {
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+
+    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

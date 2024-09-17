@@ -65,8 +65,6 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @todo This class is now redundant thanks to ExtractionItem.
-
 class ExtractionRequest {
 
 public: // methods

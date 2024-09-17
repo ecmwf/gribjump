@@ -19,6 +19,7 @@
 
 #include "gribjump/GribJump.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/remote/WorkQueue.h"
 #include "gribjump/Engine.h"
 
@@ -29,7 +30,7 @@ namespace gribjump {
 class Request {
 public: // methods
 
-    Request(eckit::Stream& stream);
+    Request(eckit::Stream& stream, LogContext ctx = LogContext("none"));
 
     virtual ~Request();
     
@@ -39,6 +40,8 @@ public: // methods
     /// Reply to the client with the results of the request
     virtual void replyToClient() = 0;
 
+    void reportMetrics() {metrics_.report();}
+
 protected: // methods
 
     void reportErrors();
@@ -46,8 +49,9 @@ protected: // methods
 protected: // members
 
     eckit::Stream& client_;
-
     Engine engine_; //< Engine and schedule tasks based on request
+
+    Metrics metrics_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

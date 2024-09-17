@@ -81,6 +81,15 @@ public:
     void reportErrors(eckit::Stream& client_);
 
     std::mutex debugMutex_;
+
+    size_t nTasks() const { 
+        std::lock_guard<std::mutex> lock(m_);
+        return tasks_.size();
+    }
+    size_t nErrors() const { 
+        std::lock_guard<std::mutex> lock(m_);
+        return errors_.size();
+    }
     
 private:
 
@@ -90,7 +99,7 @@ private:
     bool waiting_ = false;
 
 
-    std::mutex m_;
+    mutable std::mutex m_;
     std::condition_variable cv_;
     
     std::vector<Task*> tasks_; //< stores tasks status, must be initialised by derived class

@@ -18,6 +18,7 @@
 #include "gribjump/Task.h"
 #include "gribjump/Lister.h"
 #include "gribjump/Types.h"
+#include "gribjump/Metrics.h"
 
 namespace gribjump {
 
@@ -36,6 +37,8 @@ public:
 
     void reportErrors(eckit::Stream& client_);
 
+    void updateMetrics(Metrics& metrics);
+
 private: 
 
     filemap_t buildFileMap(const MarsRequests& requests, ExItemMap& keyToExtractionItem);
@@ -43,7 +46,7 @@ private:
 
 private:
 
-    TaskGroup taskGroup_;
+    TaskGroup taskGroup_; /// @todo Maybe we should be returning the taskGroup, rather than storing it here.
 
 };
 

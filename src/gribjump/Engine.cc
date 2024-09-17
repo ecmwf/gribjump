@@ -232,6 +232,11 @@ std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::
 void Engine::reportErrors(eckit::Stream& client) {
     taskGroup_.reportErrors(client);
 }
+
+void Engine::updateMetrics(Metrics& metrics) {
+    metrics.nTasks = taskGroup_.nTasks();
+    metrics.nFailedTasks = taskGroup_.nErrors();
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump
