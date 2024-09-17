@@ -149,12 +149,16 @@ int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* req
 
     return 0;
 }
-int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields) {
+int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields, const char* ctx){
     std::vector<ExtractionRequest> reqs;
     for (size_t i = 0; i < nrequests; i++) {
         reqs.push_back(*requests[i]);
     }
-    std::vector<std::vector<ExtractionResult*>> results = handle->extract(reqs);
+    LogContext logctx;
+    if (ctx) {
+        logctx = LogContext(ctx);
+    }
+    std::vector<std::vector<ExtractionResult*>> results = handle->extract(reqs, logctx);
 
     *nfields = new unsigned long[nrequests];
     *results_array = new gribjump_extraction_result_t**[nrequests];

@@ -116,6 +116,8 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
     /// @todo, check if this is still working.
 
     timer.reset();
+    
+    LogContext ctx(s);
 
     ExtractRequest request(s);
 

@@ -87,7 +87,7 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 }
 
 /// @todo, change API, remove extraction request
-std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(ExtractionRequests requests) {
+std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(ExtractionRequests requests, LogContext ctx) {
 
     bool flatten = true;
     Engine engine;

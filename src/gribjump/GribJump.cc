@@ -38,8 +38,8 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 }
 
 
-std::vector<std::vector<ExtractionResult*>> GribJump::extract(const std::vector<ExtractionRequest>& requests) {
-    std::vector<std::vector<ExtractionResult*>> out = impl_->extract(requests);
+std::vector<std::vector<ExtractionResult*>> GribJump::extract(const std::vector<ExtractionRequest>& requests, LogContext ctx) {
+    std::vector<std::vector<ExtractionResult*>> out = impl_->extract(requests, ctx);
     return out;
 }
 

@@ -97,7 +97,7 @@ class GribJump:
         # Set free function
         self.__gribjump = ffi.gc(gribjump[0], lib.gribjump_delete_handle)
 
-    def extract(self, polyrequest, dump=True):
+    def extract(self, polyrequest, logctx="none", dump=True):
         # TODO Add md5 hash to request
         """
         Parameters
@@ -113,14 +113,14 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(req, ranges) for req, ranges in polyrequest]
+        requests = [ExtractionRequest(req, ranges, hash) for req, ranges, hash in polyrequest]
 
         # results_array contains values, for each field, for each request.
         results_array = ffi.new('gribjump_extraction_result_t****')
         nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
-        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields)
+        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx)
 
         if dump:
             res = [
@@ -150,7 +150,7 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(reqstr, ranges) for reqstr, ranges in polyrequest]
+        requests = [ExtractionRequest(reqstr, ranges, hash) for reqstr, ranges, hash in polyrequest]
 
         if dump:
             # Copy values, allow original buffer to be garbage collected.
