@@ -98,6 +98,7 @@ class GribJump:
         self.__gribjump = ffi.gc(gribjump[0], lib.gribjump_delete_handle)
 
     def extract(self, polyrequest, dump=True):
+        # TODO Add md5 hash to request
         """
         Parameters
         ----------
@@ -227,13 +228,14 @@ class ExtractionRequest:
     ranges : [(lo, hi), (lo, hi), ...]
         The ranges to extract.
     """
-    def __init__(self, req, ranges):
+    def __init__(self, req, ranges, gridHash=None):
         reqstr = "retrieve,"+dic_to_request(req)
         rangestr = list_to_rangestr(ranges)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
         c_rangestr = ffi.new("char[]", rangestr.encode())
-        lib.gribjump_new_request(request, c_reqstr, c_rangestr)
+        c_hash = ffi.new("char[]", gridHash.encode() if gridHash is not None else b"")
+        lib.gribjump_new_request(request, c_reqstr, c_rangestr, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
     @property

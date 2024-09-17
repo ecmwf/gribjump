@@ -120,14 +120,16 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges):
+ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, std::string gridHash):
     ranges_(ranges),
-    request_(request)
+    request_(request),
+    gridHash_(gridHash)
     {}
 ExtractionRequest::ExtractionRequest() {}
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
     request_ = metkit::mars::MarsRequest(s);
+    s >> gridHash_;
     size_t numRanges;
     s >> numRanges;
     for (size_t j = 0; j < numRanges; j++) {
@@ -168,6 +170,7 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
 
 void ExtractionRequest::encode(eckit::Stream& s) const {
     s << request_;
+    s << gridHash_;
     s << ranges_.size();
     for (auto& [start, end] : ranges_) {
         s << start << end;

@@ -78,7 +78,7 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
-    void reportErrors(eckit::Stream& client_);
+    void reportErrors(eckit::Stream& client);
 
     std::mutex debugMutex_;
 

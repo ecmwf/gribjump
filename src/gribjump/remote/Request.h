@@ -90,9 +90,7 @@ public:
     void replyToClient() override;
 
 private:
-
-    std::vector<std::vector<Range>> ranges_;
-    std::vector<metkit::mars::MarsRequest> marsRequests_;
+    std::vector<ExtractionRequest> requests_;
     bool flatten_;
 
     ResultsMap results_;
