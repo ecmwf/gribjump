@@ -113,14 +113,16 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(req, ranges, hash) for req, ranges, hash in polyrequest]
+        # requests = [ExtractionRequest(req, ranges, hash) for req, ranges, hash in polyrequest]
+        requests = self._unpack_polyrequest(polyrequest)
 
         # results_array contains values, for each field, for each request.
         results_array = ffi.new('gribjump_extraction_result_t****')
         nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
-        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx)
+        logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
+        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx_c)
 
         if dump:
             res = [
@@ -133,6 +135,7 @@ class GribJump:
             ]
         return res
 
+    # @todo review if we still need this method
     def extract_singles(self, polyrequest, dump=True):
         """
         Carry out a series of single extractions, rather than a single polytope extraction.
@@ -150,7 +153,7 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(reqstr, ranges, hash) for reqstr, ranges, hash in polyrequest]
+        requests = self._unpack_polyrequest(polyrequest)
 
         if dump:
             # Copy values, allow original buffer to be garbage collected.
@@ -172,6 +175,20 @@ class GribJump:
 
     def extract_str(self, reqstr, rangestr):
         return self.extract_single(ExtractionRequest(reqstr, rangestr))
+    
+    def _unpack_polyrequest(self, polyrequest):
+        requests = []
+        for item in polyrequest:
+            if len(item) == 2:
+                reqstr, ranges = item
+                hash = None
+            elif len(item) == 3:
+                reqstr, ranges, hash = item
+            else:
+                raise ValueError("Polyrequest should be a list of tuples of length 2 or 3")
+            requests.append(ExtractionRequest(reqstr, ranges, hash))
+        return requests
+        
 
     def extract_single(self, request):
         """
@@ -234,7 +251,7 @@ class ExtractionRequest:
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
         c_rangestr = ffi.new("char[]", rangestr.encode())
-        c_hash = ffi.new("char[]", gridHash.encode() if gridHash is not None else b"")
+        c_hash = ffi.NULL if gridHash is None else ffi.new("char[]", gridHash.encode())
         lib.gribjump_new_request(request, c_reqstr, c_rangestr, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
