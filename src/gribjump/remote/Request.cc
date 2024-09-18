@@ -18,7 +18,7 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Request::Request(eckit::Stream& stream) : client_(stream) {    
+Request::Request(eckit::Stream& stream, LogContext ctx) : client_(stream), metrics_(ctx) {
 }
 
 Request::~Request() {}
@@ -59,35 +59,35 @@ void ScanRequest::replyToClient() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
+
+ExtractRequest::ExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
 
     // Receive the requests
     // Temp, repackage the requests from old format into format the engine expects
+    eckit::Timer timer;
 
     size_t nRequests;
     client_ >> nRequests;
 
-    std::vector<ExtractionRequest> requests;
     for (size_t i = 0; i < nRequests; i++) {
         ExtractionRequest req(client_);
-        requests.push_back(req);
+        requests_.push_back(req);
     }
-
-    for (auto& req : requests) {
-        marsRequests_.push_back(req.getRequest());
-        ranges_.push_back(req.getRanges());
-    }
-
 
     flatten_ = false; // xxx hard coded for now
+
+    metrics_.nRequests = nRequests;
+    metrics_.timeReceive = timer.elapsed();
 }
 
 ExtractRequest::~ExtractRequest() {
 }
 
 void ExtractRequest::execute() {
+    eckit::Timer timer;
 
-    results_ = engine_.extract(marsRequests_, ranges_, flatten_);
+    results_ = engine_.extract(requests_, flatten_);
+    engine_.updateMetrics(metrics_);
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
@@ -97,21 +97,23 @@ void ExtractRequest::execute() {
             }
         }
     }
+    metrics_.timeExecute = timer.elapsed();
 }
 
 void ExtractRequest::replyToClient() {
+    eckit::Timer timer;
 
     reportErrors();
 
     // Send the results, again repackage.
 
-    size_t nRequests = marsRequests_.size();
+    size_t nRequests = requests_.size();
     LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
 
     for (size_t i = 0; i < nRequests; i++) {
         LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
 
-        auto it = results_.find(marsRequests_[i]);
+        auto it = results_.find(requests_[i].request());
         ASSERT(it != results_.end());
         std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
         // ExtractionItems items = it->second;
@@ -124,6 +126,8 @@ void ExtractRequest::replyToClient() {
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+
+    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

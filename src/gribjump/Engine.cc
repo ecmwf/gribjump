@@ -76,12 +76,12 @@ std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRe
 
 typedef std::map<metkit::mars::MarsRequest, std::vector<std::string>> flattenedKeys_t;
 
-flattenedKeys_t buildFlatKeys(const std::vector<metkit::mars::MarsRequest>& requests, bool flatten) {
+flattenedKeys_t buildFlatKeys(const ExtractionRequests& requests, bool flatten) {
     
     flattenedKeys_t keymap;
     
-    for (const auto& baseRequest : requests) {
-
+    for (const auto& req : requests) {
+        const metkit::mars::MarsRequest& baseRequest = req.request();
         keymap[baseRequest] = std::vector<std::string>();
 
         // Assume baseRequest has cardinality >= 1 and may need to be flattened
@@ -127,7 +127,7 @@ Engine::Engine() {}
 
 Engine::~Engine() {}
 
-ExItemMap Engine::buildKeyToExtractionItem(const MarsRequests& requests, const RangesList& ranges, bool flatten){
+ExItemMap Engine::buildKeyToExtractionItem(const ExtractionRequests& requests, bool flatten){
     ExItemMap keyToExtractionItem;
 
     flattenedKeys_t flatKeys = buildFlatKeys(requests, flatten); // Map from base request to {flattened keys}
@@ -136,21 +136,30 @@ ExItemMap Engine::buildKeyToExtractionItem(const MarsRequests& requests, const R
 
     // Create the 1-to-1 map
     for (size_t i = 0; i < requests.size(); i++) {
-        const metkit::mars::MarsRequest& basereq = requests[i]; 
+        const metkit::mars::MarsRequest& basereq = requests[i].request();
         const std::vector<std::string> keys = flatKeys[basereq];
         for (const auto& key : keys) {
             ASSERT(keyToExtractionItem.find(key) == keyToExtractionItem.end()); /// @todo support duplicated requests?
-            keyToExtractionItem.emplace(key, new ExtractionItem(basereq, ranges[i])); // 1-to-1-map
+            auto extractionItem = std::make_unique<ExtractionItem>(basereq, requests[i].ranges());
+            extractionItem->gridHash(requests[i].gridHash());
+            keyToExtractionItem.emplace(key, std::move(extractionItem)); // 1-to-1-map
         }
     }
 
     return keyToExtractionItem;
 }
 
-filemap_t Engine::buildFileMap(const MarsRequests& requests, ExItemMap& keyToExtractionItem) {
+filemap_t Engine::buildFileMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
+    eckit::Timer timer("Gribjump Engine: Building file map");
 
-    const metkit::mars::MarsRequest req = unionRequest(requests);
+    std::vector<metkit::mars::MarsRequest> marsrequests;
+    for (const auto& req : requests) {
+        marsrequests.push_back(req.request());
+    }
+
+    const metkit::mars::MarsRequest req = unionRequest(marsrequests);
+    timer.reset("Gribjump Engine: Flattened requests and constructed union request");
 
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
 
@@ -159,13 +168,10 @@ filemap_t Engine::buildFileMap(const MarsRequests& requests, ExItemMap& keyToExt
 
 
 
-ResultsMap Engine::extract(const MarsRequests& requests, const RangesList& ranges, bool flatten) {
+ResultsMap Engine::extract(const ExtractionRequests& requests, bool flatten) {
+    eckit::Timer timer("Gribjump Engine: Extracting");
 
-    eckit::Timer timer("Gribjump Engine: extract");
-
-    ExItemMap keyToExtractionItem = buildKeyToExtractionItem(requests, ranges, flatten); // Owns the ExtractionItems
-    timer.reset("Gribjump Engine: Key to ExtractionItem map built");
-
+    ExItemMap keyToExtractionItem = buildKeyToExtractionItem(requests, flatten); // Owns the ExtractionItems
     filemap_t filemap = buildFileMap(requests, keyToExtractionItem);
     timer.reset("Gribjump Engine: File map built");
 
@@ -231,6 +237,11 @@ std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::
 
 void Engine::reportErrors(eckit::Stream& client) {
     taskGroup_.reportErrors(client);
+}
+
+void Engine::updateMetrics(Metrics& metrics) {
+    metrics.nTasks = taskGroup_.nTasks();
+    metrics.nFailedTasks = taskGroup_.nErrors();
 }
 //----------------------------------------------------------------------------------------------------------------------
 

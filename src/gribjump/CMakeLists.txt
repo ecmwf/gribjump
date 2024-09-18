@@ -44,6 +44,7 @@ list( APPEND gribjump_srcs
     GribJumpException.h 
     ExtractionData.cc
     ExtractionData.h
+    Metrics.h
     Types.h
 )
 

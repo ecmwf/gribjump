@@ -116,8 +116,10 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
     /// @todo, check if this is still working.
 
     timer.reset();
+    
+    LogContext ctx(s);
 
-    ExtractRequest request(s);
+    ExtractRequest request(s, ctx);
 
     timer.reset("EXTRACT requests received");
 
@@ -128,6 +130,7 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
     request.replyToClient();
     
     // s << size_t(0);
+    request.reportMetrics();
 
     timer.reset("EXTRACT  results sent");
 }

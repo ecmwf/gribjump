@@ -28,14 +28,14 @@ public: // methods
     size_t scan(const eckit::PathName& path) override;
     size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
 
-    std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest> polyRequest) override;
+    std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest> polyRequest, LogContext ctx) override;
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
 protected: // methods
 
-    bool receiveErrors(eckit::Stream& stream);
+    bool receiveErrors(eckit::Stream& stream, bool raise=true);
 
 private: // members
     int port_;
