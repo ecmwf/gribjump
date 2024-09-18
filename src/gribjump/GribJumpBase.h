@@ -18,12 +18,12 @@
 #include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/URI.h"
 
-
 #include "gribjump/ExtractionData.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Config.h"
 #include "gribjump/Stats.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/Types.h"
 
 namespace fdb5 {
@@ -45,7 +45,7 @@ public:
     size_t virtual scan(const eckit::PathName& path) = 0;
     virtual size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) = 0;
 
-    virtual std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>) = 0;
+    virtual std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>, LogContext ctx=LogContext("none")) = 0;
     virtual std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) = 0;
     
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) = 0;

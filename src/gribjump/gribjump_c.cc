@@ -22,6 +22,21 @@ using namespace gribjump;
 
 extern "C" {
 
+// --------------------------------------------------------------------------------------------
+// Error handling
+static std::string LAST_ERROR_STR;
+
+const char* gribjump_error_string(int err) {
+    switch (err) {
+    case 1:
+        return LAST_ERROR_STR.c_str();
+    default:
+        return "Unknown error";
+    };
+}
+
+// --------------------------------------------------------------------------------------------
+
 struct gribjump_handle_t : public GribJump {
     using GribJump::GribJump;
 };
@@ -51,7 +66,7 @@ int gribjump_delete_handle(gribjump_handle_t* handle) {
     return 0;
 }
 
-int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr) {
+int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr, const char* gridhash) {
     // reqstr is a string representation of a metkit::mars::MarsRequest
     // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
     
@@ -62,7 +77,6 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
     ASSERT(requests.size() == 1);
     metkit::mars::MarsRequest mreq(requests[0]);
 
-
     // Parse the ranges string
     std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
     std::vector<Range> rangevec;
@@ -72,7 +86,8 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
         rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
     }
 
-    *request = new gribjump_extraction_request_t(mreq, rangevec);
+    std::string gridhash_str = gridhash ? std::string(gridhash) : "";
+    *request = new gribjump_extraction_request_t(mreq, rangevec, gridhash_str);
 
     return 0;
 }
@@ -136,6 +151,7 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
     return 0;
 }
 
+/// @todo review why this extract_single exists.
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
     ExtractionRequest req = *request;
     std::vector<ExtractionResult*> results = handle->extract(std::vector<ExtractionRequest>{req})[0];
@@ -149,12 +165,29 @@ int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* req
 
     return 0;
 }
-int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields) {
+int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields, const char* ctx){
     std::vector<ExtractionRequest> reqs;
     for (size_t i = 0; i < nrequests; i++) {
         reqs.push_back(*requests[i]);
     }
-    std::vector<std::vector<ExtractionResult*>> results = handle->extract(reqs);
+    LogContext logctx;
+    if (ctx) {
+        logctx = LogContext(ctx);
+    }
+    
+    std::vector<std::vector<ExtractionResult*>> results;
+    try {
+        results = handle->extract(reqs, logctx);
+    } catch (std::exception& e) {
+        eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.extract): " << e.what() << std::endl;
+        LAST_ERROR_STR = e.what();
+        return 1;
+    }
+    catch (...) {
+        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.extract)" << std::endl;
+        LAST_ERROR_STR = "Unrecognised and unknown exception";
+        return 1;
+    }
 
     *nfields = new unsigned long[nrequests];
     *results_array = new gribjump_extraction_result_t**[nrequests];
@@ -212,7 +245,19 @@ private:
 int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* gj) {
     ASSERT(gj);
     std::string reqstr_str(reqstr);
-    std::map<std::string, std::unordered_set<std::string>> values = gj->axes(reqstr_str);
+    std::map<std::string, std::unordered_set<std::string>> values;
+    try {
+        values = gj->axes(reqstr_str);
+    } catch (std::exception& e) {
+        eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.axes): " << e.what() << std::endl;
+        LAST_ERROR_STR = e.what();
+        return 1;
+    }
+    catch (...) {
+        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.axes)" << std::endl;
+        LAST_ERROR_STR = "Unrecognised and unknown exception";
+        return 1;
+    }
     *axes = new gj_axes_t(values);
     return 0;
 }
