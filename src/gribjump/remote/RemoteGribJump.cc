@@ -167,6 +167,10 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
 bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
     size_t nErrors;
     stream >> nErrors;
+    if (nErrors == 0) {
+        return false;
+    }
+
     std::stringstream ss;
     for (size_t i = 0; i < nErrors; i++) {
         std::string error;
@@ -178,7 +182,7 @@ bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
     } else {
         eckit::Log::error() << ss.str() << std::endl;
     }
-    return nErrors > 0;
+    return true;
 }
 
 static GribJumpBuilder<RemoteGribJump> builder("remote");
