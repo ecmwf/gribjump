@@ -97,7 +97,7 @@ class GribJump:
         # Set free function
         self.__gribjump = ffi.gc(gribjump[0], lib.gribjump_delete_handle)
 
-    def extract(self, polyrequest, logctx="none", dump=True):
+    def extract(self, polyrequest, ctx=None, dump=True):
         # TODO Add md5 hash to request
         """
         Parameters
@@ -121,6 +121,11 @@ class GribJump:
         nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
+        if (ctx):
+            logctx=str(ctx)
+        else:
+            logctx=""
+
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx_c)
 
@@ -347,3 +352,4 @@ def list_to_rangestr(ranges):
 def dic_to_request(dic):
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
     return ','.join(['='.join([k, v]) for k, v in dic.items()])
+
