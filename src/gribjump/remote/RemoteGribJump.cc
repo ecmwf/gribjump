@@ -92,8 +92,8 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-
     stream << "EXTRACT";
+
     stream << ctx;
 
     size_t nRequests = requests.size();

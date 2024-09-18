@@ -59,7 +59,8 @@ void ScanRequest::replyToClient() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
+
+ExtractRequest::ExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
 
     // Receive the requests
     // Temp, repackage the requests from old format into format the engine expects

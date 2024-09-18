@@ -81,7 +81,7 @@ private:
 class ExtractRequest : public Request {
 public:
 
-    ExtractRequest(eckit::Stream& stream);
+    ExtractRequest(eckit::Stream& stream, LogContext ctx);
 
     ~ExtractRequest();
 

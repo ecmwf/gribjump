@@ -119,7 +119,7 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
     
     LogContext ctx(s);
 
-    ExtractRequest request(s);
+    ExtractRequest request(s, ctx);
 
     timer.reset("EXTRACT requests received");
 
