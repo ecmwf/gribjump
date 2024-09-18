@@ -35,7 +35,7 @@ public: // methods
 
 protected: // methods
 
-    bool receiveErrors(eckit::Stream& stream);
+    bool receiveErrors(eckit::Stream& stream, bool raise=true);
 
 private: // members
     int port_;
