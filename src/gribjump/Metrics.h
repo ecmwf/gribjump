@@ -21,7 +21,10 @@ namespace gribjump {
 class LogContext {
 public:
     LogContext(std::string s="none") : context_(s) {}
-    explicit LogContext(eckit::Stream& s) {}
+
+    explicit LogContext(eckit::Stream& s) {
+        s >> context_;
+    }
     
     ~LogContext() {}
 private:
