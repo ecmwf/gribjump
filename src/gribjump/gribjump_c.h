@@ -51,6 +51,7 @@ int gribjump_delete_axes(gj_axes_t* axes);
 
 int gribjump_initialise();
 
+const char* gribjump_error_string(int err);
 
 #ifdef __cplusplus
 } // extern "C"

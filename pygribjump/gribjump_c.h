@@ -32,3 +32,5 @@ int gribjump_axes_values(gj_axes_t* axes, const char* key, const char*** values_
 int gribjump_delete_axes(gj_axes_t* axes);
 
 int gribjump_initialise();
+
+const char* gribjump_error_string(int err);

@@ -22,6 +22,21 @@ using namespace gribjump;
 
 extern "C" {
 
+// --------------------------------------------------------------------------------------------
+// Error handling
+static std::string LAST_ERROR_STR;
+
+const char* gribjump_error_string(int err) {
+    switch (err) {
+    case 1:
+        return LAST_ERROR_STR.c_str();
+    default:
+        return "Unknown error";
+    };
+}
+
+// --------------------------------------------------------------------------------------------
+
 struct gribjump_handle_t : public GribJump {
     using GribJump::GribJump;
 };
@@ -165,10 +180,12 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
         results = handle->extract(reqs, logctx);
     } catch (std::exception& e) {
         eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.extract): " << e.what() << std::endl;
+        LAST_ERROR_STR = e.what();
         return 1;
     }
     catch (...) {
         eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.extract)" << std::endl;
+        LAST_ERROR_STR = "Unrecognised and unknown exception";
         return 1;
     }
 
@@ -233,10 +250,12 @@ int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* g
         values = gj->axes(reqstr_str);
     } catch (std::exception& e) {
         eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.axes): " << e.what() << std::endl;
+        LAST_ERROR_STR = e.what();
         return 1;
     }
     catch (...) {
         eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.axes)" << std::endl;
+        LAST_ERROR_STR = "Unrecognised and unknown exception";
         return 1;
     }
     *axes = new gj_axes_t(values);

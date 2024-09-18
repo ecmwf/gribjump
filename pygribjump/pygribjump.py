@@ -77,7 +77,7 @@ class PatchedLib:
             # TODO Error string. See pyfdb
             retval = fn(*args, **kwargs)
             if retval != 0:
-                error_str = "Error in function {}".format(name)
+                error_str = f"Error in function {name}: {ffi.string(self.__lib.gribjump_error_string(retval)).decode()}"
                 raise GribJumpException(error_str)
             return retval
 
