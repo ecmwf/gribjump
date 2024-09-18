@@ -164,11 +164,11 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
     try {
         results = handle->extract(reqs, logctx);
     } catch (std::exception& e) {
-        eckit::Log::error() << "Caught exception on C-C++ API boundary: " << e.what() << std::endl;
+        eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.extract): " << e.what() << std::endl;
         return 1;
     }
     catch (...) {
-        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary" << std::endl;
+        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.extract)" << std::endl;
         return 1;
     }
 
@@ -228,7 +228,17 @@ private:
 int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* gj) {
     ASSERT(gj);
     std::string reqstr_str(reqstr);
-    std::map<std::string, std::unordered_set<std::string>> values = gj->axes(reqstr_str);
+    std::map<std::string, std::unordered_set<std::string>> values;
+    try {
+        values = gj->axes(reqstr_str);
+    } catch (std::exception& e) {
+        eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.axes): " << e.what() << std::endl;
+        return 1;
+    }
+    catch (...) {
+        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.axes)" << std::endl;
+        return 1;
+    }
     *axes = new gj_axes_t(values);
     return 0;
 }
