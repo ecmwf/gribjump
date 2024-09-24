@@ -52,7 +52,7 @@ void FDBPlugin::addFDB(fdb5::FDB& fdb) {
     aggregators_.emplace_back(std::make_unique<std::optional<InfoAggregator>>());
     std::optional<InfoAggregator>& aggregator = *aggregators_.back();
 
-    fdb.registerArchiveCallback([this, &aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<FieldLocation>> future)  {
+    fdb.registerArchiveCallback([this, &aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<const FieldLocation>> future)  {
         if (!matches(key) || length < 4)
             return;
 

@@ -87,23 +87,15 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 }
 
 /// @todo, change API, remove extraction request
-std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<ExtractionRequest> polyRequest) {
+std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(ExtractionRequests requests, LogContext ctx) {
 
-    std::vector<MarsRequest> requests;
-    std::vector<std::vector<Range>> ranges;
-    
     bool flatten = true;
-
-    for (auto& req : polyRequest) {
-        requests.push_back(req.getRequest());
-        ranges.push_back(req.getRanges());
-    }
-
-    ResultsMap results = extract(requests, ranges, flatten);
+    Engine engine;
+    ResultsMap results = engine.extract(requests, flatten);
 
     std::vector<std::vector<ExtractionResult*>> extractionResults;
-    for (auto& req : polyRequest) {
-        auto it = results.find(req.getRequest());
+    for (auto& req : requests) {
+        auto it = results.find(req.request());
         ASSERT(it != results.end());
         std::vector<ExtractionResult*> res;
         for (auto& item : it->second) {
@@ -119,7 +111,13 @@ std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(std::vector<E
 
 ResultsMap LocalGribJump::extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten) {
     Engine engine;
-    return engine.extract(requests, ranges, flatten);
+    ExtractionRequests extractionRequests;
+
+    for (size_t i = 0; i < requests.size(); i++) {
+        extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
+    }
+
+    return engine.extract(extractionRequests, flatten);
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {

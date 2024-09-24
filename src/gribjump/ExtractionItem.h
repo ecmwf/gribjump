@@ -58,6 +58,9 @@ public:
         return offset;
     }
 
+    void gridHash(const std::string& hash) { gridHash_ = hash; }
+    const std::string& gridHash() const { return gridHash_; }
+
     void URI(const eckit::URI& uri) { uri_ = uri; }
 
     void values(ExValues values) { values_ = std::move(values); }
@@ -105,6 +108,9 @@ private:
     // Set on Extraction
     ExValues values_;
     ExMask mask_;
+
+    // Optional extras
+    std::string gridHash_=""; //< if supplied, check hash matches the jumpinfo
 };
 
 // ------------------------------------------------------------------

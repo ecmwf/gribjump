@@ -33,7 +33,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     eckit::Log::info() << "Serving new connection" << std::endl;
 
     try {
-        eckit::Timer timer;
+        eckit::Timer timer("Connection served");
         handle_client(s, timer);
     }
     catch (std::exception& e) {
@@ -117,15 +117,21 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
 void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) { 
 
     timer.reset();
+    
+    LogContext ctx(s);
 
-    ExtractRequest request(s);
+    ExtractRequest request(s, ctx);
+
     timer.reset("EXTRACT requests received");
 
     request.execute();
     timer.reset("EXTRACT tasks completed");
 
     request.replyToClient();
-    timer.reset("EXTRACT results sent");
+    
+    request.reportMetrics();
+
+    timer.reset("EXTRACT  results sent");
 }
 
 

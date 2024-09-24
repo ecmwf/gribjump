@@ -65,20 +65,19 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// @todo This class is now redundant thanks to ExtractionItem.
-
 class ExtractionRequest {
 
 public: // methods
 
     ExtractionRequest();
-    ExtractionRequest(const metkit::mars::MarsRequest&, const std::vector<Range>&);
+    ExtractionRequest(const metkit::mars::MarsRequest&, const std::vector<Range>&, std::string gridHash="");
     explicit ExtractionRequest(eckit::Stream& s);
 
     std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
     std::vector<ExtractionRequest> split(const std::string& key) const;
-    const std::vector<Range>& getRanges() const {return ranges_;}
-    const metkit::mars::MarsRequest& getRequest() const {return request_;}
+    const std::vector<Range>& ranges() const {return ranges_;}
+    const metkit::mars::MarsRequest& request() const {return request_;}
+    const std::string& gridHash() const {return gridHash_;}
 
 private: // methods
     void print(std::ostream&) const;
@@ -89,6 +88,7 @@ private: // methods
 private: // members
     std::vector<Range> ranges_;
     metkit::mars::MarsRequest request_;
+    std::string gridHash_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

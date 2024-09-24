@@ -15,6 +15,7 @@
 #include "eckit/thread/AutoLock.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/Length.h"
+#include "eckit/io/AutoCloser.h"
 
 #include "fdb5/api/FDB.h"
 
@@ -109,10 +110,10 @@ void TaskGroup::waitForTasks() {
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
 }
 
-void TaskGroup::reportErrors(eckit::Stream& client_) {
-    client_ << errors_.size();
+void TaskGroup::reportErrors(eckit::Stream& client) {
+    client << errors_.size();
     for (const auto& s : errors_) {
-        client_ << s;
+        client << s;
     }
 }
 
@@ -153,16 +154,23 @@ void FileExtractionTask::extract() {
     eckit::FileHandle fh(fname_);
 
     fh.openForRead();
+    eckit::AutoCloser<eckit::FileHandle> closer(fh);
 
     for (size_t i = 0; i < extractionItems_.size(); i++) {
         ExtractionItem* extractionItem = extractionItems_[i];
         const JumpInfo& info = *infos[i];
 
+        const std::string& expectedHash = extractionItem->gridHash();
+        if (expectedHash.size() && (expectedHash != info.md5GridSection())) {
+            std::stringstream ss;
+            ss << "Grid hash mismatch for extraction item " << i << " in file " << fname_;
+            ss << ". Expected: " << expectedHash << ", got: " << info.md5GridSection();
+            throw eckit::BadValue(ss.str());
+        }
+
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
         jumper->extract(fh, offsets[i], info, *extractionItem);
     }
-
-    fh.close();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

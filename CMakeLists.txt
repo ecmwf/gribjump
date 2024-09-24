@@ -21,7 +21,7 @@ ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
                     DESCRIPTION "Build local extraction and serverside functionality")
 
 if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
-  ecbuild_find_package( NAME fdb5 VERSION 5.11.28 REQUIRED )
+  ecbuild_find_package( NAME fdb5 VERSION 5.13.1 REQUIRED )
   set(GRIBJUMP_HAVE_FDB 1)
 
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )

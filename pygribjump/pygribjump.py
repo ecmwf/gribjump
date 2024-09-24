@@ -77,7 +77,7 @@ class PatchedLib:
             # TODO Error string. See pyfdb
             retval = fn(*args, **kwargs)
             if retval != 0:
-                error_str = "Error in function {}".format(name)
+                error_str = f"Error in function {name}: {ffi.string(self.__lib.gribjump_error_string(retval)).decode()}"
                 raise GribJumpException(error_str)
             return retval
 
@@ -97,7 +97,8 @@ class GribJump:
         # Set free function
         self.__gribjump = ffi.gc(gribjump[0], lib.gribjump_delete_handle)
 
-    def extract(self, polyrequest, dump=True):
+    def extract(self, polyrequest, ctx=None, dump=True):
+        # TODO Add md5 hash to request
         """
         Parameters
         ----------
@@ -112,14 +113,21 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(req, ranges) for req, ranges in polyrequest]
+        # requests = [ExtractionRequest(req, ranges, hash) for req, ranges, hash in polyrequest]
+        requests = self._unpack_polyrequest(polyrequest)
 
         # results_array contains values, for each field, for each request.
         results_array = ffi.new('gribjump_extraction_result_t****')
         nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
-        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields)
+        if (ctx):
+            logctx=str(ctx)
+        else:
+            logctx=""
+
+        logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
+        lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx_c)
 
         if dump:
             res = [
@@ -132,6 +140,7 @@ class GribJump:
             ]
         return res
 
+    # @todo review if we still need this method
     def extract_singles(self, polyrequest, dump=True):
         """
         Carry out a series of single extractions, rather than a single polytope extraction.
@@ -149,7 +158,7 @@ class GribJump:
             stored in the original buffer, and will be garbage collected when the result object
             is garbage collected.
         """
-        requests = [ExtractionRequest(reqstr, ranges) for reqstr, ranges in polyrequest]
+        requests = self._unpack_polyrequest(polyrequest)
 
         if dump:
             # Copy values, allow original buffer to be garbage collected.
@@ -171,6 +180,20 @@ class GribJump:
 
     def extract_str(self, reqstr, rangestr):
         return self.extract_single(ExtractionRequest(reqstr, rangestr))
+    
+    def _unpack_polyrequest(self, polyrequest):
+        requests = []
+        for item in polyrequest:
+            if len(item) == 2:
+                reqstr, ranges = item
+                hash = None
+            elif len(item) == 3:
+                reqstr, ranges, hash = item
+            else:
+                raise ValueError("Polyrequest should be a list of tuples of length 2 or 3")
+            requests.append(ExtractionRequest(reqstr, ranges, hash))
+        return requests
+        
 
     def extract_single(self, request):
         """
@@ -227,13 +250,14 @@ class ExtractionRequest:
     ranges : [(lo, hi), (lo, hi), ...]
         The ranges to extract.
     """
-    def __init__(self, req, ranges):
+    def __init__(self, req, ranges, gridHash=None):
         reqstr = "retrieve,"+dic_to_request(req)
         rangestr = list_to_rangestr(ranges)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
         c_rangestr = ffi.new("char[]", rangestr.encode())
-        lib.gribjump_new_request(request, c_reqstr, c_rangestr)
+        c_hash = ffi.NULL if gridHash is None else ffi.new("char[]", gridHash.encode())
+        lib.gribjump_new_request(request, c_reqstr, c_rangestr, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
     @property
@@ -328,3 +352,4 @@ def list_to_rangestr(ranges):
 def dic_to_request(dic):
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
     return ','.join(['='.join([k, v]) for k, v in dic.items()])
+

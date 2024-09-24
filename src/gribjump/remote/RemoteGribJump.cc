@@ -76,7 +76,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     return count;
 }
 
-std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests) {
+std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests, LogContext ctx) {
     eckit::Timer timer("RemoteGribJump::extract()");
     std::vector<std::vector<ExtractionResult*>> result;
 
@@ -86,6 +86,8 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
     timer.report("Connection established");
 
     stream << "EXTRACT";
+
+    stream << ctx;
 
     size_t nRequests = requests.size();
     stream << nRequests;
@@ -209,15 +211,25 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     return result;
 }
 
-bool RemoteGribJump::receiveErrors(eckit::Stream& stream) {
+bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
     size_t nErrors;
     stream >> nErrors;
+    if (nErrors == 0) {
+        return false;
+    }
+
+    std::stringstream ss;
     for (size_t i = 0; i < nErrors; i++) {
         std::string error;
         stream >> error;
-        eckit::Log::error() << error << std::endl;
+        ss << error << std::endl;
     }
-    return nErrors > 0;
+    if (raise) {
+        throw eckit::RemoteException(ss.str(), Here());
+    } else {
+        eckit::Log::error() << ss.str() << std::endl;
+    }
+    return true;
 }
 
 static GribJumpBuilder<RemoteGribJump> builder("remote");
