@@ -60,7 +60,9 @@ public: // methods
     ~Metrics() {}
 
     void report() {
-        eckit::Log::metrics() << "{nRequests:" << nRequests
+        eckit::Log::metrics() << "{"
+        << "type:" << type
+        << ",nRequests:" << nRequests
         << ",nTasks:" << nTasks
         << ",nFailedTasks:" << nFailedTasks
         << ",timeReceive:" << timeReceive
@@ -73,12 +75,13 @@ public: // methods
 
 public: // members
 
+    std::string type;
     int nRequests = -1;
     int nTasks = -1;
     int nFailedTasks = -1;
-    size_t timeReceive = 0;
-    size_t timeExecute = 0;
-    size_t timeReply = 0;
+    double timeReceive = 0;
+    double timeExecute = 0;
+    double timeReply = 0;
     LogContext context_;
 
     eckit::Timer timer_;

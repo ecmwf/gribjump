@@ -84,7 +84,7 @@ public:
 
     size_t nTasks() const { 
         std::lock_guard<std::mutex> lock(m_);
-        return tasks_.size();
+        return taskStatus_.size();
     }
     size_t nErrors() const { 
         std::lock_guard<std::mutex> lock(m_);

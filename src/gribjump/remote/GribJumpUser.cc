@@ -71,8 +71,6 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
 
 void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
 
-    /// @todo, check if this is still working.
-
     timer.reset();
 
     ScanRequest request(s);
@@ -91,8 +89,6 @@ void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
 }
 
 void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
-
-    /// @todo, check if this is still working.
 
     timer.reset();
 
@@ -113,8 +109,6 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
 
 void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) { 
 
-    /// @todo, check if this is still working.
-
     timer.reset();
     
     LogContext ctx(s);
@@ -129,7 +123,6 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
 
     request.replyToClient();
     
-    // s << size_t(0);
     request.reportMetrics();
 
     timer.reset("EXTRACT  results sent");
