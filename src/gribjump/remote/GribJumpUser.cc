@@ -15,6 +15,7 @@
 #include "eckit/system/ResourceUsage.h"
 
 #include "gribjump/remote/GribJumpUser.h"
+#include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/remote/Request.h"
 
@@ -53,29 +54,42 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 }
 
 void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
-    std::string request;
-    s >> request;
-    if (request == "EXTRACT") {
-        extract(s, timer);
+
+    uint16_t version;
+    uint16_t i_requestType;
+
+    s >> version;
+    if (version != remoteProtocolVersion) {
+        throw eckit::SeriousBug("Gribjump remote-protocol mismatch: expected version " + std::to_string(protocolVersion_) + " but got " + std::to_string(version));
     }
-    else if (request == "AXES") {
-        axes(s, timer);
-    }
-    else if (request == "SCAN") {
-        scan(s, timer);
-    }
-    else if (request == "FORWARD_EXTRACT") {
-        forwardedExtract(s, timer);
-    }
-    else {
-        throw eckit::SeriousBug("Unknown request type: " + request);
+
+    LogContext ctx(s);
+    ctx_ = ctx;
+
+    s >> i_requestType;
+    RequestType requestType = static_cast<RequestType>(i_requestType);
+    switch (requestType) {
+        case RequestType::EXTRACT:
+            extract(s, timer);
+            break;
+        case RequestType::AXES:
+            axes(s, timer);
+            break;
+        case RequestType::SCAN:
+            scan(s, timer);
+            break;
+        case RequestType::FORWARD_EXTRACT:
+            forwardedExtract(s, timer);
+            break;
+        default:
+            throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
     }
 }
 void GribJumpUser::forwardedExtract(eckit::Stream& s, eckit::Timer& timer) {
     
     timer.reset();
 
-    ForwardedExtractRequest request(s);
+    ForwardedExtractRequest request(s, ctx_);
     timer.reset("ForwardedExtract requests received");
 
     request.execute();
@@ -90,7 +104,7 @@ void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
 
     timer.reset();
 
-    ScanRequest request(s);
+    ScanRequest request(s, ctx_);
     timer.reset("SCAN requests received");
 
     request.execute();
@@ -104,7 +118,7 @@ void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
 
     timer.reset();
 
-    AxesRequest request(s);
+    AxesRequest request(s, ctx_);
     timer.reset("Axes request received");
 
     request.execute();
@@ -118,9 +132,7 @@ void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) {
 
     timer.reset();
     
-    LogContext ctx(s);
-
-    ExtractRequest request(s, ctx);
+    ExtractRequest request(s, ctx_);
 
     timer.reset("EXTRACT requests received");
 

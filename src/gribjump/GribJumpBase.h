@@ -56,7 +56,7 @@ public:
 protected: // members
 
     Stats stats_;
-
+    LogContext ctx_;
 };
 
 } // namespace gribjump

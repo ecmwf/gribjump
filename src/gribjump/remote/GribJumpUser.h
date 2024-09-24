@@ -40,6 +40,9 @@ private:  // methods
     void forwardedExtract(eckit::Stream& s, eckit::Timer& timer);
 
 private:  // members
+
+    constexpr static uint16_t protocolVersion_ = 0;
+    LogContext ctx_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -18,6 +18,14 @@
 
 namespace gribjump {
 
+enum class RequestType : uint16_t {
+    EXTRACT = 0,
+    AXES,
+    SCAN,
+    FORWARD_EXTRACT
+};
+constexpr static uint16_t remoteProtocolVersion = 0;
+
 class RemoteGribJump : public GribJumpBase {
 
 public: // methods
@@ -35,9 +43,10 @@ public: // methods
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
 
-protected: // methods
+private: // methods
 
     bool receiveErrors(eckit::Stream& stream, bool raise=true);
+    void sendHeader(eckit::net::InstantTCPStream& stream, RequestType type);
 
 private: // members
     std::string host_;

@@ -29,7 +29,7 @@ void Request::reportErrors() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
+ScanRequest::ScanRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
 
     client_ >> byfiles_;
 
@@ -132,7 +132,7 @@ void ExtractRequest::replyToClient() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
+ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
 
     size_t nFiles;
     client_ >> nFiles;
@@ -182,7 +182,7 @@ void ForwardedExtractRequest::replyToClient() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
+AxesRequest::AxesRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
     client_ >> request_;
 }
 

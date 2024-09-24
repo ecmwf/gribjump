@@ -59,7 +59,7 @@ protected: // members
 class ScanRequest : public Request {
 public:
 
-    ScanRequest(eckit::Stream& stream);
+    ScanRequest(eckit::Stream& stream, LogContext ctx);
 
     ~ScanRequest();
 
@@ -102,7 +102,7 @@ private:
 class ForwardedExtractRequest : public Request {
 public:
 
-    ForwardedExtractRequest(eckit::Stream& stream);
+    ForwardedExtractRequest(eckit::Stream& stream, LogContext ctx);
 
     ~ForwardedExtractRequest();
 
@@ -123,7 +123,7 @@ private:
 class AxesRequest : public Request {
 public:
 
-    AxesRequest(eckit::Stream& stream);
+    AxesRequest(eckit::Stream& stream, LogContext ctx);
 
     ~AxesRequest();
 

@@ -39,6 +39,12 @@ size_t RemoteGribJump::scan(const eckit::PathName& path) {
     NOTIMP;
 }
 
+void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type) {
+    stream << remoteProtocolVersion;
+    stream << ctx_;
+    stream << static_cast<uint16_t>(type);
+}
+
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
     eckit::Timer timer("RemoteGribJump::scan()");
 
@@ -47,7 +53,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "SCAN";
+    sendHeader(stream, RequestType::SCAN);
     stream << byfiles;
 
     size_t nRequests = requests.size();
@@ -85,9 +91,7 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "EXTRACT";
-
-    stream << ctx;
+    sendHeader(stream, RequestType::EXTRACT);
 
     size_t nRequests = requests.size();
     stream << nRequests;
@@ -128,7 +132,7 @@ void RemoteGribJump::extract(filemap_t& filemap){
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "FORWARD_EXTRACT";
+    sendHeader(stream, RequestType::FORWARD_EXTRACT);
 
     size_t nFiles = filemap.size();
     stream << nFiles;
@@ -183,7 +187,7 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "AXES";
+    sendHeader(stream, RequestType::AXES);
     stream << request;  
     timer.report("Request sent");
 
@@ -219,6 +223,7 @@ bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
     }
 
     std::stringstream ss;
+    ss << "RemoteGribJump received server-side " << eckit::Plural(nErrors, "error") << std::endl;
     for (size_t i = 0; i < nErrors; i++) {
         std::string error;
         stream >> error;
