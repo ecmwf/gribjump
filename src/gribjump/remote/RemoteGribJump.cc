@@ -149,7 +149,7 @@ void RemoteGribJump::extract(filemap_t& filemap){
         for (auto& item : extractionItems) {
             // ExtractionRequest req(item->request(), item->intervals());
             metkit::mars::MarsRequest r(""); // no need to send mars request when we have uri
-            ExtractionRequest req(r, item->intervals());
+            ExtractionRequest req(r, item->intervals(), item->gridHash());
             stream << req;
             stream << item->URI();
         }

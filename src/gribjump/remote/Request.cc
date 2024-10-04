@@ -151,6 +151,7 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogConte
             ExtractionRequest req(client_);
             eckit::URI uri("file", eckit::URI(client_));
             auto extractionItem = std::make_unique<ExtractionItem>(req.ranges());
+            extractionItem->gridHash(req.gridHash()); // @todo, tidy this up.
             extractionItem->URI(uri);
             filemap_[fname].push_back(extractionItem.get());
             items_.push_back(std::move(extractionItem));
