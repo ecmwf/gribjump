@@ -16,6 +16,7 @@
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/AutoCloser.h"
+#include "eckit/config/Resource.h"
 
 #include "fdb5/api/FDB.h"
 
@@ -117,12 +118,24 @@ void TaskGroup::reportErrors(eckit::Stream& client) {
     }
 }
 
+void TaskGroup::raiseErrors() {
+    if (errors_.size() > 0) {
+        std::stringstream ss;
+        ss << "Encountered " << eckit::Plural(errors_.size(), "error") << " during task execution:" << std::endl;
+        for (const auto& s : errors_) {
+            ss << s << std::endl;
+        }
+        throw eckit::SeriousBug(ss.str());
+    }
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems) :
     Task(taskgroup, id),
     fname_(fname),
-    extractionItems_(extractionItems) {
+    extractionItems_(extractionItems),
+    ignoreGrid_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID", LibGribJump::instance().config().getBool("ignoreGridHash", false)))
+    {
 }
 
 void FileExtractionTask::execute()  {
@@ -161,11 +174,12 @@ void FileExtractionTask::extract() {
         const JumpInfo& info = *infos[i];
 
         const std::string& expectedHash = extractionItem->gridHash();
-        if (expectedHash.size() && (expectedHash != info.md5GridSection())) {
-            std::stringstream ss;
-            ss << "Grid hash mismatch for extraction item " << i << " in file " << fname_;
-            ss << ". Expected: " << expectedHash << ", got: " << info.md5GridSection();
-            throw eckit::BadValue(ss.str());
+
+        if (!ignoreGrid_ && expectedHash.empty()) {
+            throw eckit::BadValue("Grid hash was not specified in request but is required. (Extraction item " + std::to_string(i) + " in file " + fname_ + ")");
+        }
+        if (!ignoreGrid_ && (expectedHash != info.md5GridSection())) {
+            throw eckit::BadValue("Grid hash mismatch for extraction item " + std::to_string(i) + " in file " + fname_ + ". Expected: " + expectedHash + ", got: " + info.md5GridSection());
         }
 
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.

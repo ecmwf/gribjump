@@ -304,6 +304,9 @@ void Engine::reportErrors(eckit::Stream& client) {
     taskGroup_.reportErrors(client);
 }
 
+void Engine::raiseErrors() {
+    taskGroup_.raiseErrors();
+}
 void Engine::updateMetrics(Metrics& metrics) {
     metrics.nTasks = taskGroup_.nTasks();
     metrics.nFailedTasks = taskGroup_.nErrors();

@@ -79,6 +79,8 @@ public:
     void waitForTasks();
 
     void reportErrors(eckit::Stream& client);
+    void raiseErrors();
+
 
     std::mutex debugMutex_;
 
@@ -124,6 +126,7 @@ public:
 protected:
     eckit::PathName fname_;
     ExtractionItems& extractionItems_;
+    bool ignoreGrid_ = false;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

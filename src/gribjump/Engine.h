@@ -35,9 +35,11 @@ public:
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request);
 
-    void reportErrors(eckit::Stream& client_);
     void scheduleTasks(filemap_t& filemap);
     void updateMetrics(Metrics& metrics);
+
+    void reportErrors(eckit::Stream& client_);
+    void raiseErrors();
 
 private: 
 
