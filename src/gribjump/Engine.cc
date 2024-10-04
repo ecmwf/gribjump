@@ -171,6 +171,7 @@ void Engine::forwardRemoteExtraction(filemap_t& filemap) {
     // format: fdbhost:port -> gjhost:port
     /// @todo: dont parse servermap every request
     std::map<std::string, std::string> servermap_str = LibGribJump::instance().config().getMap("servermap");
+    ASSERT(!servermap_str.empty());
 
     for (auto& [fdb, gj] : servermap_str) {
         LOG_DEBUG_LIB(LibGribJump) << "Servermap: " << fdb << " -> " << gj << std::endl;
@@ -188,16 +189,12 @@ void Engine::forwardRemoteExtraction(filemap_t& filemap) {
     for (auto& [fname, extractionItems] : filemap) {
         eckit::URI uri = extractionItems[0]->URI();
         eckit::net::Endpoint fdbEndpoint;
-        if(!isRemote(uri)){
-            // throw eckit::SeriousBug("File is not remote: " + fname);
-            // XXX: this is an error. For development, we will treat it as dummy.
-            ///@todo: remove this
-            std::cout << "XXX File is not remote: " << fname << std::endl;
-            fdbEndpoint = eckit::net::Endpoint("dummy", 1234);
-        } 
-        else {
-            fdbEndpoint = eckit::net::Endpoint(uri.host(), uri.port());
+
+        if(!isRemote(uri)) {
+            throw eckit::SeriousBug("URI is not remote: " + fname);
         }
+
+        fdbEndpoint = eckit::net::Endpoint(uri.host(), uri.port());
 
         if (servermap.find(fdbEndpoint) == servermap.end()) {
             throw eckit::SeriousBug("No gribjump endpoint found for fdb endpoint: " + std::string(fdbEndpoint));
@@ -237,11 +234,12 @@ void Engine::scheduleTasks(filemap_t& filemap){
     size_t counter = 0;
     for (auto& [fname, extractionItems] : filemap) {
         if (isRemote(extractionItems[0]->URI())) {
-            ASSERT(false); // This should never happen
-            taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            // Only possible if we are using remoteFDB, which requires remoteExtraction to be enabled.
+            // We technically do support it via inefficient extraction, but we are disabling this for now.
+            // taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            throw eckit::SeriousBug("Got remote URI from FDB, but remoteExtraction enabled in gribjump config.");
         }
         else {
-            // Reaching here is an error on the databridge, as it means we think the file is local...
             taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
         }
     }
