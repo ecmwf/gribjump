@@ -39,25 +39,22 @@ constexpr double MISSING = std::numeric_limits<double>::quiet_NaN();
 void compareValues(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues, const std::vector<std::vector<ExtractionResult*>>& output) {
     EXPECT(expectedValues.size() == output.size());
     for (size_t i = 0; i < expectedValues.size(); i++) { // each mars request
-        EXPECT(expectedValues[i].size() == output[i].size());
+        EXPECT_EQUAL(expectedValues[i].size(), output[i].size());
         for (size_t j = 0; j < expectedValues[i].size(); j++) { // each field
             auto values = output[i][j]->values();
             auto mask = output[i][j]->mask();
-            EXPECT(expectedValues[i][j].size() == values.size());
+            EXPECT_EQUAL(expectedValues[i][j].size(), values.size());
             for (size_t k = 0; k < expectedValues[i][j].size(); k++) { // each range
-                EXPECT(expectedValues[i][j][k].size() == values[k].size());
+                EXPECT_EQUAL(expectedValues[i][j][k].size(), values[k].size());
                 for (size_t l = 0; l < expectedValues[i][j][k].size(); l++) { // each value
 
-                    std::cout << "v[" << k << "][" << l << "]=" << values[k][l];
-                    std::cout << ", expected=" << expectedValues[i][j][k][l] << std::endl;
-                
                     if (expectedValues[i][j][k][l] == 9999) {
                         EXPECT(std::isnan(values[k][l]));
                         EXPECT(!mask[k][l/64][l%64]);
                         continue;
                     }
                 
-                    EXPECT(values[k][l] == expectedValues[i][j][k][l]);
+                    EXPECT_EQUAL(values[k][l], expectedValues[i][j][k][l]);
                     EXPECT(mask[k][l/64][l%64]);
 
                 }
@@ -93,6 +90,7 @@ CASE( "test_gribjump_api_extract" ) {
 
     fdb5::FDB fdb;
     eckit::PathName path = "extract_ranges.grib";
+    std::string gridHash = "33c7d6025995e1b4913811e77d38ec50";
     fdb.archive(*path.fileHandle());
     fdb.flush();
 
@@ -133,7 +131,7 @@ CASE( "test_gribjump_api_extract" ) {
     using PolyRequest = std::vector<ExtractionRequest>;
     PolyRequest polyRequest1;
     for (size_t i = 0; i < requests.size(); i++) {
-        polyRequest1.push_back(ExtractionRequest(requests[i], allIntervals[i]));
+        polyRequest1.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
     }
 
     // Extract values
@@ -163,7 +161,7 @@ CASE( "test_gribjump_api_extract" ) {
     
     std::vector<Interval> ranges = allIntervals[0];
     PolyRequest polyRequest2;
-    polyRequest2.push_back(ExtractionRequest(requests[0], ranges));
+    polyRequest2.push_back(ExtractionRequest(requests[0], ranges, gridHash));
 
     std::vector<std::vector<ExtractionResult*>> output2 = gj.extract(polyRequest2);
     EXPECT(output2.size() == 1);
@@ -176,17 +174,16 @@ CASE( "test_gribjump_api_extract" ) {
     // --------------------------------------------------------------------------------------------
 
     // Test 2.b: Extract but with an md5 hash
-    /// @todo, the task will raise an error, but it is caught. However, only remoteGribjump propagates the error to the user.
-    std::vector<std::vector<ExtractionResult*>> output2b = gj.extract({ExtractionRequest(requests[0], ranges, "wronghash")});
-    EXPECT_EQUAL(output2b[0][0]->total_values(), 0);
+    EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges)}), eckit::SeriousBug); // missing hash
+    EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges, "wronghash")}), eckit::SeriousBug); // incorrect hash
     
     // correct hash
-    std::vector<std::vector<ExtractionResult*>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, "33c7d6025995e1b4913811e77d38ec50")});
+    std::vector<std::vector<ExtractionResult*>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, gridHash)});
     EXPECT_EQUAL(output2c[0][0]->total_values(), 15);
 
     // --------------------------------------------------------------------------------------------
 
-    // Test 3: Extract function using path and offsets
+    // Test 3: Extract function using path and offsets, which skips engine and related tasks/checks.
     
     std::vector<eckit::URI> uris;
     fdb5::FDBToolRequest fdbreq(requests[0]);

@@ -39,4 +39,14 @@ Config::Config(const eckit::PathName path) :
     eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {
 }
 
+std::map<std::string, std::string> Config::getMap(const std::string& key) const {
+
+    std::map<std::string, std::string> map;
+    eckit::LocalConfiguration conf = getSubConfiguration(key);
+    for (const auto& k : conf.keys()) {
+        map[k] = conf.getString(k);
+    }
+    return map;
+}
+
 } // namespace gribjump

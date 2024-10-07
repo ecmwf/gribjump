@@ -92,6 +92,7 @@ std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(ExtractionReq
     bool flatten = true;
     Engine engine;
     ResultsMap results = engine.extract(requests, flatten);
+    engine.raiseErrors();
 
     std::vector<std::vector<ExtractionResult*>> extractionResults;
     for (auto& req : requests) {
@@ -117,7 +118,9 @@ ResultsMap LocalGribJump::extract(const std::vector<MarsRequest>& requests, cons
         extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
     }
 
-    return engine.extract(extractionRequests, flatten);
+    ResultsMap results = engine.extract(extractionRequests, flatten);
+    engine.raiseErrors();
+    return results;
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {

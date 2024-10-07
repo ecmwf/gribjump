@@ -35,14 +35,18 @@ public:
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request);
 
-    void reportErrors(eckit::Stream& client_);
-
+    void scheduleTasks(filemap_t& filemap);
     void updateMetrics(Metrics& metrics);
+
+    void reportErrors(eckit::Stream& client_);
+    void raiseErrors();
 
 private: 
 
     filemap_t buildFileMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     ExItemMap buildKeyToExtractionItem(const ExtractionRequests& requests, bool flatten);
+    ResultsMap collectResults(ExItemMap& keyToExtractionItem);
+    void forwardRemoteExtraction(filemap_t& filemap);
 
 private:
 

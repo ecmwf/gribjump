@@ -37,8 +37,12 @@ private:  // methods
     void extract(eckit::Stream& s, eckit::Timer& timer);
     void axes(eckit::Stream& s, eckit::Timer& timer);
     void scan(eckit::Stream& s, eckit::Timer& timer);
+    void forwardedExtract(eckit::Stream& s, eckit::Timer& timer);
 
 private:  // members
+
+    constexpr static uint16_t protocolVersion_ = 0;
+    LogContext ctx_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
