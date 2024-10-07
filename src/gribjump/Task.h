@@ -79,12 +79,14 @@ public:
     void waitForTasks();
 
     void reportErrors(eckit::Stream& client);
+    void raiseErrors();
+
 
     std::mutex debugMutex_;
 
     size_t nTasks() const { 
         std::lock_guard<std::mutex> lock(m_);
-        return tasks_.size();
+        return taskStatus_.size();
     }
     size_t nErrors() const { 
         std::lock_guard<std::mutex> lock(m_);
@@ -124,6 +126,7 @@ public:
 protected:
     eckit::PathName fname_;
     ExtractionItems& extractionItems_;
+    bool ignoreGrid_ = false;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -142,13 +145,16 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 // Task that forwards the work to a remote server, based on the URI of the extraction item.
-class RemoteFileExtractionTask : public FileExtractionTask {
+class RemoteExtractionTask : public Task {
 public:
 
-    RemoteFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
+    RemoteExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap);
 
-    void extract() override;
+    void execute() override;
 
+private:
+    eckit::net::Endpoint endpoint_;
+    filemap_t& filemap_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

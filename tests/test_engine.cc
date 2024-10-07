@@ -57,7 +57,7 @@ CASE ("test_engine_basic") {
     // --- Setup
 
     eckit::PathName gribName = "extract_ranges.grib";
-
+    std::string gridHash = "33c7d6025995e1b4913811e77d38ec50";
     std::string s = eckit::LocalPathName::cwd();
 
     eckit::TmpDir tmpdir(s.c_str());
@@ -106,9 +106,10 @@ CASE ("test_engine_basic") {
     Engine engine;
     ExtractionRequests exRequests;
     for (size_t i = 0; i < requests.size(); i++) {
-        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i]));
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
     }
     ResultsMap results = engine.extract(exRequests, false);
+    EXPECT_NO_THROW(engine.raiseErrors());
 
     // print contents of map
     for (auto& [req, exs] : results) {
@@ -173,10 +174,11 @@ CASE ("test_engine_basic") {
 
     exRequests.clear();
     for (size_t i = 0; i < requests.size(); i++) {
-        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[0]));
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[0], gridHash));
     }
 
     results = engine.extract(exRequests, true);
+    EXPECT_NO_THROW(engine.raiseErrors());
 
     // print contents of map
     for (auto& [req, exs] : results) {

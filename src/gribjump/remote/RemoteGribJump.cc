@@ -9,6 +9,7 @@
  */
 
 /// @author Christopher Bradley
+#include <algorithm>
 
 #include "eckit/log/Log.h"
 #include "eckit/log/Timer.h"
@@ -25,25 +26,23 @@ RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
     if (uri.empty())
         throw eckit::UserError("RemoteGribJump requires uri to be set in config (format host:port)", Here());
 
-    // parse uri, expect format "host:port"
-    size_t pos = uri.find(':');
-
-    if (pos == std::string::npos)
-        throw eckit::UserError("RemoteGribJump uri must be in the format 'host:port'", Here());
-
-    host_ = uri.substr(0, pos);
-    if (host_.empty())
-        throw eckit::UserError("RemoteGribJump requires host to be set in uri", Here());
-
-    port_ = std::stoi(uri.substr(pos+1));
-    if (port_ == 0)
-        throw eckit::UserError("RemoteGribJump requires port to be set in uri", Here());
+    eckit::net::Endpoint endpoint(uri);
+    host_ = endpoint.host();
+    port_ = endpoint.port();
 }
+
+RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint): host_(endpoint.host()), port_(endpoint.port()) {}
 
 RemoteGribJump::~RemoteGribJump() {}
 
 size_t RemoteGribJump::scan(const eckit::PathName& path) {
     NOTIMP;
+}
+
+void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type) {
+    stream << remoteProtocolVersion;
+    stream << ctx_;
+    stream << static_cast<uint16_t>(type);
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
@@ -54,7 +53,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "SCAN";
+    sendHeader(stream, RequestType::SCAN);
     stream << byfiles;
 
     size_t nRequests = requests.size();
@@ -92,9 +91,7 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "EXTRACT";
-
-    stream << ctx;
+    sendHeader(stream, RequestType::EXTRACT);
 
     size_t nRequests = requests.size();
     stream << nRequests;
@@ -127,6 +124,60 @@ std::vector<std::unique_ptr<ExtractionItem>> RemoteGribJump::extract(const eckit
     NOTIMP;
 }
 
+void RemoteGribJump::extract(filemap_t& filemap){
+    eckit::Timer timer("RemoteGribJump::extract()");
+
+    ///@todo we could probably do the connection logic in the ctor
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    timer.report("Connection established");
+
+    sendHeader(stream, RequestType::FORWARD_EXTRACT);
+
+    size_t nFiles = filemap.size();
+    stream << nFiles;
+
+    for (auto& [fname, extractionItems] : filemap) {
+        // we will send (and receive) the extraction items in order of offset
+        std::sort(extractionItems.begin(), extractionItems.end(), [](const ExtractionItem* a, const ExtractionItem* b) {
+            return a->offset() < b->offset();
+        });
+
+        stream << fname;
+        size_t nItems = extractionItems.size();
+        stream << nItems;
+        for (auto& item : extractionItems) {
+            // ExtractionRequest req(item->request(), item->intervals());
+            metkit::mars::MarsRequest r(""); // no need to send mars request when we have uri
+            ExtractionRequest req(r, item->intervals(), item->gridHash());
+            stream << req;
+            stream << item->URI();
+        }
+    }
+
+    timer.report("Request sent");
+    bool error = receiveErrors(stream);
+
+    // receive results
+    for (size_t i=0; i<nFiles; i++) {
+        std::string fname;
+        stream >> fname;
+        size_t nItems;
+        stream >> nItems;
+        ASSERT(nItems == filemap[fname].size());
+        for (size_t j=0; j<nItems; j++) {
+            ExtractionResult res(stream);
+
+            filemap[fname][j]->values(res.values());
+            filemap[fname][j]->mask(res.mask());
+        }
+    }
+
+    timer.report("Results received");
+
+    return;
+}
+
 std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request) {
     eckit::Timer timer("RemoteGribJump::axes()");
     std::map<std::string, std::unordered_set<std::string>> result;   
@@ -136,7 +187,7 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    stream << "AXES";
+    sendHeader(stream, RequestType::AXES);
     stream << request;  
     timer.report("Request sent");
 
@@ -172,6 +223,7 @@ bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
     }
 
     std::stringstream ss;
+    ss << "RemoteGribJump received server-side " << eckit::Plural(nErrors, "error") << std::endl;
     for (size_t i = 0; i < nErrors; i++) {
         std::string error;
         stream >> error;

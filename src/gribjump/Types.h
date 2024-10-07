@@ -35,4 +35,7 @@ using ExMask = std::vector<std::vector<std::bitset<64>>>;
 using ExtractionItems = std::vector<ExtractionItem*>; // Non-owning pointers
 using ExItemMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
+// filemap holds non-owning pointers to ExtractionItems
+using filemap_t = std::map<std::string, ExtractionItems>;
+
 } // namespace gribjump

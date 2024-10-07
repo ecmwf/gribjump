@@ -21,6 +21,8 @@ class Config : public eckit::LocalConfiguration {
 public:
     Config();
     Config(const eckit::PathName);
+
+    std::map<std::string, std::string> getMap(const std::string& key) const;
 };
 
 } // namespace gribjump

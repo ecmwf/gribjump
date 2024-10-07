@@ -59,7 +59,7 @@ protected: // members
 class ScanRequest : public Request {
 public:
 
-    ScanRequest(eckit::Stream& stream);
+    ScanRequest(eckit::Stream& stream, LogContext ctx);
 
     ~ScanRequest();
 
@@ -99,10 +99,31 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class ForwardedExtractRequest : public Request {
+public:
+
+    ForwardedExtractRequest(eckit::Stream& stream, LogContext ctx);
+
+    ~ForwardedExtractRequest();
+
+    void execute() override;
+
+    void replyToClient() override;
+
+private:
+
+    std::vector<std::unique_ptr<ExtractionItem>> items_;
+    filemap_t filemap_;
+
+    ResultsMap results_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class AxesRequest : public Request {
 public:
 
-    AxesRequest(eckit::Stream& stream);
+    AxesRequest(eckit::Stream& stream, LogContext ctx);
 
     ~AxesRequest();
 

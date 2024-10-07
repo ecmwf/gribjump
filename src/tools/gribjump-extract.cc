@@ -16,6 +16,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/utils/StringTools.h"
 #include "eckit/runtime/Tool.h"
+#include "eckit/testing/Test.h"
 #include "eckit/option/SimpleOption.h"
 
 #include "metkit/mars/MarsRequest.h"
@@ -93,12 +94,15 @@ void GJExtractTool::run(const eckit::option::CmdArgs &args) {
     }
     ASSERT(requests.size() == allRanges.size());
 
-
     std::vector<ExtractionRequest> polyRequest;
     for (size_t i = 0; i < requests.size(); i++) {
         ExtractionRequest exrequest(requests[i], allRanges[i]);
         polyRequest.push_back(exrequest);
     }
+
+    // Grid hash
+    // extract tool currently has no way to specify grid hash, so we explicitly ignore it.
+    eckit::testing::SetEnv ignoreGrid{"GRIBJUMP_IGNORE_GRID", "1"};
 
     // Extract values
     GribJump gj;
