@@ -170,7 +170,7 @@ void Engine::forwardRemoteExtraction(filemap_t& filemap) {
     // get servermap from config, which maps fdb remote uri to gribjump server uri
     // format: fdbhost:port -> gjhost:port
     /// @todo: dont parse servermap every request
-    std::map<std::string, std::string> servermap_str = LibGribJump::instance().config().getMap("servermap");
+    const std::map<std::string, std::string>& servermap_str = LibGribJump::instance().config().serverMap();
     ASSERT(!servermap_str.empty());
 
     for (auto& [fdb, gj] : servermap_str) {
