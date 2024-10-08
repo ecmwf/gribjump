@@ -36,16 +36,27 @@ Config::Config() {
 }
 
 Config::Config(const eckit::PathName path) :
-    eckit::LocalConfiguration(eckit::YAMLConfiguration(path)) {
+    eckit::LocalConfiguration(eckit::YAMLConfiguration(path)),
+    serverMap_{loadServerMap()} {
 }
 
-std::map<std::string, std::string> Config::getMap(const std::string& key) const {
-
+std::map<std::string, std::string> Config::loadServerMap() const {
+    // e.g. yaml
+    // servermap:
+    //  - fdb: "host1:port1"
+    //    gribjump: "host2:port2"
+    //  - fdb: "host3:port3"
+    //    gribjump: "host4:port4"
+    // becomes map:
+    // { "host1:port1": "host2:port2", "host3:port3": "host4:port4" }
     std::map<std::string, std::string> map;
-    eckit::LocalConfiguration conf = getSubConfiguration(key);
-    for (const auto& k : conf.keys()) {
-        map[k] = conf.getString(k);
+    eckit::LocalConfiguration conf = getSubConfiguration("servermap");
+    std::vector<eckit::LocalConfiguration> serverList = conf.getSubConfigurations();
+
+    for (const auto& server : serverList) {
+        map[server.getString("fdb")] = server.getString("gribjump");
     }
+
     return map;
 }
 

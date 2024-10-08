@@ -12,8 +12,8 @@
 
 #pragma once
 
+#include <map>
 #include "eckit/config/LocalConfiguration.h"
-
 
 namespace gribjump {
 
@@ -22,7 +22,13 @@ public:
     Config();
     Config(const eckit::PathName);
 
-    std::map<std::string, std::string> getMap(const std::string& key) const;
+    const std::map<std::string, std::string>& serverMap() const { return serverMap_; }
+
+private:
+    std::map<std::string, std::string> loadServerMap() const;
+
+private:
+    std::map<std::string, std::string> serverMap_;
 };
 
 } // namespace gribjump
