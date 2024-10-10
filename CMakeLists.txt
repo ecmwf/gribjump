@@ -47,9 +47,11 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
 endif()
 
-ecbuild_add_option( FEATURE PYTHON_API_TESTS
-                    DEFAULT ON
-                    DESCRIPTION "Will execute python tests against pygribjump / libgribjump")
+# python api test are currently by default disabled because we cannot run them in the ci
+ecbuild_add_option( 
+    FEATURE PYTHON_API_TESTS
+    DEFAULT OFF
+    DESCRIPTION "Will execute python tests against pygribjump / libgribjump")
 
 ########################################################################################################################
 # contents
