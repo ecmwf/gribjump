@@ -70,19 +70,6 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
 endif()
 
-########################################################################################################################
-# PLUGIN
-# Write and install the manifest file for the plugin
-set( gribjump_plugin_file share/plugins/gribjump-plugin.yml )
-file( WRITE  ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "plugin:\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  name:      gribjump-plugin\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  namespace: int.ecmwf\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  url:       http://www.ecmwf.int\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  version:   ${${PROJECT_NAME}_VERSION}\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  library:   gribjump\n" )
-
-install( FILES ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} DESTINATION share/plugins )
-
 ### finalize
 
 ecbuild_install_project( NAME gribjump )
