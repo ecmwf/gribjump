@@ -7,6 +7,7 @@ project( gribjump LANGUAGES C CXX )
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ########################################################################################################################
 ### dependencies and options
@@ -25,7 +26,7 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   set(GRIBJUMP_HAVE_FDB 1)
 
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
-  
+
   ### AEC
   # Override eccodes' aec with our own: we need a newer version.
   unset(AEC_INCLUDE_DIRS CACHE)
@@ -46,14 +47,19 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
 endif()
 
+ecbuild_add_option( FEATURE PYTHON_API_TESTS
+                    DEFAULT ON
+                    DESCRIPTION "Will execute python tests against pygribjump / libgribjump")
+
 ########################################################################################################################
 # contents
 
-include(cmake/compiler_warnings.cmake) # optionally handle compiler specific warnings
+include(compiler_warnings) # optionally handle compiler specific warnings
+include(find_python_module)
 
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( 
+include_directories(
   ${AEC_INCLUDE_DIRS}
   ${gribjump_INCLUDE_DIRS}
   ${eckit_INCLUDE_DIRS}
@@ -68,6 +74,33 @@ add_subdirectory( src )
 
 if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
+endif()
+
+if(HAVE_PYTHON_API_TESTS)
+    ecbuild_find_package( NAME Python
+                          VERSION 3.10
+                          COMPONENTS Interpreter
+                          REQUIRED )
+
+    find_python_module(cffi)
+    find_python_module(numpy)
+    find_python_module(pytest)
+    find_python_module(setuptools)
+    find_python_module(findlibs)
+
+    set(FDB5_DIR "${fdb5_DIR}/../../..")
+    configure_file(
+        ${CMAKE_SOURCE_DIR}/cmake/run_pytest.sh.in
+        ${CMAKE_BINARY_DIR}/run_pytest.sh
+        @ONLY
+    )
+
+    add_test(
+        NAME run_pytests
+        COMMAND ${CMAKE_BINARY_DIR}/run_pytest.sh -vv -s
+                --basetemp=${CMAKE_BINARY_DIR}/pytest-out
+    )
+
 endif()
 
 ########################################################################################################################
