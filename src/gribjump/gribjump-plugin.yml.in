@@ -1,0 +1,6 @@
+plugin:
+  name:      gribjump-plugin
+  namespace: int.ecmwf
+  url:       http://www.ecmwf.int
+  version:   @${PROJECT_NAME}_VERSION@
+  library:   gribjump
