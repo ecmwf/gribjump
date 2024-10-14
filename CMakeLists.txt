@@ -109,9 +109,9 @@ if(HAVE_PYTHON_API_TESTS)
     )
 
     add_test(
-        NAME run_pytests
-        COMMAND ${CMAKE_BINARY_DIR}/run_pytest.sh -vv -s
-                --basetemp=${CMAKE_BINARY_DIR}/pytest-out
+        NAME pygribjump_pytests
+        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/run_pytest.sh -vv -s
+                --basetemp=${CMAKE_CURRENT_BINARY_DIR}/pytest-out
     )
 
 endif()
