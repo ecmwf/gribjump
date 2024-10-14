@@ -92,7 +92,7 @@ if(HAVE_PYTHON_API_TESTS)
 
     set(FDB5_DIR "${fdb5_DIR}/../../..")
     configure_file(
-        ${CMAKE_SOURCE_DIR}/cmake/run_pytest.sh.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_pytest.sh.in
         ${CMAKE_BINARY_DIR}/run_pytest.sh
         @ONLY
     )
