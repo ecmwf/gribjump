@@ -2,7 +2,7 @@
 
 export GRIBJUMP_HOME="@CMAKE_BINARY_DIR@"
 export FDB5_DIR="@FDB5_DIR@"
-export PYTHONPATH="${PYTHONPATH}:@CMAKE_SOURCE_DIR@/pygribjump/src"
+export PYTHONPATH="${PYTHONPATH}:@CMAKE_CURRENT_SOURCE_DIR@/pygribjump/src"
 
-@Python_EXECUTABLE@ -m pytest @CMAKE_SOURCE_DIR@ --basetemp="@CMAKE_BINARY_DIR@/test-results" "$@"
+@Python_EXECUTABLE@ -m pytest @CMAKE_CURRENT_SOURCE_DIR@ --basetemp="@CMAKE_CURRENT_BINARY_DIR@/test-results" "$@"
 

@@ -48,7 +48,7 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 endif()
 
 # python api test are currently by default disabled because we cannot run them in the ci
-ecbuild_add_option( 
+ecbuild_add_option(
     FEATURE PYTHON_API_TESTS
     DEFAULT OFF
     DESCRIPTION "Will execute python tests against pygribjump / libgribjump")
@@ -90,10 +90,21 @@ if(HAVE_PYTHON_API_TESTS)
     find_python_module(setuptools)
     find_python_module(findlibs)
 
-    set(FDB5_DIR "${fdb5_DIR}/../../..")
+    # Prepare to export FDB5_DIR so that findlibs does find our depenant libfdb for pyfdb
+    # In case we build gribjump standalone, this code relies on the location
+    # provided by the find module, i.e. fdb5_DIR.
+    # If this code is build as a bundle, aka a subproject we need to point
+    # findlib to the folder containing the CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    get_property(is_subproject DIRECTORY PROPERTY PARENT_DIRECTORY)
+    if(is_subproject)
+        set(FDB5_DIR "${CMAKE_BINARY_DIR}")
+    else()
+        set(FDB5_DIR "${fdb5_DIR}/../../..")
+    endif()
+
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_pytest.sh.in
-        ${CMAKE_BINARY_DIR}/run_pytest.sh
+        ${CMAKE_CURRENT_BINARY_DIR}/run_pytest.sh
         @ONLY
     )
 
