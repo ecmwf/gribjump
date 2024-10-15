@@ -16,6 +16,7 @@
 
 #include "gribjump/GribJump.h"
 #include "gribjump/Lister.h"
+#include "gribjump/GribJumpException.h"
 
 namespace gribjump {
     
@@ -34,7 +35,8 @@ FDBLister& FDBLister::instance() {
     return instance;
 }
 
-FDBLister::FDBLister() {
+FDBLister::FDBLister():
+    allowMissing_(eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING", LibGribJump::instance().config().getBool("allowMissing", false))) {
 }
 
 FDBLister::~FDBLister() {
@@ -113,7 +115,12 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
 
     if (count != reqToExtractionItem.size()) {
-        eckit::Log::warning() << "Number of fields found (" << count << ") does not match Number of keys in reqToExtractionItem (" << reqToExtractionItem.size() << ")" << std::endl;
+        eckit::Log::warning() << "Warning: Number of fields found (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
+        if (!allowMissing_) {
+            std::stringstream ss;
+            ss << "Found " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
+            throw DataNotFoundException(ss.str());
+        }
     }
 
     // print the file map
