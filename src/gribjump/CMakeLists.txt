@@ -154,3 +154,25 @@ ecbuild_add_library(
         eckit_option
         ${SERVER_LIBS}
 )
+
+############################################################################################
+# Plugin
+# Must happen atomically, and only after the library has been built.
+# NB: In future this will be added to the ecbuild_add_library call above
+
+set( gribjump_plugin_file_in gribjump-plugin.yml.in )
+set( gribjump_plugin_file_out ${CMAKE_BINARY_DIR}/share/plugins/int.ecmwf.gribjump-plugin.yml )
+set( gribjump_plugin_file_tmp ${CMAKE_BINARY_DIR}/gribjump-plugin.yml.tmp)
+
+# configure to temporary file
+configure_file( ${gribjump_plugin_file_in} ${gribjump_plugin_file_tmp} @ONLY )
+
+# move file atomically
+add_custom_command( TARGET gribjump POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/plugins
+    COMMAND ${CMAKE_COMMAND} -E rename ${gribjump_plugin_file_tmp} ${gribjump_plugin_file_out}
+)
+
+install( FILES ${gribjump_plugin_file_out} DESTINATION share/plugins)
+
+############################################################################################
