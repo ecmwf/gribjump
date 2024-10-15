@@ -15,6 +15,7 @@
 #include "eckit/serialisation/Stream.h"
 #include "eckit/log/Timer.h"
 #include "eckit/log/JSON.h"
+#include "eckit/log/TimeStamp.h"
 
 namespace gribjump {
 
@@ -61,31 +62,35 @@ public: // methods
 
     void report() {
         eckit::Log::metrics() << "{"
-        << "type:" << type
-        << ",nRequests:" << nRequests
-        << ",nTasks:" << nTasks
-        << ",nFailedTasks:" << nFailedTasks
-        << ",timeReceive:" << timeReceive
-        << ",timeExecute:" << timeExecute
-        << ",timeReply:" << timeReply
-        << ",timeElapsed:" << timer_.elapsed()
+        << "action:" << action
+        << ",start_time:" << start_
+        << ",end_time:" << eckit::TimeStamp()
+        << ",count_requests" << nRequests
+        << ",count_tasks:" << nTasks
+        << ",count_failed_tasks:" << nFailedTasks
+        << ",elapsed_receive:" << timeReceive
+        << ",elapsed_execute:" << timeExecute
+        << ",elapsed_reply:" << timeReply
+        << ",elapsed_total:" << timer_.elapsed()
         << ",Context:" << context_
         << "}" << std::endl;
     }
 
 public: // members
 
-    std::string type;
+    std::string action;
     int nRequests = -1;
     int nTasks = -1;
     int nFailedTasks = -1;
     double timeReceive = 0;
     double timeExecute = 0;
     double timeReply = 0;
+
+private: // members
+
     LogContext context_;
-
     eckit::Timer timer_;
-
+    eckit::TimeStamp start_;
 };
 
 } // namespace gribjump
