@@ -11,3 +11,4 @@ Testing/
 CMakeFiles/
 CMakeCache.txt
 *.bak
+.vim

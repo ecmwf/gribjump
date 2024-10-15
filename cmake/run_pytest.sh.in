@@ -1,0 +1,13 @@
+#! /usr/bin/env bash
+set -ex
+export GRIBJUMP_HOME="@CMAKE_BINARY_DIR@"
+export FDB5_DIR="@FDB5_DIR@"
+export PYTHONPATH="${PYTHONPATH}:@CMAKE_CURRENT_SOURCE_DIR@/pygribjump/src"
+
+eccodes_definition_path="@REDEFINED_ECCODES_DEFINITION_PATH@"
+if [ -n "${eccodes_definition_path}" ]; then
+    export ECCODES_DEFINITION_PATH=${eccodes_definition_path}
+fi
+
+@Python_EXECUTABLE@ -m pytest @CMAKE_CURRENT_SOURCE_DIR@ --basetemp="@CMAKE_CURRENT_BINARY_DIR@/test-results" "$@"
+
