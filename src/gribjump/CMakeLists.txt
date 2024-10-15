@@ -169,6 +169,7 @@ configure_file( ${gribjump_plugin_file_in} ${gribjump_plugin_file_tmp} @ONLY )
 
 # move file atomically
 add_custom_command( TARGET gribjump POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/plugins
     COMMAND ${CMAKE_COMMAND} -E rename ${gribjump_plugin_file_tmp} ${gribjump_plugin_file_out}
 )
 
