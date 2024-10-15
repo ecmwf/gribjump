@@ -90,15 +90,20 @@ if(HAVE_PYTHON_API_TESTS)
     find_python_module(setuptools)
     find_python_module(findlibs)
 
-    # Prepare to export FDB5_DIR so that findlibs does find our depenant libfdb for pyfdb
-    # In case we build gribjump standalone, this code relies on the location
-    # provided by the find module, i.e. fdb5_DIR.
-    # If this code is build as a bundle, aka a subproject we need to point
-    # findlib to the folder containing the CMAKE_LIBRARY_OUTPUT_DIRECTORY
+    # Depending on if gribjumps dependencies are installed or inside a build
+    # tree locations must be made known to fdb and eccodes.
+    # If this cmake file is not the top-level cmake file we deduce that this is
+    # a bundle build and all dependencies are inside a build tree.
+    # Otherwise it is expected that all dependencies reside in an install tree
     get_property(is_subproject DIRECTORY PROPERTY PARENT_DIRECTORY)
     if(is_subproject)
         set(FDB5_DIR "${CMAKE_BINARY_DIR}")
+        # This is not required if eccodes is build with ENABLE_MEMFS=ON, but in
+        # that case the environment variable is ignored.
+        set(REDEFINED_ECCODES_DEFINITION_PATH
+            "${CMAKE_BINARY_DIR}/share/eccodes/definitions")
     else()
+        set(REDEFINED_ECCODES_DEFINITION_PATH "")
         set(FDB5_DIR "${fdb5_DIR}/../../..")
     endif()
 
