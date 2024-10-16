@@ -28,19 +28,24 @@ public:
     }
     
     ~LogContext() {}
+
 private:
+
     void encode(eckit::Stream& s) const {
         s << context_;
     }
+
     friend eckit::Stream& operator<<(eckit::Stream& s, const LogContext& o){
         o.encode(s);
         return s;
     }
-    void print(std::ostream& s) const {
+
+    void json(eckit::JSON& s) const {
         s << context_;
     }
-    friend std::ostream& operator<<(std::ostream& s, const LogContext& o){
-        o.print(s);
+
+    friend eckit::JSON& operator<<(eckit::JSON& s, const LogContext& o){
+        o.json(s);
         return s;
     }
 
@@ -56,24 +61,26 @@ class Metrics {
 public: // methods
     
     Metrics(LogContext ctx) : context_(ctx) {
+        start_ = std::string(eckit::TimeStamp("%Y-%m-%dT%H:%M:%SZ"));
     }
     
     ~Metrics() {}
 
     void report() {
-        eckit::Log::metrics() << "{"
-        << "action:" << action
-        << ",start_time:" << start_
-        << ",end_time:" << eckit::TimeStamp()
-        << ",count_requests" << nRequests
-        << ",count_tasks:" << nTasks
-        << ",count_failed_tasks:" << nFailedTasks
-        << ",elapsed_receive:" << timeReceive
-        << ",elapsed_execute:" << timeExecute
-        << ",elapsed_reply:" << timeReply
-        << ",elapsed_total:" << timer_.elapsed()
-        << ",Context:" << context_
-        << "}" << std::endl;
+        eckit::JSON j(eckit::Log::metrics(), false);
+        j.startObject();
+        j << "action" << action;
+        j << "start_time" << start_;
+        j << "end_time" << eckit::TimeStamp("%Y-%m-%dT%H:%M:%SZ");
+        j << "count_requests" << nRequests;
+        j << "count_tasks" << nTasks;
+        j << "count_failed_tasks" << nFailedTasks;
+        j << "elapsed_receive" << timeReceive;
+        j << "elapsed_execute" << timeExecute;
+        j << "elapsed_reply" << timeReply;
+        j << "elapsed_total" << timer_.elapsed();
+        j << "context" << context_;
+        j.endObject();
     }
 
 public: // members
@@ -90,7 +97,7 @@ private: // members
 
     LogContext context_;
     eckit::Timer timer_;
-    eckit::TimeStamp start_;
+    std::string start_;
 };
 
 } // namespace gribjump
