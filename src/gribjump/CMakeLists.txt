@@ -162,7 +162,7 @@ ecbuild_add_library(
 
 set( gribjump_plugin_file_in gribjump-plugin.yml.in )
 set( gribjump_plugin_file_out ${CMAKE_BINARY_DIR}/share/plugins/int.ecmwf.gribjump-plugin.yml )
-set( gribjump_plugin_file_tmp ${CMAKE_BINARY_DIR}/gribjump-plugin.yml.tmp)
+set( gribjump_plugin_file_tmp gribjump-plugin.yml.tmp)
 
 # configure to temporary file
 configure_file( ${gribjump_plugin_file_in} ${gribjump_plugin_file_tmp} @ONLY )
@@ -170,7 +170,8 @@ configure_file( ${gribjump_plugin_file_in} ${gribjump_plugin_file_tmp} @ONLY )
 # move file atomically
 add_custom_command( TARGET gribjump POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/share/plugins
-    COMMAND ${CMAKE_COMMAND} -E rename ${gribjump_plugin_file_tmp} ${gribjump_plugin_file_out}
+    COMMAND ${CMAKE_COMMAND} -E copy ${gribjump_plugin_file_tmp} ${gribjump_plugin_file_out}
+    BYPRODUCTS ${gribjump_plugin_file_out}
 )
 
 install( FILES ${gribjump_plugin_file_out} DESTINATION share/plugins)
