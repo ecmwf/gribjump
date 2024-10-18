@@ -4,7 +4,7 @@ import re
 from setuptools import find_packages, setup
 
 __version__ = re.search(
-    r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', io.open("pygribjump/version.py", encoding="utf_8_sig").read()
+    r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', io.open("pygribjump/src/pygribjump/version.py", encoding="utf_8_sig").read()
 ).group(1)
 
 setup(
