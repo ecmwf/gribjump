@@ -16,7 +16,6 @@
 import numpy as np
 import cffi
 import os
-from pkg_resources import parse_version
 import findlibs
 
 ffi = cffi.FFI()
@@ -58,10 +57,7 @@ class PatchedLib:
                 print("Error retrieving attribute", f, "from library")
 
         # Initialise the library, and set it up for python-appropriate behaviour
-
         self.gribjump_initialise()
-
-        # TODO <see pyfdb version checking here.>
 
     def __read_header(self, hdr_path):
         with open(hdr_path, 'r') as f:

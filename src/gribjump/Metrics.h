@@ -15,6 +15,7 @@
 #include "eckit/serialisation/Stream.h"
 #include "eckit/log/Timer.h"
 #include "eckit/log/JSON.h"
+#include "eckit/log/TimeStamp.h"
 
 namespace gribjump {
 
@@ -27,19 +28,24 @@ public:
     }
     
     ~LogContext() {}
+
 private:
+
     void encode(eckit::Stream& s) const {
         s << context_;
     }
+
     friend eckit::Stream& operator<<(eckit::Stream& s, const LogContext& o){
         o.encode(s);
         return s;
     }
-    void print(std::ostream& s) const {
+
+    void json(eckit::JSON& s) const {
         s << context_;
     }
-    friend std::ostream& operator<<(std::ostream& s, const LogContext& o){
-        o.print(s);
+
+    friend eckit::JSON& operator<<(eckit::JSON& s, const LogContext& o){
+        o.json(s);
         return s;
     }
 
@@ -55,37 +61,43 @@ class Metrics {
 public: // methods
     
     Metrics(LogContext ctx) : context_(ctx) {
+        start_ = std::string(eckit::TimeStamp("%Y-%m-%dT%H:%M:%SZ"));
     }
     
     ~Metrics() {}
 
     void report() {
-        eckit::Log::metrics() << "{"
-        << "type:" << type
-        << ",nRequests:" << nRequests
-        << ",nTasks:" << nTasks
-        << ",nFailedTasks:" << nFailedTasks
-        << ",timeReceive:" << timeReceive
-        << ",timeExecute:" << timeExecute
-        << ",timeReply:" << timeReply
-        << ",timeElapsed:" << timer_.elapsed()
-        << ",Context:" << context_
-        << "}" << std::endl;
+        eckit::JSON j(eckit::Log::metrics(), false);
+        j.startObject();
+        j << "action" << action;
+        j << "start_time" << start_;
+        j << "end_time" << eckit::TimeStamp("%Y-%m-%dT%H:%M:%SZ");
+        j << "count_requests" << nRequests;
+        j << "count_tasks" << nTasks;
+        j << "count_failed_tasks" << nFailedTasks;
+        j << "elapsed_receive" << timeReceive;
+        j << "elapsed_execute" << timeExecute;
+        j << "elapsed_reply" << timeReply;
+        j << "elapsed_total" << timer_.elapsed();
+        j << "context" << context_;
+        j.endObject();
     }
 
 public: // members
 
-    std::string type;
+    std::string action;
     int nRequests = -1;
     int nTasks = -1;
     int nFailedTasks = -1;
     double timeReceive = 0;
     double timeExecute = 0;
     double timeReply = 0;
+
+private: // members
+
     LogContext context_;
-
     eckit::Timer timer_;
-
+    std::string start_;
 };
 
 } // namespace gribjump

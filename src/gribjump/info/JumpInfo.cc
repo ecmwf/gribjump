@@ -61,7 +61,7 @@ JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startO
     if (editionNumber_ != 1 && editionNumber_ != 2) {
         std::stringstream ss;
         ss << "Unsupported GRIB edition number: " << editionNumber_;
-        throw JumpException(ss.str(), Here());
+        throw GribJumpException(ss.str(), Here());
     }
     
     binaryScaleFactor_  = grib::binaryScaleFactor(h);
@@ -99,7 +99,7 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
     if (editionNumber_ != 1 && editionNumber_ != 2) {
         std::stringstream ss;
         ss << "Unsupported GRIB edition number: " << editionNumber_;
-        throw JumpException(ss.str(), Here());
+        throw GribJumpException(ss.str(), Here());
     }
     
     binaryScaleFactor_  = msg.getLong("binaryScaleFactor");

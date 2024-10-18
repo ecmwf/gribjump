@@ -7,6 +7,7 @@ project( gribjump LANGUAGES C CXX )
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ########################################################################################################################
 ### dependencies and options
@@ -25,7 +26,7 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   set(GRIBJUMP_HAVE_FDB 1)
 
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
-  
+
   ### AEC
   # Override eccodes' aec with our own: we need a newer version.
   unset(AEC_INCLUDE_DIRS CACHE)
@@ -46,14 +47,21 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
 endif()
 
+# python api test are currently by default disabled because we cannot run them in the ci
+ecbuild_add_option(
+    FEATURE PYTHON_API_TESTS
+    DEFAULT OFF
+    DESCRIPTION "Will execute python tests against pygribjump / libgribjump")
+
 ########################################################################################################################
 # contents
 
-include(cmake/compiler_warnings.cmake) # optionally handle compiler specific warnings
+include(compiler_warnings) # optionally handle compiler specific warnings
+include(find_python_module)
 
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
-include_directories( 
+include_directories(
   ${AEC_INCLUDE_DIRS}
   ${gribjump_INCLUDE_DIRS}
   ${eckit_INCLUDE_DIRS}
@@ -70,19 +78,50 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
 endif()
 
+if(HAVE_PYTHON_API_TESTS)
+    ecbuild_find_package( NAME Python
+                          VERSION 3.10
+                          COMPONENTS Interpreter
+                          REQUIRED )
+
+    find_python_module(cffi)
+    find_python_module(numpy)
+    find_python_module(pytest)
+    find_python_module(setuptools)
+    find_python_module(findlibs)
+
+    # Depending on if gribjumps dependencies are installed or inside a build
+    # tree locations must be made known to fdb and eccodes.
+    # If this cmake file is not the top-level cmake file we deduce that this is
+    # a bundle build and all dependencies are inside a build tree.
+    # Otherwise it is expected that all dependencies reside in an install tree
+    get_property(is_subproject DIRECTORY PROPERTY PARENT_DIRECTORY)
+    if(is_subproject)
+        set(FDB5_DIR "${CMAKE_BINARY_DIR}")
+        # This is not required if eccodes is build with ENABLE_MEMFS=ON, but in
+        # that case the environment variable is ignored.
+        set(REDEFINED_ECCODES_DEFINITION_PATH
+            "${CMAKE_BINARY_DIR}/share/eccodes/definitions")
+    else()
+        set(REDEFINED_ECCODES_DEFINITION_PATH "")
+        set(FDB5_DIR "${fdb5_DIR}/../../..")
+    endif()
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/run_pytest.sh.in
+        ${CMAKE_CURRENT_BINARY_DIR}/run_pytest.sh
+        @ONLY
+    )
+
+    add_test(
+        NAME pygribjump_pytests
+        COMMAND ${CMAKE_CURRENT_BINARY_DIR}/run_pytest.sh -vv -s
+                --basetemp=${CMAKE_CURRENT_BINARY_DIR}/pytest-out
+    )
+
+endif()
+
 ########################################################################################################################
-# PLUGIN
-# Write and install the manifest file for the plugin
-set( gribjump_plugin_file share/plugins/gribjump-plugin.yml )
-file( WRITE  ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "plugin:\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  name:      gribjump-plugin\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  namespace: int.ecmwf\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  url:       http://www.ecmwf.int\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  version:   ${${PROJECT_NAME}_VERSION}\n" )
-file( APPEND ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} "  library:   gribjump\n" )
-
-install( FILES ${CMAKE_BINARY_DIR}/${gribjump_plugin_file} DESTINATION share/plugins )
-
 ### finalize
 
 ecbuild_install_project( NAME gribjump )

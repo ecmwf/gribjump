@@ -17,6 +17,7 @@
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
+// @todo: Lots of common behaviour between these classes, consider refactoring. Especially the interaction with metrics.
 
 Request::Request(eckit::Stream& stream, LogContext ctx) : client_(stream), metrics_(ctx) {
 }
@@ -30,6 +31,9 @@ void Request::reportErrors() {
 //----------------------------------------------------------------------------------------------------------------------
 
 ScanRequest::ScanRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
+    metrics_.action = "scan";
+
+    eckit::Timer timer;
 
     client_ >> byfiles_;
 
@@ -43,24 +47,35 @@ ScanRequest::ScanRequest(eckit::Stream& stream, LogContext ctx) : Request(stream
     for (size_t i = 0; i < numRequests; i++) {
         requests_.emplace_back(metkit::mars::MarsRequest(client_));
     }
+
+    metrics_.nRequests = numRequests;
+    metrics_.timeReceive = timer.elapsed();
 }
 
 ScanRequest::~ScanRequest() {
 }
 
 void ScanRequest::execute() {
+    eckit::Timer timer;
     nfiles_ = engine_.scan(requests_, byfiles_);
+    engine_.updateMetrics(metrics_);
+    metrics_.timeExecute = timer.elapsed();
 }
 
 void ScanRequest::replyToClient() {
+    eckit::Timer timer;
+
     reportErrors();
     client_ << nfiles_;
+
+    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
 ExtractRequest::ExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
+    metrics_.action = "extract";
 
     // Receive the requests
     // Temp, repackage the requests from old format into format the engine expects
@@ -133,12 +148,15 @@ void ExtractRequest::replyToClient() {
 //----------------------------------------------------------------------------------------------------------------------
 
 ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
+    metrics_.action = "forwarded-extract"; 
+
+    eckit::Timer timer;
 
     size_t nFiles;
     client_ >> nFiles;
 
     LOG_DEBUG_LIB(LibGribJump) << "ForwardedExtractRequest: nFiles=" << nFiles << std::endl;
-
+    size_t count = 0;
     for (size_t i = 0; i < nFiles; i++) {
         std::string fname;
         size_t nItems;
@@ -156,18 +174,26 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogConte
             filemap_[fname].push_back(extractionItem.get());
             items_.push_back(std::move(extractionItem));
         }
+        count += nItems;
     }
+    metrics_.nRequests = count;
+    metrics_.timeReceive = timer.elapsed();
+
+    ASSERT(count > 0); // We should not be talking to this server if we have no requests.
 }
 
 ForwardedExtractRequest::~ForwardedExtractRequest() {
 }
 
 void ForwardedExtractRequest::execute() {
+    eckit::Timer timer;
     engine_.scheduleTasks(filemap_);
+    engine_.updateMetrics(metrics_);
+    metrics_.timeExecute = timer.elapsed();
 }
 
 void ForwardedExtractRequest::replyToClient() {
-
+    eckit::Timer timer;
     reportErrors();
 
     for (auto& [fname, extractionItems] : filemap_) {
@@ -179,12 +205,16 @@ void ForwardedExtractRequest::replyToClient() {
             client_ << res;
         }
     }
+
+    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 AxesRequest::AxesRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
+    metrics_.action = "axes";
     client_ >> request_;
+    ASSERT(request_.size() > 0);
 }
 
 AxesRequest::~AxesRequest() {
@@ -193,13 +223,15 @@ AxesRequest::~AxesRequest() {
 void AxesRequest::execute() {
     // @todo, use the engine.
     // or, polytope should use pyfdb not gribjump for this.
+    eckit::Timer timer;
     GribJump gj;
     axes_ = gj.axes(request_);
+    metrics_.timeExecute = timer.elapsed();
 }
 
 void AxesRequest::replyToClient() {
 
-    // @todo, reporting of axes errors, i.e. implement an AxesTask.
+    eckit::Timer timer;
     reportErrors();
 
     // print the axes we are sending
@@ -222,6 +254,7 @@ void AxesRequest::replyToClient() {
         }
     }
 
+    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------

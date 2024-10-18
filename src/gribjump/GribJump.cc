@@ -28,27 +28,58 @@ GribJump::~GribJump() {
 }
 
 size_t GribJump::scan(const eckit::PathName& path) {
+
+    if (path.asString().empty()) {
+        throw eckit::UserError("Path must not be empty", Here());
+    }
+
     size_t ret = impl_->scan(path);
     return ret;
 }
 
 size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+
+    if (requests.empty()) {
+        throw eckit::UserError("Requests must not be empty", Here());
+    }
+
     size_t ret = impl_->scan(requests, byfiles);
     return ret;
 }
 
 
 std::vector<std::vector<ExtractionResult*>> GribJump::extract(const std::vector<ExtractionRequest>& requests, LogContext ctx) {
+
+    if (requests.empty()) {
+        throw eckit::UserError("Requests must not be empty", Here());
+    }
+
     std::vector<std::vector<ExtractionResult*>> out = impl_->extract(requests, ctx);
     return out;
 }
 
 std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+
+    if (path.asString().empty()) {
+        throw eckit::UserError("Path must not be empty", Here());
+    }
+    if (offsets.empty()) {
+        throw eckit::UserError("Offsets must not be empty", Here());
+    }
+    if (offsets.size() != ranges.size()) {
+        throw eckit::UserError("Offsets and ranges must be the same size", Here());
+    }
+
     auto out = impl_->extract(path, offsets, ranges);
     return out;
 }
 
 std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
+
+    if (request.empty()) {
+        throw eckit::UserError("Request string must not be empty", Here());
+    }
+
     auto out = impl_->axes(request);
     return out;
 }

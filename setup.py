@@ -3,9 +3,8 @@ import re
 
 from setuptools import find_packages, setup
 
-__version__ = re.search(
-    r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', io.open("pygribjump/version.py", encoding="utf_8_sig").read()
-).group(1)
+with open("VERSION", "r") as f:
+    __version__ = f.read().strip()
 
 setup(
     name="pygribjump",
