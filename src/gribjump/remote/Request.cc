@@ -178,6 +178,8 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogConte
     }
     metrics_.nRequests = count;
     metrics_.timeReceive = timer.elapsed();
+
+    ASSERT(count > 0); // We should not be talking to this server if we have no requests.
 }
 
 ForwardedExtractRequest::~ForwardedExtractRequest() {
@@ -212,6 +214,7 @@ void ForwardedExtractRequest::replyToClient() {
 AxesRequest::AxesRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
     metrics_.action = "axes";
     client_ >> request_;
+    ASSERT(request_.size() > 0);
 }
 
 AxesRequest::~AxesRequest() {
