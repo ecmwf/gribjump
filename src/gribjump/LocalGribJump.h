@@ -30,7 +30,7 @@ public:
 
     /// @brief Scans the full grib file, looking for GRIB messages and populates cache
     /// @param path full path to grib file
-    size_t scan(const eckit::PathName& path) override;
+    size_t scan(const std::vector<eckit::PathName>& paths) override;
 
     size_t scan(const std::vector<MarsRequest> requests, bool byfiles) override;
 

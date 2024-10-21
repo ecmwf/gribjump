@@ -43,7 +43,7 @@ public:
     
     ~GribJump();
 
-    size_t scan(const eckit::PathName& path);
+    size_t scan(const std::vector<eckit::PathName>& paths);
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false);
 
     std::vector<std::vector<ExtractionResult*>> extract(const std::vector<ExtractionRequest>& requests, LogContext ctx=LogContext("none"));
@@ -52,10 +52,6 @@ public:
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request);
 
     void stats();
-
-    // Note: Only implemented if FDB is enabled
-    void aggregate(const fdb5::Key& key, const eckit::URI& location);
-    void aggregate(const fdb5::Key& key, const eckit::message::Message& msg);
 
 private:
     std::unique_ptr<GribJumpBase> impl_;

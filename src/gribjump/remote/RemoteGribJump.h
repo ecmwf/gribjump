@@ -34,7 +34,8 @@ public: // methods
     RemoteGribJump(eckit::net::Endpoint endpoint);
     ~RemoteGribJump();
 
-    size_t scan(const eckit::PathName& path) override;
+    size_t scan(const std::vector<eckit::PathName>& path) override { NOTIMP; }
+
     size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
 
     std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest> polyRequest, LogContext ctx) override;

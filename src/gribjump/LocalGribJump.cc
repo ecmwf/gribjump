@@ -48,12 +48,9 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 
 LocalGribJump::~LocalGribJump() {}
 
-size_t LocalGribJump::scan(const eckit::PathName& path) {
-    NOTIMP;
-    // JumpHandle dataSource(path);
-    // std::vector<JumpInfo*> infos = dataSource.extractInfoFromFile();
-    // InfoCache::instance().insert(path, infos);
-    // return infos.size();
+size_t LocalGribJump::scan(const std::vector<eckit::PathName>& paths) {
+    Engine engine;
+    return engine.scan(paths);
 }
 
 size_t LocalGribJump::scan(const std::vector<MarsRequest> requests, bool byfiles) {
