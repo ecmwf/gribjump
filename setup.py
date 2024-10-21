@@ -13,7 +13,7 @@ setup(
     url="https://github.com/ecmwf/gribjump",
     author="ECMWF",
     author_email="software.support@ecmwf.int",
-    packages=find_packages(exclude=("docs", "tests")),
+    packages=find_packages(where="./pygribjump/src", exclude=("docs", "tests")),
     include_package_data=True,
     install_requires=["cffi", "findlibs", "numpy"],
     zip_safe=False,
