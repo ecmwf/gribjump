@@ -1,1 +1,1 @@
-include pygribjump/gribjump_c.h
+include pygribjump/src/pygribjump/gribjump_c.h
