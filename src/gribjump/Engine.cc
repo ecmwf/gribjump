@@ -275,22 +275,35 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
 
 size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
 
-    const std::map< eckit::PathName, eckit::OffsetList > files = FDBLister::instance().filesOffsets(requests);
+    const std::map< eckit::PathName, eckit::OffsetList > filemap = FDBLister::instance().filesOffsets(requests);
+
+    if (byfiles) { // ignore offsets and scan entire file
+        std::vector<eckit::PathName> files;
+        for (auto& [fname, offsets] : filemap) {
+            files.push_back(fname);
+        }
+
+        return scan(files);
+        
+    }
 
     size_t counter = 0;
-
-    if (byfiles) {
-        for (auto& [fname, offsets] : files) {
-            taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
-        }
+    
+    for (auto& [fname, offsets] : filemap) {
+        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
     }
-    else {
-        for (auto& [fname, offsets] : files) {
-            taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, {}));
-        }
+    taskGroup_.waitForTasks();
+
+    return filemap.size();
+}
+
+size_t Engine::scan(std::vector<eckit::PathName> files) {
+    size_t counter = 0;
+    
+    for (auto& fname : files) {
+        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, {}));
     }
 
-    // Wait for the tasks to complete
     taskGroup_.waitForTasks();
 
     return files.size();

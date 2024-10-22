@@ -27,13 +27,13 @@ GribJump::GribJump() {
 GribJump::~GribJump() {
 }
 
-size_t GribJump::scan(const eckit::PathName& path) {
+size_t GribJump::scan(const std::vector<eckit::PathName>& paths) {
 
-    if (path.asString().empty()) {
-        throw eckit::UserError("Path must not be empty", Here());
+    if (paths.empty()) {
+        throw eckit::UserError("Paths must not be empty", Here());
     }
 
-    size_t ret = impl_->scan(path);
+    size_t ret = impl_->scan(paths);
     return ret;
 }
 

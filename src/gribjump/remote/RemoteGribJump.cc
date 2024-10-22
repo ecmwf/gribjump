@@ -35,10 +35,6 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint): host_(endpoint.ho
 
 RemoteGribJump::~RemoteGribJump() {}
 
-size_t RemoteGribJump::scan(const eckit::PathName& path) {
-    NOTIMP;
-}
-
 void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type) {
     stream << remoteProtocolVersion;
     stream << ctx_;

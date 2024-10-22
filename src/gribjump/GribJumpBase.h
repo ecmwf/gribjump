@@ -43,7 +43,8 @@ public:
     
     virtual ~GribJumpBase();
 
-    size_t virtual scan(const eckit::PathName& path) = 0;
+    size_t virtual scan(const std::vector<eckit::PathName>& paths) = 0;
+
     virtual size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) = 0;
 
     virtual std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>, LogContext ctx=LogContext("none")) = 0;

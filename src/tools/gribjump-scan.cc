@@ -27,6 +27,7 @@
 #include "gribjump/GribJump.h"
 
 /// @author Tiago Quintino
+/// @author Christopher Bradley
 
 /// Tool to execute the scanning of the FDB and building the GribJump info
 /// either locally or remotely on the GribJump server
@@ -40,8 +41,7 @@ class GribJumpScanTool : public fdb5::FDBTool {
   public:
     GribJumpScanTool(int argc, char **argv): fdb5::FDBTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("files", "Scan by files (default: true)"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("ranges", "Uses requests which  (default: false)"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("files", "Scan entire files matching the request (default: true)"));
     }
 
 };
