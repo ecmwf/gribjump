@@ -32,9 +32,12 @@ export FDB5_HOME=$bindir
 export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
 
 # Help find the plugin when not installed or part of a bundle
-export PLUGINS_MANIFEST_PATH="@CMAKE_BINARY_DIR@/share/plugins"
-export DYLD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib:$DYLD_LIBRARY_PATH"
-export LD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib:$LD_LIBRARY_PATH"
+binary="@CMAKE_BINARY_DIR@"
+prefix="@CMAKE_INSTALL_PREFIX@"
+export PLUGINS_MANIFEST_PATH="$binary/share/plugins"
+export DYLD_LIBRARY_PATH="$binary/lib:$binary/lib64:$prefix/lib:$prefix/lib64:$DYLD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$binary/lib:$binary/lib64:$prefix/lib:$prefix/lib64:$LD_LIBRARY_PATH"
+
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
 ### cleanup and prepare test
