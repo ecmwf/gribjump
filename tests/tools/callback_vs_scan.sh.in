@@ -11,7 +11,6 @@ set -eux
 # 
 # The test data contains several grib messages with different packing types, some supported some not.
 
-# temp
 unset FDB_DEBUG
 unset GRIBJUMP_DEBUG
 # setup
@@ -34,6 +33,8 @@ export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
 
 # Help find the plugin when not installed or part of a bundle
 export PLUGINS_MANIFEST_PATH="@CMAKE_BINARY_DIR@/share/plugins"
+export DYLD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib"
+export LD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib"
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
 ### cleanup and prepare test
@@ -69,34 +70,41 @@ $gribset -s "expver=xxxy" $selected $unselected
 cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
-env FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
+export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml  # TMP
+$fdbread --extract ${selected} /dev/null > $selectedrequests
 
 # -------------------------------------
 # 1: Reference FDB
 
 echo "Writing to FDB without gribjump plugin or scan"
-env FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbwrite ${testdata}
+export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
+$fdbwrite ${testdata}
 
-# -------------------------------------
-# 2: FDB with scan post-process
+# # -------------------------------------
+# # 2: FDB with scan post-process
 
 echo "Writing to FDB without gribjump plugin, then scanning"
-env FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $fdbwrite ${testdata}
-env FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $gjscan $selectedrequests
+export FDB5_CONFIG_FILE=${bindir}/config_root2.yaml
+$fdbwrite ${testdata}
+$gjscan $selectedrequests
 
 # -------------------------------------
 # 3: FDB with gribjump plugin
 
 echo "Writing to FDB with gribjump plugin"
-env FDB5_CONFIG_FILE=${bindir}/config_root3.yaml FDB_ENABLE_GRIBJUMP=1 $fdbwrite ${testdata}
+export FDB5_CONFIG_FILE=${bindir}/config_root3.yaml
+export FDB_ENABLE_GRIBJUMP=1
+$fdbwrite ${testdata}
+unset FDB_ENABLE_GRIBJUMP
 
 # -------------------------------------
 # 4: FDB with gribjump-scan-files
 
 echo "Writing to FDB without gribjump plugin, then scanning with gribjump-scan-files"
-env FDB5_CONFIG_FILE=${bindir}/config_root4.yaml $fdbwrite ${testdata}
+export FDB5_CONFIG_FILE=${bindir}/config_root4.yaml
+$fdbwrite ${testdata}
 
-# get a list of all .data files in the fdb xxxx database
+# # get a list of all .data files in the fdb xxxx database
 
 filelist=$(find ${bindir}/root4 -path '*xxxx*' -name '*.data' | sort)
 $gjscanfiles $filelist
@@ -141,13 +149,15 @@ done
 # -------------------------------------
 # Extract from all fdbs and compare the output
 extractrequests=${bindir}/extractrequests
-env FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${supporteddata} /dev/null > $extractrequests
+export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
+$fdbread --extract ${supporteddata} /dev/null > $extractrequests
 
 ranges=${bindir}/ranges
 echo "0-10,20-30,40-50" > $ranges
 
 for i in $(seq 1 4); do
-    env FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml $gjextract $extractrequests $ranges > ${bindir}/tmp
+    export FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml
+    $gjextract $extractrequests $ranges > ${bindir}/tmp
     cat ${bindir}/tmp
     sed -n '/Extracted values:/,$p' ${bindir}/tmp > ${bindir}/extract${i}.clean
 done
