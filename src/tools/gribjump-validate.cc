@@ -15,6 +15,7 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/utils/StringTools.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsParser.h"
