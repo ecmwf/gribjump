@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # TODO add gribjump-scan-files to this test
-set -eux
+set -ex
 
 # This script tests gribjump's jumpinfo generation and interaction with fdb. It writes to four fdbs:
 #   1. FDB archive, no gribjump plugin and no gribjump index.
@@ -33,8 +33,8 @@ export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
 
 # Help find the plugin when not installed or part of a bundle
 export PLUGINS_MANIFEST_PATH="@CMAKE_BINARY_DIR@/share/plugins"
-export DYLD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib"
-export LD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib"
+export DYLD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib:$DYLD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="@CMAKE_BINARY_DIR@/lib:$LD_LIBRARY_PATH"
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
 ### cleanup and prepare test
