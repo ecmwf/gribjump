@@ -1,4 +1,6 @@
 build:
+  cmake_options:
+    - "-DENABLE_FDB_BUILD_TOOLS=ON"
   modules:
     - ninja
     - aec

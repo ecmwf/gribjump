@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 1996- ECMWF.
+ * (C) Copyright 2024- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -8,24 +8,9 @@
  * does it submit to any jurisdiction.
  */
 
-#include <fstream>
-#include <memory>
-
-#include "eckit/io/FileHandle.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/utils/StringTools.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/option/SimpleOption.h"
-
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsParser.h"
-#include "metkit/mars/MarsExpension.h"
-
 #include "fdb5/api/FDB.h"
-#include "fdb5/message/MessageDecoder.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBTool.h"
 
+#include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/GribJump.h"
 
 /// @author Christopher Bradley
@@ -33,14 +18,16 @@
 /// Tool to execute to scan a set of files to built a GribJump info index.
 /// Output directory is specified in the configuration file.
 
-class GribJumpScanFilesTool : public fdb5::FDBTool { // dont use fdb tool
+namespace gribjump::tool {
+    
+class ScanFiles: public GribJumpTool { // dont use fdb tool
     
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return -1; }
   
   public:
-    GribJumpScanFilesTool(int argc, char **argv): fdb5::FDBTool(argc, argv) {
+    ScanFiles(int argc, char **argv): GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("overwrite", "If true, overwrite existing .gribjump files instead of skipping. Default false."));
         options_.push_back(new eckit::option::SimpleOption<bool>("merge", "If true, merge jumpinfos with existing .gribjump files instead of skipping. Default false."));
         options_.push_back(new eckit::option::SimpleOption<bool>("dry-run", "If true, do not write the .gribjump files. Default false."));
@@ -48,14 +35,14 @@ class GribJumpScanFilesTool : public fdb5::FDBTool { // dont use fdb tool
 
 };
 
-void GribJumpScanFilesTool::usage(const std::string &tool) const {
+void ScanFiles::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <list of files>" << std::endl;
 
-    fdb5::FDBTool::usage(tool);
+    GribJumpTool::usage(tool);
 }
 
-void GribJumpScanFilesTool::execute(const eckit::option::CmdArgs &args) {
+void ScanFiles::execute(const eckit::option::CmdArgs &args) {
 
     bool overwrite = args.getBool("overwrite", false);
     bool merge = args.getBool("merge", false);
@@ -66,7 +53,7 @@ void GribJumpScanFilesTool::execute(const eckit::option::CmdArgs &args) {
         throw eckit::UserError("Cannot specify both --overwrite and --merge");
     }
 
-    if (merge) {
+    if (merge || overwrite) {
         NOTIMP; // later...
     }
 
@@ -112,13 +99,15 @@ void GribJumpScanFilesTool::execute(const eckit::option::CmdArgs &args) {
 
     if (dryrun) return;
 
-    gribjump::GribJump gj;
+    GribJump gj;
     gj.scan(files_scan); // take merge/overwrite into account?
 
 }
 
+} // namespace gribjump::tool
+
 int main(int argc, char **argv) {
-    GribJumpScanFilesTool app(argc, argv);
+    gribjump::tool::ScanFiles app(argc, argv);
     return app.start();
 }
 

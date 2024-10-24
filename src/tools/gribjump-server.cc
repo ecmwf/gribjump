@@ -34,7 +34,7 @@ using BaseApp = eckit::Application;
 
 namespace gribjump {
 
-class GribJumpServerApp : public BaseApp, public GribJumpServer {
+class GribJumpServerApp: public BaseApp, public GribJumpServer {
 public:
     GribJumpServerApp(int argc, char** argv) : 
         BaseApp(argc, argv, "GRIBJUMP_HOME"), 

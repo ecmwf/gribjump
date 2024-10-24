@@ -9,42 +9,34 @@
  */
 /// @author Christopher Bradley
 
-#include <fstream>
-#include <memory>
-
-#include "eckit/option/CmdArgs.h"
-#include "eckit/runtime/Tool.h"
-#include "eckit/option/SimpleOption.h"
-
 #include "gribjump/GribJump.h"
+#include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/info/InfoCache.h"
 
-namespace gribjump {
+namespace gribjump::tool {
 
-static void usage(const std::string &tool) {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " <path1> <path2> ..." << std::endl;
-}
+class DumpInfo: public GribJumpTool {
 
-class DumpInfoTool : public eckit::Tool{
-
+    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return -1; }
 
-    virtual void run(const eckit::option::CmdArgs &args);
-
-    virtual void run() override {
-        eckit::option::CmdArgs args(usage, options_, numberOfPositionalArguments());
-        run(args);
-    }
-
 public:
-    DumpInfoTool(int argc, char **argv): eckit::Tool(argc, argv, "GRIBJUMP_HOME") {}
+    DumpInfo(int argc, char **argv): GribJumpTool(argc, argv) {}
 
 private:
     std::vector<eckit::option::Option*> options_;
 };
 
-void DumpInfoTool::run(const eckit::option::CmdArgs &args) {
+void DumpInfo::usage(const std::string &tool) const {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " <path1> <path2> ..." << std::endl;
+                       ;
+
+    GribJumpTool::usage(tool);
+}
+
+void DumpInfo::execute(const eckit::option::CmdArgs &args) {
     for (size_t i = 0; i < args.count(); i++) {
         eckit::PathName file(args(i));
         FileCache cache = FileCache(file);
@@ -52,10 +44,10 @@ void DumpInfoTool::run(const eckit::option::CmdArgs &args) {
     }
 }
 
-} // namespace gribjump
+} // namespace gribjump::tool
 
 int main(int argc, char **argv) {
-    gribjump::DumpInfoTool app(argc, argv);
+    gribjump::tool::DumpInfo app(argc, argv);
     return app.start();
 }
 

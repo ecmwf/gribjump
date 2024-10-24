@@ -9,23 +9,15 @@
  */
 
 #include <fstream>
-#include <memory>
-
-#include "eckit/io/FileHandle.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/utils/StringTools.h"
-#include "eckit/option/SimpleOption.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
 
 #include "fdb5/api/FDB.h"
-#include "fdb5/message/MessageDecoder.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBTool.h"
 
 #include "gribjump/GribJump.h"
+#include "gribjump/tools/GribJumpTool.h"
 
 /// @author Tiago Quintino
 /// @author Christopher Bradley
@@ -33,31 +25,33 @@
 /// Tool to execute the scanning of the FDB and building the GribJump info
 /// either locally or remotely on the GribJump server
 
-class GribJumpScanTool : public fdb5::FDBTool {
+namespace gribjump::tool {
+
+class Scan: public GribJumpTool {
     
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 1; }
   
   public:
-    GribJumpScanTool(int argc, char **argv): fdb5::FDBTool(argc, argv) {
+    Scan(int argc, char **argv): GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
         options_.push_back(new eckit::option::SimpleOption<bool>("files", "Scan entire files matching the request (default: true)"));
     }
 
 };
 
-void GribJumpScanTool::usage(const std::string &tool) const {
+void Scan::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <mars request file>" << std::endl
                        << "       " << tool << " --raw <mars request file>" << std::endl
                        << "       " << tool << " --files <mars request file>" << std::endl
                        ;
 
-    fdb5::FDBTool::usage(tool);
+    GribJumpTool::usage(tool);
 }
 
-void GribJumpScanTool::execute(const eckit::option::CmdArgs &args) {
+void Scan::execute(const eckit::option::CmdArgs &args) {
 
     bool raw = args.getBool("raw", false);
     bool files = args.getBool("files", false);
@@ -80,13 +74,15 @@ void GribJumpScanTool::execute(const eckit::option::CmdArgs &args) {
         requests = expand.expand(parsedRequests);
     }
 
-    gribjump::GribJump gj;
+    GribJump gj;
 
     gj.scan(requests, files);
 }
 
+} // gribjump::tool
+
 int main(int argc, char **argv) {
-    GribJumpScanTool app(argc, argv);
+    gribjump::tool::Scan app(argc, argv);
     return app.start();
 }
 

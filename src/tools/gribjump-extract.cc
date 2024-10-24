@@ -10,14 +10,8 @@
 /// @author Christopher Bradley
 
 #include <fstream>
-#include <memory>
 
-#include "eckit/io/FileHandle.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/utils/StringTools.h"
-#include "eckit/runtime/Tool.h"
 #include "eckit/testing/Test.h"
-#include "eckit/option/SimpleOption.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsParser.h"
@@ -25,32 +19,18 @@
 
 #include "gribjump/GribJump.h"
 #include "gribjump/tools/ToolUtils.h"
+#include "gribjump/tools/GribJumpTool.h"
 
+namespace gribjump::tool {
 
-// TODO(Chris) Make a gribjump::Tool class that inherits from eckit::Tool
+class GribJumpExtract: public GribJumpTool{
 
-namespace gribjump {
-
-static void usage(const std::string &tool) {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " <request_file> <ranges_file>" << std::endl
-                       << "       " << tool << " --raw <request_file> <ranges_file>" << std::endl;
-
-    
-}
-class GJExtractTool : public eckit::Tool{
-
+    virtual void execute(const eckit::option::CmdArgs &args);
+    virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
 
-    virtual void run(const eckit::option::CmdArgs &args);
-
-    virtual void run() override {
-        eckit::option::CmdArgs args(usage, options_, numberOfPositionalArguments());
-        run(args);
-    }
-
 public:
-    GJExtractTool(int argc, char **argv): eckit::Tool(argc, argv, "GRIBJUMP_HOME") {
+    GribJumpExtract(int argc, char **argv): GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("print", "Prints the results"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
@@ -59,7 +39,15 @@ private:
         std::vector<eckit::option::Option*> options_;
 };
 
-void GJExtractTool::run(const eckit::option::CmdArgs &args) {
+void GribJumpExtract::usage(const std::string &tool) const {
+    eckit::Log::info() << std::endl
+                       << "Usage: " << tool << " <request_file> <ranges_file>" << std::endl
+                       << "       " << tool << " --raw <request_file> <ranges_file>" << std::endl;
+                       ;
+    GribJumpTool::usage(tool);
+}
+
+void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
     // Testing tool for extract / directJump functionality
 
     const bool raw = args.getBool("raw", false);
@@ -132,10 +120,10 @@ void GJExtractTool::run(const eckit::option::CmdArgs &args) {
     }
 }
 
-} // namespace gribjump
+} // namespace gribjump::tool
 
 int main(int argc, char **argv) {
-    gribjump::GJExtractTool app(argc, argv);
+    gribjump::tool::GribJumpExtract app(argc, argv);
     return app.start();
 }
 
