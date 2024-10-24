@@ -11,8 +11,6 @@ set -ex
 # 
 # The test data contains several grib messages with different packing types, some supported some not.
 
-unset FDB_DEBUG
-unset GRIBJUMP_DEBUG
 # setup
 
 fdbwrite="$<TARGET_FILE:fdb-write>"
@@ -73,108 +71,126 @@ $gribset -s "expver=xxxy" $selected $unselected
 cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
-export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml  # TMP
-$fdbread --extract ${selected} /dev/null > $selectedrequests
-
-# -------------------------------------
-# 1: Reference FDB
-
-echo "Writing to FDB without gribjump plugin or scan"
 export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
-$fdbwrite ${testdata}
+
+
+# DEBUGGING Make sure we fail the CI
+export DEBUG=1
+export ECKIT_DEBUG=1
+export ECKIT_EXCEPTION_DUMPS_BACKTRACE=1
+# run ls on each of the LD_LIBRARY_PATH directories
+for dir in $(echo $LD_LIBRARY_PATH | tr ':' ' '); do
+    if [ -d $dir ]; then
+        ls -l $dir
+    fi
+done
+
+$fdbread --extract ${selected} /dev/null
+
+exit 1
+
+# <OLD STUFF>
+# $fdbread --extract ${selected} /dev/null > $selectedrequests
 
 # # -------------------------------------
-# # 2: FDB with scan post-process
+# # 1: Reference FDB
 
-echo "Writing to FDB without gribjump plugin, then scanning"
-export FDB5_CONFIG_FILE=${bindir}/config_root2.yaml
-$fdbwrite ${testdata}
-$gjscan $selectedrequests
+# echo "Writing to FDB without gribjump plugin or scan"
+# export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
+# $fdbwrite ${testdata}
 
-# -------------------------------------
-# 3: FDB with gribjump plugin
+# # # -------------------------------------
+# # # 2: FDB with scan post-process
 
-echo "Writing to FDB with gribjump plugin"
-export FDB5_CONFIG_FILE=${bindir}/config_root3.yaml
-export FDB_ENABLE_GRIBJUMP=1
-$fdbwrite ${testdata}
-unset FDB_ENABLE_GRIBJUMP
+# echo "Writing to FDB without gribjump plugin, then scanning"
+# export FDB5_CONFIG_FILE=${bindir}/config_root2.yaml
+# $fdbwrite ${testdata}
+# $gjscan $selectedrequests
 
-# -------------------------------------
-# 4: FDB with gribjump-scan-files
+# # -------------------------------------
+# # 3: FDB with gribjump plugin
 
-echo "Writing to FDB without gribjump plugin, then scanning with gribjump-scan-files"
-export FDB5_CONFIG_FILE=${bindir}/config_root4.yaml
-$fdbwrite ${testdata}
+# echo "Writing to FDB with gribjump plugin"
+# export FDB5_CONFIG_FILE=${bindir}/config_root3.yaml
+# export FDB_ENABLE_GRIBJUMP=1
+# $fdbwrite ${testdata}
+# unset FDB_ENABLE_GRIBJUMP
 
-# # get a list of all .data files in the fdb xxxx database
+# # -------------------------------------
+# # 4: FDB with gribjump-scan-files
 
-filelist=$(find ${bindir}/root4 -path '*xxxx*' -name '*.data' | sort)
-$gjscanfiles $filelist
+# echo "Writing to FDB without gribjump plugin, then scanning with gribjump-scan-files"
+# export FDB5_CONFIG_FILE=${bindir}/config_root4.yaml
+# $fdbwrite ${testdata}
 
-# -------------------------------------
-# Inspect the .gribjump files from fdbs and compare.
+# # # get a list of all .data files in the fdb xxxx database
 
-files2=$(find ${bindir}/root2 -name "*.gribjump" | sort)
-files3=$(find ${bindir}/root3 -name "*.gribjump" | sort)
-files4=$(find ${bindir}/root4 -name "*.gribjump" | sort)
+# filelist=$(find ${bindir}/root4 -path '*xxxx*' -name '*.data' | sort)
+# $gjscanfiles $filelist
 
-# Make sure they are the same number
-Nfiles=$(echo $files2 | wc -w)
+# # -------------------------------------
+# # Inspect the .gribjump files from fdbs and compare.
 
-# Make sure that number for this test data.
-if [ $Nfiles -ne 5 ]; then
-    echo "Expected 5 .gribjump files, got $Nfiles"
-    exit 1
-fi
+# files2=$(find ${bindir}/root2 -name "*.gribjump" | sort)
+# files3=$(find ${bindir}/root3 -name "*.gribjump" | sort)
+# files4=$(find ${bindir}/root4 -name "*.gribjump" | sort)
 
-if [ $Nfiles -ne $(echo $files3 | wc -w) ]; then
-    echo "Different number of .gribjump files in 2 and 3"
-    exit 1
-fi
+# # Make sure they are the same number
+# Nfiles=$(echo $files2 | wc -w)
 
-if [ $Nfiles -ne $(echo $files4 | wc -w) ]; then
-    echo "Different number of .gribjump files in 2 and 4"
-    exit 1
-fi
+# # Make sure that number for this test data.
+# if [ $Nfiles -ne 5 ]; then
+#     echo "Expected 5 .gribjump files, got $Nfiles"
+#     exit 1
+# fi
 
-# Iterate over the files, make sure the first file matches the first, etc.
-# Note: if we ever store the full URI in the .gribjump file, this will need to be updated, as this will be different in 2 and 3.
-# In which case, use e.g., gribjump-dump-info for comparing.
-for i in $(seq 1 $Nfiles); do
-    file_2=$(echo $files2 | cut -d' ' -f$i)
-    file_3=$(echo $files3 | cut -d' ' -f$i)
-    file_4=$(echo $files4 | cut -d' ' -f$i)
-    diff $file_2 $file_3
-    diff $file_2 $file_4
-done
+# if [ $Nfiles -ne $(echo $files3 | wc -w) ]; then
+#     echo "Different number of .gribjump files in 2 and 3"
+#     exit 1
+# fi
 
-# -------------------------------------
-# Extract from all fdbs and compare the output
-extractrequests=${bindir}/extractrequests
-export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
-$fdbread --extract ${supporteddata} /dev/null > $extractrequests
+# if [ $Nfiles -ne $(echo $files4 | wc -w) ]; then
+#     echo "Different number of .gribjump files in 2 and 4"
+#     exit 1
+# fi
 
-ranges=${bindir}/ranges
-echo "0-10,20-30,40-50" > $ranges
+# # Iterate over the files, make sure the first file matches the first, etc.
+# # Note: if we ever store the full URI in the .gribjump file, this will need to be updated, as this will be different in 2 and 3.
+# # In which case, use e.g., gribjump-dump-info for comparing.
+# for i in $(seq 1 $Nfiles); do
+#     file_2=$(echo $files2 | cut -d' ' -f$i)
+#     file_3=$(echo $files3 | cut -d' ' -f$i)
+#     file_4=$(echo $files4 | cut -d' ' -f$i)
+#     diff $file_2 $file_3
+#     diff $file_2 $file_4
+# done
 
-for i in $(seq 1 4); do
-    export FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml
-    $gjextract $extractrequests $ranges > ${bindir}/tmp
-    cat ${bindir}/tmp
-    sed -n '/Extracted values:/,$p' ${bindir}/tmp > ${bindir}/extract${i}.clean
-done
-rm ${bindir}/tmp
+# # -------------------------------------
+# # Extract from all fdbs and compare the output
+# extractrequests=${bindir}/extractrequests
+# export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
+# $fdbread --extract ${supporteddata} /dev/null > $extractrequests
 
-diff ${bindir}/extract1.clean ${bindir}/extract2.clean
-diff ${bindir}/extract1.clean ${bindir}/extract3.clean
-diff ${bindir}/extract1.clean ${bindir}/extract4.clean
+# ranges=${bindir}/ranges
+# echo "0-10,20-30,40-50" > $ranges
 
-# -------------------------------------
-# Done! Tidy up
-for i in $(seq 1 4); do
-    rm ${bindir}/extract${i}.clean
-    rm -rf ${bindir}/root${i}
-done
+# for i in $(seq 1 4); do
+#     export FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml
+#     $gjextract $extractrequests $ranges > ${bindir}/tmp
+#     cat ${bindir}/tmp
+#     sed -n '/Extracted values:/,$p' ${bindir}/tmp > ${bindir}/extract${i}.clean
+# done
+# rm ${bindir}/tmp
 
-echo "Test finished"
+# diff ${bindir}/extract1.clean ${bindir}/extract2.clean
+# diff ${bindir}/extract1.clean ${bindir}/extract3.clean
+# diff ${bindir}/extract1.clean ${bindir}/extract4.clean
+
+# # -------------------------------------
+# # Done! Tidy up
+# for i in $(seq 1 4); do
+#     rm ${bindir}/extract${i}.clean
+#     rm -rf ${bindir}/root${i}
+# done
+
+# echo "Test finished"
