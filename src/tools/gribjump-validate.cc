@@ -102,7 +102,7 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
     // Extract the data using gribjump
 
     GribJump gj;
-    std::vector<std::vector<ExtractionResult*>> results = gj.extract(polyRequest);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results = gj.extract(polyRequest);
 
     ASSERT(results.size() == requests.size());
 

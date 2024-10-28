@@ -34,6 +34,13 @@ public: // methods
     ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
     explicit ExtractionResult(eckit::Stream& s);
 
+    // Movable, not copyable
+    ExtractionResult(const ExtractionResult&) = delete;
+    ExtractionResult& operator=(const ExtractionResult&) = delete;
+
+    ExtractionResult(ExtractionResult&&) = default;
+    ExtractionResult& operator=(ExtractionResult&&) = default;
+
     const std::vector<std::vector<double>>& values() const {return values_;}
     const std::vector<std::vector<std::bitset<64>>>& mask() const {return mask_;}
 

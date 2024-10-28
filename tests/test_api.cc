@@ -36,7 +36,7 @@ namespace test {
 // Build expected values for test ranges
 constexpr double MISSING = std::numeric_limits<double>::quiet_NaN();
 
-void compareValues(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues, const std::vector<std::vector<ExtractionResult*>>& output) {
+void compareValues(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues, const std::vector<std::vector<std::unique_ptr<ExtractionResult>>>& output) {
     EXPECT(expectedValues.size() == output.size());
     for (size_t i = 0; i < expectedValues.size(); i++) { // each mars request
         EXPECT_EQUAL(expectedValues[i].size(), output[i].size());
@@ -136,7 +136,7 @@ CASE( "test_gribjump_api_extract" ) {
 
     // Extract values
     GribJump gj;
-    std::vector<std::vector<ExtractionResult*>> output1 = gj.extract(polyRequest1);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output1 = gj.extract(polyRequest1);
 
     // Eccodes expected values
     std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues;
@@ -163,7 +163,7 @@ CASE( "test_gribjump_api_extract" ) {
     PolyRequest polyRequest2;
     polyRequest2.push_back(ExtractionRequest(requests[0], ranges, gridHash));
 
-    std::vector<std::vector<ExtractionResult*>> output2 = gj.extract(polyRequest2);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2 = gj.extract(polyRequest2);
     EXPECT(output2.size() == 1);
     EXPECT(output2[0].size() == 3);
 
@@ -178,7 +178,7 @@ CASE( "test_gribjump_api_extract" ) {
     EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges, "wronghash")}), eckit::SeriousBug); // incorrect hash
     
     // correct hash
-    std::vector<std::vector<ExtractionResult*>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, gridHash)});
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, gridHash)});
     EXPECT_EQUAL(output2c[0][0]->total_values(), 15);
 
     // --------------------------------------------------------------------------------------------
@@ -216,13 +216,16 @@ CASE( "test_gribjump_api_extract" ) {
     EXPECT(outputItems3.size() == 3);
 
     /// @todo temp: convert to extractionResult
-    std::vector<ExtractionResult*> output3;
+    std::vector<std::unique_ptr<ExtractionResult>> output3;
     for (size_t i = 0; i < outputItems3.size(); i++) {
-        output3.push_back(new ExtractionResult(outputItems3[i]->values(), outputItems3[i]->mask()));
+        // output3.push_back(new ExtractionResult(outputItems3[i]->values(), outputItems3[i]->mask()));
+        output3.push_back(std::make_unique<ExtractionResult>(outputItems3[i]->values(), outputItems3[i]->mask()));
     }
 
     // Expect output to be the same as output2[0]
-    compareValues(expectedValues, {output3});
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output3v;
+    output3v.push_back(std::move(output3)); // i.e. == {output3}
+    compareValues(expectedValues, output3v);
 
     std::cout << "test_gribjump_api_extract got to the end" << std::endl;
 }

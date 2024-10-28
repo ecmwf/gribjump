@@ -84,24 +84,24 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 }
 
 /// @todo, change API, remove extraction request
-std::vector<std::vector<ExtractionResult*>> LocalGribJump::extract(ExtractionRequests requests, LogContext ctx) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests requests, LogContext ctx) {
 
     bool flatten = true;
     Engine engine;
     ResultsMap results = engine.extract(requests, flatten);
     engine.raiseErrors();
 
-    std::vector<std::vector<ExtractionResult*>> extractionResults;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
         auto it = results.find(req.request());
         ASSERT(it != results.end());
-        std::vector<ExtractionResult*> res;
+        std::vector<std::unique_ptr<ExtractionResult>> res;
         for (auto& item : it->second) {
-            ExtractionResult* r = new ExtractionResult(item->values(), item->mask());
-            res.push_back(r);
+            // std::unique_ptr<ExtractionResult> r(new ExtractionResult(item->values(), item->mask()));
+            res.push_back(std::make_unique<ExtractionResult>(item->values(), item->mask()));
         }
 
-        extractionResults.push_back(res);
+        extractionResults.push_back(std::move(res));
     }
 
     return extractionResults;
