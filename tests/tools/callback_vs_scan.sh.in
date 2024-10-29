@@ -71,44 +71,38 @@ $gribset -s "expver=xxxy" $selected $unselected
 cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
-export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
-$fdbread --extract ${selected} /dev/null > $selectedrequests
+FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
 
 # -------------------------------------
 # 1: Reference FDB
 
 echo "Writing to FDB without gribjump plugin or scan"
-export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
-$fdbwrite ${testdata}
+FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbwrite ${testdata}
 
 # # -------------------------------------
 # # 2: FDB with scan post-process
 
 echo "Writing to FDB without gribjump plugin, then scanning"
-export FDB5_CONFIG_FILE=${bindir}/config_root2.yaml
-$fdbwrite ${testdata}
-$gjscan $selectedrequests
+FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $fdbwrite ${testdata}
+FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $gjscan $selectedrequests
 
 # -------------------------------------
 # 3: FDB with gribjump plugin
 
 echo "Writing to FDB with gribjump plugin"
-export FDB5_CONFIG_FILE=${bindir}/config_root3.yaml
 export FDB_ENABLE_GRIBJUMP=1
-$fdbwrite ${testdata}
+FDB5_CONFIG_FILE=${bindir}/config_root3.yaml $fdbwrite ${testdata}
 unset FDB_ENABLE_GRIBJUMP
 
 # -------------------------------------
 # 4: FDB with gribjump-scan-files
 
 echo "Writing to FDB without gribjump plugin, then scanning with gribjump-scan-files"
-export FDB5_CONFIG_FILE=${bindir}/config_root4.yaml
-$fdbwrite ${testdata}
+FDB5_CONFIG_FILE=${bindir}/config_root4.yaml $fdbwrite ${testdata}
 
-# # get a list of all .data files in the fdb xxxx database
-
+# get a list of all .data files in the fdb xxxx database
 filelist=$(find ${bindir}/root4 -path '*xxxx*' -name '*.data' | sort)
-$gjscanfiles $filelist
+$gjscanfiles $filelist # NB: Does not use FDB directly 
 
 # -------------------------------------
 # Inspect the .gribjump files from fdbs and compare.
@@ -157,8 +151,7 @@ ranges=${bindir}/ranges
 echo "0-10,20-30,40-50" > $ranges
 
 for i in $(seq 1 4); do
-    export FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml
-    $gjextract $extractrequests $ranges > ${bindir}/tmp
+    FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml $gjextract $extractrequests $ranges > ${bindir}/tmp
     cat ${bindir}/tmp
     sed -n '/Extracted values:/,$p' ${bindir}/tmp > ${bindir}/extract${i}.clean
 done

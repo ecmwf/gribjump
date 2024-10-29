@@ -3,7 +3,7 @@ dependencies: |
   ecmwf/ecbuild
   MathisRosenhauer/libaec@master
   ecmwf/eccodes
-  ecmwf/eckit@feature/findaec
+  ecmwf/eckit@develop
   ecmwf/metkit
   ecmwf/fdb
 dependency_branch: develop
