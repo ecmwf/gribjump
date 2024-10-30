@@ -17,6 +17,8 @@ import numpy as np
 import cffi
 import os
 import findlibs
+import warnings
+from ._version import __version__
 
 ffi = cffi.FFI()
 
@@ -44,8 +46,7 @@ class PatchedLib:
         self.__lib = ffi.dlopen(libName)
 
         # All of the executable members of the CFFI-loaded library are functions in the GribJump
-        # C API. These should be wrapped with the correct error handling. Otherwise forward
-        # these on directly.
+        # C API. These should be wrapped with the correct error handling.
 
         for f in dir(self.__lib):
             try:
@@ -58,6 +59,14 @@ class PatchedLib:
 
         # Initialise the library, and set it up for python-appropriate behaviour
         self.gribjump_initialise()
+
+        # Check versions
+        tmp_str = ffi.new('char**')
+        self.gribjump_version_c(tmp_str)
+        versionstr = ffi.string(tmp_str[0]).decode('utf-8')
+
+        if versionstr != __version__:
+            warnings.warn(f"GribJump library version {versionstr} does not match pygribjump version {__version__}")
 
     def __read_header(self, hdr_path):
         with open(hdr_path, 'r') as f:
@@ -349,3 +358,10 @@ def dic_to_request(dic):
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
     return ','.join(['='.join([k, v]) for k, v in dic.items()])
 
+def version():
+    return __version__
+
+def library_version():
+    tmp_str = ffi.new('char**')
+    lib.gribjump_version_c(tmp_str)
+    return ffi.string(tmp_str[0]).decode('utf-8')

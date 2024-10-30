@@ -3,8 +3,13 @@ import re
 
 from setuptools import find_packages, setup
 
+# VERSION file is source of truth for version
 with open("VERSION", "r") as f:
     __version__ = f.read().strip()
+
+# update the version.py file
+with open("pygribjump/src/pygribjump/_version.py", "w") as f:
+    f.write(f"__version__ = \"{__version__}\"\n")
 
 setup(
     name="pygribjump",

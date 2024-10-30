@@ -11,14 +11,13 @@
 /// @author Christopher Bradley
 
 #include "gribjump/gribjump_c.h"
+#include "gribjump/gribjump_version.h"
 #include "gribjump/GribJump.h"
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/StringTools.h"
 #include "metkit/mars/MarsParser.h"
 
 using namespace gribjump;
-
-// Note: We don't do much in terms of error handling here.
 
 extern "C" {
 
@@ -34,176 +33,48 @@ const char* gribjump_error_string(int err) {
         return "Unknown error";
     };
 }
+} // extern "C"
+
+namespace {
+
+template <typename FN>
+int wrapApiFunction(FN f) {
+    try {
+        f();
+        return 0;
+    } 
+    catch (std::exception& e) {
+        eckit::Log::error() << "Caught exception on C-C++ API boundary: " << e.what() << std::endl;
+        LAST_ERROR_STR = e.what();
+        return 1;
+    } 
+    catch (...) {
+        eckit::Log::error() << "Caught unknown on C-C++ API boundary" << std::endl;
+        LAST_ERROR_STR = "Unrecognised and unknown exception";
+        return 1;
+    }
+}
+
+} // namespace
 
 // --------------------------------------------------------------------------------------------
 
+extern "C" {
 struct gribjump_handle_t : public GribJump {
     using GribJump::GribJump;
 };
 
-// todo deleter
 struct gribjump_extraction_result_t: public ExtractionResult {
     using ExtractionResult::ExtractionResult;
 
     explicit gribjump_extraction_result_t(std::unique_ptr<ExtractionResult> result): ExtractionResult(std::move(*result)) {}
 };
 
-// todo deleter
 struct gribjump_extraction_request_t: public ExtractionRequest {
     using ExtractionRequest::ExtractionRequest;
 
     gribjump_extraction_request_t(const ExtractionRequest& request): ExtractionRequest(request) {}
 };
-
-int gribjump_new_handle(gribjump_handle_t** handle) {
-    *handle = new gribjump_handle_t();
-    return 0;
-}
-
-int gribjump_delete_handle(gribjump_handle_t* handle) {
-    ASSERT(handle);
-    delete handle;
-    return 0;
-}
-
-int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr, const char* gridhash) {
-    // reqstr is a string representation of a metkit::mars::MarsRequest
-    // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
-    
-    // NB: Treat the requests as raw requests.
-    std::istringstream iss(reqstr);
-    metkit::mars::MarsParser parser(iss);
-    std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
-    ASSERT(requests.size() == 1);
-    metkit::mars::MarsRequest mreq(requests[0]);
-
-    // Parse the ranges string
-    std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
-    std::vector<Range> rangevec;
-    for (const auto& range : ranges) {
-        std::vector<std::string> kv = eckit::StringTools::split("-", range);
-        ASSERT(kv.size() == 2);
-        rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
-    }
-
-    std::string gridhash_str = gridhash ? std::string(gridhash) : "";
-    *request = new gribjump_extraction_request_t(mreq, rangevec, gridhash_str);
-
-    return 0;
-}
-
-int gribjump_delete_request(gribjump_extraction_request_t* request) {
-    ASSERT(request);
-    delete request;
-    return 0;
-}
-
-int gribjump_new_result(gribjump_extraction_result_t** result) { // not sure if this is needed
-    // set to null
-    *result = nullptr;
-    return 0;
-}
-
-int gribjump_result_values(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues) {
-    // makes a copy of the values
-    ASSERT(result);
-    std::vector<std::vector<double>> vals = result->values();
-    *nrange = vals.size();
-    *values = new double*[*nrange];
-    *nvalues = new unsigned long[*nrange];
-    for (size_t i = 0; i < *nrange; i++) {
-        (*nvalues)[i] = vals[i].size();
-        (*values)[i] = new double[(*nvalues)[i]];
-        for (size_t j = 0; j < (*nvalues)[i]; j++) {
-            (*values)[i][j] = vals[i][j];
-        }
-    }
-    return 0;
-}
-
-int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks) {
-    // makes a copy of the mask, converting from bitset to uint64_t
-    // TODO(Chris): Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
-    ASSERT(result);
-    std::vector<std::vector<std::bitset<64>>> msk = result->mask();
-    *nrange = msk.size();
-    *masks = new unsigned long long*[*nrange];
-    *nmasks = new unsigned long[*nrange];
-    for (size_t i = 0; i < *nrange; i++) {
-        (*nmasks)[i] = msk[i].size();
-        (*masks)[i] = new unsigned long long[(*nmasks)[i]];
-        for (size_t j = 0; j < (*nmasks)[i]; j++) {
-            (*masks)[i][j] = msk[i][j].to_ullong();
-        }
-    }
-    return 0;
-}
-
-int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues) {
-    ASSERT(result);
-    result->values_ptr(values, nrange, nvalues);
-    return 0;
-}
-
-int gribjump_delete_result(gribjump_extraction_result_t* result) {
-    ASSERT(result);
-    delete result;
-    return 0;
-}
-
-/// @todo review why this extract_single exists.
-int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
-    ExtractionRequest req = *request;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(std::vector<ExtractionRequest>{req});
-    ASSERT(resultsv.size() == 1);
-
-    std::vector<std::unique_ptr<ExtractionResult>> results = std::move(resultsv[0]);
-
-    *nfields = results.size();
-    *results_array = new gribjump_extraction_result_t*[*nfields];
-
-    for (size_t i = 0; i < *nfields; i++) {
-        (*results_array)[i] = new gribjump_extraction_result_t(std::move(results[i])); // not convinced this is safe
-    }
-
-    return 0;
-}
-int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields, const char* ctx){
-    std::vector<ExtractionRequest> reqs;
-    for (size_t i = 0; i < nrequests; i++) {
-        reqs.push_back(*requests[i]);
-    }
-    LogContext logctx;
-    if (ctx) {
-        logctx = LogContext(ctx);
-    }
-    
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results;
-    try {
-        results = handle->extract(reqs, logctx);
-    } catch (std::exception& e) {
-        eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.extract): " << e.what() << std::endl;
-        LAST_ERROR_STR = e.what();
-        return 1;
-    }
-    catch (...) {
-        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.extract)" << std::endl;
-        LAST_ERROR_STR = "Unrecognised and unknown exception";
-        return 1;
-    }
-
-    *nfields = new unsigned long[nrequests];
-    *results_array = new gribjump_extraction_result_t**[nrequests];
-
-    for (size_t i = 0; i < nrequests; i++) {
-        (*nfields)[i] = results[i].size();
-        (*results_array)[i] = new gribjump_extraction_result_t*[(*nfields)[i]];
-        for (size_t j = 0; j < (*nfields)[i]; j++) {
-            (*results_array)[i][j] = new gribjump_extraction_result_t(std::move(results[i][j]));
-        }
-    }
-    return 0;
-}
 
 struct gj_axes_t {
 public:
@@ -245,42 +116,188 @@ private:
     std::map<std::string, std::unordered_set<std::string>> values_;
 };
 
+
+int gribjump_new_handle(gribjump_handle_t** handle) {
+    return wrapApiFunction([=] {
+        *handle = new gribjump_handle_t();
+    });
+}
+
+int gribjump_delete_handle(gribjump_handle_t* handle) {
+    return wrapApiFunction([=] {
+        ASSERT(handle);
+        delete handle;
+    });
+}
+
+int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr, const char* gridhash) {
+    return wrapApiFunction([=] {
+
+        // reqstr is a string representation of a metkit::mars::MarsRequest
+        // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
+        
+        // NB: Treat the requests as raw requests.
+        std::istringstream iss(reqstr);
+        metkit::mars::MarsParser parser(iss);
+        std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
+        ASSERT(requests.size() == 1);
+        metkit::mars::MarsRequest mreq(requests[0]);
+
+        // Parse the ranges string
+        std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
+        std::vector<Range> rangevec;
+        for (const auto& range : ranges) {
+            std::vector<std::string> kv = eckit::StringTools::split("-", range);
+            ASSERT(kv.size() == 2);
+            rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
+        }
+
+        std::string gridhash_str = gridhash ? std::string(gridhash) : "";
+        *request = new gribjump_extraction_request_t(mreq, rangevec, gridhash_str);
+
+    });
+}
+
+int gribjump_delete_request(gribjump_extraction_request_t* request) {
+    return wrapApiFunction([=] {
+        ASSERT(request);
+        delete request;
+    });
+}
+
+///@todo not sure if this is needed
+int gribjump_new_result(gribjump_extraction_result_t** result) { 
+    return wrapApiFunction([=] {
+    *result = nullptr;
+    });
+}
+
+// makes a copy of the values
+int gribjump_result_values(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues) {
+    return wrapApiFunction([=] {
+        ASSERT(result);
+        std::vector<std::vector<double>> vals = result->values();
+        *nrange = vals.size();
+        *values = new double*[*nrange];
+        *nvalues = new unsigned long[*nrange];
+        for (size_t i = 0; i < *nrange; i++) {
+            (*nvalues)[i] = vals[i].size();
+            (*values)[i] = new double[(*nvalues)[i]];
+            for (size_t j = 0; j < (*nvalues)[i]; j++) {
+                (*values)[i][j] = vals[i][j];
+            }
+        }
+    });
+}
+
+// makes a copy of the mask, converting from bitset to uint64_t
+// TODO(Chris): Why does my py code handle uint64_t instead of unsigned long long, when pyfdb handles it fine?
+int gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks) {
+    return wrapApiFunction([=] {
+        ASSERT(result);
+        std::vector<std::vector<std::bitset<64>>> msk = result->mask();
+        *nrange = msk.size();
+        *masks = new unsigned long long*[*nrange];
+        *nmasks = new unsigned long[*nrange];
+        for (size_t i = 0; i < *nrange; i++) {
+            (*nmasks)[i] = msk[i].size();
+            (*masks)[i] = new unsigned long long[(*nmasks)[i]];
+            for (size_t j = 0; j < (*nmasks)[i]; j++) {
+                (*masks)[i][j] = msk[i][j].to_ullong();
+            }
+        }
+    });
+}
+
+int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues) {
+    return wrapApiFunction([=] {
+        ASSERT(result);
+        result->values_ptr(values, nrange, nvalues);
+    });
+}
+
+int gribjump_delete_result(gribjump_extraction_result_t* result) {
+    return wrapApiFunction([=] {
+        ASSERT(result);
+        delete result;
+    });
+}
+
+/// @todo review why this extract_single exists.
+int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
+    return wrapApiFunction([=] {
+        ExtractionRequest req = *request;
+        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(std::vector<ExtractionRequest>{req});
+        ASSERT(resultsv.size() == 1);
+
+        std::vector<std::unique_ptr<ExtractionResult>> results = std::move(resultsv[0]);
+
+        *nfields = results.size();
+        *results_array = new gribjump_extraction_result_t*[*nfields];
+
+        for (size_t i = 0; i < *nfields; i++) {
+            (*results_array)[i] = new gribjump_extraction_result_t(std::move(results[i])); // not convinced this is safe
+        }
+
+    });
+}
+int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests, gribjump_extraction_result_t**** results_array, unsigned long** nfields, const char* ctx){
+    return wrapApiFunction([=] {
+        std::vector<ExtractionRequest> reqs;
+        for (size_t i = 0; i < nrequests; i++) {
+            reqs.push_back(*requests[i]);
+        }
+        LogContext logctx;
+        if (ctx) {
+            logctx = LogContext(ctx);
+        }
+        
+        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results;
+        results = handle->extract(reqs, logctx);
+
+        *nfields = new unsigned long[nrequests];
+        *results_array = new gribjump_extraction_result_t**[nrequests];
+
+        for (size_t i = 0; i < nrequests; i++) {
+            (*nfields)[i] = results[i].size();
+            (*results_array)[i] = new gribjump_extraction_result_t*[(*nfields)[i]];
+            for (size_t j = 0; j < (*nfields)[i]; j++) {
+                (*results_array)[i][j] = new gribjump_extraction_result_t(std::move(results[i][j]));
+            }
+        }
+    });
+}
+
+
 int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* gj) {
-    ASSERT(gj);
-    std::string reqstr_str(reqstr);
-    std::map<std::string, std::unordered_set<std::string>> values;
-    try {
+    return wrapApiFunction([=] {
+        ASSERT(gj);
+        std::string reqstr_str(reqstr);
+        std::map<std::string, std::unordered_set<std::string>> values;
         values = gj->axes(reqstr_str);
-    } catch (std::exception& e) {
-        eckit::Log::error() << "Caught exception on C-C++ API boundary (gribjump.axes): " << e.what() << std::endl;
-        LAST_ERROR_STR = e.what();
-        return 1;
-    }
-    catch (...) {
-        eckit::Log::error() << "Caught unknown exception on C-C++ API boundary (gribjump.axes)" << std::endl;
-        LAST_ERROR_STR = "Unrecognised and unknown exception";
-        return 1;
-    }
-    *axes = new gj_axes_t(values);
-    return 0;
+        *axes = new gj_axes_t(values);
+    });
 }
 
 int gribjump_axes_keys(gj_axes_t* axes, const char*** keys_out, unsigned long* size) {
-    ASSERT(axes);
-    axes->keys(keys_out, size);
-    return 0;
+    return wrapApiFunction([=] {
+        ASSERT(axes);
+        axes->keys(keys_out, size);
+    });
 }
 
 int gribjump_axes_values(gj_axes_t* axes, const char* key, const char*** values_out, unsigned long* size) {
-    ASSERT(axes);
-    axes->values(key, values_out, size);
-    return 0;
+    return wrapApiFunction([=] {
+        ASSERT(axes);
+        axes->values(key, values_out, size);
+    });
 }
 
 int gribjump_delete_axes(gj_axes_t* axes) {
-    ASSERT(axes);
-    delete axes;
-    return 0;
+    return wrapApiFunction([=] {
+        ASSERT(axes);
+        delete axes;
+    });
 }
 
 /*
@@ -289,18 +306,31 @@ int gribjump_delete_axes(gj_axes_t* axes) {
  *       is not otherwise initialised
 */
 int gribjump_initialise() {
-    static bool initialised = false;
+    return wrapApiFunction([] {
+        static bool initialised = false;
 
-    if (initialised) {
-        eckit::Log::warning() << "Initialising gribjump library twice" << std::endl;
-    }
+        if (initialised) {
+            eckit::Log::warning() << "Initialising gribjump library twice" << std::endl;
+        }
 
-    if (!initialised) {
-        const char* argv[2] = {"gribjump-api", 0};
-        eckit::Main::initialise(1, const_cast<char**>(argv));
-        initialised = true;
-    }
-    return 0;
+        if (!initialised) {
+            const char* argv[2] = {"gribjump-api", 0};
+            eckit::Main::initialise(1, const_cast<char**>(argv));
+            initialised = true;
+        }
+    });
+}
+
+int gribjump_version_c(const char** version) {
+    return wrapApiFunction([version]{
+        (*version) = gribjump_version_str();
+    });
+}
+
+int gribjump_git_sha1_c(const char** sha1) {
+    return wrapApiFunction([sha1]{
+        (*sha1) = gribjump_git_sha1();
+    });
 }
 
 } // extern "C"
