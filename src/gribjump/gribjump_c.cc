@@ -45,7 +45,7 @@ struct gribjump_handle_t : public GribJump {
 struct gribjump_extraction_result_t: public ExtractionResult {
     using ExtractionResult::ExtractionResult;
 
-    gribjump_extraction_result_t(const ExtractionResult& result): ExtractionResult(result) {}
+    explicit gribjump_extraction_result_t(std::unique_ptr<ExtractionResult> result): ExtractionResult(std::move(*result)) {}
 };
 
 // todo deleter
@@ -154,13 +154,16 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
 /// @todo review why this extract_single exists.
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
     ExtractionRequest req = *request;
-    std::vector<ExtractionResult*> results = handle->extract(std::vector<ExtractionRequest>{req})[0];
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(std::vector<ExtractionRequest>{req});
+    ASSERT(resultsv.size() == 1);
+
+    std::vector<std::unique_ptr<ExtractionResult>> results = std::move(resultsv[0]);
 
     *nfields = results.size();
     *results_array = new gribjump_extraction_result_t*[*nfields];
 
     for (size_t i = 0; i < *nfields; i++) {
-        (*results_array)[i] = new gribjump_extraction_result_t(*results[i]);
+        (*results_array)[i] = new gribjump_extraction_result_t(std::move(results[i])); // not convinced this is safe
     }
 
     return 0;
@@ -175,7 +178,7 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
         logctx = LogContext(ctx);
     }
     
-    std::vector<std::vector<ExtractionResult*>> results;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results;
     try {
         results = handle->extract(reqs, logctx);
     } catch (std::exception& e) {
@@ -196,7 +199,7 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
         (*nfields)[i] = results[i].size();
         (*results_array)[i] = new gribjump_extraction_result_t*[(*nfields)[i]];
         for (size_t j = 0; j < (*nfields)[i]; j++) {
-            (*results_array)[i][j] = new gribjump_extraction_result_t(*results[i][j]);
+            (*results_array)[i][j] = new gribjump_extraction_result_t(std::move(results[i][j]));
         }
     }
     return 0;

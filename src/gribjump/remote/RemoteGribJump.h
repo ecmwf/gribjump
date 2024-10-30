@@ -38,7 +38,7 @@ public: // methods
 
     size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
 
-    std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest> polyRequest, LogContext ctx) override;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest> polyRequest, LogContext ctx) override;
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
     void extract(filemap_t& filemap);
 

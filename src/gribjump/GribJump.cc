@@ -48,13 +48,13 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 }
 
 
-std::vector<std::vector<ExtractionResult*>> GribJump::extract(const std::vector<ExtractionRequest>& requests, LogContext ctx) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> GribJump::extract(const std::vector<ExtractionRequest>& requests, LogContext ctx) {
 
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
     }
 
-    std::vector<std::vector<ExtractionResult*>> out = impl_->extract(requests, ctx);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> out = impl_->extract(requests, ctx); // ... why is this still using raw pointers? // why are we not using extraction items?
     return out;
 }
 
