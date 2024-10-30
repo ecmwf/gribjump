@@ -4,3 +4,34 @@ addopts = "-vv -s"
 testpaths = [
     "pygribjump/tests"
 ]
+
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pygribjump"
+description = "Python interface to GribJump"
+readme = "README.md"
+requires-python = ">=3.6"
+dynamic = ["version"]
+authors = [
+    { name = "ECMWF", email = "software.support@ecmwf.int" }
+]
+urls = { "Home" = "https://github.com/ecmwf/gribjump" }
+dependencies = [
+    "cffi",
+    "findlibs",
+    "numpy"
+]
+
+[tool.setuptools.dynamic]
+version = { file = ["VERSION"] }
+
+[tool.setuptools]
+packages = ["pygribjump"]
+package-dir = { "pygribjump" = "./pygribjump/src/pygribjump" }
+include-package-data = true
+zip-safe = false
