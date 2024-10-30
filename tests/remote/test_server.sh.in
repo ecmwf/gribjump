@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+set -u
+
+# --- Documentation
+# This script is used to start a test server for the remote gribjump tests
+
+# --- Cmake variables
+srcdir="@CMAKE_CURRENT_SOURCE_DIR@"
+bindir="@CMAKE_CURRENT_BINARY_DIR@"
+fdbwrite="$<TARGET_FILE:fdb-write>"
+gjserver="$<TARGET_FILE:gribjump-server>"
+test="$<TARGET_FILE:gribjump_test_remote_exe>"
+
+serverconfig=$srcdir/server.yaml
+clientconfig=$srcdir/client.yaml
+fdbconfig=$bindir/fdb_config.yaml
+fdbrootdir=$bindir/fdb_root
+fdbdata=$bindir/../extract_ranges.grib
+pidfile=$bindir/server.pid
+
+# --- Cleanup and setup
+cleanup() {
+    if [[ -f $pidfile ]]; then
+        echo "Stopping server..."
+        SERVER_PID=$(cat $pidfile)
+        kill $SERVER_PID
+        wait $SERVER_PID 2>/dev/null
+        rm $pidfile
+    fi
+
+    rm -rf $fdbrootdir
+}
+
+cleanup # start fresh
+
+# --- Pre-populate the FDB with data
+mkdir -p $fdbrootdir
+env FDB5_CONFIG_FILE=$fdbconfig $fdbwrite $fdbdata
+
+# --- Start the server in the background.
+trap cleanup EXIT # Ensure cleanup is called when the script exits
+env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$serverconfig GRIBJUMP_SERVER_PORT=57777 $gjserver &
+echo $! > $pidfile
+sleep 1
+
+# --- Run the client test
+env GRIBJUMP_CONFIG_FILE=$clientconfig $test
+exit $?

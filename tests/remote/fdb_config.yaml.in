@@ -1,0 +1,8 @@
+---
+type: local
+engine: toc
+schema: @CMAKE_CURRENT_SOURCE_DIR@/schema
+spaces:
+- handler: Default
+  roots:
+  - path: @CMAKE_CURRENT_BINARY_DIR@/fdb_root
