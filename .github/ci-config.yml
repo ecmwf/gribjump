@@ -1,8 +1,9 @@
+cmake_options: -DENABLE_FDB_BUILD_TOOLS=ON
 dependencies: |
   ecmwf/ecbuild
   MathisRosenhauer/libaec@master
   ecmwf/eccodes
-  ecmwf/eckit
+  ecmwf/eckit@develop
   ecmwf/metkit
   ecmwf/fdb
 dependency_branch: develop
