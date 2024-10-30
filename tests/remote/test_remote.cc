@@ -58,7 +58,7 @@ CASE( "Remote protocol: extract" ) {
     }
 
     GribJump gribjump;
-    std::vector<std::vector<ExtractionResult*>> output = gribjump.extract(exRequests);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gribjump.extract(exRequests);
 
     EXPECT_EQUAL(output.size(), 2);
     for (size_t i = 0; i < output.size(); i++) {
