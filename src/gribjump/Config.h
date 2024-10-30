@@ -23,12 +23,16 @@ public:
     Config(const eckit::PathName);
 
     const std::map<std::string, std::string>& serverMap() const { return serverMap_; }
+    
+    ///@note : Will be empty if default config is used
+    const std::string& path() const { return path_; }
 
 private:
     std::map<std::string, std::string> loadServerMap() const;
 
 private:
     std::map<std::string, std::string> serverMap_;
+    std::string path_;
 };
 
 } // namespace gribjump

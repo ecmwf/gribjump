@@ -37,7 +37,8 @@ Config::Config() {
 
 Config::Config(const eckit::PathName path) :
     eckit::LocalConfiguration(eckit::YAMLConfiguration(path)),
-    serverMap_{loadServerMap()} {
+    serverMap_{loadServerMap()},
+    path_{path} {
 }
 
 std::map<std::string, std::string> Config::loadServerMap() const {
