@@ -22,9 +22,18 @@ authors = [
 ]
 urls = { "Home" = "https://github.com/ecmwf/gribjump" }
 dependencies = [
-    "cffi",
-    "findlibs",
-    "numpy"
+    "cffi~=1.17",
+    "numpy>=1.0",
+    "pytest~=8.3",
+    "setuptools~=75.1",
+    "findlibs~=0.0.5",
+
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyyaml",
+    "pyfdb",
 ]
 
 [tool.setuptools.dynamic]
@@ -35,3 +44,12 @@ packages = ["pygribjump"]
 package-dir = { "pygribjump" = "./pygribjump/src/pygribjump" }
 include-package-data = true
 zip-safe = false
+
+# [tool.setuptools.package-data]
+# "pygribjump" = ["VERSION"]
+
+# [tool.setuptools.packages.find]
+# where = ["."]
+
+[tool.setuptools.package-data]
+"pygribjump" = ["VERSION", "pygribjump/src/pygribjump/gribjump_c.h"]

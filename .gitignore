@@ -3,6 +3,7 @@ tags
 *analyzerinfo
 *snalyzerinfo
 build/
+build_cpp/
 .vscode/
 tests/*.grib
 __pycache__
