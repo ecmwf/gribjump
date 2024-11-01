@@ -159,6 +159,7 @@ filemap_t Engine::buildFileMap(const ExtractionRequests& requests, ExItemMap& ke
     }
 
     const metkit::mars::MarsRequest req = unionRequest(marsrequests);
+    MetricsManager::instance().set("union_request", req.asString());
     timer.reset("Gribjump Engine: Flattened requests and constructed union request");
 
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
@@ -248,14 +249,19 @@ void Engine::scheduleTasks(filemap_t& filemap){
 
 ResultsMap Engine::extract(const ExtractionRequests& requests, bool flatten) {
 
+    eckit::Timer timer("Engine::extract");
     ExItemMap keyToExtractionItem = buildKeyToExtractionItem(requests, flatten); // Owns the ExtractionItems
     filemap_t filemap = buildFileMap(requests, keyToExtractionItem);
-    eckit::Timer timer("Engine::extract");
+    MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
+    timer.reset("Gribjump Engine: Built file map");
 
     scheduleTasks(filemap);
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
     ResultsMap results = collectResults(keyToExtractionItem);
+    MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
+
     timer.reset("Gribjump Engine: Repackaged results");
 
     return results;
@@ -310,6 +316,7 @@ size_t Engine::scan(std::vector<eckit::PathName> files) {
 }
 
 std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request) {
+    MetricsManager::instance().set("request", request);
     return FDBLister::instance().axes(request);
 }
 
@@ -319,10 +326,6 @@ void Engine::reportErrors(eckit::Stream& client) {
 
 void Engine::raiseErrors() {
     taskGroup_.raiseErrors();
-}
-void Engine::updateMetrics(Metrics& metrics) {
-    metrics.nTasks = taskGroup_.nTasks();
-    metrics.nFailedTasks = taskGroup_.nErrors();
 }
 //----------------------------------------------------------------------------------------------------------------------
 

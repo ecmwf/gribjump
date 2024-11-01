@@ -109,6 +109,13 @@ void TaskGroup::waitForTasks() {
     cv_.wait(lock, [&]{return counter_ == taskStatus_.size();});
     waiting_ = false;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
+
+    MetricsManager::instance().set("count_tasks", taskStatus_.size());
+    MetricsManager::instance().set("count_failed_tasks", errors_.size());
+
+    if (errors_.size() > 0) {
+        MetricsManager::instance().set("first_error", errors_[0]);
+    }
 }
 
 void TaskGroup::reportErrors(eckit::Stream& client) {

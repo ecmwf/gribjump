@@ -35,9 +35,9 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint): host_(endpoint.ho
 
 RemoteGribJump::~RemoteGribJump() {}
 
-void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type) {
+void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type, LogContext ctx) {
     stream << remoteProtocolVersion;
-    stream << ctx_;
+    stream << ctx;
     stream << static_cast<uint16_t>(type);
 }
 
@@ -87,7 +87,7 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extr
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
 
-    sendHeader(stream, RequestType::EXTRACT);
+    sendHeader(stream, RequestType::EXTRACT, ctx);
 
     size_t nRequests = requests.size();
     stream << nRequests;

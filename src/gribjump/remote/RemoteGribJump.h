@@ -47,7 +47,7 @@ public: // methods
 private: // methods
 
     bool receiveErrors(eckit::Stream& stream, bool raise=true);
-    void sendHeader(eckit::net::InstantTCPStream& stream, RequestType type);
+    void sendHeader(eckit::net::InstantTCPStream& stream, RequestType type, LogContext ctx=LogContext("none"));
 
 private: // members
     std::string host_;

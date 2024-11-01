@@ -54,7 +54,7 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> GribJump::extract(co
         throw eckit::UserError("Requests must not be empty", Here());
     }
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> out = impl_->extract(requests, ctx); // ... why is this still using raw pointers? // why are we not using extraction items?
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> out = impl_->extract(requests, ctx);  // why are we not using extraction items?
     return out;
 }
 

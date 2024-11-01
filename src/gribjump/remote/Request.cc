@@ -14,12 +14,21 @@
 #include "gribjump/remote/Request.h"
 #include "gribjump/Engine.h"
 
+namespace {
+    static std::atomic<uint64_t> requestid_{0};
+    static uint64_t requestid() {
+        return requestid_++;
+    }
+} // namespace
+
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 // @todo: Lots of common behaviour between these classes, consider refactoring. Especially the interaction with metrics.
 
-Request::Request(eckit::Stream& stream, LogContext ctx) : client_(stream), metrics_(ctx) {
+Request::Request(eckit::Stream& stream) : client_(stream) {
+    id_ = requestid();
+    MetricsManager::instance().set("request_id", id_);
 }
 
 Request::~Request() {}
@@ -30,10 +39,8 @@ void Request::reportErrors() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ScanRequest::ScanRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
-    metrics_.action = "scan";
-
-    eckit::Timer timer;
+ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
+    MetricsManager::instance().set("action", "scan");
 
     client_ >> byfiles_;
 
@@ -48,38 +55,30 @@ ScanRequest::ScanRequest(eckit::Stream& stream, LogContext ctx) : Request(stream
         requests_.emplace_back(metkit::mars::MarsRequest(client_));
     }
 
-    metrics_.nRequests = numRequests;
-    metrics_.timeReceive = timer.elapsed();
+    MetricsManager::instance().set("count_requests", numRequests);
 }
 
 ScanRequest::~ScanRequest() {
 }
 
 void ScanRequest::execute() {
-    eckit::Timer timer;
     nfiles_ = engine_.scan(requests_, byfiles_);
-    engine_.updateMetrics(metrics_);
-    metrics_.timeExecute = timer.elapsed();
 }
 
 void ScanRequest::replyToClient() {
-    eckit::Timer timer;
 
-    reportErrors();
     client_ << nfiles_;
 
-    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
-    metrics_.action = "extract";
+ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
+    MetricsManager::instance().set("action", "extract");
 
     // Receive the requests
     // Temp, repackage the requests from old format into format the engine expects
-    eckit::Timer timer;
 
     size_t nRequests;
     client_ >> nRequests;
@@ -91,18 +90,15 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(
 
     flatten_ = false; // xxx hard coded for now
 
-    metrics_.nRequests = nRequests;
-    metrics_.timeReceive = timer.elapsed();
+    MetricsManager::instance().set("count_requests", nRequests);
 }
 
 ExtractRequest::~ExtractRequest() {
 }
 
 void ExtractRequest::execute() {
-    eckit::Timer timer;
 
     results_ = engine_.extract(requests_, flatten_);
-    engine_.updateMetrics(metrics_);
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
@@ -112,13 +108,9 @@ void ExtractRequest::execute() {
             }
         }
     }
-    metrics_.timeExecute = timer.elapsed();
 }
 
 void ExtractRequest::replyToClient() {
-    eckit::Timer timer;
-
-    reportErrors();
 
     // Send the results, again repackage.
 
@@ -141,16 +133,12 @@ void ExtractRequest::replyToClient() {
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
-
-    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
-    metrics_.action = "forwarded-extract"; 
-
-    eckit::Timer timer;
+ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
+    MetricsManager::instance().set("action", "forwarded-extract");
 
     size_t nFiles;
     client_ >> nFiles;
@@ -176,8 +164,7 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, LogConte
         }
         count += nItems;
     }
-    metrics_.nRequests = count;
-    metrics_.timeReceive = timer.elapsed();
+    MetricsManager::instance().set("count_requests", count);
 
     ASSERT(count > 0); // We should not be talking to this server if we have no requests.
 }
@@ -186,15 +173,10 @@ ForwardedExtractRequest::~ForwardedExtractRequest() {
 }
 
 void ForwardedExtractRequest::execute() {
-    eckit::Timer timer;
     engine_.scheduleTasks(filemap_);
-    engine_.updateMetrics(metrics_);
-    metrics_.timeExecute = timer.elapsed();
 }
 
 void ForwardedExtractRequest::replyToClient() {
-    eckit::Timer timer;
-    reportErrors();
 
     for (auto& [fname, extractionItems] : filemap_) {
         client_ << fname; // sanity check
@@ -205,14 +187,12 @@ void ForwardedExtractRequest::replyToClient() {
             client_ << res;
         }
     }
-
-    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesRequest::AxesRequest(eckit::Stream& stream, LogContext ctx) : Request(stream, ctx) {
-    metrics_.action = "axes";
+AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
+    MetricsManager::instance().set("action", "axes");
     client_ >> request_;
     ASSERT(request_.size() > 0);
 }
@@ -223,16 +203,11 @@ AxesRequest::~AxesRequest() {
 void AxesRequest::execute() {
     // @todo, use the engine.
     // or, polytope should use pyfdb not gribjump for this.
-    eckit::Timer timer;
     GribJump gj;
     axes_ = gj.axes(request_);
-    metrics_.timeExecute = timer.elapsed();
 }
 
 void AxesRequest::replyToClient() {
-
-    eckit::Timer timer;
-    reportErrors();
 
     // print the axes we are sending
     for (auto& pair : axes_) {
@@ -253,8 +228,6 @@ void AxesRequest::replyToClient() {
             client_ << val;
         }
     }
-
-    metrics_.timeReply = timer.elapsed();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
