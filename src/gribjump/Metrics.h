@@ -16,6 +16,7 @@
 #include "eckit/log/Timer.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/TimeStamp.h"
+#include "eckit/runtime/Metrics.h"
 
 namespace gribjump {
 
@@ -53,51 +54,72 @@ private:
     std::string context_;
 };
 
-
 // --------------------------------------------------------------------------------------------------------------------------------
-
+///@todo: Investigate using eckit::metrics and MetricsCollector
+//        it does not look usable in a multi-threaded context.
 class Metrics {
 
 public: // methods
     
-    Metrics(LogContext ctx) : context_(ctx) {
-        start_ = std::string(eckit::TimeStamp("%Y-%m-%dT%H:%M:%SZ"));
-    }
+    Metrics();
+    ~Metrics();
     
-    ~Metrics() {}
+    void add(const std::string& name, const eckit::Value& value);
 
-    void report() {
-        eckit::JSON j(eckit::Log::metrics(), false);
-        j.startObject();
-        j << "action" << action;
-        j << "start_time" << start_;
-        j << "end_time" << eckit::TimeStamp("%Y-%m-%dT%H:%M:%SZ");
-        j << "count_requests" << nRequests;
-        j << "count_tasks" << nTasks;
-        j << "count_failed_tasks" << nFailedTasks;
-        j << "elapsed_receive" << timeReceive;
-        j << "elapsed_execute" << timeExecute;
-        j << "elapsed_reply" << timeReply;
-        j << "elapsed_total" << timer_.elapsed();
-        j << "context" << context_;
-        j.endObject();
-    }
+    void addContext(const LogContext& context) { context_ = context; }
+
+    void report();
 
 public: // members
 
-    std::string action;
-    int nRequests = -1;
-    int nTasks = -1;
-    int nFailedTasks = -1;
-    double timeReceive = 0;
-    double timeExecute = 0;
-    double timeReply = 0;
+    eckit::ValueMap values_;
 
 private: // members
 
     LogContext context_;
+    time_t created_;
+    time_t prevTime_;
+
     eckit::Timer timer_;
-    std::string start_;
 };
 
+// --------------------------------------------------------------------------------------------------------------------------------
+// Wrapper around Metrics to treat them as thread-local
+class MetricsManager {
+
+public: // methods
+    static MetricsManager& instance();
+
+    void set(const std::string& name, const eckit::Value& value);
+    // void setContext(const LogContext& context);
+    void report();
+
+private:
+    MetricsManager();
+    ~MetricsManager();
+
+    Metrics& metrics();
+
+};
+
+// --------------------------------------------------------------------------------------------------------------------------------
+
+// Context also needs to be thread-local
+class ContextManager {
+public:
+    static ContextManager& instance();
+
+    LogContext& context();
+
+    void set(const LogContext& context);
+
+private:
+
+    ContextManager();
+    ~ContextManager();
+
+private:
+    static thread_local LogContext context_;
+
+};
 } // namespace gribjump

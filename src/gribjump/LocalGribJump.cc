@@ -84,7 +84,7 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 }
 
 /// @todo, change API, remove extraction request
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests requests, LogContext ctx) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests requests) {
 
     bool flatten = true;
     Engine engine;
@@ -120,13 +120,13 @@ ResultsMap LocalGribJump::extract(const std::vector<MarsRequest>& requests, cons
     return results;
 }
 
-std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request) {
+std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {
 
     // Note: This is likely to be removed from GribJump, and moved to FDB.
     // Here for now to support polytope.
 
     Engine engine;
-    return engine.axes(request);
+    return engine.axes(request, level);
 }
 
 static GribJumpBuilder<LocalGribJump> builder("local");

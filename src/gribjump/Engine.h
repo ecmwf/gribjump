@@ -34,10 +34,9 @@ public:
     size_t scan(const MarsRequests& requests, bool byfiles = false);
     size_t scan(std::vector<eckit::PathName> files);
 
-    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request);
+    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level=3);
 
     void scheduleTasks(filemap_t& filemap);
-    void updateMetrics(Metrics& metrics);
 
     void reportErrors(eckit::Stream& client_);
     void raiseErrors();

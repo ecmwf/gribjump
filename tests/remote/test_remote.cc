@@ -10,12 +10,16 @@
 
 #include <cmath>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 #include "eckit/testing/Test.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/parser/JSONParser.h"
 
 #include "gribjump/GribJump.h"
+#include "gribjump/gribjump_config.h"
 #include "gribjump/FDBPlugin.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/JumpInfo.h"
@@ -26,6 +30,7 @@
 
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+
 using namespace eckit::testing;
 
 namespace gribjump {
@@ -33,6 +38,7 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 static std::string gridHash = "33c7d6025995e1b4913811e77d38ec50"; // base file: extract_ranges.grib
+static eckit::PathName metricsFile = "test_metrics";
 
 //-----------------------------------------------------------------------------
 // Note: the environment for this test is configured by an external script. See tests/remote/test_server.sh.in
@@ -58,7 +64,8 @@ CASE( "Remote protocol: extract" ) {
     }
 
     GribJump gribjump;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gribjump.extract(exRequests);
+    LogContext ctx("test_extract");
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gribjump.extract(exRequests, ctx);
 
     EXPECT_EQUAL(output.size(), 2);
     for (size_t i = 0; i < output.size(); i++) {
@@ -69,22 +76,68 @@ CASE( "Remote protocol: extract" ) {
         }
     }
 }
+
 CASE( "Remote protocol: axes" ) {
 
     GribJump gribjump;
-    std::map<std::string, std::unordered_set<std::string>> axes = gribjump.axes("class=rd,expver=xxxx");
+    LogContext ctx("test_axes");
+    std::map<std::string, std::unordered_set<std::string>> axes = gribjump.axes("class=rd,expver=xxxx", 3, ctx);
 
     EXPECT(axes.find("step") != axes.end());
     EXPECT_EQUAL(axes["step"].size(), 3);
 
 }
 
+#ifdef GRIBJUMP_HAVE_DHSKIT // metrics target is set by dhskit
+
+CASE( "Parse the metrics file" ) {
+    // The metrics file is created by the server, and contains JSON objects with metrics data.
+    // Make sure this is parseable.
+
+    // To make sure server has had time to finish writing the file
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT(metricsFile.exists());
+
+    std::vector<std::string> commonKeys = {
+        "process",
+        "start_time",
+        "end_time",
+        "run_time",
+        "context"
+    };
+
+    // Expect 2 JSON objects in the file
+    std::vector<eckit::Value> values;
+    std::ifstream file(metricsFile.asString().c_str());
+    std::string line;
+    while (std::getline(file, line)) {
+        eckit::Value v = eckit::JSONParser::decodeString(line);
+        eckit::Log::info() << v << std::endl;
+        values.push_back(v);
+
+        // Check common keys
+        for (const auto& key : commonKeys) {
+            EXPECT(v.contains(key));
+        }
+    }
+    EXPECT_EQUAL(values.size(), 2);
+    // Check extract
+    eckit::Value v = values[0];
+    EXPECT_EQUAL(v["action"], "extract");
+    EXPECT_EQUAL(v["context"], "test_extract");
+
+    // Check axes
+    v = values[1];
+    EXPECT_EQUAL(v["action"], "axes");
+    EXPECT_EQUAL(v["context"], "test_axes");
+
+}
+#endif
 }  // namespace test
 }  // namespace gribjump
 
 //-----------------------------------------------------------------------------
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     return run_tests ( argc, argv );
 }

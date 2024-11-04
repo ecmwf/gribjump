@@ -17,7 +17,7 @@ fdbconfig=$bindir/fdb_config.yaml
 fdbrootdir=$bindir/fdb_root
 fdbdata=$bindir/../extract_ranges.grib
 pidfile=$bindir/server.pid
-
+metricsfile=$bindir/test_metrics
 # --- Cleanup and setup
 cleanup() {
     if [[ -f $pidfile ]]; then
@@ -29,6 +29,7 @@ cleanup() {
     fi
 
     rm -rf $fdbrootdir
+    rm -f $metricsfile
 }
 
 cleanup # start fresh
@@ -39,7 +40,7 @@ env FDB5_CONFIG_FILE=$fdbconfig $fdbwrite $fdbdata
 
 # --- Start the server in the background.
 trap cleanup EXIT # Ensure cleanup is called when the script exits
-env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$serverconfig GRIBJUMP_SERVER_PORT=57777 $gjserver &
+env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$serverconfig GRIBJUMP_SERVER_PORT=57777 DHS_METRICS_FILE=$metricsfile $gjserver &
 echo $! > $pidfile
 sleep 1
 

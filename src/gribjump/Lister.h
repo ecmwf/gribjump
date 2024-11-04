@@ -32,7 +32,7 @@ class Lister {
 public:
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) = 0; // <-- May not want to use mars request?
-    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request) = 0 ;
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0 ;
 
     void lock() { mutex_.lock(); locked_ = true; }
     void unlock() { mutex_.unlock(); locked_ = false; }
@@ -55,8 +55,8 @@ public:
     static FDBLister& instance();
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
-    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request) override;
-    virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request);
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) override;
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request, int level);
     
     filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToXRR); // Used during extraction
 

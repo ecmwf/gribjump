@@ -83,3 +83,16 @@ def test_extract_simple_sunshine_case(read_only_fdb_setup) -> None:
 
     actual = grib_jump.extract(polyrequest)
     assert numpy.array_equal(expected, actual[0][0][0][0], equal_nan=True)
+
+def test_axes(read_only_fdb_setup) -> None:
+    gribjump = pygj.GribJump()
+    req = {
+        "date": "20230508",
+    }
+    ax1 = gribjump.axes(req, level=1) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'stream': ['oper'], 'time': ['1200']}
+    ax2 = gribjump.axes(req, level=2) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'levtype': ['sfc'], 'stream': ['oper'], 'time': ['1200'], 'type': ['fc']}
+    ax3 = gribjump.axes(req, level=3) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'levelist': [''], 'levtype': ['sfc'], 'param': ['151130'], 'step': ['1'], 'stream': ['oper'], 'time': ['1200'], 'type': ['fc']}
+
+    assert len(ax1.keys()) == 6
+    assert len(ax2.keys()) == 8
+    assert len(ax3.keys()) == 11

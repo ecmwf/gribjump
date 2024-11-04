@@ -40,6 +40,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
         eckit::Log::error() << "** Exception is handled" << std::endl;
+        MetricsManager::instance().set("error", e.what());
         try {
             s << e;
         }
@@ -51,10 +52,10 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
         
     LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;
 
+    MetricsManager::instance().report();
 }
 
 void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
-
     uint16_t version;
     uint16_t i_requestType;
 
@@ -64,87 +65,45 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
     }
 
     LogContext ctx(s);
-    ctx_ = ctx;
+    ContextManager::instance().set(ctx);
 
     s >> i_requestType;
     RequestType requestType = static_cast<RequestType>(i_requestType);
+
     switch (requestType) {
         case RequestType::EXTRACT:
-            extract(s, timer);
+            processRequest<ExtractRequest>(s);
             break;
         case RequestType::AXES:
-            axes(s, timer);
+            processRequest<AxesRequest>(s);
             break;
         case RequestType::SCAN:
-            scan(s, timer);
+            processRequest<ScanRequest>(s);
             break;
         case RequestType::FORWARD_EXTRACT:
-            forwardedExtract(s, timer);
+            processRequest<ForwardedExtractRequest>(s);
             break;
         default:
             throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
     }
 }
-void GribJumpUser::forwardedExtract(eckit::Stream& s, eckit::Timer& timer) {
-    
-    timer.reset();
 
-    ForwardedExtractRequest request(s, ctx_);
-    timer.reset("ForwardedExtract requests received");
+template <typename RequestType>
+void GribJumpUser::processRequest(eckit::Stream& s) {
+    eckit::Timer timer;
 
-    request.execute();
-    timer.reset("ForwardedExtract tasks completed");
-
-    request.replyToClient();
-    timer.reset("ForwardedExtract results sent");
-
-}
-
-void GribJumpUser::scan(eckit::Stream& s, eckit::Timer& timer) {
-
-    timer.reset();
-
-    ScanRequest request(s, ctx_);
-    timer.reset("SCAN requests received");
+    RequestType request(s);
+    MetricsManager::instance().set("elapsed_receive", timer.elapsed());
+    timer.reset("Request received");
 
     request.execute();
-    timer.reset("SCAN tasks completed");
+    MetricsManager::instance().set("elapsed_execute", timer.elapsed());
+    timer.reset("Request executed");
 
+    request.reportErrors();
     request.replyToClient();
-    timer.reset("SCAN results sent");
+    MetricsManager::instance().set("elapsed_reply", timer.elapsed());
+    timer.reset("Request replied");
 }
-
-void GribJumpUser::axes(eckit::Stream& s, eckit::Timer& timer) {
-
-    timer.reset();
-
-    AxesRequest request(s, ctx_);
-    timer.reset("Axes request received");
-
-    request.execute();
-    timer.reset("Axes tasks completed");
-
-    request.replyToClient();
-    timer.reset("Axes results sent");
-}
-
-void GribJumpUser::extract(eckit::Stream& s, eckit::Timer& timer) { 
-
-    timer.reset();
-    
-    ExtractRequest request(s, ctx_);
-
-    timer.reset("EXTRACT requests received");
-
-    request.execute();
-    timer.reset("EXTRACT tasks completed");
-
-    request.replyToClient();
-    
-    request.reportMetrics();
-
-    timer.reset("EXTRACT  results sent");
-}
-
 
 }  // namespace gribjump
