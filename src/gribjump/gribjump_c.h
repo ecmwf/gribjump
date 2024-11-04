@@ -48,8 +48,10 @@ int gribjump_axes_keys(gj_axes_t* axes, const char*** keys_out, unsigned long* s
 int gribjump_axes_values(gj_axes_t* axes, const char* key, const char*** values_out, unsigned long* size);
 int gribjump_delete_axes(gj_axes_t* axes);
 
-
 int gribjump_initialise();
+int gribjump_version_c(const char** version);
+int gribjump_git_sha1_c(const char** sha1);
+
 
 const char* gribjump_error_string(int err);
 

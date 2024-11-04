@@ -37,10 +37,9 @@ public:
 
     const Config& config();
 
-protected:
     virtual std::string version() const override;
 
-    virtual std::string gitsha1(unsigned int count) const override;
+    virtual std::string gitsha1(unsigned int count=40u) const override;
 
 private: 
     Config loadConfig();
