@@ -119,7 +119,6 @@ CASE( "Parse the metrics file" ) {
         for (const auto& key : commonKeys) {
             EXPECT(v.contains(key));
         }
-        // EXPECT_NOT_EQUAL(v["context"], "none"); /// @todo: add ctx to axes call.
     }
     EXPECT_EQUAL(values.size(), 2);
     // Check extract
