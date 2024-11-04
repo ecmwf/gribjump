@@ -224,7 +224,7 @@ class GribJump:
         requeststr = dic_to_request(req)
         newaxes = ffi.new('gj_axes_t**')
         reqstr = ffi.new('const char[]', requeststr.encode('ascii'))
-        level_c = ffi.new('int', level)
+        level_c = ffi.new('int*', level)
         lib.gribjump_new_axes(newaxes, reqstr, level_c, ctx_c, self.__gribjump)
 
         # TODO want to return a dict like:

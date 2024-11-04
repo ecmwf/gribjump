@@ -26,7 +26,7 @@ int gribjump_result_values(gribjump_extraction_result_t* result, double*** value
 int gribjump_result_values_nocopy(gribjump_extraction_result_t* result, double*** values, unsigned long* nrange, unsigned long** nvalues);
 int gribjump_result_mask(gribjump_extraction_result_t* result,  unsigned long long*** masks, unsigned long* nrange, unsigned long** nmasks);
 int gribjump_delete_result(gribjump_extraction_result_t* result);
-int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, int depth, const char* ctx, gribjump_handle_t* gj);
+int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, int* level, const char* ctx, gribjump_handle_t* gj);
 int gribjump_axes_keys(gj_axes_t* axes, const char*** keys_out, unsigned long* size);
 int gribjump_axes_values(gj_axes_t* axes, const char* key, const char*** values_out, unsigned long* size);
 int gribjump_delete_axes(gj_axes_t* axes);
