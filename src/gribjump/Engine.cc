@@ -315,9 +315,9 @@ size_t Engine::scan(std::vector<eckit::PathName> files) {
     return files.size();
 }
 
-std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request) {
+std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request, int level) {
     MetricsManager::instance().set("request", request);
-    return FDBLister::instance().axes(request);
+    return FDBLister::instance().axes(request, level);
 }
 
 void Engine::reportErrors(eckit::Stream& client) {

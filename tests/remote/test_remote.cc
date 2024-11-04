@@ -64,7 +64,7 @@ CASE( "Remote protocol: extract" ) {
     }
 
     GribJump gribjump;
-    LogContext ctx("test");
+    LogContext ctx("test_extract");
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gribjump.extract(exRequests, ctx);
 
     EXPECT_EQUAL(output.size(), 2);
@@ -76,11 +76,12 @@ CASE( "Remote protocol: extract" ) {
         }
     }
 }
+
 CASE( "Remote protocol: axes" ) {
 
     GribJump gribjump;
-    LogContext ctx("test");
-    std::map<std::string, std::unordered_set<std::string>> axes = gribjump.axes("class=rd,expver=xxxx"); // no way to pass ctx yet ...
+    LogContext ctx("test_axes");
+    std::map<std::string, std::unordered_set<std::string>> axes = gribjump.axes("class=rd,expver=xxxx", 3, ctx);
 
     EXPECT(axes.find("step") != axes.end());
     EXPECT_EQUAL(axes["step"].size(), 3);
@@ -124,11 +125,12 @@ CASE( "Parse the metrics file" ) {
     // Check extract
     eckit::Value v = values[0];
     EXPECT_EQUAL(v["action"], "extract");
-    EXPECT_NOT_EQUAL(v["context"], "none");
+    EXPECT_EQUAL(v["context"], "test_extract");
 
     // Check axes
     v = values[1];
     EXPECT_EQUAL(v["action"], "axes");
+    EXPECT_EQUAL(v["context"], "test_axes");
 
 }
 #endif

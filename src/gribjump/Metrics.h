@@ -66,9 +66,6 @@ public: // methods
     
     void add(const std::string& name, const eckit::Value& value);
 
-    // 
-    void addTime(const std::string& name);
-
     void addContext(const LogContext& context) { context_ = context; }
 
     void report();
@@ -94,7 +91,7 @@ public: // methods
     static MetricsManager& instance();
 
     void set(const std::string& name, const eckit::Value& value);
-    void setContext(const LogContext& context);
+    // void setContext(const LogContext& context);
     void report();
 
 private:
@@ -105,4 +102,24 @@ private:
 
 };
 
+// --------------------------------------------------------------------------------------------------------------------------------
+
+// Context also needs to be thread-local
+class ContextManager {
+public:
+    static ContextManager& instance();
+
+    LogContext& context();
+
+    void set(const LogContext& context);
+
+private:
+
+    ContextManager();
+    ~ContextManager();
+
+private:
+    static thread_local LogContext context_;
+
+};
 } // namespace gribjump

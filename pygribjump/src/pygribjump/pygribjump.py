@@ -126,10 +126,7 @@ class GribJump:
         nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
-        if (ctx):
-            logctx=str(ctx)
-        else:
-            logctx=""
+        logctx=str(ctx) if ctx else "pygribjump_extract"
 
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx_c)
@@ -219,12 +216,17 @@ class GribJump:
         ]
         return res
 
-    def axes(self, req):
+
+    def axes(self, req, level=3, ctx=None):
         # note old axes used a dict in. This is now a string.
+        logctx=str(ctx) if ctx else "pygribjump_axes"
+        ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         requeststr = dic_to_request(req)
         newaxes = ffi.new('gj_axes_t**')
         reqstr = ffi.new('const char[]', requeststr.encode('ascii'))
-        lib.gribjump_new_axes(newaxes, reqstr, self.__gribjump)
+        level_c = ffi.new('int', level)
+        lib.gribjump_new_axes(newaxes, reqstr, level_c, ctx_c, self.__gribjump)
+
         # TODO want to return a dict like:
         # {key: [value1, value2, ...], ...}
         # each key and value is a string

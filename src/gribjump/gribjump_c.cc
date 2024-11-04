@@ -251,7 +251,7 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
         if (ctx) {
             logctx = LogContext(ctx);
         }
-        
+    
         std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results;
         results = handle->extract(reqs, logctx);
 
@@ -269,12 +269,16 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
 }
 
 
-int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, gribjump_handle_t* gj) {
+int gribjump_new_axes(gj_axes_t** axes, const char* reqstr, int depth, const char* ctx, gribjump_handle_t* gj) {
     return wrapApiFunction([=] {
         ASSERT(gj);
+        LogContext logctx;
+        if (ctx) {
+            logctx = LogContext(ctx);
+        }
         std::string reqstr_str(reqstr);
         std::map<std::string, std::unordered_set<std::string>> values;
-        values = gj->axes(reqstr_str);
+        values = gj->axes(reqstr_str, depth, logctx);
         *axes = new gj_axes_t(values);
     });
 }

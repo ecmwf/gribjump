@@ -27,7 +27,8 @@ GribJump::GribJump() {
 GribJump::~GribJump() {
 }
 
-size_t GribJump::scan(const std::vector<eckit::PathName>& paths) {
+size_t GribJump::scan(const std::vector<eckit::PathName>& paths, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
 
     if (paths.empty()) {
         throw eckit::UserError("Paths must not be empty", Here());
@@ -37,7 +38,8 @@ size_t GribJump::scan(const std::vector<eckit::PathName>& paths) {
     return ret;
 }
 
-size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
 
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
@@ -48,17 +50,19 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 }
 
 
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> GribJump::extract(const std::vector<ExtractionRequest>& requests, LogContext ctx) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> GribJump::extract(const std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
 
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
     }
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> out = impl_->extract(requests, ctx);  // why are we not using extraction items?
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> out = impl_->extract(requests);  // why are we not using extraction items?
     return out;
 }
 
-std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
 
     if (path.asString().empty()) {
         throw eckit::UserError("Path must not be empty", Here());
@@ -74,13 +78,14 @@ std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::Path
     return out;
 }
 
-std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request) {
+std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std::string& request, int level, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
 
     if (request.empty()) {
         throw eckit::UserError("Request string must not be empty", Here());
     }
 
-    auto out = impl_->axes(request);
+    auto out = impl_->axes(request, level);
     return out;
 }
 

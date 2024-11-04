@@ -65,7 +65,7 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
     }
 
     LogContext ctx(s);
-    MetricsManager::instance().setContext(ctx);
+    ContextManager::instance().set(ctx);
 
     s >> i_requestType;
     RequestType requestType = static_cast<RequestType>(i_requestType);

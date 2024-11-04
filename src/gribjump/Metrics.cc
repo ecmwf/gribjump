@@ -23,6 +23,11 @@ std::string iso(time_t t) {
 
 namespace gribjump {
 
+// --------------------------------------------------------------------------------------------------------------------------------
+thread_local LogContext ContextManager::context_;
+
+// --------------------------------------------------------------------------------------------------------------------------------
+
 Metrics::Metrics() : created_(std::time(nullptr)) {}
 
 Metrics::~Metrics() {}
@@ -47,7 +52,7 @@ void Metrics::report() {
     for (const auto& [name, value] : values_) {
         j << name << value;
     }
-    j << "context" << context_;
+    j << "context" << ContextManager::instance().context();
     j.endObject();
 
     eckit::Log::metrics() << oss.str() << std::endl;
@@ -69,10 +74,6 @@ void MetricsManager::set(const std::string& name, const eckit::Value& value) {
     metrics().add(name, value);
 }
 
-void MetricsManager::setContext(const LogContext& context) {
-    metrics().addContext(context);
-}
-
 Metrics& MetricsManager::metrics() {
     static thread_local Metrics metrics;
     return metrics;
@@ -80,6 +81,26 @@ Metrics& MetricsManager::metrics() {
 
 void MetricsManager::report() {
     metrics().report();
+}
+
+
+// --------------------------------------------------------------------------------------------------------------------------------
+ContextManager::ContextManager() {
+}
+
+ContextManager& ContextManager::instance() {
+    static ContextManager instance;
+    return instance;
+}
+
+ContextManager::~ContextManager() {}
+
+void ContextManager::set(const LogContext& context) {
+    context_ = context;
+}
+
+LogContext& ContextManager::context() {
+    return context_;
 }
 
 } // namespace gribjump

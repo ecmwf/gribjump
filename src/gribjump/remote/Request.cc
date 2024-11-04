@@ -194,6 +194,7 @@ void ForwardedExtractRequest::replyToClient() {
 AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
     MetricsManager::instance().set("action", "axes");
     client_ >> request_;
+    client_ >> level_;
     ASSERT(request_.size() > 0);
 }
 
@@ -201,10 +202,7 @@ AxesRequest::~AxesRequest() {
 }
 
 void AxesRequest::execute() {
-    // @todo, use the engine.
-    // or, polytope should use pyfdb not gribjump for this.
-    GribJump gj;
-    axes_ = gj.axes(request_);
+    axes_ = engine_.axes(request_, level_);
 }
 
 void AxesRequest::replyToClient() {

@@ -130,6 +130,7 @@ public:
 private:
 
     std::string request_; /// @todo why is this a string?
+    int level_;
     std::map<std::string, std::unordered_set<std::string>> axes_;
 
 };

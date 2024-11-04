@@ -172,20 +172,20 @@ std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(std::vect
     return files;
 }
 
-std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const std::string& request) {
+std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const std::string& request, int level) {
     std::vector<fdb5::FDBToolRequest> requests = fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
     ASSERT(requests.size() == 1); // i.e. assume string is a single request.
 
-    return axes(requests.front());
+    return axes(requests.front(), level);
 }
 
-std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request) {
+std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {
     eckit::AutoLock<FDBLister> lock(this);
     std::map<std::string, std::unordered_set<std::string>> values;
 
     LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
     
-    fdb5::IndexAxis ax = fdb_.axes(request);
+    fdb5::IndexAxis ax = fdb_.axes(request, level);
     ax.sort();
     std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
 
