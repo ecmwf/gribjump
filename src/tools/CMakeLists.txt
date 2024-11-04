@@ -28,6 +28,13 @@ if ( HAVE_GRIBJUMP_LOCAL_EXTRACT)
         LIBS      gribjump
     )
 
+    ecbuild_add_executable( 
+        TARGET    gribjump-scan-files
+        SOURCES   gribjump-scan-files.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      gribjump
+    )
+
     ecbuild_add_executable(
         TARGET    gribjump-validate
         SOURCES   gribjump-validate.cc
@@ -38,6 +45,13 @@ if ( HAVE_GRIBJUMP_LOCAL_EXTRACT)
     ecbuild_add_executable( 
         TARGET    gribjump-dump-info
         SOURCES   gribjump-dump-info.cc
+        INCLUDES  ${ECKIT_INCLUDE_DIRS}
+        LIBS      gribjump
+    )
+
+    ecbuild_add_executable( 
+        TARGET    gribjump-info
+        SOURCES   gribjump-info.cc
         INCLUDES  ${ECKIT_INCLUDE_DIRS}
         LIBS      gribjump
     )

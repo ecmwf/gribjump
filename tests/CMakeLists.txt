@@ -131,4 +131,5 @@ ecbuild_add_test(
 
 if (ENABLE_FDB_BUILD_TOOLS)
     add_subdirectory(tools)
+    add_subdirectory(remote)
 endif()

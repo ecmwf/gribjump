@@ -30,7 +30,7 @@ public:
 
     /// @brief Scans the full grib file, looking for GRIB messages and populates cache
     /// @param path full path to grib file
-    size_t scan(const eckit::PathName& path) override;
+    size_t scan(const std::vector<eckit::PathName>& paths) override;
 
     size_t scan(const std::vector<MarsRequest> requests, bool byfiles) override;
 
@@ -39,9 +39,9 @@ public:
 
     // old API
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
-    std::vector<std::vector<ExtractionResult*>> extract(std::vector<ExtractionRequest>, LogContext ctx=LogContext("none")) override;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>) override;
     
-    std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request) override;
+    std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
 private:
 };

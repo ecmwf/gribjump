@@ -159,6 +159,7 @@ filemap_t Engine::buildFileMap(const ExtractionRequests& requests, ExItemMap& ke
     }
 
     const metkit::mars::MarsRequest req = unionRequest(marsrequests);
+    MetricsManager::instance().set("union_request", req.asString());
     timer.reset("Gribjump Engine: Flattened requests and constructed union request");
 
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
@@ -248,14 +249,19 @@ void Engine::scheduleTasks(filemap_t& filemap){
 
 ResultsMap Engine::extract(const ExtractionRequests& requests, bool flatten) {
 
+    eckit::Timer timer("Engine::extract");
     ExItemMap keyToExtractionItem = buildKeyToExtractionItem(requests, flatten); // Owns the ExtractionItems
     filemap_t filemap = buildFileMap(requests, keyToExtractionItem);
-    eckit::Timer timer("Engine::extract");
+    MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
+    timer.reset("Gribjump Engine: Built file map");
 
     scheduleTasks(filemap);
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
     ResultsMap results = collectResults(keyToExtractionItem);
+    MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
+
     timer.reset("Gribjump Engine: Repackaged results");
 
     return results;
@@ -275,29 +281,43 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
 
 size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
 
-    const std::map< eckit::PathName, eckit::OffsetList > files = FDBLister::instance().filesOffsets(requests);
+    const std::map< eckit::PathName, eckit::OffsetList > filemap = FDBLister::instance().filesOffsets(requests);
+
+    if (byfiles) { // ignore offsets and scan entire file
+        std::vector<eckit::PathName> files;
+        for (auto& [fname, offsets] : filemap) {
+            files.push_back(fname);
+        }
+
+        return scan(files);
+        
+    }
 
     size_t counter = 0;
-
-    if (byfiles) {
-        for (auto& [fname, offsets] : files) {
-            taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
-        }
+    
+    for (auto& [fname, offsets] : filemap) {
+        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
     }
-    else {
-        for (auto& [fname, offsets] : files) {
-            taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, {}));
-        }
+    taskGroup_.waitForTasks();
+
+    return filemap.size();
+}
+
+size_t Engine::scan(std::vector<eckit::PathName> files) {
+    size_t counter = 0;
+    
+    for (auto& fname : files) {
+        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, {}));
     }
 
-    // Wait for the tasks to complete
     taskGroup_.waitForTasks();
 
     return files.size();
 }
 
-std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request) {
-    return FDBLister::instance().axes(request);
+std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request, int level) {
+    MetricsManager::instance().set("request", request);
+    return FDBLister::instance().axes(request, level);
 }
 
 void Engine::reportErrors(eckit::Stream& client) {
@@ -306,10 +326,6 @@ void Engine::reportErrors(eckit::Stream& client) {
 
 void Engine::raiseErrors() {
     taskGroup_.raiseErrors();
-}
-void Engine::updateMetrics(Metrics& metrics) {
-    metrics.nTasks = taskGroup_.nTasks();
-    metrics.nFailedTasks = taskGroup_.nErrors();
 }
 //----------------------------------------------------------------------------------------------------------------------
 

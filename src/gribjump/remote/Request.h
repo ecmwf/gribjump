@@ -30,7 +30,7 @@ namespace gribjump {
 class Request {
 public: // methods
 
-    Request(eckit::Stream& stream, LogContext ctx = LogContext("none"));
+    Request(eckit::Stream& stream);
 
     virtual ~Request();
     
@@ -40,10 +40,6 @@ public: // methods
     /// Reply to the client with the results of the request
     virtual void replyToClient() = 0;
 
-    void reportMetrics() {metrics_.report();}
-
-protected: // methods
-
     void reportErrors();
 
 protected: // members
@@ -51,7 +47,7 @@ protected: // members
     eckit::Stream& client_;
     Engine engine_; //< Engine and schedule tasks based on request
 
-    Metrics metrics_;
+    uint64_t id_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -59,7 +55,7 @@ protected: // members
 class ScanRequest : public Request {
 public:
 
-    ScanRequest(eckit::Stream& stream, LogContext ctx);
+    ScanRequest(eckit::Stream& stream);
 
     ~ScanRequest();
 
@@ -81,7 +77,7 @@ private:
 class ExtractRequest : public Request {
 public:
 
-    ExtractRequest(eckit::Stream& stream, LogContext ctx);
+    ExtractRequest(eckit::Stream& stream);
 
     ~ExtractRequest();
 
@@ -102,7 +98,7 @@ private:
 class ForwardedExtractRequest : public Request {
 public:
 
-    ForwardedExtractRequest(eckit::Stream& stream, LogContext ctx);
+    ForwardedExtractRequest(eckit::Stream& stream);
 
     ~ForwardedExtractRequest();
 
@@ -123,7 +119,7 @@ private:
 class AxesRequest : public Request {
 public:
 
-    AxesRequest(eckit::Stream& stream, LogContext ctx);
+    AxesRequest(eckit::Stream& stream);
 
     ~AxesRequest();
 
@@ -134,6 +130,7 @@ public:
 private:
 
     std::string request_; /// @todo why is this a string?
+    int level_;
     std::map<std::string, std::unordered_set<std::string>> axes_;
 
 };

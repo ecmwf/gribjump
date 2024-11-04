@@ -35,13 +35,9 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint): host_(endpoint.ho
 
 RemoteGribJump::~RemoteGribJump() {}
 
-size_t RemoteGribJump::scan(const eckit::PathName& path) {
-    NOTIMP;
-}
-
 void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type) {
     stream << remoteProtocolVersion;
-    stream << ctx_;
+    stream << ContextManager::instance().context();
     stream << static_cast<uint16_t>(type);
 }
 
@@ -82,9 +78,9 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     return count;
 }
 
-std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests, LogContext ctx) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
-    std::vector<std::vector<ExtractionResult*>> result;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> result;
 
     // connect to server
     eckit::net::TCPClient client;
@@ -108,13 +104,13 @@ std::vector<std::vector<ExtractionResult*>> RemoteGribJump::extract(std::vector<
     bool error = receiveErrors(stream);
 
     for (size_t i = 0; i < nRequests; i++) {
-        std::vector<ExtractionResult*> response;
+        std::vector<std::unique_ptr<ExtractionResult>> response;
         size_t nfields;
         stream >> nfields;
         for (size_t i = 0; i < nfields; i++) {
-            response.push_back(new ExtractionResult(stream));
+            response.push_back(std::make_unique<ExtractionResult>(stream));
         }
-        result.push_back(response);
+        result.push_back(std::move(response));
     }
     timer.report("All data recieved");
     return result;
@@ -178,7 +174,7 @@ void RemoteGribJump::extract(filemap_t& filemap){
     return;
 }
 
-std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request) {
+std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request, int level) {
     eckit::Timer timer("RemoteGribJump::axes()");
     std::map<std::string, std::unordered_set<std::string>> result;   
 
@@ -188,7 +184,8 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::AXES);
-    stream << request;  
+    stream << request;
+    stream << level;
     timer.report("Request sent");
 
     // receive response

@@ -10,25 +10,17 @@
 /// @author Christopher Bradley
 
 #include <fstream>
-#include <memory>
-
-#include "eckit/io/FileHandle.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/utils/StringTools.h"
 
 #include "metkit/mars/MarsRequest.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
-#include "metkit/codes/GribHandle.h"
 
 #include "fdb5/api/FDB.h"
-#include "fdb5/message/MessageDecoder.h"
-#include "fdb5/io/HandleGatherer.h"
-#include "fdb5/tools/FDBTool.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/EccodesExtract.h"
+#include "gribjump/tools/GribJumpTool.h"
 
 
 // Tool to perform an extraction request on a given request, and compare the results with the
@@ -36,31 +28,30 @@
 // Note: This tool requires a locally configured FDB.
 // Note: Tool should work for local and remote gribjump, though eccodes will always be local.
 
-namespace gribjump
-{
+namespace gribjump::tool {
     
-class GJCompareEccodes : public fdb5::FDBTool {
+class CompareEccodes: public GribJumpTool {
     
     virtual void execute(const eckit::option::CmdArgs &args);
     virtual void usage(const std::string &tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
   
   public:
-    GJCompareEccodes(int argc, char **argv): fdb5::FDBTool(argc, argv) {
+    CompareEccodes(int argc, char **argv): GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
 
 };
 
-void GJCompareEccodes::usage(const std::string &tool) const {
+void CompareEccodes::usage(const std::string &tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <mars request file> <ranges file>" << std::endl
                        << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl;
-    fdb5::FDBTool::usage(tool);
+    GribJumpTool::usage(tool);
 }
 
 
-void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
+void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
     bool raw = args.getBool("raw", false);
 
     // Build request(s) from input
@@ -101,7 +92,7 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
     // Extract the data using gribjump
 
     GribJump gj;
-    std::vector<std::vector<ExtractionResult*>> results = gj.extract(polyRequest);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results = gj.extract(polyRequest);
 
     ASSERT(results.size() == requests.size());
 
@@ -152,10 +143,10 @@ void GJCompareEccodes::execute(const eckit::option::CmdArgs &args) {
     eckit::Log::info() << "Compared " << countAllValues << " values. All match." << std::endl;
     
 }
-} // namespace gribjump
+} // namespace gribjump::tool
 
 int main(int argc, char **argv) {
-    gribjump::GJCompareEccodes app(argc, argv);
+    gribjump::tool::CompareEccodes app(argc, argv);
     return app.start();
 }
 

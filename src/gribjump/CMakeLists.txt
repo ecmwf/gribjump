@@ -29,9 +29,11 @@ list( APPEND gribjump_srcs
     Stats.cc
     Stats.h
 
+    tools/GribJumpTool.h
+    tools/GribJumpTool.cc
     tools/ToolUtils.h
     tools/ToolUtils.cc
-    
+
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
 
@@ -45,6 +47,7 @@ list( APPEND gribjump_srcs
     ExtractionData.cc
     ExtractionData.h
     Metrics.h
+    Metrics.cc
     Types.h
 )
 

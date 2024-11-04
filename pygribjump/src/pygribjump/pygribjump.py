@@ -17,6 +17,8 @@ import numpy as np
 import cffi
 import os
 import findlibs
+import warnings
+from ._version import __version__
 
 ffi = cffi.FFI()
 
@@ -44,8 +46,7 @@ class PatchedLib:
         self.__lib = ffi.dlopen(libName)
 
         # All of the executable members of the CFFI-loaded library are functions in the GribJump
-        # C API. These should be wrapped with the correct error handling. Otherwise forward
-        # these on directly.
+        # C API. These should be wrapped with the correct error handling.
 
         for f in dir(self.__lib):
             try:
@@ -58,6 +59,14 @@ class PatchedLib:
 
         # Initialise the library, and set it up for python-appropriate behaviour
         self.gribjump_initialise()
+
+        # Check versions
+        tmp_str = ffi.new('char**')
+        self.gribjump_version_c(tmp_str)
+        versionstr = ffi.string(tmp_str[0]).decode('utf-8')
+
+        if versionstr != __version__:
+            warnings.warn(f"GribJump library version {versionstr} does not match pygribjump version {__version__}")
 
     def __read_header(self, hdr_path):
         with open(hdr_path, 'r') as f:
@@ -117,10 +126,7 @@ class GribJump:
         nfields = ffi.new('unsigned long**')
         nrequests = len(requests)
         c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
-        if (ctx):
-            logctx=str(ctx)
-        else:
-            logctx=""
+        logctx=str(ctx) if ctx else "pygribjump_extract"
 
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         lib.extract(self.__gribjump, c_requests, nrequests, results_array, nfields, logctx_c)
@@ -210,12 +216,17 @@ class GribJump:
         ]
         return res
 
-    def axes(self, req):
+
+    def axes(self, req, level=3, ctx=None):
         # note old axes used a dict in. This is now a string.
+        logctx=str(ctx) if ctx else "pygribjump_axes"
+        ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         requeststr = dic_to_request(req)
         newaxes = ffi.new('gj_axes_t**')
         reqstr = ffi.new('const char[]', requeststr.encode('ascii'))
-        lib.gribjump_new_axes(newaxes, reqstr, self.__gribjump)
+        level_c = ffi.new('int*', level)
+        lib.gribjump_new_axes(newaxes, reqstr, level_c, ctx_c, self.__gribjump)
+
         # TODO want to return a dict like:
         # {key: [value1, value2, ...], ...}
         # each key and value is a string
@@ -349,3 +360,10 @@ def dic_to_request(dic):
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
     return ','.join(['='.join([k, v]) for k, v in dic.items()])
 
+def version():
+    return __version__
+
+def library_version():
+    tmp_str = ffi.new('char**')
+    lib.gribjump_version_c(tmp_str)
+    return ffi.string(tmp_str[0]).decode('utf-8')
