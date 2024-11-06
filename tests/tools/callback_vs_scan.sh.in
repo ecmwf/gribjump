@@ -71,7 +71,7 @@ $gribset -s "expver=xxxy" $selected $unselected
 cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
-FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
+FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null | tee $selectedrequests
 
 # -------------------------------------
 # 1: Reference FDB
