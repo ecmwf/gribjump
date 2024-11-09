@@ -27,6 +27,7 @@ jobs:
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       gribjump: ecmwf/gribjump@${{ github.event.pull_request.head.sha || github.sha }}
+      ecbuild: ecmwf/ecbuild@fix/fix-optional-features
       codecov_upload: true
     secrets: inherit
 
