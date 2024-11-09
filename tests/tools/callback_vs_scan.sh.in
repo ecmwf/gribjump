@@ -71,10 +71,6 @@ $gribset -s "expver=xxxy" $selected $unselected
 cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
-ldd $fdbread
-objdump -x $fdbread | grep 'R.*PATH'
-ldd /opt/actions-runner/work/_work/_temp/install/eckit/lib/libeckit.so
-objdump -x /opt/actions-runner/work/_work/_temp/install/eckit/lib/libeckit.so | grep 'R.*PATH'
 FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null | tee $selectedrequests
 
 # -------------------------------------
