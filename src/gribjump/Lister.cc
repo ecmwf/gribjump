@@ -88,20 +88,32 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     size_t count = 0;
     
     fdb5::ListElement elem;
+
+    // chrono, we're going to accumulate some times
+
+    double time_tostr = 0;
+    double time_uri = 0;
+    double time_filemap = 0;
+    
     while (listIter.next(elem)) {
+        auto start = std::chrono::high_resolution_clock::now();
 
         std::string key = fdbkeyToStr(elem.combinedKey());
+        time_tostr += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 
         // If key not in map, not related to the request
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
 
+        start = std::chrono::high_resolution_clock::now();
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().fullUri();
 
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
+        time_uri += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 
         // Add to filemap
+        start= std::chrono::high_resolution_clock::now();
         eckit::PathName fname = uri.path();
         auto it = filemap.find(fname);
         if(it == filemap.end()) {
@@ -112,9 +124,14 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         else {
             it->second.push_back(extractionItem);
         }
+        time_filemap += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
 
         count++;
     }
+
+    MetricsManager::instance().set("debug_list_time_tostr", time_tostr);
+    MetricsManager::instance().set("debug_list_time_uri", time_uri);
+    MetricsManager::instance().set("debug_list_time_filemap", time_filemap);
 
     LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
 
