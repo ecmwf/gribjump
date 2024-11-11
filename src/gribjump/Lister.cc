@@ -77,10 +77,14 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
+    eckit::Timer timer;
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
     auto listIter = fdb_.list(fdbreq, true);
 
+    MetricsManager::instance().set("debug_elapsed_fdb_list", timer.elapsed());
+    timer.reset("FDB list");
+    
     size_t count = 0;
     
     fdb5::ListElement elem;
@@ -132,6 +136,8 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         }
         LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
     }
+
+    MetricsManager::instance().set("debug_listiter_to_filemap", timer.elapsed());
     
     return filemap;
 }

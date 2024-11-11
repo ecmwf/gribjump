@@ -155,11 +155,12 @@ filemap_t Engine::buildFileMap(const ExtractionRequests& requests, ExItemMap& ke
 
     std::vector<metkit::mars::MarsRequest> marsrequests;
     for (const auto& req : requests) {
-        marsrequests.push_back(req.request());
+        marsrequests.push_back(req.request()); // XXX: Do we really need to do a copy!?
     }
 
     const metkit::mars::MarsRequest req = unionRequest(marsrequests);
     MetricsManager::instance().set("union_request", req.asString());
+    MetricsManager::instance().set("debug_elapsed_union_request", timer.elapsed());
     timer.reset("Gribjump Engine: Flattened requests and constructed union request");
 
     filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
