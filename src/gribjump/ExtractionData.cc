@@ -35,7 +35,68 @@ std::vector<double> decodeVector(eckit::Stream& s) {
     return std::vector<double>(data, data + size);
 }
 
-// todo: encodeVectorVector ?
+void encodeVector(eckit::Stream& s, const std::vector<unsigned long long>& v) {
+    size_t size = v.size();
+    s << size;
+    eckit::Buffer buffer(v.data(), size * sizeof(unsigned long long));
+    s << buffer;
+}
+
+std::vector<unsigned long long> decodeVectorUll(eckit::Stream& s) {
+    size_t size;
+    s >> size;
+    eckit::Buffer buffer(size * sizeof(unsigned long long));
+    s >> buffer;
+    unsigned long long* data = (unsigned long long*) buffer.data();
+    return std::vector<unsigned long long>(data, data + size);
+}
+
+
+void encodeVectorVector(eckit::Stream& s, const std::vector<std::vector<double>>& v) {
+    size_t size = v.size();
+    s << size;
+    size_t totalSize = 0;
+    for (auto& inner : v) {
+        totalSize += inner.size();
+        s << inner.size();
+    }
+    s << totalSize;
+    eckit::Buffer buffer(totalSize * sizeof(double));
+    double* data = (double*) buffer.data();
+    for (auto& inner : v) {
+        for (auto& d : inner) {
+            *data++ = d;
+        }
+    }
+    s << buffer;
+}
+
+std::vector<std::vector<double>> decodeVectorVector(eckit::Stream& s) {
+    size_t size;
+    s >> size;
+    std::vector<size_t> innerSizes;
+    size_t totalSize = 0;
+    for (size_t i = 0; i < size; i++) {
+        size_t innerSize;
+        s >> innerSize;
+        innerSizes.push_back(innerSize);
+        totalSize += innerSize;
+    }
+
+    eckit::Buffer buffer(totalSize * sizeof(double));
+    s >> buffer;
+    double* data = (double*) buffer.data();
+
+    std::vector<std::vector<double>> result;
+    size_t offset = 0;
+    for (auto& innerSize : innerSizes) {
+        std::vector<double> inner(data + offset, data + offset + innerSize);
+        result.push_back(inner);
+        offset += innerSize;
+    }
+    
+    return result;
+}
 
 } // namespace
 
@@ -53,15 +114,14 @@ ExtractionResult::ExtractionResult(eckit::Stream& s) {
         values_.push_back(decodeVector(s));
     }
 
-    std::vector<std::vector<std::string>> bitsetStrings;
-    s >> bitsetStrings;
-    for (auto& v : bitsetStrings) {
-        std::vector<std::bitset<64>> bitset;
-        for (auto& b : v) {
-            bitset.push_back(std::bitset<64>(b));
-        }
-        mask_.push_back(bitset);
-    }
+    // s >> numRanges;
+    // for (size_t i = 0; i < numRanges; i++) {
+    //     std::vector<unsigned long long> bitsetUll = decodeVectorUll(s);
+    //     for (auto& b : bitsetUll) {
+    //         mask_[i].push_back(std::bitset<64>(b));
+    //     }
+
+    // }
 }
 
 void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues) {
@@ -81,15 +141,14 @@ void ExtractionResult::encode(eckit::Stream& s) const {
         encodeVector(s, v);
     }
 
-    std::vector<std::vector<std::string>> bitsetStrings;
-    for (auto& v : mask_) {
-        std::vector<std::string> bitsetString;
-        for (auto& b : v) {
-            bitsetString.push_back(b.to_string());
-        }
-        bitsetStrings.push_back(bitsetString);
-    }
-    s << bitsetStrings;
+    // s << mask_.size(); // vector of vectors
+    // for (auto& v : mask_) {
+    //     std::vector<unsigned long long> bitsetUll;
+    //     for (auto& b : v) {
+    //         bitsetUll.push_back(b.to_ullong());
+    //     }
+    //     encodeVector(s, bitsetUll);
+    // }
 }
 
 void ExtractionResult::print(std::ostream& s) const {
