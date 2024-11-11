@@ -96,24 +96,24 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     double time_filemap = 0;
     
     while (listIter.next(elem)) {
-        auto start = std::chrono::high_resolution_clock::now();
 
+        eckit::Timer timer1;
         std::string key = fdbkeyToStr(elem.combinedKey());
-        time_tostr += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+        time_tostr += timer1.elapsed();
 
         // If key not in map, not related to the request
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
 
-        start = std::chrono::high_resolution_clock::now();
+        
         // Set the URI in the ExtractionItem
+        eckit::Timer timer2;
         eckit::URI uri = elem.location().fullUri();
-
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
-        time_uri += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+        time_uri += timer2.elapsed();
 
         // Add to filemap
-        start= std::chrono::high_resolution_clock::now();
+        eckit::Timer timer3;
         eckit::PathName fname = uri.path();
         auto it = filemap.find(fname);
         if(it == filemap.end()) {
@@ -124,7 +124,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         else {
             it->second.push_back(extractionItem);
         }
-        time_filemap += std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start).count();
+        time_filemap += timer3.elapsed();
 
         count++;
     }
@@ -133,8 +133,10 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     MetricsManager::instance().set("debug_list_time_uri", time_uri);
     MetricsManager::instance().set("debug_list_time_filemap", time_filemap);
 
-    LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
 
+    eckit::Timer timer_extra;
+
+    LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
     if (count != reqToExtractionItem.size()) {
         eckit::Log::warning() << "Warning: Number of fields found (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
         if (!allowMissing_) {
@@ -154,7 +156,10 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
     }
 
+    MetricsManager::instance().set("debug_list_time_extra", timer_extra.elapsed());
+
     MetricsManager::instance().set("debug_listiter_to_filemap", timer.elapsed());
+
     
     return filemap;
 }
