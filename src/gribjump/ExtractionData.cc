@@ -14,6 +14,8 @@
 #include "eckit/value/Value.h"
 #include "eckit/io/Buffer.h"
 
+#include "metkit/mars/MarsParser.h"
+
 namespace gribjump {
 
 namespace {
@@ -114,7 +116,7 @@ ExtractionResult::ExtractionResult(eckit::Stream& s) {
         values_.push_back(decodeVector(s));
     }
 
-    // s >> numRanges;
+    // s >> numRanges; // maybe wrong
     // for (size_t i = 0; i < numRanges; i++) {
     //     std::vector<unsigned long long> bitsetUll = decodeVectorUll(s);
     //     for (auto& b : bitsetUll) {
@@ -122,6 +124,17 @@ ExtractionResult::ExtractionResult(eckit::Stream& s) {
     //     }
 
     // }
+
+
+    std::vector<std::vector<std::string>> bitsetStrings;
+    s >> bitsetStrings;
+    for (auto& v : bitsetStrings) {
+        std::vector<std::bitset<64>> bitset;
+        for (auto& b : v) {
+            bitset.push_back(std::bitset<64>(b));
+        }
+        mask_.push_back(bitset);
+    }
 }
 
 void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues) {
@@ -149,6 +162,17 @@ void ExtractionResult::encode(eckit::Stream& s) const {
     //     }
     //     encodeVector(s, bitsetUll);
     // }
+
+
+    std::vector<std::vector<std::string>> bitsetStrings;
+    for (auto& v : mask_) {
+        std::vector<std::string> bitsetString;
+        for (auto& b : v) {
+            bitsetString.push_back(b.to_string());
+        }
+        bitsetStrings.push_back(bitsetString);
+    }
+    s << bitsetStrings;
 }
 
 void ExtractionResult::print(std::ostream& s) const {
@@ -183,11 +207,30 @@ ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, c
     ranges_(ranges),
     request_(request),
     gridHash_(gridHash)
+    {
+
+        NOTIMP; // debug
+    }
+
+ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges, std::string gridHash):
+    ranges_(ranges),
+    request_string_(request),
+    gridHash_(gridHash)
     {}
+
 ExtractionRequest::ExtractionRequest() {}
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
-    request_ = metkit::mars::MarsRequest(s);
+    // request_ = metkit::mars::MarsRequest(s); // original
+
+    // Now convert it to a mars request
+    s >> request_string_;
+    // request_ = metkit::mars::MarsRequest::parse(request_string_); // very very slow
+    // takes an istream
+    // std::istringstream istream(request_string_);
+    // metkit::mars::MarsParser parser(istream);
+    // request_ = parser.parse()[0]; // hard asserting that this expands to one request
+
     s >> gridHash_;
     size_t numRanges;
     s >> numRanges;
@@ -228,7 +271,8 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
 }
 
 void ExtractionRequest::encode(eckit::Stream& s) const {
-    s << request_;
+    // s << request_;
+    s << request_string_;
     s << gridHash_;
     s << ranges_.size();
     for (auto& [start, end] : ranges_) {

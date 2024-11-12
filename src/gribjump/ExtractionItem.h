@@ -26,7 +26,7 @@ class ExtractionItem : public eckit::NonCopyable {
 
 public:
 
-    ExtractionItem(const metkit::mars::MarsRequest& baseRequest, const Ranges& ranges): 
+    ExtractionItem(const std::string& baseRequest, const Ranges& ranges): 
         request_(baseRequest), ranges_(ranges) {
             /// @note We could reserve the values and mask here based on the ranges
             /// @note We're not always going to have mars requests (e.g. file name, tree, ...) More generic object?
@@ -41,7 +41,7 @@ public:
     ExValues& values() { return values_; }
     const ExMask& mask() const { return mask_; }
     const Ranges& intervals() const { return ranges_; }
-    const metkit::mars::MarsRequest& request() const { return request_; }
+    const std::string& request() const { return request_; }
     
     /// @note alternatively we could store the offset directly instead of the uri.
     eckit::Offset offset() const {
@@ -99,7 +99,7 @@ public:
 
 private:
 
-    const metkit::mars::MarsRequest request_;
+    const std::string request_;
     const Ranges ranges_;
 
     // Set on Listing

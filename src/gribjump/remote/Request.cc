@@ -120,7 +120,7 @@ void ExtractRequest::replyToClient() {
     for (size_t i = 0; i < nRequests; i++) {
         LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
 
-        auto it = results_.find(requests_[i].request());
+        auto it = results_.find(requests_[i].request_string());
         ASSERT(it != results_.end());
         std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
         // ExtractionItems items = it->second;
