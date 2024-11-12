@@ -49,6 +49,9 @@ list( APPEND gribjump_srcs
     Metrics.h
     Metrics.cc
     Types.h
+
+    Serialiser.h
+    Serialiser.cc
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )

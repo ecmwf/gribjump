@@ -24,7 +24,7 @@ enum class RequestType : uint16_t {
     SCAN,
     FORWARD_EXTRACT
 };
-constexpr static uint16_t remoteProtocolVersion = 0;
+constexpr static uint16_t remoteProtocolVersion = 1;
 
 class RemoteGribJump : public GribJumpBase {
 

@@ -94,19 +94,23 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     double time_tostr = 0;
     double time_uri = 0;
     double time_filemap = 0;
-    
+
+    double time_next=0;
+
+    eckit::Timer timer_next;
     while (listIter.next(elem)) {
+        time_next += timer_next.elapsed();
 
         eckit::Timer timer1;
         std::string key = fdbkeyToStr(elem.combinedKey());
         time_tostr += timer1.elapsed();
 
         // If key not in map, not related to the request
+        eckit::Timer timer2;
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
 
         
         // Set the URI in the ExtractionItem
-        eckit::Timer timer2;
         eckit::URI uri = elem.location().fullUri();
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
@@ -127,6 +131,8 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         time_filemap += timer3.elapsed();
 
         count++;
+
+        timer_next.reset("");
     }
 
     MetricsManager::instance().set("debug_list_time_tostr", time_tostr);

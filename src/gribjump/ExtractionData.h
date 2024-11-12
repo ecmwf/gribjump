@@ -25,7 +25,7 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-/// @todo This class is now redundant thanks to ExtractionItem.
+/// @todo This class is now redundant thanks to ExtractionItem. // XXX not true
 
 class ExtractionResult  {
 public: // methods
@@ -68,6 +68,8 @@ private: // methods
 private: // members
     std::vector<std::vector<double>> values_;
     std::vector<std::vector<std::bitset<64>>> mask_;
+
+    friend class Serialiser;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -96,6 +98,8 @@ private: // members
     std::vector<Range> ranges_;
     metkit::mars::MarsRequest request_;
     std::string gridHash_;
+
+    friend class Serialiser;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

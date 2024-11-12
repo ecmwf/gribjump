@@ -103,12 +103,12 @@ flattenedKeys_t buildFlatKeys(const ExtractionRequests& requests, bool flatten) 
     return keymap;
 }
 
-metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
+metkit::mars::MarsRequest unionRequest(const ExtractionRequests& requests) {
 
     /// @todo: we should do some check not to merge on keys like class and stream
-    metkit::mars::MarsRequest unionRequest = requests.front();
+    metkit::mars::MarsRequest unionRequest = requests.front().request();
     for(size_t i = 1; i < requests.size(); ++i) {
-        unionRequest.merge(requests[i]);
+        unionRequest.merge(requests[i].request());
     }
     
     eckit::Log::info() << "Gribjump: Union request is " << unionRequest << std::endl;
@@ -153,12 +153,7 @@ filemap_t Engine::buildFileMap(const ExtractionRequests& requests, ExItemMap& ke
     // Map files to ExtractionItem
     eckit::Timer timer("Gribjump Engine: Building file map");
 
-    std::vector<metkit::mars::MarsRequest> marsrequests;
-    for (const auto& req : requests) {
-        marsrequests.push_back(req.request()); // XXX: Do we really need to do a copy!?
-    }
-
-    const metkit::mars::MarsRequest req = unionRequest(marsrequests);
+    const metkit::mars::MarsRequest req = unionRequest(requests);
     MetricsManager::instance().set("union_request", req.asString());
     MetricsManager::instance().set("debug_elapsed_union_request", timer.elapsed());
     timer.reset("Gribjump Engine: Flattened requests and constructed union request");
