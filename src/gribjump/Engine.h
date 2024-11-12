@@ -43,7 +43,8 @@ public:
 
 private: 
 
-    filemap_t buildFileMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
+    // filemap_t buildFileMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
+    filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     ExItemMap buildKeyToExtractionItem(const ExtractionRequests& requests, bool flatten);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     void forwardRemoteExtraction(filemap_t& filemap);

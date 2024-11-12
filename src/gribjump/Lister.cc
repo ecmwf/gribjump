@@ -78,8 +78,9 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
     eckit::Timer timer;
-
+    std::cout << "DEBUG: unionRequest: " << unionRequest << std::endl;
     fdb5::FDBToolRequest fdbreq(unionRequest);
+
     auto listIter = fdb_.list(fdbreq, true);
 
     MetricsManager::instance().set("debug_elapsed_fdb_list", timer.elapsed());
@@ -98,7 +99,9 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     double time_next=0;
 
     eckit::Timer timer_next;
+    size_t fdb_count=0;
     while (listIter.next(elem)) {
+        fdb_count++;
         time_next += timer_next.elapsed();
 
         eckit::Timer timer1;
@@ -132,7 +135,8 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
 
         count++;
 
-        timer_next.reset("");
+        // timer_next.reset("");
+
     }
 
     MetricsManager::instance().set("debug_list_time_tostr", time_tostr);
@@ -143,11 +147,13 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     eckit::Timer timer_extra;
 
     LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "FDB count: " << fdb_count << std::endl;
     if (count != reqToExtractionItem.size()) {
         eckit::Log::warning() << "Warning: Number of fields found (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
         if (!allowMissing_) {
             std::stringstream ss;
             ss << "Found " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
+            ss << "Union request: " << unionRequest << std::endl;
             throw DataNotFoundException(ss.str());
         }
     }
@@ -165,6 +171,13 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     MetricsManager::instance().set("debug_list_time_extra", timer_extra.elapsed());
 
     MetricsManager::instance().set("debug_listiter_to_filemap", timer.elapsed());
+
+    // // XXX DEBUG
+    // std::stringstream ss;
+    // ss << "DEBUG EXIT: FDBLister::fileMap() took " << timer.elapsed() << "s" << std::endl;
+    // ss << "Union request" << unionRequest << std::endl;
+    // throw eckit::SeriousBug(ss.str());
+    // // XXX DEBUG
 
     
     return filemap;

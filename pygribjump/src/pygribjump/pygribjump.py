@@ -258,7 +258,8 @@ class ExtractionRequest:
         The ranges to extract.
     """
     def __init__(self, req, ranges, gridHash=None):
-        reqstr = "retrieve,"+dic_to_request(req)
+        # reqstr = "retrieve,"+dic_to_request(req)
+        reqstr = dic_to_request(req) 
         rangestr = list_to_rangestr(ranges)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
@@ -358,7 +359,9 @@ def list_to_rangestr(ranges):
 
 def dic_to_request(dic):
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
-    return ','.join(['='.join([k, v]) for k, v in dic.items()])
+    # return ','.join(['='.join([k, v]) for k, v in dic.items()])
+    # We order the keys in alphabetical order
+    return ','.join(['='.join([k, dic[k]]) for k in sorted(dic.keys())])
 
 def version():
     return __version__

@@ -93,7 +93,7 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extra
 
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
-        auto it = results.find(req.request());
+        auto it = results.find(req.request_string());
         ASSERT(it != results.end());
         std::vector<std::unique_ptr<ExtractionResult>> res;
         for (auto& item : it->second) {

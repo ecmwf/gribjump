@@ -80,12 +80,15 @@ public: // methods
 
     ExtractionRequest();
     ExtractionRequest(const metkit::mars::MarsRequest&, const std::vector<Range>&, std::string gridHash="");
+    ExtractionRequest(const std::string&, const std::vector<Range>&, std::string gridHash="");
     explicit ExtractionRequest(eckit::Stream& s);
 
     std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
     std::vector<ExtractionRequest> split(const std::string& key) const;
     const std::vector<Range>& ranges() const {return ranges_;}
-    const metkit::mars::MarsRequest& request() const {return request_;}
+    const metkit::mars::MarsRequest& request() const {NOTIMP; return request_;}
+    const std::string& request_string() const {return request_string_;}
+    void request_string(const std::string& s) {request_string_ = s;}
     const std::string& gridHash() const {return gridHash_;}
 
 private: // methods
@@ -97,6 +100,7 @@ private: // methods
 private: // members
     std::vector<Range> ranges_;
     metkit::mars::MarsRequest request_;
+    std::string request_string_; // debug: is this better?
     std::string gridHash_;
 
     friend class Serialiser;

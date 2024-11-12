@@ -137,23 +137,23 @@ int gribjump_new_request(gribjump_extraction_request_t** request, const char* re
         // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
         
         // NB: Treat the requests as raw requests.
-        std::istringstream iss(reqstr);
-        metkit::mars::MarsParser parser(iss);
-        std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
-        ASSERT(requests.size() == 1);
-        metkit::mars::MarsRequest mreq(requests[0]);
+        // std::istringstream iss(reqstr);
+        // metkit::mars::MarsParser parser(iss);
+        // std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
+        // ASSERT(requests.size() == 1);
+        // metkit::mars::MarsRequest mreq(requests[0]);
 
         // Parse the ranges string
         std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
         std::vector<Range> rangevec;
         for (const auto& range : ranges) {
-            std::vector<std::string> kv = eckit::StringTools::split("-", range);
+            std::vector<std::string> kv = eckit::StringTools::split("-", range); // this is awful
             ASSERT(kv.size() == 2);
             rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
         }
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
-        *request = new gribjump_extraction_request_t(mreq, rangevec, gridhash_str);
+        *request = new gribjump_extraction_request_t(reqstr, rangevec, gridhash_str);
 
     });
 }
