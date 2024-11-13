@@ -132,29 +132,20 @@ int gribjump_delete_handle(gribjump_handle_t* handle) {
 
 int gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const char* rangesstr, const char* gridhash) {
     return wrapApiFunction([=] {
-
-        // reqstr is a string representation of a metkit::mars::MarsRequest
+        // reqstr is a request string, we *ASSUME* that it resembles a valid mars request for a SINGLE field.
         // rangesstr is a comma-separated list of ranges, e.g. "0-10,20-30"
         
-        // NB: Treat the requests as raw requests.
-        std::istringstream iss(reqstr);
-        metkit::mars::MarsParser parser(iss);
-        std::vector<metkit::mars::MarsParsedRequest> requests = parser.parse();
-        ASSERT(requests.size() == 1);
-        metkit::mars::MarsRequest mreq(requests[0]);
-
         // Parse the ranges string
         std::vector<std::string> ranges = eckit::StringTools::split(",", rangesstr);
         std::vector<Range> rangevec;
         for (const auto& range : ranges) {
-            std::vector<std::string> kv = eckit::StringTools::split("-", range);
+            std::vector<std::string> kv = eckit::StringTools::split("-", range); // this is silly, we should just pass the values as integers
             ASSERT(kv.size() == 2);
             rangevec.push_back(std::make_pair(std::stoi(kv[0]), std::stoi(kv[1])));
         }
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
-        *request = new gribjump_extraction_request_t(mreq, rangevec, gridhash_str);
-
+        *request = new gribjump_extraction_request_t(reqstr, rangevec, gridhash_str);
     });
 }
 
@@ -227,7 +218,8 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
     return wrapApiFunction([=] {
         ExtractionRequest req = *request;
-        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(std::vector<ExtractionRequest>{req});
+        std::vector<ExtractionRequest> vec = {req};
+        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(vec);
         ASSERT(resultsv.size() == 1);
 
         std::vector<std::unique_ptr<ExtractionResult>> results = std::move(resultsv[0]);

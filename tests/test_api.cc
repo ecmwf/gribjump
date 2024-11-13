@@ -37,7 +37,7 @@ namespace test {
 constexpr double MISSING = std::numeric_limits<double>::quiet_NaN();
 
 void compareValues(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues, const std::vector<std::vector<std::unique_ptr<ExtractionResult>>>& output) {
-    EXPECT(expectedValues.size() == output.size());
+    EXPECT_EQUAL(expectedValues.size(), output.size());
     for (size_t i = 0; i < expectedValues.size(); i++) { // each mars request
         EXPECT_EQUAL(expectedValues[i].size(), output[i].size());
         for (size_t j = 0; j < expectedValues[i].size(); j++) { // each field
@@ -98,19 +98,11 @@ CASE( "test_gribjump_api_extract" ) {
 
     // Test 1: Extract 3 fields. Each field has a different set of ranges
 
-    std::vector<metkit::mars::MarsRequest> requests;
-    {
-        std::istringstream s(
-            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc\n"
-            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc\n"
-            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc\n"
-            );
-        metkit::mars::MarsParser parser(s);
-        auto parsedRequests = parser.parse();
-        metkit::mars::MarsExpension expand(/* inherit */ false);
-        requests = expand.expand(parsedRequests);
-    }
-
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"
+    };
 
     std::vector<std::vector<Interval>> allIntervals = {
         {
@@ -141,14 +133,16 @@ CASE( "test_gribjump_api_extract" ) {
     // Eccodes expected values
     std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues;
     for (auto req : polyRequest1) {
-        expectedValues.push_back(eccodesExtract(req.request(), req.ranges()));
+        metkit::mars::MarsRequest marsreq = fdb5::FDBToolRequest::requestsFromString(req.requestString())[0].request();
+        expectedValues.push_back(eccodesExtract(marsreq, req.ranges()));
     }
     compareValues(expectedValues, output1);
 
     // --------------------------------------------------------------------------------------------
 
+#if 0  // NO LONGER SUPPORTED
     // Test 2: Extract same fields as Test 1, but in a single step=2/1/3 request. One set of ranges for all fields.
-    
+    std::vector<metkit::mars::MarsRequest> marsrequests;
     {
         std::istringstream s(
             "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc\n"
@@ -156,8 +150,12 @@ CASE( "test_gribjump_api_extract" ) {
         metkit::mars::MarsParser parser(s);
         auto parsedRequests = parser.parse();
         metkit::mars::MarsExpension expand(/* inherit */ false);
-        requests = expand.expand(parsedRequests);
+        marsrequests = expand.expand(parsedRequests);
     }
+
+    requests = {
+        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc"
+    };
     
     std::vector<Interval> ranges = allIntervals[0];
     PolyRequest polyRequest2;
@@ -168,25 +166,29 @@ CASE( "test_gribjump_api_extract" ) {
     EXPECT(output2[0].size() == 3);
 
     expectedValues.clear();
-    expectedValues.push_back(eccodesExtract(requests[0], ranges));
+    expectedValues.push_back(eccodesExtract(marsrequests[0], ranges));
     compareValues(expectedValues, output2);
-
+#endif
     // --------------------------------------------------------------------------------------------
+    std::vector<Interval> ranges = allIntervals[0];
 
-    // Test 2.b: Extract but with an md5 hash
-    EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges)}), eckit::SeriousBug); // missing hash
-    EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges, "wronghash")}), eckit::SeriousBug); // incorrect hash
+    // Test 1.b: Extract but with an md5 hash
+    std::vector<ExtractionRequest> vec = {ExtractionRequest(requests[0], ranges)};
+    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug); // missing hash
+    vec = {ExtractionRequest(requests[0], ranges, "wronghash")};
+    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug); // incorrect hash
     
     // correct hash
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, gridHash)});
+    vec = {ExtractionRequest(requests[0], ranges, gridHash)};
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2c = gj.extract(vec);
     EXPECT_EQUAL(output2c[0][0]->total_values(), 15);
 
-    // --------------------------------------------------------------------------------------------
+    // // --------------------------------------------------------------------------------------------
 
     // Test 3: Extract function using path and offsets, which skips engine and related tasks/checks.
     
     std::vector<eckit::URI> uris;
-    fdb5::FDBToolRequest fdbreq(requests[0]);
+    fdb5::FDBToolRequest fdbreq = fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc")[0];
     auto listIter = fdb.list(fdbreq, false);
     fdb5::ListElement elem;
     while (listIter.next(elem)) {
@@ -223,6 +225,9 @@ CASE( "test_gribjump_api_extract" ) {
     }
 
     // Expect output to be the same as output2[0]
+    expectedValues.clear();
+    expectedValues.push_back(eccodesExtract(fdbreq.request(), ranges));
+    
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output3v;
     output3v.push_back(std::move(output3)); // i.e. == {output3}
     compareValues(expectedValues, output3v);

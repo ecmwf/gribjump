@@ -23,7 +23,7 @@ authors = [
 urls = { "Home" = "https://github.com/ecmwf/gribjump" }
 dependencies = [
     "cffi~=1.17",
-    "numpy~=2.1",
+    "numpy~=1.26",
     "pytest~=8.3",
     "setuptools~=75.1",
     "findlibs~=0.0.5",

@@ -12,12 +12,14 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
+#include "metkit/mars/MarsRequest.h"
 #include "gribjump/ExtractionData.h"
 
 namespace gribjump
 {
 
 std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname);
+std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRequest& request);
 
 
 } // namespace gribjump

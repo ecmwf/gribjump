@@ -186,7 +186,7 @@ void FileExtractionTask::extract() {
             throw eckit::BadValue("Grid hash was not specified in request but is required. (Extraction item " + std::to_string(i) + " in file " + fname_ + ")");
         }
         if (!ignoreGrid_ && (expectedHash != info.md5GridSection())) {
-            throw eckit::BadValue("Grid hash mismatch for extraction item " + std::to_string(i) + " in file " + fname_ + ". Expected: " + expectedHash + ", got: " + info.md5GridSection());
+            throw eckit::BadValue("Grid hash mismatch for extraction item " + std::to_string(i) + " in file " + fname_ + ". Request specified: " + expectedHash + ", JumpInfo contains: " + info.md5GridSection());
         }
 
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.

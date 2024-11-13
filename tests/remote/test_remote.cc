@@ -48,10 +48,16 @@ static eckit::PathName metricsFile = "test_metrics";
 CASE( "Remote protocol: extract" ) {
     
     // --- Extract
-    std::vector<metkit::mars::MarsRequest> requests = {
-        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc")[0].request(),
-        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc")[0].request(),
+    // std::vector<metkit::mars::MarsRequest> requests = {
+    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc")[0].request(),
+    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc")[0].request(),
+    // };
+
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
     };
+
     
     std::vector<std::vector<Interval>> allIntervals = {
         {std::make_pair(0, 5),  std::make_pair(20, 30)},

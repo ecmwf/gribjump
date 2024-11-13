@@ -11,8 +11,10 @@
 /// @author Christopher Bradley
 
 #include "eckit/log/Plural.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
@@ -26,95 +28,8 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 // Stringify requests and keys alphabetically
-namespace 
-{
-std::string requestToStr(const metkit::mars::MarsRequest& request) {
-    std::stringstream ss;
-    std::string separator = "";
-    std::vector<std::string> keys = request.params();
-    std::sort(keys.begin(), keys.end());
-    for(const auto& key : keys) {
-        ss << separator << key << "=" << request[key];
-        separator = ",";
-    }
-    return ss.str();
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-
-class CollectFlattenedRequests : public metkit::mars::FlattenCallback {
-public:
-    CollectFlattenedRequests(std::vector<metkit::mars::MarsRequest>& flattenedRequests) : flattenedRequests_(flattenedRequests) {}
-
-    virtual void operator()(const metkit::mars::MarsRequest& req) {
-        flattenedRequests_.push_back(req);
-    }
-
-    std::vector<metkit::mars::MarsRequest>& flattenedRequests_;
-};
-
-std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRequest& request) {
-
-    metkit::mars::MarsExpension expansion(false);
-    metkit::mars::DummyContext ctx;
-    std::vector<metkit::mars::MarsRequest> flattenedRequests;
-    
-    CollectFlattenedRequests cb(flattenedRequests);
-    expansion.flatten(ctx, request, cb);
-
-    LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;
-
-    for (const auto& req : flattenedRequests) {
-        LOG_DEBUG_LIB(LibGribJump) << "  Flattened request: " << req << std::endl;
-    }
-
-    return flattenedRequests;
-}
-
-// Stringify requests, and flatten if necessary
-
-typedef std::map<metkit::mars::MarsRequest, std::vector<std::string>> flattenedKeys_t;
-
-flattenedKeys_t buildFlatKeys(const ExtractionRequests& requests, bool flatten) {
-    
-    flattenedKeys_t keymap;
-    
-    for (const auto& req : requests) {
-        const metkit::mars::MarsRequest& baseRequest = req.request();
-        keymap[baseRequest] = std::vector<std::string>();
-
-        // Assume baseRequest has cardinality >= 1 and may need to be flattened
-        if (flatten) {
-            std::vector<metkit::mars::MarsRequest> flat = flattenRequest(baseRequest);
-            for (const auto& r : flat) {
-                keymap[baseRequest].push_back(requestToStr(r));
-            }
-        }
-
-        // Assume baseRequest has cardinality 1
-        else {
-            keymap[baseRequest].push_back(requestToStr(baseRequest));
-        }
-
-        eckit::Log::debug<LibGribJump>() << "Flattened keys for request " << baseRequest << ": " << keymap[baseRequest] << std::endl;
-    }
-
-    return keymap;
-}
-
-metkit::mars::MarsRequest unionRequest(const MarsRequests& requests) {
-
-    /// @todo: we should do some check not to merge on keys like class and stream
-    metkit::mars::MarsRequest unionRequest = requests.front();
-    for(size_t i = 1; i < requests.size(); ++i) {
-        unionRequest.merge(requests[i]);
-    }
-    
-    eckit::Log::info() << "Gribjump: Union request is " << unionRequest << std::endl;
-    
-    return unionRequest;
-}
+namespace {
+// ----------------------------------------------------------------------------------------------------------------------
 
 bool isRemote(eckit::URI uri) {
     return uri.scheme() == "fdb";
@@ -127,43 +42,73 @@ Engine::Engine() {}
 
 Engine::~Engine() {}
 
-ExItemMap Engine::buildKeyToExtractionItem(const ExtractionRequests& requests, bool flatten){
-    ExItemMap keyToExtractionItem;
+metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
+    // Split strings into one unified map
+    // We also canonicalise the requests such that their keys are in alphabetical order
+    /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should look into
+    /// merging into the minimum number of requests.
 
-    flattenedKeys_t flatKeys = buildFlatKeys(requests, flatten); // Map from base request to {flattened keys}
-
-    LOG_DEBUG_LIB(LibGribJump) << "Built flat keys" << std::endl;
-
-    // Create the 1-to-1 map
-    for (size_t i = 0; i < requests.size(); i++) {
-        const metkit::mars::MarsRequest& basereq = requests[i].request();
-        const std::vector<std::string> keys = flatKeys[basereq];
-        for (const auto& key : keys) {
-            ASSERT(keyToExtractionItem.find(key) == keyToExtractionItem.end()); /// @todo support duplicated requests?
-            auto extractionItem = std::make_unique<ExtractionItem>(basereq, requests[i].ranges());
-            extractionItem->gridHash(requests[i].gridHash());
-            keyToExtractionItem.emplace(key, std::move(extractionItem)); // 1-to-1-map
+    std::map<std::string, std::set<std::string>> keyValues;
+    for (auto& r : requests) {
+        const std::string& s = r.requestString();
+        std::vector<std::string> kvs = eckit::StringTools::split(",", s); /// @todo might be faster to use tokenizer directly.
+        for (auto& kv : kvs) {
+            std::vector<std::string> kv_s = eckit::StringTools::split("=", kv);
+            if (kv_s.size() != 2) continue; // ignore verb
+            keyValues[kv_s[0]].insert(kv_s[1]);
         }
+
+        // Canonicalise string by sorting keys
+        std::sort(kvs.begin(), kvs.end());
+        std::string canonicalised = "";
+        for (auto& kv : kvs) {
+            canonicalised += kv;
+            if (kv != kvs.back()) {
+                canonicalised += ",";
+            }
+        }
+        ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end()); // no repeats
+        r.requestString(canonicalised);
+        auto extractionItem = std::make_unique<ExtractionItem>(canonicalised, r.ranges());
+        extractionItem->gridHash(r.gridHash());
+        keyToExtractionItem.emplace(canonicalised, std::move(extractionItem)); // 1-to-1-map
     }
 
-    return keyToExtractionItem;
+    // Construct the union request
+
+    std::string result = "retrieve,";
+    size_t i = 0;
+    for (auto& [key, values] : keyValues) {
+        result += key + "=";
+        if (values.size() == 1) {
+            result += *values.begin();
+        } else {
+            size_t j = 0;
+            for (auto& value : values) {
+                result += value;
+                if (j != values.size() - 1) {
+                    result += "/";
+                }
+                j++;
+            }
+        }
+        if (i != keyValues.size() - 1) {
+            result += ",";
+        }
+        i++;
+    }
+
+    std::istringstream istream(result);
+    metkit::mars::MarsParser parser(istream);
+    std::vector<metkit::mars::MarsParsedRequest> unionRequests = parser.parse();
+    ASSERT(unionRequests.size() == 1);
+
+    return unionRequests[0];
 }
 
-filemap_t Engine::buildFileMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
+filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
-    eckit::Timer timer("Gribjump Engine: Building file map");
-
-    std::vector<metkit::mars::MarsRequest> marsrequests;
-    for (const auto& req : requests) {
-        marsrequests.push_back(req.request());
-    }
-
-    const metkit::mars::MarsRequest req = unionRequest(marsrequests);
-    MetricsManager::instance().set("union_request", req.asString());
-    timer.reset("Gribjump Engine: Flattened requests and constructed union request");
-
-    filemap_t filemap = FDBLister::instance().fileMap(req, keyToExtractionItem);
-
+    filemap_t filemap = FDBLister::instance().fileMap(unionrequest, keyToExtractionItem);
     return filemap;
 }
 
@@ -174,10 +119,11 @@ void Engine::forwardRemoteExtraction(filemap_t& filemap) {
     const std::map<std::string, std::string>& servermap_str = LibGribJump::instance().config().serverMap();
     ASSERT(!servermap_str.empty());
 
-    for (auto& [fdb, gj] : servermap_str) {
-        LOG_DEBUG_LIB(LibGribJump) << "Servermap: " << fdb << " -> " << gj << std::endl;
+    if (LibGribJump::instance().debug()) {
+        for (auto& [fdb, gj] : servermap_str) {
+            LOG_DEBUG_LIB(LibGribJump) << "Servermap: " << fdb << " -> " << gj << std::endl;
+        }
     }
-
     std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> servermap;
     for (auto& [fdb, gj] : servermap_str) {
         eckit::net::Endpoint fdbEndpoint(fdb);
@@ -247,11 +193,14 @@ void Engine::scheduleTasks(filemap_t& filemap){
     taskGroup_.waitForTasks();
 }
 
-ResultsMap Engine::extract(const ExtractionRequests& requests, bool flatten) {
+ResultsMap Engine::extract(ExtractionRequests& requests) {
 
     eckit::Timer timer("Engine::extract");
-    ExItemMap keyToExtractionItem = buildKeyToExtractionItem(requests, flatten); // Owns the ExtractionItems
-    filemap_t filemap = buildFileMap(requests, keyToExtractionItem);
+    
+    ExItemMap keyToExtractionItem;
+    metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
+
+    filemap_t filemap = buildFileMap(unionreq, keyToExtractionItem);
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
