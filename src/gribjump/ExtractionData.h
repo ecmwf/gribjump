@@ -85,6 +85,7 @@ public: // methods
     const std::vector<Range>& ranges() const {return ranges_;}
     // const metkit::mars::MarsRequest& request() const {NOTIMP; return request_;}
     const std::string& requestString() const {return request_string_;}
+    void requestString(const std::string& s) {request_string_ = s;}
     const std::string& gridHash() const {return gridHash_;}
 
 private: // methods

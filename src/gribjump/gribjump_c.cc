@@ -227,7 +227,8 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request, gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
     return wrapApiFunction([=] {
         ExtractionRequest req = *request;
-        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(std::vector<ExtractionRequest>{req});
+        std::vector<ExtractionRequest> vec = {req};
+        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(vec);
         ASSERT(resultsv.size() == 1);
 
         std::vector<std::unique_ptr<ExtractionResult>> results = std::move(resultsv[0]);

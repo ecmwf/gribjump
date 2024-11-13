@@ -53,7 +53,7 @@ size_t LocalGribJump::scan(const std::vector<eckit::PathName>& paths) {
     return engine.scan(paths);
 }
 
-size_t LocalGribJump::scan(const std::vector<MarsRequest> requests, bool byfiles) {
+size_t LocalGribJump::scan(const std::vector<MarsRequest>& requests, bool byfiles) {
     Engine engine;
     return engine.scan(requests, byfiles);
 }
@@ -84,7 +84,7 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 }
 
 /// @todo, change API, remove extraction request
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests requests) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests& requests) {
 
     Engine engine;
     ResultsMap results = engine.extract(requests);
@@ -93,14 +93,6 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extra
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
         auto it = results.find(req.requestString());
-        
-        // debug:
-        std::cout << "Looking for: " << req.requestString() << std::endl;
-        std::cout << "in: ";
-        for (auto& [key, value] : results) {
-            std::cout << key << ", ";
-        }
-        std::cout << std::endl;
 
         ASSERT(it != results.end());
         std::vector<std::unique_ptr<ExtractionResult>> res;

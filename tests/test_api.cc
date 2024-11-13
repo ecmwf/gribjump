@@ -98,18 +98,6 @@ CASE( "test_gribjump_api_extract" ) {
 
     // Test 1: Extract 3 fields. Each field has a different set of ranges
 
-    // std::vector<metkit::mars::MarsRequest> requests;
-    // {
-    //     std::istringstream s(
-    //         "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc\n"
-    //         "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc\n"
-    //         "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc\n"
-    //         );
-    //     metkit::mars::MarsParser parser(s);
-    //     auto parsedRequests = parser.parse();
-    //     metkit::mars::MarsExpension expand(/* inherit */ false);
-    //     requests = expand.expand(parsedRequests);
-    // }
     std::vector<std::string> requests = {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
@@ -185,11 +173,14 @@ CASE( "test_gribjump_api_extract" ) {
     std::vector<Interval> ranges = allIntervals[0];
 
     // Test 1.b: Extract but with an md5 hash
-    EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges)}), eckit::SeriousBug); // missing hash
-    EXPECT_THROWS_AS(gj.extract({ExtractionRequest(requests[0], ranges, "wronghash")}), eckit::SeriousBug); // incorrect hash
+    std::vector<ExtractionRequest> vec = {ExtractionRequest(requests[0], ranges)};
+    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug); // missing hash
+    vec = {ExtractionRequest(requests[0], ranges, "wronghash")};
+    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug); // incorrect hash
     
     // correct hash
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2c = gj.extract({ExtractionRequest(requests[0], ranges, gridHash)});
+    vec = {ExtractionRequest(requests[0], ranges, gridHash)};
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2c = gj.extract(vec);
     EXPECT_EQUAL(output2c[0][0]->total_values(), 15);
 
     // // --------------------------------------------------------------------------------------------

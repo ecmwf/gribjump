@@ -42,9 +42,9 @@ Engine::Engine() {}
 
 Engine::~Engine() {}
 
-metkit::mars::MarsRequest Engine::buildRequestMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
-
+metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
     // Split strings into one unified map
+    // We also canonicalise the requests
     std::map<std::string, std::set<std::string>> keyValues;
     for (auto& r : requests) {
         const std::string& s = r.requestString();
@@ -65,6 +65,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(const ExtractionRequests& requ
             }
         }
         ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end()); /// no repeats
+        r.requestString(canonicalised);
         auto extractionItem = std::make_unique<ExtractionItem>(canonicalised, r.ranges());
         extractionItem->gridHash(r.gridHash());
         keyToExtractionItem.emplace(canonicalised, std::move(extractionItem)); // 1-to-1-map
@@ -194,7 +195,7 @@ void Engine::scheduleTasks(filemap_t& filemap){
     taskGroup_.waitForTasks();
 }
 
-ResultsMap Engine::extract(const ExtractionRequests& requests) {
+ResultsMap Engine::extract(ExtractionRequests& requests) {
 
     eckit::Timer timer("Engine::extract");
     

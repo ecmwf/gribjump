@@ -41,7 +41,7 @@ void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestTyp
     stream << static_cast<uint16_t>(type);
 }
 
-size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
     eckit::Timer timer("RemoteGribJump::scan()");
 
     // connect to server
@@ -78,7 +78,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     return count;
 }
 
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> result;
 

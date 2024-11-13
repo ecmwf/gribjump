@@ -46,7 +46,7 @@ public:
     size_t scan(const std::vector<eckit::PathName>& paths, const LogContext& ctx=LogContext("none"));
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false, const LogContext& ctx=LogContext("none"));
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(const std::vector<ExtractionRequest>& requests, const LogContext& ctx=LogContext("none"));
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx=LogContext("none"));
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges, const LogContext& ctx=LogContext("none"));
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level=3, const LogContext& ctx=LogContext("none"));
