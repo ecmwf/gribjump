@@ -28,7 +28,7 @@ public:
     Engine();
     ~Engine();
 
-    ResultsMap extract(const ExtractionRequests& requests, bool flattenRequests = false);
+    ResultsMap extract(ExtractionRequests& requests);
     
     // byfiles: scan entire file, not just fields matching request
     size_t scan(const MarsRequests& requests, bool byfiles = false);
@@ -43,11 +43,11 @@ public:
 
 private: 
 
-    // filemap_t buildFileMap(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
-    ExItemMap buildKeyToExtractionItem(const ExtractionRequests& requests, bool flatten);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     void forwardRemoteExtraction(filemap_t& filemap);
+    metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem );
+
 
 private:
 

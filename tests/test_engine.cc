@@ -96,127 +96,128 @@ CASE ("Engine: pre-test setup") {
 
 
 CASE ("Engine: Basic extraction") {
-    NOTIMP;
     // // --- Setup
-    // eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
-    // eckit::testing::SetEnv allowmissing("GRIBJUMP_ALLOW_MISSING", "0"); // We have deliberately missing data in the request.
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+    eckit::testing::SetEnv allowmissing("GRIBJUMP_ALLOW_MISSING", "0"); // We have deliberately missing data in the request.
 
-    // // --- Extract (test 1)
-    // std::vector<metkit::mars::MarsRequest> requests = {
-    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc")[0].request(),
-    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc")[0].request(),
-    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc")[0].request(),
-    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type=fc")[0].request() // Deliberately missing data
-    // };
+    // --- Extract (test 1)
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type=fc" // Deliberately missing data
+    };
 
-    // std::vector<std::vector<Interval>> allIntervals = {
-    //     {std::make_pair(0, 5),  std::make_pair(20, 30)},
-    //     {std::make_pair(0, 5),  std::make_pair(20, 30)},
-    //     {std::make_pair(0, 5),  std::make_pair(20, 30)},
-    //     {std::make_pair(0, 5),  std::make_pair(20, 30)}
-    // };
+    std::vector<std::vector<Interval>> allIntervals = {
+        {std::make_pair(0, 5),  std::make_pair(20, 30)},
+        {std::make_pair(0, 5),  std::make_pair(20, 30)},
+        {std::make_pair(0, 5),  std::make_pair(20, 30)},
+        {std::make_pair(0, 5),  std::make_pair(20, 30)}
+    };
 
-    // Engine engine;
-    // ExtractionRequests exRequests;
-    // for (size_t i = 0; i < requests.size(); i++) {
-    //     exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
-    // }
-    // // We expect a throw due to missing data
-    // EXPECT_THROWS_AS(engine.extract(exRequests, false), DataNotFoundException);
+    Engine engine;
+    ExtractionRequests exRequests;
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
+    }
+    // We expect a throw due to missing data
+    EXPECT_THROWS_AS(engine.extract(exRequests), DataNotFoundException);
 
-    // // drop the final request
-    // exRequests.pop_back();
+    // drop the final request
+    exRequests.pop_back();
 
-    // ResultsMap results = engine.extract(exRequests, false);
-    // EXPECT_NO_THROW(engine.raiseErrors());
+    ResultsMap results = engine.extract(exRequests);
+    EXPECT_NO_THROW(engine.raiseErrors());
 
-    // // print contents of map
-    // for (auto& [req, exs] : results) {
-    //     LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
-    //     for (auto& ex : exs) {
-    //         ex->debug_print();
-    //     }
-    // }
+    // print contents of map
+    for (auto& [req, exs] : results) {
+        LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
+        for (auto& ex : exs) {
+            ex->debug_print();
+        }
+    }
 
-    // // Check correct values 
-    // size_t count = 0;
-    // for (size_t i = 0; i < 3; i++) {
-    //     metkit::mars::MarsRequest req = requests[i];
-    //     std::vector<Interval> intervals = allIntervals[i];
-    //     auto& exs = results[req];
-    //     auto comparisonValues = eccodesExtract(req, intervals);
-    //     for (size_t j = 0; j < exs.size(); j++) {
-    //         for (size_t k = 0; k < comparisonValues[j].size(); k++) {
-    //             for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
-    //                 count++;
-    //                 double v = exs[j]->values()[k][l];
-    //                 if (std::isnan(v)) {
-    //                     EXPECT(comparisonValues[j][k][l] == 9999);
-    //                     continue;
-    //                 }
+    // Check correct values 
+    size_t count = 0;
+    for (size_t i = 0; i < 3; i++) {
+        metkit::mars::MarsRequest req = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
+        std::vector<Interval> intervals = allIntervals[i];
+        auto& exs = results[requests[i]];
+        auto comparisonValues = eccodesExtract(req, intervals);
+        for (size_t j = 0; j < exs.size(); j++) {
+            for (size_t k = 0; k < comparisonValues[j].size(); k++) {
+                for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
+                    count++;
+                    double v = exs[j]->values()[k][l];
+                    if (std::isnan(v)) {
+                        EXPECT(comparisonValues[j][k][l] == 9999);
+                        continue;
+                    }
 
-    //                 EXPECT(comparisonValues[j][k][l] == v);
-    //             }
-    //         }
-    //     }
-    // }
-    // // only count the 3 intervals with data
-    // EXPECT(count == 45);
+                    EXPECT(comparisonValues[j][k][l] == v);
+                }
+            }
+        }
+    }
+    // only count the 3 intervals with data
+    EXPECT(count == 45);
 
-    // // --- Extract (test 2)
-    // // Same request, all in one (test flattening)
-    // /// @todo, currently, the user cannot know order of the results after flattening, making this feature not very useful.
-    // /// We impose an order internally (currently, alphabetical).
+#if 0
+    // --- Extract (test 2)
+    // Same request, all in one (test flattening)
+    /// @todo, currently, the user cannot know order of the results after flattening, making this feature not very useful.
+    /// We impose an order internally (currently, alphabetical).
     
-    // allIntervals = {
-    //     {std::make_pair(0, 5),  std::make_pair(20, 30)},
-    // };
+    allIntervals = {
+        {std::make_pair(0, 5),  std::make_pair(20, 30)},
+    };
 
-    // requests = {
-    //     fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1/2/3,stream=oper,time=1200,type=fc")[0].request()
-    // };
+    requests = {
+        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1/2/3,stream=oper,time=1200,type=fc")[0].request()
+    };
 
-    // ASSERT(requests.size() == 1);
+    ASSERT(requests.size() == 1);
 
-    // exRequests.clear();
-    // exRequests.push_back(ExtractionRequest(requests[0], allIntervals[0], gridHash));
+    exRequests.clear();
+    exRequests.push_back(ExtractionRequest(requests[0], allIntervals[0], gridHash));
 
-    // results = engine.extract(exRequests, true);
-    // EXPECT_NO_THROW(engine.raiseErrors());
+    results = engine.extract(exRequests, true);
+    EXPECT_NO_THROW(engine.raiseErrors());
 
-    // // print contents of map
-    // for (auto& [req, exs] : results) {
-    //     LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
-    //     for (auto& ex : exs) {
-    //         ex->debug_print();
-    //     }
-    // }
+    // print contents of map
+    for (auto& [req, exs] : results) {
+        LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
+        for (auto& ex : exs) {
+            ex->debug_print();
+        }
+    }
 
-    // // compare results
+    // compare results
 
-    // metkit::mars::MarsRequest req = requests[0];
-    // auto& exs = results[req];
-    // auto comparisonValues = eccodesExtract(req, allIntervals[0])[0]; // [0] Because each archived field has identical values.
-    // count = 0;
-    // for (size_t j = 0; j < exs.size(); j++) {
-    //     auto values = exs[j]->values();
-    //     for (size_t k = 0; k < values.size(); k++) {
-    //         for (size_t l = 0; l < values[k].size(); l++) {
-    //             count++;
-    //             double v = values[k][l];
-    //             if (std::isnan(v)) {
-    //                 EXPECT(comparisonValues[k][l] == 9999);
-    //                 continue;
-    //             }
+    metkit::mars::MarsRequest req = requests[0];
+    auto& exs = results[req];
+    auto comparisonValues = eccodesExtract(req, allIntervals[0])[0]; // [0] Because each archived field has identical values.
+    count = 0;
+    for (size_t j = 0; j < exs.size(); j++) {
+        auto values = exs[j]->values();
+        for (size_t k = 0; k < values.size(); k++) {
+            for (size_t l = 0; l < values[k].size(); l++) {
+                count++;
+                double v = values[k][l];
+                if (std::isnan(v)) {
+                    EXPECT(comparisonValues[k][l] == 9999);
+                    continue;
+                }
 
-    //             EXPECT(comparisonValues[k][l] == v);
-    //         }
-    //     }
-    // }
-    // EXPECT(count == 45);
+                EXPECT(comparisonValues[k][l] == v);
+            }
+        }
+    }
+    EXPECT(count == 45);
+#endif
 
-    // /// @todo: request touching multiple files?
-    // /// @todo: request involving unsupported packingType?
+    /// @todo: request touching multiple files?
+    /// @todo: request involving unsupported packingType?
 
 }
 

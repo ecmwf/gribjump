@@ -359,9 +359,7 @@ def list_to_rangestr(ranges):
 
 def dic_to_request(dic):
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
-    # return ','.join(['='.join([k, v]) for k, v in dic.items()])
-    # We order the keys in alphabetical order
-    return ','.join(['='.join([k, dic[k]]) for k in sorted(dic.keys())])
+    return ','.join(['='.join([k, v]) for k, v in dic.items()])
 
 def version():
     return __version__

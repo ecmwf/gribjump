@@ -203,15 +203,6 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, std::string gridHash):
-    ranges_(ranges),
-    request_(request),
-    gridHash_(gridHash)
-    {
-
-        NOTIMP; // debug
-    }
-
 ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges, std::string gridHash):
     ranges_(ranges),
     request_string_(request),
@@ -242,27 +233,30 @@ ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
 }
 
 std::vector<ExtractionRequest> ExtractionRequest::split(const std::string& key) const {
+    NOTIMP;
+    // todo: implement for string request
 
-    std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
+    // std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
 
-    std::vector<ExtractionRequest> requests;
-    requests.reserve(reqs.size());
-    for (auto& r : reqs) {
-        requests.push_back(ExtractionRequest(r, ranges_));
-    }
-    return requests;
+    // std::vector<ExtractionRequest> requests;
+    // requests.reserve(reqs.size());
+    // for (auto& r : reqs) {
+    //     requests.push_back(ExtractionRequest(r, ranges_));
+    // }
+    // return requests;
 }
 
 std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string>& keys) const {
-    
-    std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
+    NOTIMP;
+    // todo: implement for string request
+    // std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
 
-    std::vector<ExtractionRequest> requests;
-    requests.reserve(reqs.size());
-    for (auto& r : reqs) {
-        requests.push_back(ExtractionRequest(r, ranges_));
-    }
-    return requests;
+    // std::vector<ExtractionRequest> requests;
+    // requests.reserve(reqs.size());
+    // for (auto& r : reqs) {
+    //     requests.push_back(ExtractionRequest(r, ranges_));
+    // }
+    // return requests;
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
