@@ -65,8 +65,6 @@ private: // methods
 private: // members
     std::vector<std::vector<double>> values_;
     std::vector<std::vector<std::bitset<64>>> mask_;
-
-    friend class Serialiser;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -94,8 +92,6 @@ private: // members
     std::vector<Range> ranges_;
     std::string request_;
     std::string gridHash_;
-
-    friend class Serialiser;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

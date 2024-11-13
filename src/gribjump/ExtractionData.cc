@@ -14,8 +14,6 @@
 #include "eckit/value/Value.h"
 #include "eckit/io/Buffer.h"
 
-#include "metkit/mars/MarsParser.h"
-
 namespace gribjump {
 
 namespace {

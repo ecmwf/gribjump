@@ -45,6 +45,8 @@ Engine::~Engine() {}
 metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
     // Split strings into one unified map
     // We also canonicalise the requests such that their keys are in alphabetical order
+    /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should look into
+    /// merging into the minimum number of requests.
 
     std::map<std::string, std::set<std::string>> keyValues;
     for (auto& r : requests) {
