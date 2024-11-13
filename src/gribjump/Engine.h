@@ -48,7 +48,6 @@ private:
     void forwardRemoteExtraction(filemap_t& filemap);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem );
 
-
 private:
 
     TaskGroup taskGroup_; /// @todo Maybe we should be returning the taskGroup, rather than storing it here.

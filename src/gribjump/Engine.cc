@@ -44,18 +44,19 @@ Engine::~Engine() {}
 
 metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
     // Split strings into one unified map
-    // We also canonicalise the requests
+    // We also canonicalise the requests such that their keys are in alphabetical order
+
     std::map<std::string, std::set<std::string>> keyValues;
     for (auto& r : requests) {
         const std::string& s = r.requestString();
-        std::vector<std::string> kvs = eckit::StringTools::split(",", s); // might be faster to use tokenizer directly.
+        std::vector<std::string> kvs = eckit::StringTools::split(",", s); /// @todo might be faster to use tokenizer directly.
         for (auto& kv : kvs) {
             std::vector<std::string> kv_s = eckit::StringTools::split("=", kv);
             if (kv_s.size() != 2) continue; // ignore verb
             keyValues[kv_s[0]].insert(kv_s[1]);
         }
 
-        // Important! Canonicalise string by sorting keys
+        // Canonicalise string by sorting keys
         std::sort(kvs.begin(), kvs.end());
         std::string canonicalised = "";
         for (auto& kv : kvs) {
@@ -64,14 +65,14 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
                 canonicalised += ",";
             }
         }
-        ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end()); /// no repeats
+        ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end()); // no repeats
         r.requestString(canonicalised);
         auto extractionItem = std::make_unique<ExtractionItem>(canonicalised, r.ranges());
         extractionItem->gridHash(r.gridHash());
         keyToExtractionItem.emplace(canonicalised, std::move(extractionItem)); // 1-to-1-map
     }
 
-    // --- construct the union request
+    // Construct the union request
 
     std::string result = "retrieve,";
     size_t i = 0;
@@ -105,13 +106,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
-    eckit::Timer timer("Gribjump Engine: Building file map");
-
-    MetricsManager::instance().set("debug_elapsed_union_request", timer.elapsed());
-    timer.reset("Gribjump Engine: Flattened requests and constructed union request");
-
     filemap_t filemap = FDBLister::instance().fileMap(unionrequest, keyToExtractionItem);
-
     return filemap;
 }
 
@@ -122,10 +117,11 @@ void Engine::forwardRemoteExtraction(filemap_t& filemap) {
     const std::map<std::string, std::string>& servermap_str = LibGribJump::instance().config().serverMap();
     ASSERT(!servermap_str.empty());
 
-    for (auto& [fdb, gj] : servermap_str) {
-        LOG_DEBUG_LIB(LibGribJump) << "Servermap: " << fdb << " -> " << gj << std::endl;
+    if (LibGribJump::instance().debug()) {
+        for (auto& [fdb, gj] : servermap_str) {
+            LOG_DEBUG_LIB(LibGribJump) << "Servermap: " << fdb << " -> " << gj << std::endl;
+        }
     }
-
     std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> servermap;
     for (auto& [fdb, gj] : servermap_str) {
         eckit::net::Endpoint fdbEndpoint(fdb);
@@ -223,7 +219,6 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
     // Create map of base request to vector of extraction items. Takes ownership of the ExtractionItems
     ResultsMap results;
 
-    // NOTIMP;
     for (auto& [key, ex] : keyToExtractionItem) {
         results[ex->request()].push_back(std::move(ex));
     }

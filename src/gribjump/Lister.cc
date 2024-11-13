@@ -77,50 +77,27 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
-    eckit::Timer timer;
-    std::cout << "DEBUG: unionRequest: " << unionRequest << std::endl;
-    fdb5::FDBToolRequest fdbreq(unionRequest);
 
+    fdb5::FDBToolRequest fdbreq(unionRequest);
     auto listIter = fdb_.list(fdbreq, true);
 
-    MetricsManager::instance().set("debug_elapsed_fdb_list", timer.elapsed());
-    timer.reset("FDB list");
-    
+    size_t fdb_count = 0;
     size_t count = 0;
-    
     fdb5::ListElement elem;
-
-    // chrono, we're going to accumulate some times
-
-    double time_tostr = 0;
-    double time_uri = 0;
-    double time_filemap = 0;
-
-    double time_next=0;
-
-    eckit::Timer timer_next;
-    size_t fdb_count=0;
     while (listIter.next(elem)) {
         fdb_count++;
-        time_next += timer_next.elapsed();
 
-        eckit::Timer timer1;
         std::string key = fdbkeyToStr(elem.combinedKey());
-        time_tostr += timer1.elapsed();
 
         // If key not in map, not related to the request
-        eckit::Timer timer2;
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
 
-        
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().fullUri();
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
-        time_uri += timer2.elapsed();
 
         // Add to filemap
-        eckit::Timer timer3;
         eckit::PathName fname = uri.path();
         auto it = filemap.find(fname);
         if(it == filemap.end()) {
@@ -131,46 +108,31 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         else {
             it->second.push_back(extractionItem);
         }
-        time_filemap += timer3.elapsed();
 
         count++;
-
-        // timer_next.reset("");
-
     }
 
-    MetricsManager::instance().set("debug_list_time_tostr", time_tostr);
-    MetricsManager::instance().set("debug_list_time_uri", time_uri);
-    MetricsManager::instance().set("debug_list_time_filemap", time_filemap);
-
-
-    eckit::Timer timer_extra;
-
-    LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
-    LOG_DEBUG_LIB(LibGribJump) << "FDB count: " << fdb_count << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "FDB found " << fdb_count << " fields. Matched " << count << " fields in " << filemap.size() << " files" << std::endl;
     if (count != reqToExtractionItem.size()) {
-        eckit::Log::warning() << "Warning: Number of fields found (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
+        eckit::Log::warning() << "Warning: Number of fields matched (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
         if (!allowMissing_) {
             std::stringstream ss;
-            ss << "Found " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
+            ss << "Matched " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
             ss << "Union request: " << unionRequest << std::endl;
             throw DataNotFoundException(ss.str());
         }
     }
 
-    // print the file map
-    LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
-    for (const auto& file : filemap) {
-        LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
-        for (const auto& extractionItem : file.second) {
-            LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+        for (const auto& file : filemap) {
+            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+            for (const auto& extractionItem : file.second) {
+                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+            }
+            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
         }
-        LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
     }
-
-    MetricsManager::instance().set("debug_list_time_extra", timer_extra.elapsed());
-
-    MetricsManager::instance().set("debug_listiter_to_filemap", timer.elapsed());
 
     return filemap;
 }

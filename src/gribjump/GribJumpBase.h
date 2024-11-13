@@ -33,7 +33,6 @@ namespace fdb5 {
 
 namespace gribjump {
 
-// using ResultsMap = std::map<metkit::mars::MarsRequest, std::vector<std::unique_ptr<ExtractionItem>>>;
 using ResultsMap = std::map<std::string, std::vector<std::unique_ptr<ExtractionItem>>>;
 
 class GribJumpBase : public eckit::NonCopyable {
