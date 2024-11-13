@@ -24,6 +24,7 @@
 #include "gribjump/LibGribJump.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/info/InfoExtractor.h"
+#include "gribjump/GribJumpException.h"
 
 namespace gribjump {
 
@@ -41,10 +42,11 @@ InfoCache::~InfoCache() {
 
 InfoCache::InfoCache(): 
     cacheDir_(eckit::PathName()), 
-    cache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 64))) {
+    cache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 64))),
+    lazy_(eckit::Resource<bool>("gribjumpLazyInfo", LibGribJump::instance().config().getBool("cache.lazy", true))) {
 
     const Config& config = LibGribJump::instance().config();
-    
+
     bool enabled = config.getBool("cache.enabled", true);
     if (!enabled) {
         persistentCache_ = false; 
@@ -120,6 +122,9 @@ std::shared_ptr<JumpInfo> InfoCache::get(const eckit::PathName& path, const ecki
     }
 
     // Extract explicitly
+    if (!lazy_) {
+        throw JumpInfoExtractionDisabled("No JumpInfo found for path " + path + " at offset " + std::to_string(offset));
+    }
 
     InfoExtractor extractor;
     std::shared_ptr<JumpInfo> info = extractor.extract(path, offset);
@@ -143,7 +148,11 @@ std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& pat
     }
 
     if (!missingOffsets.empty()) {
-        
+        if (!lazy_) {
+            std::stringstream ss;
+            ss << "Missing JumpInfo for " << eckit::Plural(missingOffsets.size(), "offset") << " in " << path;
+            throw JumpInfoExtractionDisabled(ss.str());
+        }
         std::sort(missingOffsets.begin(), missingOffsets.end());
         InfoExtractor extractor;
 

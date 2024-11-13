@@ -40,4 +40,15 @@ public:
         GribJumpException("DataNotFound. " + msg, here) {}
 };
 
+class JumpInfoExtractionDisabled : public GribJumpException {
+public:
+
+    JumpInfoExtractionDisabled(const std::string& msg) :
+        GribJumpException("Lazy JumpInfo extraction has been disabled. " + msg) {}
+
+    JumpInfoExtractionDisabled(const std::string& msg, const eckit::CodeLocation& here) :
+        GribJumpException("Lazy JumpInfo extraction has been disabled. " + msg, here) {}
+};
+
+
 } // namespace gribjump
