@@ -41,7 +41,7 @@ void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestTyp
     stream << static_cast<uint16_t>(type);
 }
 
-size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) {
+size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
     eckit::Timer timer("RemoteGribJump::scan()");
 
     // connect to server
@@ -78,7 +78,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest> request
     return count;
 }
 
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest> requests) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> result;
 
@@ -120,7 +120,9 @@ std::vector<std::unique_ptr<ExtractionItem>> RemoteGribJump::extract(const eckit
     NOTIMP;
 }
 
+// Forward extraction request to another server
 void RemoteGribJump::extract(filemap_t& filemap){
+
     eckit::Timer timer("RemoteGribJump::extract()");
 
     ///@todo we could probably do the connection logic in the ctor
@@ -143,9 +145,8 @@ void RemoteGribJump::extract(filemap_t& filemap){
         size_t nItems = extractionItems.size();
         stream << nItems;
         for (auto& item : extractionItems) {
-            // ExtractionRequest req(item->request(), item->intervals());
-            metkit::mars::MarsRequest r(""); // no need to send mars request when we have uri
-            ExtractionRequest req(r, item->intervals(), item->gridHash());
+            // We have URI, no need to send a request string
+            ExtractionRequest req("", item->intervals(), item->gridHash());
             stream << req;
             stream << item->URI();
         }

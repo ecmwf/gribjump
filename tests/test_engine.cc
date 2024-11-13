@@ -96,17 +96,16 @@ CASE ("Engine: pre-test setup") {
 
 
 CASE ("Engine: Basic extraction") {
-
-    // --- Setup
+    // // --- Setup
     eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
     eckit::testing::SetEnv allowmissing("GRIBJUMP_ALLOW_MISSING", "0"); // We have deliberately missing data in the request.
 
     // --- Extract (test 1)
-    std::vector<metkit::mars::MarsRequest> requests = {
-        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc")[0].request(),
-        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc")[0].request(),
-        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc")[0].request(),
-        fdb5::FDBToolRequest::requestsFromString("class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type=fc")[0].request() // Deliberately missing data
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type=fc" // Deliberately missing data
     };
 
     std::vector<std::vector<Interval>> allIntervals = {
@@ -122,12 +121,12 @@ CASE ("Engine: Basic extraction") {
         exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
     }
     // We expect a throw due to missing data
-    EXPECT_THROWS_AS(engine.extract(exRequests, false), DataNotFoundException);
+    EXPECT_THROWS_AS(engine.extract(exRequests), DataNotFoundException);
 
     // drop the final request
     exRequests.pop_back();
 
-    ResultsMap results = engine.extract(exRequests, false);
+    ResultsMap results = engine.extract(exRequests);
     EXPECT_NO_THROW(engine.raiseErrors());
 
     // print contents of map
@@ -141,9 +140,9 @@ CASE ("Engine: Basic extraction") {
     // Check correct values 
     size_t count = 0;
     for (size_t i = 0; i < 3; i++) {
-        metkit::mars::MarsRequest req = requests[i];
+        metkit::mars::MarsRequest req = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
         std::vector<Interval> intervals = allIntervals[i];
-        auto& exs = results[req];
+        auto& exs = results[requests[i]];
         auto comparisonValues = eccodesExtract(req, intervals);
         for (size_t j = 0; j < exs.size(); j++) {
             for (size_t k = 0; k < comparisonValues[j].size(); k++) {
@@ -163,6 +162,7 @@ CASE ("Engine: Basic extraction") {
     // only count the 3 intervals with data
     EXPECT(count == 45);
 
+#if 0
     // --- Extract (test 2)
     // Same request, all in one (test flattening)
     /// @todo, currently, the user cannot know order of the results after flattening, making this feature not very useful.
@@ -214,6 +214,7 @@ CASE ("Engine: Basic extraction") {
         }
     }
     EXPECT(count == 45);
+#endif
 
     /// @todo: request touching multiple files?
     /// @todo: request involving unsupported packingType?

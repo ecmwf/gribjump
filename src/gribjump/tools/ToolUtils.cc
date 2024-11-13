@@ -13,7 +13,8 @@
 
 #include "eckit/utils/StringTools.h"
 #include "eckit/filesystem/PathName.h"
-
+#include "metkit/mars/MarsExpension.h"
+#include "gribjump/LibGribJump.h"
 #include "gribjump/tools/ToolUtils.h"
 
 namespace gribjump {
@@ -47,6 +48,37 @@ std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname) {
     }
 
     return allRanges;
+}
+
+class CollectFlattenedRequests : public metkit::mars::FlattenCallback {
+public:
+    CollectFlattenedRequests(std::vector<metkit::mars::MarsRequest>& flattenedRequests) : flattenedRequests_(flattenedRequests) {}
+
+    virtual void operator()(const metkit::mars::MarsRequest& req) {
+        flattenedRequests_.push_back(req);
+    }
+
+    std::vector<metkit::mars::MarsRequest>& flattenedRequests_;
+};
+
+std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRequest& request) {
+
+    metkit::mars::MarsExpension expansion(false);
+    metkit::mars::DummyContext ctx;
+    std::vector<metkit::mars::MarsRequest> flattenedRequests;
+    
+    CollectFlattenedRequests cb(flattenedRequests);
+    expansion.flatten(ctx, request, cb);
+
+    LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;
+
+    if (LibGribJump::instance().debug()) {
+        for (const auto& req : flattenedRequests) {
+            LOG_DEBUG_LIB(LibGribJump) << "  Flattened request: " << req << std::endl;
+        }
+    }
+
+    return flattenedRequests;
 }
 
 } // namespace gribjump

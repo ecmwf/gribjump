@@ -49,7 +49,7 @@ void GribJumpExtract::usage(const std::string &tool) const {
 
 void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
     // Testing tool for extract / directJump functionality
-
+    using MarsRequests = metkit::mars::MarsRequest;
     const bool raw = args.getBool("raw", false);
     const bool printout = args.getBool("print", true);
 
@@ -84,8 +84,17 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
 
     std::vector<ExtractionRequest> polyRequest;
     for (size_t i = 0; i < requests.size(); i++) {
-        ExtractionRequest exrequest(requests[i], allRanges[i]);
-        polyRequest.push_back(exrequest);
+        // Flatten and remove verb
+        std::vector<MarsRequests> flattenedRequests = flattenRequest(requests[i]);
+        for (auto& req : flattenedRequests) {
+            std::string s = req.asString();
+            // remove "retrieve," from the beginning, if it exists
+            if (s.find("retrieve,") == 0) {
+                s = s.substr(9);
+            }
+            ExtractionRequest exrequest(s, allRanges[i]);
+            polyRequest.push_back(exrequest);
+        }
     }
 
     // Grid hash

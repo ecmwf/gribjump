@@ -233,9 +233,8 @@ CASE ("test_wrong_jumper") {
 // Testing the extract functionality using ExtractionItem
 // ~ i.e. internals of FileExtractionTask
 CASE ("test_ExtractionItem_extract") {
-    metkit::mars::MarsRequest request("none");
     auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
-    ExtractionItem exItem(request, intervals );
+    ExtractionItem exItem("", intervals );
 
     eckit::PathName path = "2t_O1280.grib";
 

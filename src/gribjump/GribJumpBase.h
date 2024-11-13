@@ -33,7 +33,7 @@ namespace fdb5 {
 
 namespace gribjump {
 
-using ResultsMap = std::map<metkit::mars::MarsRequest, std::vector<std::unique_ptr<ExtractionItem>>>;
+using ResultsMap = std::map<std::string, std::vector<std::unique_ptr<ExtractionItem>>>;
 
 class GribJumpBase : public eckit::NonCopyable {
 public:
@@ -45,9 +45,9 @@ public:
 
     size_t virtual scan(const std::vector<eckit::PathName>& paths) = 0;
 
-    virtual size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) = 0;
+    virtual size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) = 0;
 
-    virtual std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>) = 0;
+    virtual std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>&) = 0;
     virtual std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) = 0;
     
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) = 0;

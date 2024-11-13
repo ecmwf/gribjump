@@ -85,7 +85,7 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
 
     std::vector<ExtractionRequest> polyRequest;
     for (size_t i = 0; i < requests.size(); i++) {
-        ExtractionRequest exrequest(requests[i], allRanges[i]);
+        ExtractionRequest exrequest(requests[i].asString(), allRanges[i]);
         polyRequest.push_back(exrequest);
     }
 

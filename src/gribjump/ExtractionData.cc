@@ -35,8 +35,6 @@ std::vector<double> decodeVector(eckit::Stream& s) {
     return std::vector<double>(data, data + size);
 }
 
-// todo: encodeVectorVector ?
-
 } // namespace
 
 ExtractionResult::ExtractionResult() {}
@@ -120,15 +118,16 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, std::string gridHash):
+ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges, std::string gridHash):
     ranges_(ranges),
     request_(request),
     gridHash_(gridHash)
     {}
+
 ExtractionRequest::ExtractionRequest() {}
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
-    request_ = metkit::mars::MarsRequest(s);
+    s >> request_;
     s >> gridHash_;
     size_t numRanges;
     s >> numRanges;
@@ -137,30 +136,6 @@ ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
         s >> start >> end;
         ranges_.push_back(std::make_pair(start, end));
     }
-}
-
-std::vector<ExtractionRequest> ExtractionRequest::split(const std::string& key) const {
-
-    std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
-
-    std::vector<ExtractionRequest> requests;
-    requests.reserve(reqs.size());
-    for (auto& r : reqs) {
-        requests.push_back(ExtractionRequest(r, ranges_));
-    }
-    return requests;
-}
-
-std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string>& keys) const {
-    
-    std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
-
-    std::vector<ExtractionRequest> requests;
-    requests.reserve(reqs.size());
-    for (auto& r : reqs) {
-        requests.push_back(ExtractionRequest(r, ranges_));
-    }
-    return requests;
 }
 
 eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {

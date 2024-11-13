@@ -81,10 +81,11 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     fdb5::FDBToolRequest fdbreq(unionRequest);
     auto listIter = fdb_.list(fdbreq, true);
 
+    size_t fdb_count = 0;
     size_t count = 0;
-    
     fdb5::ListElement elem;
     while (listIter.next(elem)) {
+        fdb_count++;
 
         std::string key = fdbkeyToStr(elem.combinedKey());
 
@@ -93,7 +94,6 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
 
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().fullUri();
-
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
@@ -112,27 +112,28 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         count++;
     }
 
-    LOG_DEBUG_LIB(LibGribJump) << "Found " << count << " fields in " << filemap.size() << " files" << std::endl;
-
+    LOG_DEBUG_LIB(LibGribJump) << "FDB found " << fdb_count << " fields. Matched " << count << " fields in " << filemap.size() << " files" << std::endl;
     if (count != reqToExtractionItem.size()) {
-        eckit::Log::warning() << "Warning: Number of fields found (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
+        eckit::Log::warning() << "Warning: Number of fields matched (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
         if (!allowMissing_) {
             std::stringstream ss;
-            ss << "Found " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
+            ss << "Matched " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
+            ss << "Union request: " << unionRequest << std::endl;
             throw DataNotFoundException(ss.str());
         }
     }
 
-    // print the file map
-    LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
-    for (const auto& file : filemap) {
-        LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
-        for (const auto& extractionItem : file.second) {
-            LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+        for (const auto& file : filemap) {
+            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+            for (const auto& extractionItem : file.second) {
+                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+            }
+            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
         }
-        LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
     }
-    
+
     return filemap;
 }
 

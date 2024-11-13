@@ -88,8 +88,6 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         requests_.push_back(req);
     }
 
-    flatten_ = false; // xxx hard coded for now
-
     MetricsManager::instance().set("count_requests", nRequests);
 }
 
@@ -98,7 +96,7 @@ ExtractRequest::~ExtractRequest() {
 
 void ExtractRequest::execute() {
 
-    results_ = engine_.extract(requests_, flatten_);
+    results_ = engine_.extract(requests_);
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
@@ -120,7 +118,7 @@ void ExtractRequest::replyToClient() {
     for (size_t i = 0; i < nRequests; i++) {
         LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
 
-        auto it = results_.find(requests_[i].request());
+        auto it = results_.find(requests_[i].requestString());
         ASSERT(it != results_.end());
         std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
         // ExtractionItems items = it->second;

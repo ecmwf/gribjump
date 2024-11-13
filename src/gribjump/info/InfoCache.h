@@ -80,6 +80,8 @@ private: // members
 
     bool persistentCache_ = true;
 
+    bool lazy_; //< if true, cache.get may construct JumpInfo on the fly
+
     bool shadowCache_ = false; //< if true, cache files are persisted next to the original data files (e.g. in FDB)
                                //  This takes precedence over cacheDir_.
 };

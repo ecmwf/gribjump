@@ -24,7 +24,7 @@ enum class RequestType : uint16_t {
     SCAN,
     FORWARD_EXTRACT
 };
-constexpr static uint16_t remoteProtocolVersion = 0;
+constexpr static uint16_t remoteProtocolVersion = 1;
 
 class RemoteGribJump : public GribJumpBase {
 
@@ -36,9 +36,9 @@ public: // methods
 
     size_t scan(const std::vector<eckit::PathName>& path) override { NOTIMP; }
 
-    size_t scan(const std::vector<metkit::mars::MarsRequest> requests, bool byfiles) override;
+    size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) override;
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest> polyRequest) override;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>& polyRequest) override;
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
     void extract(filemap_t& filemap);
 

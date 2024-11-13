@@ -50,7 +50,7 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 }
 
 
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> GribJump::extract(const std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
+std::vector<std::vector<std::unique_ptr<ExtractionResult>>> GribJump::extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
     ContextManager::instance().set(ctx);
 
     if (requests.empty()) {
