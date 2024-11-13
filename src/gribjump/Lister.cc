@@ -172,14 +172,6 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
 
     MetricsManager::instance().set("debug_listiter_to_filemap", timer.elapsed());
 
-    // // XXX DEBUG
-    // std::stringstream ss;
-    // ss << "DEBUG EXIT: FDBLister::fileMap() took " << timer.elapsed() << "s" << std::endl;
-    // ss << "Union request" << unionRequest << std::endl;
-    // throw eckit::SeriousBug(ss.str());
-    // // XXX DEBUG
-
-    
     return filemap;
 }
 

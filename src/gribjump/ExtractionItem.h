@@ -68,7 +68,7 @@ public:
 
     void debug_print() const {
         std::cout << "ExtractionItem: {" << std::endl;
-        std::cout << "  MarsRequest: " << request_ << std::endl;
+        std::cout << "  RequestString: " << request_ << std::endl;
         std::cout << "  Ranges: " << std::endl;
         for (auto& r : ranges_) {
             std::cout << "   {" << r.first << ", " << r.second << "}" << std::endl;

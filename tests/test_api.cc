@@ -145,7 +145,7 @@ CASE( "test_gribjump_api_extract" ) {
     // Eccodes expected values
     std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues;
     for (auto req : polyRequest1) {
-        metkit::mars::MarsRequest marsreq = fdb5::FDBToolRequest::requestsFromString(req.request_string())[0].request();
+        metkit::mars::MarsRequest marsreq = fdb5::FDBToolRequest::requestsFromString(req.requestString())[0].request();
         expectedValues.push_back(eccodesExtract(marsreq, req.ranges()));
     }
     compareValues(expectedValues, output1);

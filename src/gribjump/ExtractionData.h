@@ -24,9 +24,6 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-
-/// @todo This class is now redundant thanks to ExtractionItem. // XXX not true
-
 class ExtractionResult  {
 public: // methods
 
@@ -85,11 +82,9 @@ public: // methods
 
     std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
     std::vector<ExtractionRequest> split(const std::string& key) const;
-const gribjump::ExtractionRequests &NewFunction(gribjump::MarsRequests &reqs) const;
     const std::vector<Range>& ranges() const {return ranges_;}
-    const metkit::mars::MarsRequest& request() const {NOTIMP; return request_;}
-    const std::string& request_string() const {return request_string_;}
-    void request_string(const std::string& s) {request_string_ = s;}
+    // const metkit::mars::MarsRequest& request() const {NOTIMP; return request_;}
+    const std::string& requestString() const {return request_string_;}
     const std::string& gridHash() const {return gridHash_;}
 
 private: // methods

@@ -203,15 +203,6 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// ExtractionRequest::ExtractionRequest(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges, std::string gridHash):
-//     ranges_(ranges),
-//     request_(request),
-//     gridHash_(gridHash)
-//     {
-
-//         NOTIMP; // debug
-//     }
-
 ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges, std::string gridHash):
     ranges_(ranges),
     request_string_(request),

@@ -92,10 +92,10 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extra
 
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
-        auto it = results.find(req.request_string());
+        auto it = results.find(req.requestString());
         
         // debug:
-        std::cout << "Looking for: " << req.request_string() << std::endl;
+        std::cout << "Looking for: " << req.requestString() << std::endl;
         std::cout << "in: ";
         for (auto& [key, value] : results) {
             std::cout << key << ", ";
