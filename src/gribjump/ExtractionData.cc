@@ -37,69 +37,6 @@ std::vector<double> decodeVector(eckit::Stream& s) {
     return std::vector<double>(data, data + size);
 }
 
-void encodeVector(eckit::Stream& s, const std::vector<unsigned long long>& v) {
-    size_t size = v.size();
-    s << size;
-    eckit::Buffer buffer(v.data(), size * sizeof(unsigned long long));
-    s << buffer;
-}
-
-std::vector<unsigned long long> decodeVectorUll(eckit::Stream& s) {
-    size_t size;
-    s >> size;
-    eckit::Buffer buffer(size * sizeof(unsigned long long));
-    s >> buffer;
-    unsigned long long* data = (unsigned long long*) buffer.data();
-    return std::vector<unsigned long long>(data, data + size);
-}
-
-
-void encodeVectorVector(eckit::Stream& s, const std::vector<std::vector<double>>& v) {
-    size_t size = v.size();
-    s << size;
-    size_t totalSize = 0;
-    for (auto& inner : v) {
-        totalSize += inner.size();
-        s << inner.size();
-    }
-    s << totalSize;
-    eckit::Buffer buffer(totalSize * sizeof(double));
-    double* data = (double*) buffer.data();
-    for (auto& inner : v) {
-        for (auto& d : inner) {
-            *data++ = d;
-        }
-    }
-    s << buffer;
-}
-
-std::vector<std::vector<double>> decodeVectorVector(eckit::Stream& s) {
-    size_t size;
-    s >> size;
-    std::vector<size_t> innerSizes;
-    size_t totalSize = 0;
-    for (size_t i = 0; i < size; i++) {
-        size_t innerSize;
-        s >> innerSize;
-        innerSizes.push_back(innerSize);
-        totalSize += innerSize;
-    }
-
-    eckit::Buffer buffer(totalSize * sizeof(double));
-    s >> buffer;
-    double* data = (double*) buffer.data();
-
-    std::vector<std::vector<double>> result;
-    size_t offset = 0;
-    for (auto& innerSize : innerSizes) {
-        std::vector<double> inner(data + offset, data + offset + innerSize);
-        result.push_back(inner);
-        offset += innerSize;
-    }
-    
-    return result;
-}
-
 } // namespace
 
 ExtractionResult::ExtractionResult() {}
@@ -115,16 +52,6 @@ ExtractionResult::ExtractionResult(eckit::Stream& s) {
     for (size_t i = 0; i < numRanges; i++) {
         values_.push_back(decodeVector(s));
     }
-
-    // s >> numRanges; // maybe wrong
-    // for (size_t i = 0; i < numRanges; i++) {
-    //     std::vector<unsigned long long> bitsetUll = decodeVectorUll(s);
-    //     for (auto& b : bitsetUll) {
-    //         mask_[i].push_back(std::bitset<64>(b));
-    //     }
-
-    // }
-
 
     std::vector<std::vector<std::string>> bitsetStrings;
     s >> bitsetStrings;
@@ -153,16 +80,6 @@ void ExtractionResult::encode(eckit::Stream& s) const {
     for (auto& v : values_) {
         encodeVector(s, v);
     }
-
-    // s << mask_.size(); // vector of vectors
-    // for (auto& v : mask_) {
-    //     std::vector<unsigned long long> bitsetUll;
-    //     for (auto& b : v) {
-    //         bitsetUll.push_back(b.to_ullong());
-    //     }
-    //     encodeVector(s, bitsetUll);
-    // }
-
 
     std::vector<std::vector<std::string>> bitsetStrings;
     for (auto& v : mask_) {
@@ -205,23 +122,14 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges, std::string gridHash):
     ranges_(ranges),
-    request_string_(request),
+    request_(request),
     gridHash_(gridHash)
     {}
 
 ExtractionRequest::ExtractionRequest() {}
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
-    // request_ = metkit::mars::MarsRequest(s); // original
-
-    // Now convert it to a mars request
-    s >> request_string_;
-    // request_ = metkit::mars::MarsRequest::parse(request_string_); // very very slow
-    // takes an istream
-    // std::istringstream istream(request_string_);
-    // metkit::mars::MarsParser parser(istream);
-    // request_ = parser.parse()[0]; // hard asserting that this expands to one request
-
+    s >> request_;
     s >> gridHash_;
     size_t numRanges;
     s >> numRanges;
@@ -232,41 +140,13 @@ ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
     }
 }
 
-std::vector<ExtractionRequest> ExtractionRequest::split(const std::string& key) const {
-    NOTIMP;
-    // todo: implement for string request
-
-    // std::vector<metkit::mars::MarsRequest> reqs = request_.split(key);
-
-    // std::vector<ExtractionRequest> requests;
-    // requests.reserve(reqs.size());
-    // for (auto& r : reqs) {
-    //     requests.push_back(ExtractionRequest(r, ranges_));
-    // }
-    // return requests;
-}
-
-std::vector<ExtractionRequest> ExtractionRequest::split(const std::vector<std::string>& keys) const {
-    NOTIMP;
-    // todo: implement for string request
-    // std::vector<metkit::mars::MarsRequest> reqs = request_.split(keys);
-
-    // std::vector<ExtractionRequest> requests;
-    // requests.reserve(reqs.size());
-    // for (auto& r : reqs) {
-    //     requests.push_back(ExtractionRequest(r, ranges_));
-    // }
-    // return requests;
-}
-
 eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o) {
     o.encode(s);
     return s;
 }
 
 void ExtractionRequest::encode(eckit::Stream& s) const {
-    // s << request_;
-    s << request_string_;
+    s << request_;
     s << gridHash_;
     s << ranges_.size();
     for (auto& [start, end] : ranges_) {
