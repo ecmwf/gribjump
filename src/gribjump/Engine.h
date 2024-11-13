@@ -28,7 +28,7 @@ public:
     Engine();
     ~Engine();
 
-    ResultsMap extract(const ExtractionRequests& requests, bool flattenRequests = false);
+    ResultsMap extract(const ExtractionRequests& requests);
     
     // byfiles: scan entire file, not just fields matching request
     size_t scan(const MarsRequests& requests, bool byfiles = false);

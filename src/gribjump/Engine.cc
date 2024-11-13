@@ -43,36 +43,7 @@ std::string requestToStr(const metkit::mars::MarsRequest& request) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-
-class CollectFlattenedRequests : public metkit::mars::FlattenCallback {
-public:
-    CollectFlattenedRequests(std::vector<metkit::mars::MarsRequest>& flattenedRequests) : flattenedRequests_(flattenedRequests) {}
-
-    virtual void operator()(const metkit::mars::MarsRequest& req) {
-        flattenedRequests_.push_back(req);
-    }
-
-    std::vector<metkit::mars::MarsRequest>& flattenedRequests_;
-};
-
-std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRequest& request) {
-
-    metkit::mars::MarsExpension expansion(false);
-    metkit::mars::DummyContext ctx;
-    std::vector<metkit::mars::MarsRequest> flattenedRequests;
-    
-    CollectFlattenedRequests cb(flattenedRequests);
-    expansion.flatten(ctx, request, cb);
-
-    LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;
-
-    for (const auto& req : flattenedRequests) {
-        LOG_DEBUG_LIB(LibGribJump) << "  Flattened request: " << req << std::endl;
-    }
-
-    return flattenedRequests;
-}
+#if 0
 
 // Stringify requests, and flatten if necessary
 
@@ -116,7 +87,7 @@ flattenedKeys_t buildFlatKeys(const ExtractionRequests& requests, bool flatten) 
 
     return keymap;
 }
-
+#endif 0
 // ----------------------------------------------------------------------------------------------------------------------
 std::string unionise(const std::vector<ExtractionRequest>& requests) {
     // Take many marsrequest-like strings and combine them into one string.
@@ -215,9 +186,7 @@ Engine::~Engine() {}
 //     return unionRequest;
 // }
 
-metkit::mars::MarsRequest combinedFoo(const ExtractionRequests& requests, bool flatten, ExItemMap& keyToExtractionItem ){
-
-    ASSERT(!flatten);
+metkit::mars::MarsRequest combinedFoo(const ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
 
     // Split strings into one unified map
     std::map<std::string, std::set<std::string>> keyValues;
@@ -411,7 +380,7 @@ void Engine::scheduleTasks(filemap_t& filemap){
     taskGroup_.waitForTasks();
 }
 
-ResultsMap Engine::extract(const ExtractionRequests& requests, bool flatten) {
+ResultsMap Engine::extract(const ExtractionRequests& requests) {
 
     eckit::Timer timer("Engine::extract");
     
@@ -420,7 +389,7 @@ ResultsMap Engine::extract(const ExtractionRequests& requests, bool flatten) {
     // const metkit::mars::MarsRequest unionreq = unionRequest(requests);
     
     ExItemMap keyToExtractionItem;
-    metkit::mars::MarsRequest unionreq = combinedFoo(requests, flatten, keyToExtractionItem);
+    metkit::mars::MarsRequest unionreq = combinedFoo(requests, keyToExtractionItem);
 
     filemap_t filemap = buildFileMap(unionreq, keyToExtractionItem);
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());

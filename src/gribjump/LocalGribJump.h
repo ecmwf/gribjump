@@ -35,7 +35,7 @@ public:
     size_t scan(const std::vector<MarsRequest> requests, bool byfiles) override;
 
     // new API!
-    ResultsMap extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten);
+    ResultsMap extract(const std::vector<std::string>& requests, const std::vector<std::vector<Range>>& ranges);
 
     // old API
     std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;

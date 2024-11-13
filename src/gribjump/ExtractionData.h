@@ -79,12 +79,13 @@ class ExtractionRequest {
 public: // methods
 
     ExtractionRequest();
-    ExtractionRequest(const metkit::mars::MarsRequest&, const std::vector<Range>&, std::string gridHash="");
+    // ExtractionRequest(const metkit::mars::MarsRequest&, const std::vector<Range>&, std::string gridHash="");
     ExtractionRequest(const std::string&, const std::vector<Range>&, std::string gridHash="");
     explicit ExtractionRequest(eckit::Stream& s);
 
     std::vector<ExtractionRequest> split(const std::vector<std::string>& keys) const;
     std::vector<ExtractionRequest> split(const std::string& key) const;
+const gribjump::ExtractionRequests &NewFunction(gribjump::MarsRequests &reqs) const;
     const std::vector<Range>& ranges() const {return ranges_;}
     const metkit::mars::MarsRequest& request() const {NOTIMP; return request_;}
     const std::string& request_string() const {return request_string_;}

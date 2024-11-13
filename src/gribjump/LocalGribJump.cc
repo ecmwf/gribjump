@@ -86,18 +86,25 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 /// @todo, change API, remove extraction request
 std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests requests) {
 
-    bool flatten = true;
     Engine engine;
-    ResultsMap results = engine.extract(requests, flatten);
+    ResultsMap results = engine.extract(requests);
     engine.raiseErrors();
 
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
         auto it = results.find(req.request_string());
+        
+        // debug:
+        std::cout << "Looking for: " << req.request_string() << std::endl;
+        std::cout << "in: ";
+        for (auto& [key, value] : results) {
+            std::cout << key << ", ";
+        }
+        std::cout << std::endl;
+
         ASSERT(it != results.end());
         std::vector<std::unique_ptr<ExtractionResult>> res;
         for (auto& item : it->second) {
-            // std::unique_ptr<ExtractionResult> r(new ExtractionResult(item->values(), item->mask()));
             res.push_back(std::make_unique<ExtractionResult>(item->values(), item->mask()));
         }
 
@@ -107,7 +114,7 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extra
     return extractionResults;
 }
 
-ResultsMap LocalGribJump::extract(const std::vector<MarsRequest>& requests, const std::vector<std::vector<Range>>& ranges, bool flatten) {
+ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests, const std::vector<std::vector<Range>>& ranges) {
     Engine engine;
     ExtractionRequests extractionRequests;
 
@@ -115,7 +122,7 @@ ResultsMap LocalGribJump::extract(const std::vector<MarsRequest>& requests, cons
         extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
     }
 
-    ResultsMap results = engine.extract(extractionRequests, flatten);
+    ResultsMap results = engine.extract(extractionRequests);
     engine.raiseErrors();
     return results;
 }

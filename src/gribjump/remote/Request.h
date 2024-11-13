@@ -87,7 +87,6 @@ public:
 
 private:
     std::vector<ExtractionRequest> requests_;
-    bool flatten_;
 
     ResultsMap results_;
 

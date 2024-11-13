@@ -88,8 +88,6 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         requests_.push_back(req);
     }
 
-    flatten_ = false; // xxx hard coded for now
-
     MetricsManager::instance().set("count_requests", nRequests);
 }
 
@@ -98,7 +96,7 @@ ExtractRequest::~ExtractRequest() {
 
 void ExtractRequest::execute() {
 
-    results_ = engine_.extract(requests_, flatten_);
+    results_ = engine_.extract(requests_);
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
