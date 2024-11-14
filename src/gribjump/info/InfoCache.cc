@@ -110,7 +110,7 @@ std::shared_ptr<JumpInfo> InfoCache::get(const eckit::URI& uri) {
 std::shared_ptr<JumpInfo> InfoCache::get(const eckit::PathName& path, const eckit::Offset offset) {
 
     std::shared_ptr<FileCache> filecache = getFileCache(path);
-    filecache->load();
+    filecache->reloadMissing({offset});
 
     // return it if in memory cache
     {   
@@ -118,7 +118,6 @@ std::shared_ptr<JumpInfo> InfoCache::get(const eckit::PathName& path, const ecki
         if (info) return info;
 
         LOG_DEBUG_LIB(LibGribJump) << "InfoCache file " << path << " does not contain JumpInfo for field at offset " << offset << std::endl;
-
     }
 
     // Extract explicitly
@@ -137,15 +136,7 @@ std::shared_ptr<JumpInfo> InfoCache::get(const eckit::PathName& path, const ecki
 std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& path, const eckit::OffsetList& offsets) {
 
     std::shared_ptr<FileCache> filecache = getFileCache(path);
-    filecache->load();
-
-    std::vector<eckit::Offset> missingOffsets;
-
-    for (const auto& offset : offsets) {
-        if (!filecache->find(offset)) {
-            missingOffsets.push_back(offset);
-        }
-    }
+    std::vector<eckit::Offset> missingOffsets = filecache->reloadMissing(offsets);
 
     if (!missingOffsets.empty()) {
         if (!lazy_) {
@@ -297,6 +288,12 @@ void FileCache::load() {
     loaded_ = true;
 }
 
+// e.g. if the file on disk has been updated
+void FileCache::reload() {
+    clear();
+    load();
+}
+
 void FileCache::encode(eckit::Stream& s) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -409,6 +406,32 @@ std::shared_ptr<JumpInfo> FileCache::find(eckit::Offset offset) {
         return it->second;
     }
     return nullptr;
+}
+
+// Reload the cache if any are missing offsets e.g. because the file has been updated
+std::vector<eckit::Offset> FileCache::reloadMissing(const eckit::OffsetList& offsets) {
+
+    // Check if any are missing and reload if necessary
+    size_t j=offsets.size();
+    for (size_t i = 0; i < offsets.size(); i++) {
+        const auto& offset = offsets[i];
+        if (!find(offset)) {
+            reload();
+            j=i;
+            break;
+        }
+    }
+
+    // Find if any are still missing. We assume previously found offsets have not been removed.
+    std::vector<eckit::Offset> missingOffsets;
+    for (size_t i = j; i < offsets.size(); i++) {
+        const auto& offset = offsets[i];
+        if (!find(offset)) {
+            missingOffsets.push_back(offset);
+        }
+    }
+
+    return missingOffsets;
 }
 
 size_t FileCache::count() {

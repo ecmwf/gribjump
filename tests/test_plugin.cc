@@ -35,6 +35,7 @@ namespace test {
 // See also tests/tools/callback_vs_scan.sh.in
 CASE( "test_plugin" ){
 
+    // --- Setup ------------------------------------------------------------------------------------------
     // write the test_plugin.yaml file
     std::string s1 = eckit::LocalPathName::cwd();
     eckit::PathName configPath(s1.c_str());
@@ -70,6 +71,8 @@ CASE( "test_plugin" ){
 
     eckit::PathName gribName = "extract_ranges.grib"; // contains 3 messages, expver=xxxx, step=1,2,3. Expect 2 messages selected by the regex
 
+    // --- Write fdb data ---------------------------------------------------------------------------------
+
     fdb5::FDB fdb; // callback should be automatically registered
     fdb.archive(*gribName.fileHandle());
     fdb.flush();
@@ -77,6 +80,7 @@ CASE( "test_plugin" ){
     fdb.archive(*gribName.fileHandle());
     fdb.flush();
 
+    // --- Test -------------------------------------------------------------------------------------------
     // Look at the gribjump files in tmpdir
     std::vector<eckit::PathName> files;
     std::vector<eckit::PathName> dir;
@@ -88,7 +92,15 @@ CASE( "test_plugin" ){
         std::cout << file << std::endl;
         FileCache cache = FileCache(file);
         cache.print(std::cout);
-        EXPECT(cache.size() == 4); // match 2 messages, twice.
+        EXPECT_EQUAL(cache.size(), 4); // match 2 messages, twice.
+
+        // Check what happens when a cached file is modified
+        fdb.archive(*gribName.fileHandle());
+        fdb.flush();
+        EXPECT_EQUAL(cache.size(), 4); // does not autoreload
+        cache.reload();
+        EXPECT_EQUAL(cache.size(), 6); 
+    
     }
     EXPECT(count == 1 ); // because we should be appending to the same file
 }

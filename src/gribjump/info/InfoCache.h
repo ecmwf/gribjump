@@ -99,9 +99,12 @@ public:
     ~FileCache();
 
     void load();
+    void reload();
     void print(std::ostream& s);
     bool loaded() const { return loaded_; }
 
+    std::vector<eckit::Offset> reloadMissing(const eckit::OffsetList& offsets);
+    
     // For tests only
     size_t size() const { return map_.size(); }
 
@@ -140,7 +143,7 @@ private:
 
     eckit::PathName path_;
     bool loaded_ = false;
-    std::mutex mutex_; //< mutex for map_
+    mutable std::mutex mutex_; //< mutex for map_
     infomap_t map_;
 };
 
