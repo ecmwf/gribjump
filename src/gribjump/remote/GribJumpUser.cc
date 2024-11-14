@@ -61,7 +61,7 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
 
     s >> version;
     if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug("Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(protocolVersion_) + ", Clientside version: " + std::to_string(version));
+        throw eckit::SeriousBug("Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) + ", Clientside version: " + std::to_string(version));
     }
 
     LogContext ctx(s);
