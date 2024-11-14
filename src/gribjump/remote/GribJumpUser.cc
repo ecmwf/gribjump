@@ -90,7 +90,7 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
 
 template <typename RequestType>
 void GribJumpUser::processRequest(eckit::Stream& s) {
-    eckit::Timer timer;
+    eckit::Timer timer("GribJumpUser::processRequest");
 
     RequestType request(s);
     MetricsManager::instance().set("elapsed_receive", timer.elapsed());
