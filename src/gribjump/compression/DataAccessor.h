@@ -26,7 +26,7 @@ class DataAccessor {
 public:
     virtual ~DataAccessor() = default;
     virtual void write(const eckit::Buffer& buffer, const size_t offset) const = 0;
-    virtual eckit::Buffer read(const Range& range) const = 0;
+    virtual eckit::Buffer read(const Block& range) const = 0;
     virtual eckit::Buffer read() const = 0;
     virtual size_t eof() const = 0;
 };
@@ -43,7 +43,7 @@ public:
         NOTIMP;
     }
 
-    eckit::Buffer read(const Range& range) const override {
+    eckit::Buffer read(const Block& range) const override {
         const auto [offset, size] = range;
         eckit::Buffer buf(size);
         ifs_.seekg(offset, std::ios::beg);
@@ -89,7 +89,7 @@ public:
         NOTIMP;
     }
 
-    eckit::Buffer read(const Range& range) const override {
+    eckit::Buffer read(const Block& range) const override {
         const auto [offset, size] = range;
         if (offset + size > buf_.size()) {
             std::stringstream ss;
