@@ -204,7 +204,7 @@ public:
   }
 
 
-  Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override {
+  Values decode(const std::shared_ptr<DataAccessor> accessor, const Block& range) override {
     if (range.second == 0)
       return Values{};
 
@@ -245,7 +245,7 @@ private:
   size_t n_elems_;
 
   template <typename SimpleValueType>
-  Values decode_range_ (const std::shared_ptr<DataAccessor> accessor, const Range& simple_range, double bscale, double dscale) {
+  Values decode_range_ (const std::shared_ptr<DataAccessor> accessor, const Block& simple_range, double bscale, double dscale) {
     AecDecompressor<SimpleValueType> aec{};
     auto flags = modify_aec_flags(flags_);
     aec.flags(flags);

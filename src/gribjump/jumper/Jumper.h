@@ -59,6 +59,6 @@ public:
 
 // Convert ranges to intervals
 // TODO(maee): Simplification: Switch to intervals or ranges
-std::vector<mc::Range> toRanges(const std::vector<Interval>& intervals);
+std::vector<mc::Block> toRanges(const std::vector<Interval>& intervals);
 
 } // namespace gribjump
