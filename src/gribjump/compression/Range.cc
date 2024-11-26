@@ -12,23 +12,23 @@
 #include <algorithm>
 #include <cassert>
 
-std::pair<size_t, size_t> begin_end(const mc::Range& range)
+std::pair<size_t, size_t> begin_end(const mc::Block& range)
 {
     const auto [offset, size] = range;
     return {offset, offset + size};
 }
 
 
-mc::Range operator+(const mc::Range& r1, const mc::Range& r2)
+mc::Block operator+(const mc::Block& r1, const mc::Block& r2)
 {
     auto [b1, e1] = begin_end(r1);
     auto [b2, e2] = begin_end(r2);
     assert(!((b1 > e2) && (b2 > e1)));
-    return mc::Range{std::min(b1, b2), std::max(e1, e2) - std::min(b1, b2)};
+    return mc::Block{std::min(b1, b2), std::max(e1, e2) - std::min(b1, b2)};
 }
 
 
-std::ostream& operator<<(std::ostream& os, const mc::Range& range)
+std::ostream& operator<<(std::ostream& os, const mc::Block& range)
 {
     auto [rb, re] = begin_end(range);
     os << "[" << rb << ", " << re << "]";
@@ -36,7 +36,7 @@ std::ostream& operator<<(std::ostream& os, const mc::Range& range)
 }
 
 
-std::ostream& operator<<(std::ostream& os, const mc::RangeBucket& range)
+std::ostream& operator<<(std::ostream& os, const mc::BlockBucket& range)
 {
     os << range.first <<  std::endl;
     for (const auto& r : range.second) {
@@ -47,50 +47,58 @@ std::ostream& operator<<(std::ostream& os, const mc::RangeBucket& range)
 }
 
 
-mc::RangeBuckets& operator<<(mc::RangeBuckets& buckets, const mc::Range& r)
-{
-    const mc::Range sub_range{r};
-    const auto [srb_tmp, sre_tmp] = begin_end(sub_range);
-    auto srb = srb_tmp; // not necessary in C++20
-    auto sre = sre_tmp; // not necessary in C++20
+mc::BlockBuckets& operator<<(mc::BlockBuckets& buckets, const mc::Block& r) {
 
-    auto r1 = std::find_if(buckets.begin(), buckets.end(), [&](const auto bucket) {
-        const auto [bucket_range, _] = bucket;
-        const auto [brb, bre] = begin_end(bucket_range);
-        return brb <= srb && srb <= bre;
-    });
+    const mc::Block sub_range{r};
+    const auto [sub_start, sub_end] = begin_end(sub_range);
 
-    if (r1 != buckets.end()) {
-        r1->first = sub_range + r1->first;
-        r1->second.push_back(sub_range);
-        if (std::next(r1) != buckets.end()) {
-            auto r2 = std::next(r1);
-            auto [r2_begin, r2_end] = begin_end(r2->first);
+    // Find the position where the range might be inserted
+    auto it = std::lower_bound(buckets.begin(), buckets.end(), sub_range,
+        [](const mc::BlockBucket& bucket, const mc::Block& range) {
+            const auto [bucket_start, bucket_end] = begin_end(bucket.first);
+            return bucket_end < range.first;
+        });
 
-            if (r2_begin <= sre && sre <= r2_end) {
-                r1->first = r1->first + r2->first;
-                std::copy(r2->second.begin(), r2->second.end(), std::back_inserter(r1->second));
-                buckets.erase(r2);
-            }
-        }
-        return buckets;
-    }
-    auto r2 = std::find_if(buckets.begin(), buckets.end(), [&](auto l) {
-        auto [l_begin, l_end] = begin_end(l.first);
-        return l_begin <= sre && sre <= l_end;
-    });
-    if (r2 != buckets.end()) {
-        r2->first = sub_range + r1->first;
-        return buckets;
+    mc::Block merged_range = sub_range;
+    mc::SubBlocks merged_subranges = {sub_range};
+
+    // Merge with any overlapping buckets before the insertion point
+    while (it != buckets.begin()) {
+        auto prev_it = std::prev(it);
+        const auto [prev_start, prev_end] = begin_end(prev_it->first);
+
+        if (prev_end < sub_start) break; // No overlap
+
+        // Expand the merged range
+        merged_range.first = std::min(merged_range.first, prev_start);
+        merged_range.second = (std::max(prev_end, sub_end) - merged_range.first);
+
+        merged_subranges.insert(merged_subranges.end(), prev_it->second.begin(), prev_it->second.end());
+
+        it = buckets.erase(prev_it);
     }
 
-    buckets.push_back({sub_range, mc::SubRanges{sub_range}});
+    // Merge with any overlapping buckets after the insertion point
+    while (it != buckets.end()) {
+        const auto [next_start, next_end] = begin_end(it->first);
 
+        if (next_start > sub_end) break; // No overlap
+
+        // Expand the merged range
+        merged_range.first = std::min(merged_range.first, next_start);
+        merged_range.second = (std::max(next_end, sub_end) - merged_range.first);
+
+        merged_subranges.insert(merged_subranges.end(), it->second.begin(), it->second.end());
+
+        // Erase the current bucket and move the iterator forward
+        it = buckets.erase(it);
+    }
+
+    buckets.insert(it, {merged_range, merged_subranges});
     return buckets;
 }
 
-
-std::size_t std::hash<mc::Range>::operator() (const mc::Range& range) const
+std::size_t std::hash<mc::Block>::operator() (const mc::Block& range) const
 {
     static_assert(sizeof(std::size_t) == sizeof(std::uint64_t), "std::size_t must be 64 bits");
     const auto [offset, size] = range;

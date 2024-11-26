@@ -103,7 +103,7 @@ public:
   size_t buffer_size() const { return buffer_size_; }
   SimpleDecompressor& buffer_size(size_t buffer_size) { buffer_size_ = buffer_size; return *this; }
 
-  Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override {
+  Values decode(const std::shared_ptr<DataAccessor> accessor, const Block& range) override {
     //SP sp{};
     using SP = SimplePacking<ValueType>;
     SimplePacking<double> sp{};
@@ -121,12 +121,12 @@ public:
     size_t end = offset + size;
     size_t new_end = (end + (chunk_nvals - 1)) / chunk_nvals * chunk_nvals;
     size_t new_size = new_end - new_offset;
-    Range inclusive_range{new_offset, new_size};
+    Block inclusive_range{new_offset, new_size};
 
     params.n_vals = new_size;
 
     size_t last_pos = std::min(bin_pos<ValueType>(new_size, bits_per_value_), accessor->eof() - bin_pos<ValueType>(new_offset, bits_per_value_));
-    Range data_range{bin_pos<ValueType>(new_offset, bits_per_value_), last_pos};
+    Block data_range{bin_pos<ValueType>(new_offset, bits_per_value_), last_pos};
     eckit::Buffer compressed = accessor->read(data_range);
 
     typename SP::Buffer data{(unsigned char*) compressed.data(), (unsigned char*) compressed.data() + data_range.second};

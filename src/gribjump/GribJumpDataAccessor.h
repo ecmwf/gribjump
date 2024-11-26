@@ -19,13 +19,13 @@ namespace gribjump {
 class GribJumpDataAccessor : public mc::DataAccessor {
 
 public:
-    GribJumpDataAccessor(eckit::DataHandle& dh, const mc::Range range) : dh_{dh}, data_section_range_{range} {}
+    GribJumpDataAccessor(eckit::DataHandle& dh, const mc::Block range) : dh_{dh}, data_section_range_{range} {}
 
     void write(const eckit::Buffer& buffer, const size_t offset) const override {
         NOTIMP;
     }
 
-    eckit::Buffer read(const mc::Range& range) const override {
+    eckit::Buffer read(const mc::Block& range) const override {
         eckit::Offset offset = range.first;
         eckit::Length size = range.second;
         
@@ -51,7 +51,7 @@ public:
 
 private:
     eckit::DataHandle& dh_;
-    mc::Range data_section_range_;
+    mc::Block data_section_range_;
 };
 
 } // namespace gribjump

@@ -193,7 +193,7 @@ public:
   }
 
 
-  Values decode(const std::shared_ptr<DataAccessor> accessor, const Range& range) override
+  Values decode(const std::shared_ptr<DataAccessor> accessor, const Block& range) override
   {
     if (sizeof(ValueType) == 1 && !(bits_per_sample_ > 0 && bits_per_sample_ <= 8))
       throw eckit::Exception("bits_per_sample must be between 1 and 8 for 1-byte types", Here());
