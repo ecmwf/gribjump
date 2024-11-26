@@ -94,6 +94,20 @@ CASE( "Remote protocol: axes" ) {
 
 }
 
+CASE( "Remote protocol: scan" ) {
+
+    std::vector<metkit::mars::MarsRequest> requests;
+
+    for (auto& r : fdb5::FDBToolRequest::requestsFromString("class=rd,expver=xxxx")) {
+        requests.push_back(r.request());
+    }
+
+    GribJump gribjump;
+    LogContext ctx("test_scan");
+    size_t nfields = gribjump.scan(requests, false, ctx);
+    EXPECT_EQUAL(nfields, 3);
+}
+
 #ifdef GRIBJUMP_HAVE_DHSKIT // metrics target is set by dhskit
 
 CASE( "Parse the metrics file" ) {
@@ -112,7 +126,7 @@ CASE( "Parse the metrics file" ) {
         "context"
     };
 
-    // Expect 2 JSON objects in the file
+    // Expect one JSON object in the file, per test case above
     std::vector<eckit::Value> values;
     std::ifstream file(metricsFile.asString().c_str());
     std::string line;
@@ -126,7 +140,7 @@ CASE( "Parse the metrics file" ) {
             EXPECT(v.contains(key));
         }
     }
-    EXPECT_EQUAL(values.size(), 2);
+    EXPECT_EQUAL(values.size(), 3);
     // Check extract
     eckit::Value v = values[0];
     EXPECT_EQUAL(v["action"], "extract");
@@ -137,6 +151,10 @@ CASE( "Parse the metrics file" ) {
     EXPECT_EQUAL(v["action"], "axes");
     EXPECT_EQUAL(v["context"], "test_axes");
 
+    // Check scan
+    v = values[2];
+    EXPECT_EQUAL(v["action"], "scan");
+    EXPECT_EQUAL(v["context"], "test_scan");
 }
 #endif
 }  // namespace test
