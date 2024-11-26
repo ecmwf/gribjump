@@ -314,7 +314,7 @@ void IndexFile::reload() {
     load();
 }
 
-void IndexFile::encode(eckit::Stream& s) {
+void IndexFile::encode(eckit::Stream& s) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     s << currentVersion_;
@@ -342,13 +342,15 @@ void IndexFile::decode(eckit::Stream& s) {
     LOG_DEBUG_LIB(LibGribJump) << "Loaded " << count << " entries from stream" << std::endl;
 }
 
-void IndexFile::toNewFile(eckit::PathName path){
+void IndexFile::toNewFile(const eckit::PathName& path) const {
+    ASSERT(path.extension() == file_ext);
     eckit::FileStream s(path, "w");
     encode(s);
     s.close();
 }
 
-void IndexFile::appendToFile(eckit::PathName path) {
+void IndexFile::appendToFile(const eckit::PathName& path) const {
+    ASSERT(path.extension() == file_ext);
     // NB: Non-atomic. Gribjump does not support concurrent writes to the same file from different processes.
     if (!path.exists()) {
         toNewFile(path);
@@ -368,7 +370,7 @@ void IndexFile::appendToFile(eckit::PathName path) {
     s.close();
 }
 
-void IndexFile::fromFile(eckit::PathName path) {
+void IndexFile::fromFile(const eckit::PathName& path) {
     eckit::FileStream s(path, "r");
     decode(s);
     s.close();
@@ -387,11 +389,13 @@ void IndexFile::merge(IndexFile& other) {
 void IndexFile::write() {
 
     // create a unique filename for the cache file before (atomically) moving it into place
-    eckit::PathName uniqPath = eckit::PathName::unique(path_);
+    eckit::PathName uniqPath = eckit::PathName::unique(path_) + file_ext;
     toNewFile(uniqPath);
 
     // atomically move the file into place
     LOG_DEBUG_LIB(LibGribJump) << "IndexFile writing to file " << path_ << std::endl;
+    
+    ASSERT(path_.extension() == file_ext);
     eckit::PathName::rename(uniqPath, path_);
 }
 

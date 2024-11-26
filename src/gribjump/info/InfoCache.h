@@ -85,8 +85,6 @@ private: // members
     mutable std::mutex infomutex_;; //< mutex for infocache_
     infocache_t infocache_;
 
-    bool persistentCache_ = true;
-
     bool lazy_; //< if true, cache.get may construct JumpInfo on the fly
 
     bool shadowCache_ = false; //< if true, cache files are persisted next to the original data files (e.g. in FDB)
@@ -117,7 +115,7 @@ public:
 
 private: // Methods are only intended to be called from InfoCache
 
-    void encode(eckit::Stream& s);
+    void encode(eckit::Stream& s) const;
 
     void decode(eckit::Stream& s);
 
@@ -129,9 +127,9 @@ private: // Methods are only intended to be called from InfoCache
 
     void insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info);
 
-    void toNewFile(eckit::PathName path);
-    void appendToFile(eckit::PathName path);
-    void fromFile(eckit::PathName path);
+    void toNewFile(const eckit::PathName& path) const;
+    void appendToFile(const eckit::PathName& path) const;
+    void fromFile(const eckit::PathName& path);
 
     // wrapper around map_.find()
     std::shared_ptr<JumpInfo> find(eckit::Offset offset);
