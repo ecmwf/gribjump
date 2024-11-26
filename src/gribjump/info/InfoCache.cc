@@ -188,13 +188,12 @@ void InfoCache::clear() {
     cache_.clear();
 }
 
-void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
+size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
 
     // this will be executed in parallel so we dont lock main mutex_ here
     // we will rely on each method to lock mutex when needed
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " at " << eckit::Plural(offsets.size(), "offsets") << std::endl;
-
 
     // if cache exists load so we can merge with memory cache
     std::shared_ptr<FileCache> filecache = getFileCache(fdbpath);
@@ -209,30 +208,33 @@ void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Of
         }
     }
 
+    LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " found " << newOffsets.size() << " new fields not already in cache" << std::endl;
+
     if (newOffsets.empty()) {
         LOG_DEBUG_LIB(LibGribJump) << "No new fields to scan in " << fdbpath << std::endl;
-        return;
+        return 0;
     }
 
     std::sort(newOffsets.begin(), newOffsets.end());
 
     InfoExtractor extractor;
-    std::vector<std::unique_ptr<JumpInfo>> uinfos = extractor.extract(fdbpath, newOffsets);
+    std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(fdbpath, newOffsets);
     // std::vector<std::shared_ptr<JumpInfo>> infos;
     // infos.reserve(uinfos.size());
     // std::move(uinfos.begin(), uinfos.end(), std::back_inserter(infos));
     // filecache->insert(infos);
-    for (size_t i = 0; i < uinfos.size(); i++) {
-        filecache->insert(newOffsets[i], std::move(uinfos[i]));
+    for (size_t i = 0; i < infos.size(); i++) {
+        filecache->insert(newOffsets[i], std::move(infos[i]));
     }
     
     if (persistentCache_) {
         filecache->write();
     }
 
+    return infos.size();
 }
 
-void InfoCache::scan(const eckit::PathName& fdbpath) {
+size_t InfoCache::scan(const eckit::PathName& fdbpath) {
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning whole file " << fdbpath << std::endl;
 
@@ -241,15 +243,16 @@ void InfoCache::scan(const eckit::PathName& fdbpath) {
     filecache->load();
 
     InfoExtractor extractor;
-    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> uinfos = extractor.extract(fdbpath); /* This needs to give use the offsets too*/
-    for (size_t i = 0; i < uinfos.size(); i++) {
-        filecache->insert(uinfos[i].first, std::move(uinfos[i].second));
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> infos = extractor.extract(fdbpath);
+    for (size_t i = 0; i < infos.size(); i++) {
+        filecache->insert(infos[i].first, std::move(infos[i].second));
     }
 
     if (persistentCache_) {
         filecache->write();
     }
 
+    return infos.size();
 }
 
 void InfoCache::print(std::ostream& s) const {

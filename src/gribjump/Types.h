@@ -14,6 +14,7 @@
 #include <vector>
 #include <map>
 #include <bitset>
+#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 
@@ -36,6 +37,7 @@ using ExtractionItems = std::vector<ExtractionItem*>; // Non-owning pointers
 using ExItemMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
 // filemap holds non-owning pointers to ExtractionItems
-using filemap_t = std::map<std::string, ExtractionItems>;
+using filemap_t = std::map<std::string, ExtractionItems>; // filename -> ExtractionItems
+using scanmap_t = std::map<eckit::PathName, eckit::OffsetList>; // filename -> offsets
 
 } // namespace gribjump

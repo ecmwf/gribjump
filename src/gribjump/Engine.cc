@@ -18,6 +18,7 @@
 
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/Forwarder.h"
 #include "gribjump/remote/WorkQueue.h"
 #include "gribjump/jumper/JumperFactory.h"
 
@@ -28,15 +29,6 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 // Stringify requests and keys alphabetically
-namespace {
-// ----------------------------------------------------------------------------------------------------------------------
-
-bool isRemote(eckit::URI uri) {
-    return uri.scheme() == "fdb";
-}
-
-} // namespace 
-//----------------------------------------------------------------------------------------------------------------------
 
 Engine::Engine() {}
 
@@ -112,81 +104,26 @@ filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, Ex
     return filemap;
 }
 
-void Engine::forwardRemoteExtraction(filemap_t& filemap) {
-    // get servermap from config, which maps fdb remote uri to gribjump server uri
-    // format: fdbhost:port -> gjhost:port
-    /// @todo: dont parse servermap every request
-    const std::map<std::string, std::string>& servermap_str = LibGribJump::instance().config().serverMap();
-    ASSERT(!servermap_str.empty());
+void Engine::scheduleExtractionTasks(filemap_t& filemap){
 
-    if (LibGribJump::instance().debug()) {
-        for (auto& [fdb, gj] : servermap_str) {
-            LOG_DEBUG_LIB(LibGribJump) << "Servermap: " << fdb << " -> " << gj << std::endl;
-        }
-    }
-    std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint> servermap;
-    for (auto& [fdb, gj] : servermap_str) {
-        eckit::net::Endpoint fdbEndpoint(fdb);
-        eckit::net::Endpoint gjEndpoint(gj);
-        servermap[fdbEndpoint] = gjEndpoint;
-    }
-
-    // Match servers with files
-    std::unordered_map<eckit::net::Endpoint, std::vector<std::string>> serverfiles;
-    for (auto& [fname, extractionItems] : filemap) {
-        eckit::URI uri = extractionItems[0]->URI();
-        eckit::net::Endpoint fdbEndpoint;
-
-        if(!isRemote(uri)) {
-            throw eckit::SeriousBug("URI is not remote: " + fname);
-        }
-
-        fdbEndpoint = eckit::net::Endpoint(uri.host(), uri.port());
-
-        if (servermap.find(fdbEndpoint) == servermap.end()) {
-            throw eckit::SeriousBug("No gribjump endpoint found for fdb endpoint: " + std::string(fdbEndpoint));
-        }
-
-        serverfiles[servermap[fdbEndpoint]].push_back(fname);
-    }
-
-    // make subfilemaps for each server
-    std::unordered_map<eckit::net::Endpoint, filemap_t> serverfilemaps;
-
-    for (auto& [server, files] : serverfiles) {
-        filemap_t subfilemap;
-        for (auto& fname : files) {
-            subfilemap[fname] = filemap[fname];
-        }
-        serverfilemaps[server] = subfilemap;
-    }
-
-    // forward to servers
-    size_t counter = 0;
-    for (auto& [endpoint, subfilemap] : serverfilemaps) {
-        taskGroup_.enqueueTask(new RemoteExtractionTask(taskGroup_, counter++, endpoint, subfilemap));
-    }
-
-    taskGroup_.waitForTasks();
-}
-
-void Engine::scheduleTasks(filemap_t& filemap){
-
-    bool remoteExtraction = LibGribJump::instance().config().getBool("remoteExtraction", false);
-    if (remoteExtraction) {
-        forwardRemoteExtraction(filemap);
+    bool forwardExtraction = LibGribJump::instance().config().getBool("forwardExtraction", false);
+    if (forwardExtraction) {
+        Forwarder forwarder;
+        forwarder.extract(filemap);
         return;
     }
 
+    bool inefficientExtraction = LibGribJump::instance().config().getBool("inefficientExtraction", false);
+
     size_t counter = 0;
     for (auto& [fname, extractionItems] : filemap) {
-        if (isRemote(extractionItems[0]->URI())) {
-            // Only possible if we are using remoteFDB, which requires remoteExtraction to be enabled.
-            // We technically do support it via inefficient extraction, but we are disabling this for now.
-            // taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
-            throw eckit::SeriousBug("Got remote URI from FDB, but remoteExtraction enabled in gribjump config.");
-        }
-        else {
+        if (extractionItems[0]->isRemote()) {
+            if (inefficientExtraction) {
+                taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            } else {
+                throw eckit::SeriousBug("Got remote URI from FDB, but forwardExtraction enabled in gribjump config.");
+            }
+        } else {
             taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
         }
     }
@@ -204,7 +141,7 @@ ResultsMap Engine::extract(ExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
-    scheduleTasks(filemap);
+    scheduleExtractionTasks(filemap);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
@@ -230,38 +167,45 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
 
 size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
 
-    const std::map< eckit::PathName, eckit::OffsetList > filemap = FDBLister::instance().filesOffsets(requests);
+    std::vector<eckit::URI> uris = FDBLister::instance().URIs(requests);
+
+    // forwarded scan requests
+    if (LibGribJump::instance().config().getBool("forwardScan", false)) {
+        Forwarder forwarder;
+        return forwarder.scan(uris);
+    }
+
+    std::map< eckit::PathName, eckit::OffsetList > filemap = FDBLister::instance().filesOffsets(uris);
 
     if (byfiles) { // ignore offsets and scan entire file
-        std::vector<eckit::PathName> files;
-        for (auto& [fname, offsets] : filemap) {
-            files.push_back(fname);
+        for (auto& [uri, offsets] : filemap) {
+            offsets.clear();
         }
-
-        return scan(files);
-        
     }
-
-    size_t counter = 0;
     
-    for (auto& [fname, offsets] : filemap) {
-        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, offsets));
-    }
-    taskGroup_.waitForTasks();
-
-    return filemap.size();
+    return scan(filemap);
 }
 
 size_t Engine::scan(std::vector<eckit::PathName> files) {
-    size_t counter = 0;
-    
+
+    scanmap_t scanmap;
     for (auto& fname : files) {
-        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, fname, {}));
+        scanmap[fname] = {};
     }
 
+    return scan(scanmap);
+}
+
+size_t Engine::scan(const scanmap_t& scanmap) {
+
+    size_t counter = 0;
+    std::atomic<size_t> nfields(0);
+    for (auto& [uri, offsets] : scanmap) {
+        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, uri.path(), offsets, nfields));
+    }
     taskGroup_.waitForTasks();
 
-    return files.size();
+    return nfields;
 }
 
 std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request, int level) {

@@ -32,7 +32,7 @@ public: // methods
 
     Request(eckit::Stream& stream);
 
-    virtual ~Request();
+    virtual ~Request() = default;
     
     // Have engine execute the request
     virtual void execute() = 0;
@@ -57,7 +57,7 @@ public:
 
     ScanRequest(eckit::Stream& stream);
 
-    ~ScanRequest();
+    ~ScanRequest() = default;
 
     void execute() override;
 
@@ -79,7 +79,7 @@ public:
 
     ExtractRequest(eckit::Stream& stream);
 
-    ~ExtractRequest();
+    ~ExtractRequest() = default;
 
     void execute() override;
 
@@ -99,7 +99,7 @@ public:
 
     ForwardedExtractRequest(eckit::Stream& stream);
 
-    ~ForwardedExtractRequest();
+    ~ForwardedExtractRequest() = default;
 
     void execute() override;
 
@@ -113,6 +113,29 @@ private:
     ResultsMap results_;
 };
 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class ForwardedScanRequest : public Request {
+public:
+
+    ForwardedScanRequest(eckit::Stream& stream);
+
+    ~ForwardedScanRequest() = default;
+
+    void execute() override;
+
+    void replyToClient() override;
+
+private:
+
+    std::vector<std::unique_ptr<ExtractionItem>> items_;
+    scanmap_t scanmap_;
+    ResultsMap results_;
+
+    size_t nfields_;
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class AxesRequest : public Request {
@@ -120,7 +143,7 @@ public:
 
     AxesRequest(eckit::Stream& stream);
 
-    ~AxesRequest();
+    ~AxesRequest() = default;
 
     void execute() override;
 

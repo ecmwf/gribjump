@@ -17,6 +17,7 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/Lister.h"
 #include "gribjump/GribJumpException.h"
+#include "gribjump/URIHelper.h"
 
 namespace gribjump {
     
@@ -137,40 +138,40 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     return filemap;
 }
 
-std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(std::vector<metkit::mars::MarsRequest> requests) {
+std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std::vector<metkit::mars::MarsRequest>& requests) {
+    return filesOffsets(URIs(requests));
+}
 
-    eckit::AutoLock<FDBLister> lock(this);
-
-    std::map< eckit::PathName, eckit::OffsetList > files; 
-
-    for (auto& request : requests) {
-
-        size_t count = request.count(); // worse case scenario all fields in one file
-
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, true);
-
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-                        
-            const fdb5::FieldLocation& loc = elem.location();
-
-            eckit::PathName path = loc.uri().path();
-
-            auto it = files.find(path);
-            if(it == files.end()) {
-                eckit::OffsetList offsets;
-                offsets.reserve(count);
-                offsets.push_back(loc.offset());
-                files.emplace(path, offsets);
-            }
-            else {
-                it->second.push_back(loc.offset());
-            }
+std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std::vector<eckit::URI>& uris) {
+    std::map< eckit::PathName, eckit::OffsetList > files;
+    for (auto& uri : uris) {
+        eckit::PathName path = uri.path();
+        eckit::Offset offset = URIHelper::offset(uri);
+        auto it = files.find(path);
+        if(it == files.end()) {
+            eckit::OffsetList offsets;
+            offsets.push_back(offset);
+            files.emplace(path, offsets);
+        }
+        else {
+            it->second.push_back(offset);
         }
     }
-
     return files;
+} 
+
+std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequest>& requests) {
+    eckit::AutoLock<FDBLister> lock(this);
+    std::vector<eckit::URI> uris;
+    for (auto& request : requests) {
+        fdb5::FDBToolRequest fdbreq(request);
+        auto listIter = fdb_.list(fdbreq, true);
+        fdb5::ListElement elem;
+        while (listIter.next(elem)) {
+            uris.push_back(elem.location().fullUri());
+        }
+    }
+    return uris;
 }
 
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const std::string& request, int level) {

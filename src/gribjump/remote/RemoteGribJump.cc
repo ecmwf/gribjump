@@ -78,6 +78,39 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
     return count;
 }
 
+// Forward scan request to another server
+size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map) {
+    ///@todo we could probably do the connection logic in the ctor
+    eckit::Timer timer("RemoteGribJump::scan()");
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    timer.report("Connection established");
+
+    sendHeader(stream, RequestType::FORWARD_SCAN);
+
+    size_t nFiles = map.size();
+    stream << nFiles;
+    
+    for (auto& [fname, offsets] : map) {
+        stream << fname;
+        stream << offsets;
+    }
+    
+    bool error = receiveErrors(stream);
+
+    size_t count = 0;
+    for (size_t i = 0; i < nFiles; i++) {
+        size_t nOffsets;
+        stream >> nOffsets;
+        count += nOffsets;
+    }
+
+    eckit::Log::info() << "Scanned " << eckit::Plural(count, "field") << "on endpoint " << host_ << ":" << port_ << std::endl;
+
+    timer.report("Scans complete");
+    return count;
+}
+
 std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> result;
@@ -121,9 +154,9 @@ std::vector<std::unique_ptr<ExtractionItem>> RemoteGribJump::extract(const eckit
 }
 
 // Forward extraction request to another server
-void RemoteGribJump::extract(filemap_t& filemap){
+void RemoteGribJump::forwardExtract(filemap_t& filemap){
 
-    eckit::Timer timer("RemoteGribJump::extract()");
+    eckit::Timer timer("RemoteGribJump::forwardExtract()");
 
     ///@todo we could probably do the connection logic in the ctor
     eckit::net::TCPClient client;

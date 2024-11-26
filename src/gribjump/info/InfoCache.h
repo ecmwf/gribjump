@@ -40,9 +40,9 @@ public:
     /// @brief Scans grib file at provided offsets and populates cache
     /// @param path full path to grib file
     /// @param offsets list of offsets to at which GribInfo should be extracted
-    void scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+    size_t scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
 
-    void scan(const eckit::PathName& path); // < scan all fields in a file
+    size_t scan(const eckit::PathName& path); // < scan all fields in a file
 
 
     /// Inserts a JumpInfo entry

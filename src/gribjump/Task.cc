@@ -197,17 +197,31 @@ void FileExtractionTask::extract() {
 //----------------------------------------------------------------------------------------------------------------------
 
 // Forward the work to a remote server, and wait for the results.
-RemoteExtractionTask::RemoteExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap) :
+ForwardExtractionTask::ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap) :
     Task(taskgroup, id),
     endpoint_(endpoint),
     filemap_(filemap)
 {}
 
-void RemoteExtractionTask::execute(){
+void ForwardExtractionTask::execute(){
 
     RemoteGribJump remoteGribJump(endpoint_);
-    remoteGribJump.extract(filemap_);
+    remoteGribJump.forwardExtract(filemap_);
 
+    notify();
+}
+
+ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, size_t& count) :
+    Task(taskgroup, id),
+    endpoint_(endpoint),
+    scanmap_(scanmap),
+    count_(count) {
+}
+
+void ForwardScanTask::execute(){
+
+    RemoteGribJump remoteGribJump(endpoint_);
+    count_ = remoteGribJump.forwardScan(scanmap_);
     notify();
 }
 
@@ -258,10 +272,11 @@ void InefficientFileExtractionTask::extract() {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FileScanTask::FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets) :
+FileScanTask::FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields) :
     Task(taskgroup, id),
     fname_(fname),
-    offsets_(offsets) {
+    offsets_(offsets),
+    nfields_(nfields){
 }
 
 void FileScanTask::execute() {
@@ -278,11 +293,11 @@ void FileScanTask::execute() {
 void FileScanTask::scan() {
 
     if (offsets_.size() == 0) {
-        InfoCache::instance().scan(fname_);
+        nfields_ += InfoCache::instance().scan(fname_);
         return;
     }
 
-    InfoCache::instance().scan(fname_, offsets_);
+    nfields_ += InfoCache::instance().scan(fname_, offsets_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

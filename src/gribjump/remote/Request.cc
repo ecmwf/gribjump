@@ -31,8 +31,6 @@ Request::Request(eckit::Stream& stream) : client_(stream) {
     MetricsManager::instance().set("request_id", id_);
 }
 
-Request::~Request() {}
-
 void Request::reportErrors() {
     engine_.reportErrors(client_);
 }
@@ -58,17 +56,12 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
     MetricsManager::instance().set("count_requests", numRequests);
 }
 
-ScanRequest::~ScanRequest() {
-}
-
 void ScanRequest::execute() {
     nfiles_ = engine_.scan(requests_, byfiles_);
 }
 
 void ScanRequest::replyToClient() {
-
     client_ << nfiles_;
-
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -89,9 +82,6 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
     }
 
     MetricsManager::instance().set("count_requests", nRequests);
-}
-
-ExtractRequest::~ExtractRequest() {
 }
 
 void ExtractRequest::execute() {
@@ -167,11 +157,8 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
     ASSERT(count > 0); // We should not be talking to this server if we have no requests.
 }
 
-ForwardedExtractRequest::~ForwardedExtractRequest() {
-}
-
 void ForwardedExtractRequest::execute() {
-    engine_.scheduleTasks(filemap_);
+    engine_.scheduleExtractionTasks(filemap_);
 }
 
 void ForwardedExtractRequest::replyToClient() {
@@ -187,6 +174,37 @@ void ForwardedExtractRequest::replyToClient() {
     }
 }
 
+
+//----------------------------------------------------------------------------------------------------------------------
+
+ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream) : Request(stream) {
+    MetricsManager::instance().set("action", "forwarded-scan");
+
+    size_t nFiles;
+    client_ >> nFiles;
+    LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanRequest: nFiles=" << nFiles << std::endl;
+
+
+    size_t count = 0;
+    for (size_t i = 0; i < nFiles; i++) {
+        std::string fname;
+        eckit::OffsetList offsets;
+        client_ >> fname;
+        client_ >> offsets;
+        scanmap_[fname] = offsets;
+        count += offsets.size();
+    }
+
+    MetricsManager::instance().set("count_received_offsets", count);
+}
+
+void ForwardedScanRequest::execute() {
+    nfields_ = engine_.scan(scanmap_);
+}
+
+void ForwardedScanRequest::replyToClient() {
+    client_ << nfields_;
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
@@ -194,9 +212,6 @@ AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
     client_ >> request_;
     client_ >> level_;
     ASSERT(request_.size() > 0);
-}
-
-AxesRequest::~AxesRequest() {
 }
 
 void AxesRequest::execute() {
