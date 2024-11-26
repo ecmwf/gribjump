@@ -90,19 +90,19 @@ CASE( "test_plugin" ){
         if (file.extension() != ".gribjump") continue;
         ++count;
         std::cout << file << std::endl;
-        FileCache cache = FileCache(file);
-        cache.print(std::cout);
-        EXPECT_EQUAL(cache.size(), 4); // match 2 messages, twice.
+        IndexFile index = IndexFile(file);
+        index.print(std::cout);
+        EXPECT_EQUAL(index.size(), 4); // match 2 messages, twice.
 
         // Check what happens when a cached file is modified
         fdb.archive(*gribName.fileHandle());
         fdb.flush();
-        EXPECT_EQUAL(cache.size(), 4); // does not autoreload
-        cache.reload();
-        EXPECT_EQUAL(cache.size(), 6); 
+        EXPECT_EQUAL(index.size(), 4); // does not autoreload
+        index.reload();
+        EXPECT_EQUAL(index.size(), 6); 
     
     }
-    EXPECT(count == 1 ); // because we should be appending to the same file
+    EXPECT_EQUAL(count, 1 ); // because we should be appending to the same file
 }
 //-----------------------------------------------------------------------------
 

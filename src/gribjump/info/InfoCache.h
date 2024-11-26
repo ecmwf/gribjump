@@ -25,13 +25,14 @@
 
 namespace gribjump {
 
-class FileCache;
+class IndexFile;
 class InfoCache {
 
 private: // types
 
     using filename_t = std::string; //< key is fieldlocation's path basename
-    using cache_t = LRUCache<filename_t, std::shared_ptr<FileCache>>; //< map fieldlocation's to gribinfo
+    using fileoffset_t = std::string; // filename+offset
+    using infocache_t = LRUCache<fileoffset_t, std::shared_ptr<JumpInfo>>; //< map fieldlocation's to gribinfo
 
 public:
 
@@ -67,16 +68,22 @@ private: // methods
     
     ~InfoCache();
 
-    std::shared_ptr<FileCache> getFileCache(const eckit::PathName& f, bool load=true);
+    std::shared_ptr<IndexFile> getIndexFile(const eckit::PathName& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
 
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> getCached(const eckit::PathName& path, const eckit::OffsetList& offsets);
+    void putCache(const eckit::PathName& path, const eckit::OffsetList& offset, std::vector<std::shared_ptr<JumpInfo>>& infos);
+ 
 private: // members
 
     eckit::PathName cacheDir_;
 
-    mutable std::mutex mutex_; //< mutex for cache_
-    cache_t cache_;
+    mutable std::mutex stageMutex_; //< mutex for stagedFiles_
+    std::map<filename_t, std::shared_ptr<IndexFile>> stagedFiles_; ///, Files which we are actively appending to (plugin)
+
+    mutable std::mutex infomutex_;; //< mutex for infocache_
+    infocache_t infocache_;
 
     bool persistentCache_ = true;
 
@@ -87,26 +94,26 @@ private: // members
 };
 
 // Holds JumpInfo objects belonging to single file.
-class FileCache {
+class IndexFile {
 
     using infomap_t = std::map<eckit::Offset, std::shared_ptr<JumpInfo>>;
     friend class InfoCache; 
 
 public:
 
-    FileCache(const eckit::PathName& path, bool load=true);
+    IndexFile(const eckit::PathName& path, bool load=true);
 
-    ~FileCache();
+    ~IndexFile();
 
     void load();
     void reload();
     void print(std::ostream& s);
     bool loaded() const { return loaded_; }
-
-    std::vector<eckit::Offset> reloadMissing(const eckit::OffsetList& offsets);
     
     // For tests only
     size_t size() const { return map_.size(); }
+
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> get(const eckit::OffsetList& offsets);
 
 private: // Methods are only intended to be called from InfoCache
 
@@ -114,7 +121,7 @@ private: // Methods are only intended to be called from InfoCache
 
     void decode(eckit::Stream& s);
 
-    void merge(FileCache& other);
+    void merge(IndexFile& other);
 
     void write();
     void flush(bool append);
