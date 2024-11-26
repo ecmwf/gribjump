@@ -49,7 +49,6 @@ InfoCache::InfoCache():
 
     bool enabled = config.getBool("cache.enabled", true);
     if (!enabled) {
-        persistentCache_ = false; 
         LOG_DEBUG_LIB(LibGribJump) << "Cache disabled" << std::endl;
         return;
     }
@@ -197,7 +196,7 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::
 
     // if cache exists load so we can merge with memory cache
     std::shared_ptr<FileCache> filecache = getFileCache(fdbpath);
-    filecache->load();
+    filecache->reload();
 
     // Find which offsets are not already in file cache
     std::vector<eckit::Offset> newOffsets;
@@ -227,20 +226,19 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::
         filecache->insert(newOffsets[i], std::move(infos[i]));
     }
     
-    if (persistentCache_) {
-        filecache->write();
-    }
+    filecache->write();
 
     return infos.size();
 }
 
+/// @todo maybe merge this with the above method
 size_t InfoCache::scan(const eckit::PathName& fdbpath) {
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning whole file " << fdbpath << std::endl;
 
     // if cache exists load so we can merge with memory cache
     std::shared_ptr<FileCache> filecache = getFileCache(fdbpath);
-    filecache->load();
+    filecache->reload();
 
     InfoExtractor extractor;
     std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> infos = extractor.extract(fdbpath);
@@ -248,9 +246,7 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath) {
         filecache->insert(infos[i].first, std::move(infos[i].second));
     }
 
-    if (persistentCache_) {
-        filecache->write();
-    }
+    filecache->write();
 
     return infos.size();
 }

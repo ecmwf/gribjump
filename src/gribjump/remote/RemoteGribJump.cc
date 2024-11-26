@@ -66,16 +66,11 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
 
     bool error = receiveErrors(stream);
 
-    size_t count = 0;
-    for (size_t i = 0; i < nRequests; i++) {
-        size_t nfiles;
-        stream >> nfiles;
-        eckit::Log::info() << "Scanned " << eckit::Plural(nfiles, "file") << std::endl;
-        count += nfiles;
-    }
+    size_t nFields;
+    stream >> nFields;
 
     timer.report("Scans complete");
-    return count;
+    return nFields;
 }
 
 // Forward scan request to another server
@@ -98,17 +93,13 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
     
     bool error = receiveErrors(stream);
 
-    size_t count = 0;
-    for (size_t i = 0; i < nFiles; i++) {
-        size_t nOffsets;
-        stream >> nOffsets;
-        count += nOffsets;
-    }
+    size_t nfields = 0;
+    stream >> nfields;
 
-    eckit::Log::info() << "Scanned " << eckit::Plural(count, "field") << "on endpoint " << host_ << ":" << port_ << std::endl;
+    eckit::Log::info() << "Scanned " << nfields << " field(s) on endpoint " << host_ << ":" << port_ << std::endl;
 
     timer.report("Scans complete");
-    return count;
+    return nfields;
 }
 
 std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {

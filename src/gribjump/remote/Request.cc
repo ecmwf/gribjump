@@ -57,11 +57,11 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
 }
 
 void ScanRequest::execute() {
-    nfiles_ = engine_.scan(requests_, byfiles_);
+    nFields_ = engine_.scan(requests_, byfiles_);
 }
 
 void ScanRequest::replyToClient() {
-    client_ << nfiles_;
+    client_ << nFields_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

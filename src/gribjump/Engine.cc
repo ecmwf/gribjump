@@ -169,6 +169,11 @@ size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
 
     std::vector<eckit::URI> uris = FDBLister::instance().URIs(requests);
 
+    if (uris.empty()) {
+        MetricsManager::instance().set("count_scanned_fields", 0);
+        return 0;
+    }
+
     // forwarded scan requests
     if (LibGribJump::instance().config().getBool("forwardScan", false)) {
         Forwarder forwarder;
@@ -204,6 +209,8 @@ size_t Engine::scan(const scanmap_t& scanmap) {
         taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, uri.path(), offsets, nfields));
     }
     taskGroup_.waitForTasks();
+
+    MetricsManager::instance().set("count_scanned_fields", static_cast<size_t>(nfields));
 
     return nfields;
 }

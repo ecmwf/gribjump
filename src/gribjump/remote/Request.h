@@ -68,7 +68,7 @@ private:
     std::vector<metkit::mars::MarsRequest> requests_;
     bool byfiles_;
 
-    size_t nfiles_;
+    size_t nFields_;
 
 };
 

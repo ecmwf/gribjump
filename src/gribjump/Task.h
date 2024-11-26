@@ -161,14 +161,14 @@ private:
 class ForwardScanTask : public Task {
 public:
 
-    ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, size_t& count);
+    ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields_);
 
     void execute() override;
 
 private:
     eckit::net::Endpoint endpoint_;
     scanmap_t& scanmap_;
-    size_t& count_;
+    std::atomic<size_t>& nfields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

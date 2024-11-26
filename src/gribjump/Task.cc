@@ -211,17 +211,17 @@ void ForwardExtractionTask::execute(){
     notify();
 }
 
-ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, size_t& count) :
+ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields):
     Task(taskgroup, id),
     endpoint_(endpoint),
     scanmap_(scanmap),
-    count_(count) {
+    nfields_(nfields) {
 }
 
 void ForwardScanTask::execute(){
 
     RemoteGribJump remoteGribJump(endpoint_);
-    count_ = remoteGribJump.forwardScan(scanmap_);
+    nfields_ += remoteGribJump.forwardScan(scanmap_);
     notify();
 }
 

@@ -12,11 +12,13 @@
 
 #include <unordered_map>
 #include <numeric> 
+#include <atomic>
 #include "eckit/filesystem/URI.h"
 #include "gribjump/Forwarder.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/Task.h"
+
 namespace gribjump {
 
 Forwarder::Forwarder() {
@@ -26,6 +28,8 @@ Forwarder::~Forwarder() {
 }
 
 size_t Forwarder::scan(const std::vector<eckit::URI>& uris) {
+
+    ASSERT(uris.size() > 0);
 
     // scanmap_t: filename -> offsets
     std::unordered_map<eckit::net::Endpoint, scanmap_t> serverfilemaps;
@@ -40,15 +44,14 @@ size_t Forwarder::scan(const std::vector<eckit::URI>& uris) {
 
     TaskGroup taskGroup;
     size_t counter = 0;
-    std::vector<size_t> n_fields;
+    std::atomic<size_t> nFields(0);
     size_t i = 0;
     for (auto& [endpoint, scanmap] : serverfilemaps) {
-        taskGroup.enqueueTask(new ForwardScanTask(taskGroup, i, endpoint, scanmap, n_fields[i]));
-        i++;
+        taskGroup.enqueueTask(new ForwardScanTask(taskGroup, counter++, endpoint, scanmap, nFields));
     }
     taskGroup.waitForTasks();
 
-    return std::accumulate(n_fields.begin(), n_fields.end(), 0);
+    return nFields;
 }
 
 void Forwarder::extract(filemap_t& filemap) {
