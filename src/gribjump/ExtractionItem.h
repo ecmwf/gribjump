@@ -18,6 +18,7 @@
 
 #include "gribjump/LibGribJump.h"
 #include "gribjump/Types.h"
+#include "gribjump/URIHelper.h"
 namespace gribjump {
 
 
@@ -62,6 +63,7 @@ public:
     const std::string& gridHash() const { return gridHash_; }
 
     void URI(const eckit::URI& uri) { uri_ = uri; }
+    bool isRemote() const { return URIHelper::isRemote(uri_); }
 
     void values(ExValues values) { values_ = std::move(values); }
     void mask(ExMask mask) { mask_ = std::move(mask); }

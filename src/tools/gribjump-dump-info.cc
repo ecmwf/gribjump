@@ -39,8 +39,8 @@ void DumpInfo::usage(const std::string &tool) const {
 void DumpInfo::execute(const eckit::option::CmdArgs &args) {
     for (size_t i = 0; i < args.count(); i++) {
         eckit::PathName file(args(i));
-        FileCache cache = FileCache(file);
-        cache.print(std::cout);
+        IndexFile index = IndexFile(file);
+        index.print(std::cout);
     }
 }
 

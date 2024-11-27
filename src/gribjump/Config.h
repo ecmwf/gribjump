@@ -12,26 +12,29 @@
 
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/net/Endpoint.h"
 
 namespace gribjump {
 
 class Config : public eckit::LocalConfiguration {
+public: // types
+    using ServerMap = std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint>;
 public:
     Config();
     Config(const eckit::PathName);
 
-    const std::map<std::string, std::string>& serverMap() const { return serverMap_; }
+    const ServerMap& serverMap() const { return serverMap_; }
     
     ///@note : Will be empty if default config is used
     const std::string& path() const { return path_; }
 
 private:
-    std::map<std::string, std::string> loadServerMap() const;
+    ServerMap loadServerMap() const;
 
 private:
-    std::map<std::string, std::string> serverMap_;
+    ServerMap serverMap_;
     std::string path_;
 };
 

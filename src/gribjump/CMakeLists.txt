@@ -65,6 +65,9 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     Task.h
     ExtractionItem.cc
     ExtractionItem.h
+    Forwarder.cc
+    Forwarder.h
+    URIHelper.h
 
     tools/EccodesExtract.h
     tools/EccodesExtract.cc

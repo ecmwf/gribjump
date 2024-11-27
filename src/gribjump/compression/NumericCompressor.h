@@ -37,23 +37,23 @@ public:
   using CompressedData = eckit::Buffer;
   using Values = std::vector<ValueType>;
   virtual Values decode(const CompressedData&) = 0;
-  virtual Values decode(const std::shared_ptr<DataAccessor>, const Range&) = 0;
+  virtual Values decode(const std::shared_ptr<DataAccessor>, const Block&) = 0;
 
 
-  virtual std::vector<Values> decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Range>& ranges) {
+  virtual std::vector<Values> decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Block>& ranges) {
     using Values = typename NumericDecompressor<ValueType>::Values;
     std::vector<Values> result;
     decode(accessor, ranges, result);
     return result;
   }
 
-  virtual void decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Range>& ranges, std::vector<Values>& result) {
+  virtual void decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Block>& ranges, std::vector<Values>& result) {
     using Values = typename NumericDecompressor<ValueType>::Values;
     
-    std::unordered_map<Range, std::pair<Range, std::shared_ptr<Values>>> ranges_map;
+    std::unordered_map<Block, std::pair<Block, std::shared_ptr<Values>>> ranges_map;
 
     // find which sub_ranges are in which buckets
-    RangeBuckets buckets;
+    BlockBuckets buckets;
     for (const auto& range : ranges) {
       buckets << range;
     }

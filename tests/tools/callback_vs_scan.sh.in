@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
-# TODO add gribjump-scan-files to this test
-set -ex
-
+# -- Description ----------------------------------------------------------
 # This script tests gribjump's jumpinfo generation and interaction with fdb. It writes to four fdbs:
 #   1. FDB archive, no gribjump plugin and no gribjump index.
 #   2. FDB archive, no gribjump plugin, but a gribjump-scan (with a mars request) is run afterwards to generate gribjump index.
 #   3. FDB archive, with gribjump plugin to automatically generate the gribjump index.
 #   4. FDB archive, with gribjump-scan-files to generate gribjump index from a list of files.
+#   5. grib2fdb with gribjump plugin enabled.
 # Then, we perform the same extraction on all fdbs and check for consistency.
-# 
 # The test data contains several grib messages with different packing types, some supported some not.
 
-# setup
+# -- Environment --------------------------------------------------------------
+set -ex
 
 fdbwrite="$<TARGET_FILE:fdb-write>"
 fdbread="$<TARGET_FILE:fdb-read>"
@@ -20,14 +19,12 @@ gjscanfiles="$<TARGET_FILE:gribjump-scan-files>"
 gjextract="$<TARGET_FILE:gribjump-extract>"
 gjinfo="$<TARGET_FILE:gribjump-dump-info>"
 gribset="$<TARGET_FILE:grib_set>"
+grib2fdb="$<TARGET_FILE:grib2fdb5>"
 
 srcdir=@CMAKE_CURRENT_SOURCE_DIR@
 bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 export GRIBJUMP_CONFIG_FILE=${srcdir}/gribjump-fdb.yaml
-
-export FDB5_HOME=$bindir
-export METKIT_RAW_PARAM=1 # when *isnt* this needed...?
 
 # Help find the plugin when not installed or part of a bundle
 binary="@CMAKE_BINARY_DIR@"
@@ -35,16 +32,16 @@ prefix="@CMAKE_INSTALL_PREFIX@"
 export PLUGINS_MANIFEST_PATH="$binary/share/plugins"
 export DYLD_LIBRARY_PATH="$binary/lib:$binary/lib64:$DYLD_LIBRARY_PATH"
 export LD_LIBRARY_PATH="$binary/lib:$binary/lib64:$LD_LIBRARY_PATH"
-
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
-### cleanup and prepare test
-rm -rf ${bindir}/root1 ${bindir}/root2 ${bindir}/root3 ${bindir}/root4
-mkdir -p ${bindir}/root1 ${bindir}/root2 ${bindir}/root3 ${bindir}/root4
+# -- Setup ---------------------------------------------------------------
 
+# Generate configs and cleanup previous tests
 cp ${srcdir}/schema $bindir
-
-for i in $(seq 1 4); do
+NROOTS=5
+for i in $(seq 1 $NROOTS); do
+    rm -rf ${bindir}/root${i}
+    mkdir -p ${bindir}/root${i}
     cat <<EOF > ${bindir}/config_root${i}.yaml
 ---
 type: local
@@ -61,8 +58,7 @@ done
 supporteddata="${bindir}/supported.grib"
 unsupporteddata="${bindir}/unsupported.grib"
 
-# Group data based on whether we expect it to be selected by the filter.
-# We will be selecting expver=xxxx, and not xxxy.
+# Group data based on whether we expect it to be selected by the filter. We will be selecting expver=xxxx, and not xxxy.
 selected=${bindir}/selected.grib # data to be selected (all other data is filtered)
 unselected=${bindir}/unselected.grib # data to be filtered out
 testdata=${bindir}/alldata.grib
@@ -73,9 +69,9 @@ cat $selected $unselected > $testdata
 selectedrequests=${bindir}/requests
 FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
 
-# -------------------------------------
-# 1: Reference FDB
+# -- Write to FDB ---------------------------------------------------------------
 
+# 1: Reference FDB
 echo "Writing to FDB without gribjump plugin or scan"
 FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbwrite ${testdata}
 
@@ -84,15 +80,13 @@ FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbwrite ${testdata}
 
 echo "Writing to FDB without gribjump plugin, then scanning"
 FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $fdbwrite ${testdata}
-FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $gjscan $selectedrequests
+FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $gjscan --file=$selectedrequests
 
 # -------------------------------------
 # 3: FDB with gribjump plugin
 
 echo "Writing to FDB with gribjump plugin"
-export FDB_ENABLE_GRIBJUMP=1
-FDB5_CONFIG_FILE=${bindir}/config_root3.yaml $fdbwrite ${testdata}
-unset FDB_ENABLE_GRIBJUMP
+FDB_ENABLE_GRIBJUMP=1 FDB5_CONFIG_FILE=${bindir}/config_root3.yaml $fdbwrite ${testdata}
 
 # -------------------------------------
 # 4: FDB with gribjump-scan-files
@@ -105,11 +99,17 @@ filelist=$(find ${bindir}/root4 -path '*xxxx*' -name '*.data' | sort)
 $gjscanfiles $filelist # NB: Does not use FDB directly 
 
 # -------------------------------------
+# 5. Plugin with grib2fdb
+echo "Writing to FDB with grib2fdb, plugin enabled"
+FDB_ENABLE_GRIBJUMP=1 FDB5_CONFIG_FILE=${bindir}/config_root5.yaml $grib2fdb -f ${testdata}
+
+# -- Verify gribjump index ---------------------------------------------------------------
 # Inspect the .gribjump files from fdbs and compare.
 
 files2=$(find ${bindir}/root2 -name "*.gribjump" | sort)
 files3=$(find ${bindir}/root3 -name "*.gribjump" | sort)
 files4=$(find ${bindir}/root4 -name "*.gribjump" | sort)
+files5=$(find ${bindir}/root5 -name "*.gribjump" | sort)
 
 # Make sure they are the same number
 Nfiles=$(echo $files2 | wc -w)
@@ -130,6 +130,11 @@ if [ $Nfiles -ne $(echo $files4 | wc -w) ]; then
     exit 1
 fi
 
+if [ $Nfiles -ne $(echo $files5 | wc -w) ]; then
+    echo "Different number of .gribjump files in 2 and 5"
+    exit 1
+fi
+
 # Iterate over the files, make sure the first file matches the first, etc.
 # Note: if we ever store the full URI in the .gribjump file, this will need to be updated, as this will be different in 2 and 3.
 # In which case, use e.g., gribjump-dump-info for comparing.
@@ -137,20 +142,21 @@ for i in $(seq 1 $Nfiles); do
     file_2=$(echo $files2 | cut -d' ' -f$i)
     file_3=$(echo $files3 | cut -d' ' -f$i)
     file_4=$(echo $files4 | cut -d' ' -f$i)
+    file_5=$(echo $files5 | cut -d' ' -f$i)
     diff $file_2 $file_3
     diff $file_2 $file_4
+    diff $file_2 $file_5
 done
 
 # -------------------------------------
 # Extract from all fdbs and compare the output
 extractrequests=${bindir}/extractrequests
-export FDB5_CONFIG_FILE=${bindir}/config_root1.yaml
-$fdbread --extract ${supporteddata} /dev/null > $extractrequests
+FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${supporteddata} /dev/null > $extractrequests
 
 ranges=${bindir}/ranges
 echo "0-10,20-30,40-50" > $ranges
 
-for i in $(seq 1 4); do
+for i in $(seq 1 $NROOTS); do
     FDB5_CONFIG_FILE=${bindir}/config_root${i}.yaml $gjextract $extractrequests $ranges > ${bindir}/tmp
     cat ${bindir}/tmp
     sed -n '/Extracted values:/,$p' ${bindir}/tmp > ${bindir}/extract${i}.clean
@@ -160,10 +166,11 @@ rm ${bindir}/tmp
 diff ${bindir}/extract1.clean ${bindir}/extract2.clean
 diff ${bindir}/extract1.clean ${bindir}/extract3.clean
 diff ${bindir}/extract1.clean ${bindir}/extract4.clean
+diff ${bindir}/extract1.clean ${bindir}/extract5.clean
 
 # -------------------------------------
 # Done! Tidy up
-for i in $(seq 1 4); do
+for i in $(seq 1 $NROOTS); do
     rm ${bindir}/extract${i}.clean
     rm -rf ${bindir}/root${i}
 done

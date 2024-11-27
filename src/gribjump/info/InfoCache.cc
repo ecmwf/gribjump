@@ -30,6 +30,12 @@ namespace gribjump {
 
 const char* file_ext = ".gribjump";
 
+namespace {
+    std::string cachekey(const eckit::PathName& path, const eckit::Offset& offset) {
+        return path.baseName() + std::to_string(offset);
+    }
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 InfoCache& InfoCache::instance() {
@@ -42,14 +48,13 @@ InfoCache::~InfoCache() {
 
 InfoCache::InfoCache(): 
     cacheDir_(eckit::PathName()), 
-    cache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 64))),
+    infocache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 1024))),
     lazy_(eckit::Resource<bool>("gribjumpLazyInfo", LibGribJump::instance().config().getBool("cache.lazy", true))) {
 
     const Config& config = LibGribJump::instance().config();
 
     bool enabled = config.getBool("cache.enabled", true);
     if (!enabled) {
-        persistentCache_ = false; 
         LOG_DEBUG_LIB(LibGribJump) << "Cache disabled" << std::endl;
         return;
     }
@@ -82,20 +87,11 @@ eckit::PathName InfoCache::cacheFilePath(const eckit::PathName& path) const {
     return cacheDir_ / path.baseName() + file_ext;
 }
 
-std::shared_ptr<FileCache> InfoCache::getFileCache(const eckit::PathName& path, bool load) { 
-    std::lock_guard<std::mutex> lock(mutex_);
+std::shared_ptr<IndexFile> InfoCache::getIndexFile(const eckit::PathName& path) { 
 
     const filename_t& f = path.baseName();
-
-    if (cache_.exists(f)) {
-        return cache_.get(f);
-    }
-
     eckit::PathName cachePath = cacheFilePath(path);
-    LOG_DEBUG_LIB(LibGribJump) << "New InfoCache entry for file " << f << " at " << cachePath << std::endl;
-    
-    auto filecache = std::make_shared<FileCache>(cachePath, load);
-    cache_.put(f, filecache);
+    auto filecache = std::make_shared<IndexFile>(cachePath, false);
     return filecache;
 }
 
@@ -108,105 +104,120 @@ std::shared_ptr<JumpInfo> InfoCache::get(const eckit::URI& uri) {
 }
 
 std::shared_ptr<JumpInfo> InfoCache::get(const eckit::PathName& path, const eckit::Offset offset) {
+    return get(path, eckit::OffsetList{offset})[0];
+}
 
-    std::shared_ptr<FileCache> filecache = getFileCache(path);
-    filecache->load();
-
-    // return it if in memory cache
-    {   
-        std::shared_ptr<JumpInfo> info = filecache->find(offset);
-        if (info) return info;
-
-        LOG_DEBUG_LIB(LibGribJump) << "InfoCache file " << path << " does not contain JumpInfo for field at offset " << offset << std::endl;
-
+std::map<eckit::Offset, std::shared_ptr<JumpInfo>> InfoCache::getCached(const eckit::PathName& path, const eckit::OffsetList& offsets) {
+    std::lock_guard<std::mutex> lock(infomutex_);
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> result;
+    for (const auto& offset : offsets) {
+        std::string key = cachekey(path, offset);
+        if (infocache_.exists(key)) {
+            result[offset] = infocache_.get(key);
+        }
     }
+    return result;
+}
 
-    // Extract explicitly
-    if (!lazy_) {
-        throw JumpInfoExtractionDisabled("No JumpInfo found for path " + path + " at offset " + std::to_string(offset));
+void InfoCache::putCache(const eckit::PathName& path, const eckit::OffsetList& offset, std::vector<std::shared_ptr<JumpInfo>>& infos) {
+    std::lock_guard<std::mutex> lock(infomutex_);
+    for (size_t i = 0; i < offset.size(); i++) {
+        infocache_.put(cachekey(path, offset[i]), infos[i]);
     }
-
-    InfoExtractor extractor;
-    std::shared_ptr<JumpInfo> info = extractor.extract(path, offset);
-
-    filecache->insert(offset, info);
-
-    return info;
 }
 
 std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& path, const eckit::OffsetList& offsets) {
 
-    std::shared_ptr<FileCache> filecache = getFileCache(path);
-    filecache->load();
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> result = getCached(path, offsets);
 
-    std::vector<eckit::Offset> missingOffsets;
+    if (result.size() != offsets.size()) {
 
+        // Find the missing offsets and read from index file
+        std::vector<eckit::Offset> fileOffsets;
+        for (const auto& offset : offsets) {
+            if (result.find(offset) == result.end()) {
+                fileOffsets.push_back(offset);
+            }
+        }
+
+        // Open the index file and find the missing offsets
+        std::shared_ptr<IndexFile> indexFile = getIndexFile(path);
+        std::map<eckit::Offset, std::shared_ptr<JumpInfo>> fileinfos = indexFile->get(fileOffsets);
+
+        std::vector<eckit::Offset> missingOffsets;
+        for (const auto& offset : fileOffsets) {
+            if (fileinfos.find(offset) == fileinfos.end()) {
+                missingOffsets.push_back(offset);
+                continue;
+            }
+            result[offset] = fileinfos[offset];
+        }
+
+        // If some offsets are also missing from index file, extract from data file directly.
+        if (!missingOffsets.empty()) {
+            if (!lazy_) {
+                std::stringstream ss;
+                ss << "Missing JumpInfo for " << eckit::Plural(missingOffsets.size(), "offset") << " in " << path;
+                throw JumpInfoExtractionDisabled(ss.str());
+            }
+            InfoExtractor extractor;
+            std::vector<std::unique_ptr<JumpInfo>> uinfos = extractor.extract(path, missingOffsets);
+            for (size_t i = 0; i < uinfos.size(); i++) {
+                std::shared_ptr<JumpInfo> info = std::move(uinfos[i]);
+                ASSERT(info);
+                result[missingOffsets[i]] = info;
+            }
+        }
+    }
+
+    ASSERT(result.size() == offsets.size());
+
+    std::vector<std::shared_ptr<JumpInfo>> vec;
+    vec.reserve(offsets.size());
     for (const auto& offset : offsets) {
-        if (!filecache->find(offset)) {
-            missingOffsets.push_back(offset);
-        }
+        vec.push_back(result[offset]);
     }
-
-    if (!missingOffsets.empty()) {
-        if (!lazy_) {
-            std::stringstream ss;
-            ss << "Missing JumpInfo for " << eckit::Plural(missingOffsets.size(), "offset") << " in " << path;
-            throw JumpInfoExtractionDisabled(ss.str());
-        }
-        std::sort(missingOffsets.begin(), missingOffsets.end());
-        InfoExtractor extractor;
-
-        std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(path, missingOffsets);
-        for (size_t i = 0; i < infos.size(); i++) {
-            filecache->insert(missingOffsets[i], std::move(infos[i]));
-        }
-    }
-
-    std::vector<std::shared_ptr<JumpInfo>> result;
-
-    for (const auto& offset : offsets) {
-        std::shared_ptr<JumpInfo> info = filecache->find(offset);
-        ASSERT(info);
-        result.push_back(info);
-    }
-
-    return result;
+    
+    putCache(path, offsets, vec);
+    return vec;
 }
-
-// XXX: is this true? We do allow creation of infos via other means.
-// I think I have too many methods that do the same thing now, could do with a cleanup.
-
-// maybe insert should be private.
-// Only InfoCache will do insertions. Client code can only "get", which may in the process insert into cache
 
 void InfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, std::shared_ptr<JumpInfo> info) {
     LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << path << ":" << offset << std::endl;
-    std::shared_ptr<FileCache> filecache = getFileCache(path, false);
+    std::lock_guard<std::mutex> lock(stageMutex_);
+
+    eckit::PathName filePath = cacheFilePath(path);
+    if (stagedFiles_.find(filePath) != stagedFiles_.end()) {
+        stagedFiles_[filePath]->insert(offset, info);
+        return;
+    }
+
+    std::shared_ptr<IndexFile> filecache = getIndexFile(path);
     filecache->insert(offset, info);
+    stagedFiles_[filePath] = filecache;
 }
 
 void InfoCache::flush(bool append) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    for (auto& [filename, filecache] : cache_) {
+    std::lock_guard<std::mutex> lock(stageMutex_);
+    for (auto& [filename, filecache] : stagedFiles_) {
         filecache->flush(append);
     }
+    stagedFiles_.clear();
 }
 
 void InfoCache::clear() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    cache_.clear();
+    std::lock_guard<std::mutex> lock(infomutex_);
+    infocache_.clear();
 }
 
-void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
+size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
 
     // this will be executed in parallel so we dont lock main mutex_ here
     // we will rely on each method to lock mutex when needed
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " at " << eckit::Plural(offsets.size(), "offsets") << std::endl;
 
-
-    // if cache exists load so we can merge with memory cache
-    std::shared_ptr<FileCache> filecache = getFileCache(fdbpath);
+    std::shared_ptr<IndexFile> filecache = getIndexFile(fdbpath);
     filecache->load();
 
     // Find which offsets are not already in file cache
@@ -218,58 +229,58 @@ void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Of
         }
     }
 
+    LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " found " << newOffsets.size() << " new fields not already in cache" << std::endl;
+
     if (newOffsets.empty()) {
         LOG_DEBUG_LIB(LibGribJump) << "No new fields to scan in " << fdbpath << std::endl;
-        return;
+        return 0;
     }
 
     std::sort(newOffsets.begin(), newOffsets.end());
 
     InfoExtractor extractor;
-    std::vector<std::unique_ptr<JumpInfo>> uinfos = extractor.extract(fdbpath, newOffsets);
+    std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(fdbpath, newOffsets);
     // std::vector<std::shared_ptr<JumpInfo>> infos;
     // infos.reserve(uinfos.size());
     // std::move(uinfos.begin(), uinfos.end(), std::back_inserter(infos));
     // filecache->insert(infos);
-    for (size_t i = 0; i < uinfos.size(); i++) {
-        filecache->insert(newOffsets[i], std::move(uinfos[i]));
+    for (size_t i = 0; i < infos.size(); i++) {
+        filecache->insert(newOffsets[i], std::move(infos[i]));
     }
     
-    if (persistentCache_) {
-        filecache->write();
-    }
+    filecache->write();
 
+    return infos.size();
 }
 
-void InfoCache::scan(const eckit::PathName& fdbpath) {
+/// @todo maybe merge this with the above method
+size_t InfoCache::scan(const eckit::PathName& fdbpath) {
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning whole file " << fdbpath << std::endl;
 
-    // if cache exists load so we can merge with memory cache
-    std::shared_ptr<FileCache> filecache = getFileCache(fdbpath);
-    filecache->load();
+    std::shared_ptr<IndexFile> filecache = getIndexFile(fdbpath);
+    filecache->reload();
 
     InfoExtractor extractor;
-    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> uinfos = extractor.extract(fdbpath); /* This needs to give use the offsets too*/
-    for (size_t i = 0; i < uinfos.size(); i++) {
-        filecache->insert(uinfos[i].first, std::move(uinfos[i].second));
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> infos = extractor.extract(fdbpath);
+    for (size_t i = 0; i < infos.size(); i++) {
+        filecache->insert(infos[i].first, std::move(infos[i].second));
     }
 
-    if (persistentCache_) {
-        filecache->write();
-    }
+    filecache->write();
 
+    return infos.size();
 }
 
 void InfoCache::print(std::ostream& s) const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(infomutex_);
 
     s << "InfoCache[";
     s << "cacheDir=" << cacheDir_ << std::endl;
     s << "cache=" << std::endl;
-    for (const auto& [filename, filecache] : cache_) {
-        s << "  " << filename << ": ";
-        filecache->print(s);
+    for (const auto& [key, info] : infocache_) {
+        s << "  " << key << ": ";
+        info->print(s);
     }
     s << "]";
 }
@@ -277,14 +288,14 @@ void InfoCache::print(std::ostream& s) const {
 
 // ------------------------------------------------------------------------------------------------------
 
-FileCache::FileCache(const eckit::PathName& path, bool autoload): path_(path) {
+IndexFile::IndexFile(const eckit::PathName& path, bool autoload): path_(path) {
     if (autoload) load();
 }
 
-FileCache::~FileCache() {
+IndexFile::~IndexFile() {
 }
 
-void FileCache::load() {
+void IndexFile::load() {
     if (loaded()) return;
 
     if (path_.exists()) {
@@ -297,7 +308,13 @@ void FileCache::load() {
     loaded_ = true;
 }
 
-void FileCache::encode(eckit::Stream& s) {
+// e.g. if the file on disk has been updated
+void IndexFile::reload() {
+    clear();
+    load();
+}
+
+void IndexFile::encode(eckit::Stream& s) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     s << currentVersion_;
@@ -309,7 +326,7 @@ void FileCache::encode(eckit::Stream& s) {
     }
 }
 
-void FileCache::decode(eckit::Stream& s) {
+void IndexFile::decode(eckit::Stream& s) {
     std::lock_guard<std::mutex> lock(mutex_);
     s >> version_;
     ASSERT(version_ == currentVersion_);
@@ -325,20 +342,22 @@ void FileCache::decode(eckit::Stream& s) {
     LOG_DEBUG_LIB(LibGribJump) << "Loaded " << count << " entries from stream" << std::endl;
 }
 
-void FileCache::toNewFile(eckit::PathName path){
+void IndexFile::toNewFile(const eckit::PathName& path) const {
+    ASSERT(path.extension() == file_ext);
     eckit::FileStream s(path, "w");
     encode(s);
     s.close();
 }
 
-void FileCache::appendToFile(eckit::PathName path) {
+void IndexFile::appendToFile(const eckit::PathName& path) const {
+    ASSERT(path.extension() == file_ext);
     // NB: Non-atomic. Gribjump does not support concurrent writes to the same file from different processes.
     if (!path.exists()) {
         toNewFile(path);
         return;
     }
     
-    LOG_DEBUG_LIB(LibGribJump) << "FileCache appending to file " << path << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "IndexFile appending to file " << path << std::endl;
     // NB: appending does not re-write version information.
     std::lock_guard<std::mutex> lock(mutex_);
     eckit::FileStream s(path, "a");
@@ -351,13 +370,13 @@ void FileCache::appendToFile(eckit::PathName path) {
     s.close();
 }
 
-void FileCache::fromFile(eckit::PathName path) {
+void IndexFile::fromFile(const eckit::PathName& path) {
     eckit::FileStream s(path, "r");
     decode(s);
     s.close();
 }
 
-void FileCache::merge(FileCache& other) {
+void IndexFile::merge(IndexFile& other) {
     std::lock_guard<std::mutex> lock(mutex_);
     other.lock();
     // NB: If there are duplicates, the entries from *this will take precedence over other
@@ -367,20 +386,20 @@ void FileCache::merge(FileCache& other) {
     other.unlock();
 }
 
-void FileCache::write() {
+void IndexFile::write() {
 
     // create a unique filename for the cache file before (atomically) moving it into place
-    eckit::PathName uniqPath = eckit::PathName::unique(path_);
-
-    LOG_DEBUG_LIB(LibGribJump) << "Writing GribInfo to temporary file " << uniqPath << std::endl;
+    eckit::PathName uniqPath = eckit::PathName::unique(path_) + file_ext;
     toNewFile(uniqPath);
 
     // atomically move the file into place
-    LOG_DEBUG_LIB(LibGribJump) << "Moving temp file cache to " << path_ << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "IndexFile writing to file " << path_ << std::endl;
+    
+    ASSERT(path_.extension() == file_ext);
     eckit::PathName::rename(uniqPath, path_);
 }
 
-void FileCache::flush(bool append) {
+void IndexFile::flush(bool append) {
     if (append){
         appendToFile(path_);
     }
@@ -390,19 +409,19 @@ void FileCache::flush(bool append) {
     clear();
 }
 
-void FileCache::clear() {
+void IndexFile::clear() {
     std::lock_guard<std::mutex> lock(mutex_);
     map_.clear();
     loaded_ = false;
 }
 
-void FileCache::insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info) {
+void IndexFile::insert(eckit::Offset offset, std::shared_ptr<JumpInfo> info) {
     std::lock_guard<std::mutex> lock(mutex_);
     map_.insert(std::make_pair(offset, info));
 }
 
 
-std::shared_ptr<JumpInfo> FileCache::find(eckit::Offset offset) {
+std::shared_ptr<JumpInfo> IndexFile::find(eckit::Offset offset) {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = map_.find(offset);
     if (it != map_.end()) {
@@ -411,17 +430,28 @@ std::shared_ptr<JumpInfo> FileCache::find(eckit::Offset offset) {
     return nullptr;
 }
 
-size_t FileCache::count() {
+size_t IndexFile::count() {
     std::lock_guard<std::mutex> lock(mutex_);
     return map_.size();
 }
 
-void FileCache::print(std::ostream& s) {
+void IndexFile::print(std::ostream& s) {
     std::lock_guard<std::mutex> lock(mutex_);
-    s << "FileCache[" << path_ << " (" << map_.size() << " entries)]:" << std::endl;
+    s << "IndexFile[" << path_ << " (" << map_.size() << " entries)]:" << std::endl;
     for (auto& entry : map_) {
         s << "  Offset:" << entry.first << " -> " << *entry.second << std::endl;
     }
+}
+
+std::map<eckit::Offset, std::shared_ptr<JumpInfo>> IndexFile::get(const eckit::OffsetList& offsets) {
+    load();
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> result;
+    for (const auto& offset : offsets) {
+        if (auto info = find(offset)) {
+            result.insert(std::make_pair(offset, info));
+        }
+    }
+    return result;    
 }
 
 }  // namespace gribjump

@@ -145,16 +145,30 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 // Task that forwards the work to a remote server, based on the URI of the extraction item.
-class RemoteExtractionTask : public Task {
+class ForwardExtractionTask : public Task {
 public:
 
-    RemoteExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap);
+    ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap);
 
     void execute() override;
 
 private:
     eckit::net::Endpoint endpoint_;
     filemap_t& filemap_;
+};
+
+// Task that forwards the work to a remote server, based on the URI of the extraction item.
+class ForwardScanTask : public Task {
+public:
+
+    ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields_);
+
+    void execute() override;
+
+private:
+    eckit::net::Endpoint endpoint_;
+    scanmap_t& scanmap_;
+    std::atomic<size_t>& nfields_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -164,7 +178,7 @@ public:
 
     // Each extraction item is assumed to be for the same file.
 
-    FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets);
+    FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields);
 
     void execute() override;
 
@@ -173,6 +187,7 @@ public:
 private:
     eckit::PathName fname_;
     std::vector<eckit::Offset> offsets_;
+    std::atomic<size_t>& nfields_;
 };
 
 
