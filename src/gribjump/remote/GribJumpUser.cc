@@ -83,6 +83,9 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
         case RequestType::FORWARD_EXTRACT:
             processRequest<ForwardedExtractRequest>(s);
             break;
+        case RequestType::FORWARD_SCAN:
+            processRequest<ForwardedScanRequest>(s);
+            break;
         default:
             throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
     }

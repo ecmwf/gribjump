@@ -55,7 +55,6 @@ InfoCache::InfoCache():
 
     bool enabled = config.getBool("cache.enabled", true);
     if (!enabled) {
-        persistentCache_ = false; 
         LOG_DEBUG_LIB(LibGribJump) << "Cache disabled" << std::endl;
         return;
     }
@@ -211,7 +210,7 @@ void InfoCache::clear() {
     infocache_.clear();
 }
 
-void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
+size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
 
     // this will be executed in parallel so we dont lock main mutex_ here
     // we will rely on each method to lock mutex when needed
@@ -230,46 +229,47 @@ void InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Of
         }
     }
 
+    LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " found " << newOffsets.size() << " new fields not already in cache" << std::endl;
+
     if (newOffsets.empty()) {
         LOG_DEBUG_LIB(LibGribJump) << "No new fields to scan in " << fdbpath << std::endl;
-        return;
+        return 0;
     }
 
     std::sort(newOffsets.begin(), newOffsets.end());
 
     InfoExtractor extractor;
-    std::vector<std::unique_ptr<JumpInfo>> uinfos = extractor.extract(fdbpath, newOffsets);
+    std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(fdbpath, newOffsets);
     // std::vector<std::shared_ptr<JumpInfo>> infos;
     // infos.reserve(uinfos.size());
     // std::move(uinfos.begin(), uinfos.end(), std::back_inserter(infos));
     // filecache->insert(infos);
-    for (size_t i = 0; i < uinfos.size(); i++) {
-        filecache->insert(newOffsets[i], std::move(uinfos[i]));
+    for (size_t i = 0; i < infos.size(); i++) {
+        filecache->insert(newOffsets[i], std::move(infos[i]));
     }
     
-    if (persistentCache_) {
-        filecache->flush(false);
-    }
+    filecache->write();
 
+    return infos.size();
 }
 
-void InfoCache::scan(const eckit::PathName& fdbpath) {
+/// @todo maybe merge this with the above method
+size_t InfoCache::scan(const eckit::PathName& fdbpath) {
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning whole file " << fdbpath << std::endl;
 
     std::shared_ptr<IndexFile> filecache = getIndexFile(fdbpath);
-    filecache->load();
+    filecache->reload();
 
     InfoExtractor extractor;
-    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> uinfos = extractor.extract(fdbpath); /* This needs to give use the offsets too*/
-    for (size_t i = 0; i < uinfos.size(); i++) {
-        filecache->insert(uinfos[i].first, std::move(uinfos[i].second));
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> infos = extractor.extract(fdbpath);
+    for (size_t i = 0; i < infos.size(); i++) {
+        filecache->insert(infos[i].first, std::move(infos[i].second));
     }
 
-    if (persistentCache_) {
-        filecache->flush(false);
-    }
+    filecache->write();
 
+    return infos.size();
 }
 
 void InfoCache::print(std::ostream& s) const {
@@ -314,7 +314,7 @@ void IndexFile::reload() {
     load();
 }
 
-void IndexFile::encode(eckit::Stream& s) {
+void IndexFile::encode(eckit::Stream& s) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     s << currentVersion_;
@@ -342,13 +342,15 @@ void IndexFile::decode(eckit::Stream& s) {
     LOG_DEBUG_LIB(LibGribJump) << "Loaded " << count << " entries from stream" << std::endl;
 }
 
-void IndexFile::toNewFile(eckit::PathName path){
+void IndexFile::toNewFile(const eckit::PathName& path) const {
+    ASSERT(path.extension() == file_ext);
     eckit::FileStream s(path, "w");
     encode(s);
     s.close();
 }
 
-void IndexFile::appendToFile(eckit::PathName path) {
+void IndexFile::appendToFile(const eckit::PathName& path) const {
+    ASSERT(path.extension() == file_ext);
     // NB: Non-atomic. Gribjump does not support concurrent writes to the same file from different processes.
     if (!path.exists()) {
         toNewFile(path);
@@ -368,7 +370,7 @@ void IndexFile::appendToFile(eckit::PathName path) {
     s.close();
 }
 
-void IndexFile::fromFile(eckit::PathName path) {
+void IndexFile::fromFile(const eckit::PathName& path) {
     eckit::FileStream s(path, "r");
     decode(s);
     s.close();
@@ -387,11 +389,13 @@ void IndexFile::merge(IndexFile& other) {
 void IndexFile::write() {
 
     // create a unique filename for the cache file before (atomically) moving it into place
-    eckit::PathName uniqPath = eckit::PathName::unique(path_);
+    eckit::PathName uniqPath = eckit::PathName::unique(path_) + file_ext;
     toNewFile(uniqPath);
 
     // atomically move the file into place
     LOG_DEBUG_LIB(LibGribJump) << "IndexFile writing to file " << path_ << std::endl;
+    
+    ASSERT(path_.extension() == file_ext);
     eckit::PathName::rename(uniqPath, path_);
 }
 

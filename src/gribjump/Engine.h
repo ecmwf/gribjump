@@ -33,10 +33,11 @@ public:
     // byfiles: scan entire file, not just fields matching request
     size_t scan(const MarsRequests& requests, bool byfiles = false);
     size_t scan(std::vector<eckit::PathName> files);
+    size_t scan(const scanmap_t& scanmap);
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level=3);
 
-    void scheduleTasks(filemap_t& filemap);
+    void scheduleExtractionTasks(filemap_t& filemap);
 
     void reportErrors(eckit::Stream& client_);
     void raiseErrors();
@@ -45,12 +46,11 @@ private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
-    void forwardRemoteExtraction(filemap_t& filemap);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem );
 
 private:
 
-    TaskGroup taskGroup_; /// @todo Maybe we should be returning the taskGroup, rather than storing it here.
+    TaskGroup taskGroup_; /// @todo Maybe we should be returning the taskGroup, rather than storing it here. /// I would really prefer a stateless engine.
 
 };
 

@@ -60,8 +60,10 @@ public:
     
     filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToXRR); // Used during extraction
 
-    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(std::vector<metkit::mars::MarsRequest> requests); // Used during scan
+    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(const std::vector<metkit::mars::MarsRequest>& requests); // Used during scan
+    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(const std::vector<eckit::URI>& uris);
 
+    std::vector<eckit::URI> URIs(const std::vector<metkit::mars::MarsRequest>& requests);
     
 private:
     FDBLister();

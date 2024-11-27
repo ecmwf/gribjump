@@ -80,7 +80,7 @@ FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbwrite ${testdata}
 
 echo "Writing to FDB without gribjump plugin, then scanning"
 FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $fdbwrite ${testdata}
-FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $gjscan $selectedrequests
+FDB5_CONFIG_FILE=${bindir}/config_root2.yaml $gjscan --file=$selectedrequests
 
 # -------------------------------------
 # 3: FDB with gribjump plugin
