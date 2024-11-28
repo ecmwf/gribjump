@@ -86,7 +86,9 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
 void ExtractRequest::execute() {
 
-    results_ = engine_.extract(requests_);
+    auto x = engine_.extract(requests_);
+    results_ = x.result;
+    TaskReport report = x.report;
 
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {

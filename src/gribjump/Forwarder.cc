@@ -17,7 +17,6 @@
 #include "gribjump/Forwarder.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/LibGribJump.h"
-#include "gribjump/Task.h"
 
 namespace gribjump {
 
@@ -54,7 +53,7 @@ size_t Forwarder::scan(const std::vector<eckit::URI>& uris) {
     return nFields;
 }
 
-void Forwarder::extract(filemap_t& filemap) {
+TaskReport Forwarder::extract(filemap_t& filemap) {
     std::unordered_map<eckit::net::Endpoint, filemap_t> serverfilemaps = serverFileMap(filemap);
 
     TaskGroup taskGroup;
@@ -63,6 +62,8 @@ void Forwarder::extract(filemap_t& filemap) {
         taskGroup.enqueueTask(new ForwardExtractionTask(taskGroup, counter++, endpoint, subfilemap));
     }
     taskGroup.waitForTasks();
+
+    return taskGroup.report();
 }
 
 

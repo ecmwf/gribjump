@@ -22,13 +22,21 @@
 
 namespace gribjump {
 
+template <typename T>
+
+struct TaskOutcome {
+    T result;
+    TaskReport report;
+};
+
 class Engine {
 public:
     
     Engine();
     ~Engine();
 
-    ResultsMap extract(ExtractionRequests& requests);
+    // ResultsMap extract(ExtractionRequests& requests);
+    TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
     
     // byfiles: scan entire file, not just fields matching request
     size_t scan(const MarsRequests& requests, bool byfiles = false);
@@ -37,7 +45,7 @@ public:
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level=3);
 
-    void scheduleExtractionTasks(filemap_t& filemap);
+    TaskReport scheduleExtractionTasks(filemap_t& filemap);
 
     void reportErrors(eckit::Stream& client_);
     void raiseErrors();

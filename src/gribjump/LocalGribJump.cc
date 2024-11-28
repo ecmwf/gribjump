@@ -87,8 +87,12 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests& requests) {
 
     Engine engine;
-    ResultsMap results = engine.extract(requests);
-    engine.raiseErrors();
+    // ResultsMap results = engine.extract(requests);
+    auto x = engine.extract(requests);
+    ResultsMap results = x.result;
+    // engine.raiseErrors();
+    x.report.raiseErrors();
+
 
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
@@ -114,9 +118,11 @@ ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests, cons
         extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
     }
 
-    ResultsMap results = engine.extract(extractionRequests);
-    engine.raiseErrors();
-    return results;
+    // ResultsMap results = engine.extract(extractionRequests);
+    auto x = engine.extract(extractionRequests);
+    // engine.raiseErrors();
+    x.report.raiseErrors();
+    return x.result;
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {

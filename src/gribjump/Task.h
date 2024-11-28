@@ -57,6 +57,39 @@ protected:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// TaskReport contains error messages and other information produced by a TaskGroup, and methods to either 
+// report them to a client or raise an exception.
+// TaskGroup will return a TaskReport object to calling code.
+class TaskReport {
+
+public:
+    TaskReport() {}
+    TaskReport(std::vector<std::string>&& errors) : errors_(std::move(errors)) {}
+
+    void reportErrors(eckit::Stream& client) const {
+        client << errors_.size();
+        for (const auto& s : errors_) {
+            client << s;
+        }
+    }
+
+    void raiseErrors() const {
+        if (errors_.size() > 0) {
+            std::stringstream ss;
+            ss << "Encountered " << errors_.size() << " error(s) during task execution:" << std::endl;
+            for (const auto& s : errors_) {
+                ss << s << std::endl;
+            }
+            throw eckit::SeriousBug(ss.str());
+        }
+    }
+
+private:
+    std::vector<std::string> errors_; //< stores error messages, empty if no errors
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+//
 class TaskGroup {
 public:
 
@@ -78,9 +111,10 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
-    void reportErrors(eckit::Stream& client);
-    void raiseErrors();
+    void reportErrors(eckit::Stream& client); // remove this: TaskReport
+    void raiseErrors(); // XX remove this: TaskReport
 
+    TaskReport report() {return TaskReport(std::move(errors_)); }
 
     std::mutex debugMutex_;
 

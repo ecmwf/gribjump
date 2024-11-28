@@ -104,13 +104,12 @@ filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, Ex
     return filemap;
 }
 
-void Engine::scheduleExtractionTasks(filemap_t& filemap){
+TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap){
 
     bool forwardExtraction = LibGribJump::instance().config().getBool("forwardExtraction", false);
     if (forwardExtraction) {
         Forwarder forwarder;
-        forwarder.extract(filemap);
-        return;
+        return forwarder.extract(filemap);
     }
 
     bool inefficientExtraction = LibGribJump::instance().config().getBool("inefficientExtraction", false);
@@ -128,9 +127,10 @@ void Engine::scheduleExtractionTasks(filemap_t& filemap){
         }
     }
     taskGroup_.waitForTasks();
+    return taskGroup_.report();
 }
 
-ResultsMap Engine::extract(ExtractionRequests& requests) {
+TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
     eckit::Timer timer("Engine::extract");
     
@@ -141,7 +141,7 @@ ResultsMap Engine::extract(ExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
-    scheduleExtractionTasks(filemap);
+    TaskReport report = scheduleExtractionTasks(filemap);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
@@ -150,7 +150,7 @@ ResultsMap Engine::extract(ExtractionRequests& requests) {
 
     timer.reset("Gribjump Engine: Repackaged results");
 
-    return results;
+    return {results, report};
 }
 
 ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
