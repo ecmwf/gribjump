@@ -42,11 +42,9 @@ TaskOutcome<size_t> Forwarder::scan(const std::vector<eckit::URI>& uris) {
     }
 
     TaskGroup taskGroup;
-    size_t counter = 0;
     std::atomic<size_t> nFields(0);
-    size_t i = 0;
     for (auto& [endpoint, scanmap] : serverfilemaps) {
-        taskGroup.enqueueTask(new ForwardScanTask(taskGroup, counter++, endpoint, scanmap, nFields));
+        taskGroup.enqueueTask<ForwardScanTask>(endpoint, scanmap, nFields);
     }
     taskGroup.waitForTasks();
 
@@ -57,9 +55,8 @@ TaskReport Forwarder::extract(filemap_t& filemap) {
     std::unordered_map<eckit::net::Endpoint, filemap_t> serverfilemaps = serverFileMap(filemap);
 
     TaskGroup taskGroup;
-    size_t counter = 0;
     for (auto& [endpoint, subfilemap] : serverfilemaps) {
-        taskGroup.enqueueTask(new ForwardExtractionTask(taskGroup, counter++, endpoint, subfilemap));
+        taskGroup.enqueueTask<ForwardExtractionTask>(endpoint, subfilemap);
     }
     taskGroup.waitForTasks();
 

@@ -114,18 +114,17 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap){
 
     bool inefficientExtraction = LibGribJump::instance().config().getBool("inefficientExtraction", false);
 
-    size_t counter = 0;
     TaskGroup taskGroup;
 
     for (auto& [fname, extractionItems] : filemap) {
         if (extractionItems[0]->isRemote()) {
             if (inefficientExtraction) {
-                taskGroup.enqueueTask(new InefficientFileExtractionTask(taskGroup, counter++, fname, extractionItems));
+                taskGroup.enqueueTask<InefficientFileExtractionTask>(fname, extractionItems);
             } else {
                 throw eckit::SeriousBug("Got remote URI from FDB, but forwardExtraction enabled in gribjump config.");
             }
         } else {
-            taskGroup.enqueueTask(new FileExtractionTask(taskGroup, counter++, fname, extractionItems));
+            taskGroup.enqueueTask<FileExtractionTask>(fname, extractionItems);
         }
     }
     taskGroup.waitForTasks();
@@ -208,11 +207,10 @@ TaskOutcome<size_t> Engine::scan(std::vector<eckit::PathName> files) {
 
 TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 
-    size_t counter = 0;
     std::atomic<size_t> nfields(0);
     TaskGroup taskGroup;
     for (auto& [uri, offsets] : scanmap) {
-        taskGroup.enqueueTask(new FileScanTask(taskGroup, counter++, uri.path(), offsets, nfields));
+        taskGroup.enqueueTask<FileScanTask>(uri.path(), offsets, nfields);
     }
     taskGroup.waitForTasks();
 
