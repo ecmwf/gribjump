@@ -63,26 +63,11 @@ protected:
 class TaskReport {
 
 public:
-    TaskReport() {}
-    TaskReport(std::vector<std::string>&& errors) : errors_(std::move(errors)) {}
+    TaskReport();
+    TaskReport(std::vector<std::string>&& errors);
 
-    void reportErrors(eckit::Stream& client) const {
-        client << errors_.size();
-        for (const auto& s : errors_) {
-            client << s;
-        }
-    }
-
-    void raiseErrors() const {
-        if (errors_.size() > 0) {
-            std::stringstream ss;
-            ss << "Encountered " << errors_.size() << " error(s) during task execution:" << std::endl;
-            for (const auto& s : errors_) {
-                ss << s << std::endl;
-            }
-            throw eckit::SeriousBug(ss.str());
-        }
-    }
+    void reportErrors(eckit::Stream& client) const;
+    void raiseErrors() const;
 
 private:
     std::vector<std::string> errors_; //< stores error messages, empty if no errors
@@ -93,9 +78,7 @@ private:
 class TaskGroup {
 public:
 
-    TaskGroup();
-
-    ~TaskGroup();
+    TaskGroup() = default;
 
     /// Notify that a task has been completed
     /// potentially completing all the work for this request
@@ -110,9 +93,6 @@ public:
     
     /// Wait for all queued tasks to be executed
     void waitForTasks();
-
-    void reportErrors(eckit::Stream& client); // remove this: TaskReport
-    void raiseErrors(); // XX remove this: TaskReport
 
     TaskReport report() {return TaskReport(std::move(errors_)); }
 
@@ -138,7 +118,7 @@ private:
     mutable std::mutex m_;
     std::condition_variable cv_;
     
-    std::vector<Task*> tasks_; //< stores tasks status, must be initialised by derived class
+    std::vector<std::unique_ptr<Task>> tasks_; //< stores tasks status, must be initialised by derived class
     std::vector<size_t> taskStatus_;
     std::vector<std::string> errors_; //< stores error messages, empty if no errors
 

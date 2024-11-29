@@ -49,15 +49,16 @@ LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
 LocalGribJump::~LocalGribJump() {}
 
 size_t LocalGribJump::scan(const std::vector<eckit::PathName>& paths) {
-    Engine engine;
-    return engine.scan(paths);
+    auto [result, report] = Engine().scan(paths);
+    report.raiseErrors();
+    return result;
 }
 
 size_t LocalGribJump::scan(const std::vector<MarsRequest>& requests, bool byfiles) {
-    Engine engine;
-    return engine.scan(requests, byfiles);
+    auto [result, report] = Engine().scan(requests, byfiles);
+    report.raiseErrors();
+    return result;
 }
-
 
 std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
     // Directly from file, no cache, no queue, no threads
@@ -86,13 +87,8 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
 /// @todo, change API, remove extraction request
 std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests& requests) {
 
-    Engine engine;
-    // ResultsMap results = engine.extract(requests);
-    auto x = engine.extract(requests);
-    ResultsMap results = x.result;
-    // engine.raiseErrors();
-    x.report.raiseErrors();
-
+    auto [results, report] = Engine().extract(requests);
+    report.raiseErrors();
 
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
     for (auto& req : requests) {
@@ -111,18 +107,15 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extra
 }
 
 ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests, const std::vector<std::vector<Range>>& ranges) {
-    Engine engine;
     ExtractionRequests extractionRequests;
 
     for (size_t i = 0; i < requests.size(); i++) {
         extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
     }
 
-    // ResultsMap results = engine.extract(extractionRequests);
-    auto x = engine.extract(extractionRequests);
-    // engine.raiseErrors();
-    x.report.raiseErrors();
-    return x.result;
+    auto [results, report] = Engine().extract(extractionRequests);
+    report.raiseErrors();
+    return std::move(results);
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {
@@ -130,8 +123,7 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     // Note: This is likely to be removed from GribJump, and moved to FDB.
     // Here for now to support polytope.
 
-    Engine engine;
-    return engine.axes(request, level);
+    return Engine().axes(request, level);
 }
 
 static GribJumpBuilder<LocalGribJump> builder("local");

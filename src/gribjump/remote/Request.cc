@@ -32,7 +32,7 @@ Request::Request(eckit::Stream& stream) : client_(stream) {
 }
 
 void Request::reportErrors() {
-    engine_.reportErrors(client_);
+    report_.reportErrors(client_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,9 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
 }
 
 void ScanRequest::execute() {
-    nFields_ = engine_.scan(requests_, byfiles_);
+    auto [nfields, report] = engine_.scan(requests_, byfiles_);
+    nFields_ = nfields;
+    report_ = std::move(report);
 }
 
 void ScanRequest::replyToClient() {
@@ -86,10 +88,10 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 
 void ExtractRequest::execute() {
 
-    auto x = engine_.extract(requests_);
-    results_ = x.result;
-    TaskReport report = x.report;
-
+    auto [results, report] = engine_.extract(requests_);
+    results_ = std::move(results);
+    report_ = std::move(report);
+    
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
             LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
@@ -160,7 +162,7 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
 }
 
 void ForwardedExtractRequest::execute() {
-    engine_.scheduleExtractionTasks(filemap_);
+    report_ = engine_.scheduleExtractionTasks(filemap_);
 }
 
 void ForwardedExtractRequest::replyToClient() {
@@ -186,7 +188,6 @@ ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream) : Request(stre
     client_ >> nFiles;
     LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanRequest: nFiles=" << nFiles << std::endl;
 
-
     size_t count = 0;
     for (size_t i = 0; i < nFiles; i++) {
         std::string fname;
@@ -201,7 +202,9 @@ ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream) : Request(stre
 }
 
 void ForwardedScanRequest::execute() {
-    nfields_ = engine_.scan(scanmap_);
+    auto [nfields, report] = engine_.scheduleScanTasks(scanmap_);
+    nfields_ = nfields;
+    report_ = std::move(report);
 }
 
 void ForwardedScanRequest::replyToClient() {

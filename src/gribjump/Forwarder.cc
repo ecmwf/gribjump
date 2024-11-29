@@ -26,7 +26,7 @@ Forwarder::Forwarder() {
 Forwarder::~Forwarder() {
 }
 
-size_t Forwarder::scan(const std::vector<eckit::URI>& uris) {
+TaskOutcome<size_t> Forwarder::scan(const std::vector<eckit::URI>& uris) {
 
     ASSERT(uris.size() > 0);
 
@@ -50,7 +50,7 @@ size_t Forwarder::scan(const std::vector<eckit::URI>& uris) {
     }
     taskGroup.waitForTasks();
 
-    return nFields;
+    return {nFields, taskGroup.report()};
 }
 
 TaskReport Forwarder::extract(filemap_t& filemap) {

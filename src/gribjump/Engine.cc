@@ -115,19 +115,21 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap){
     bool inefficientExtraction = LibGribJump::instance().config().getBool("inefficientExtraction", false);
 
     size_t counter = 0;
+    TaskGroup taskGroup;
+
     for (auto& [fname, extractionItems] : filemap) {
         if (extractionItems[0]->isRemote()) {
             if (inefficientExtraction) {
-                taskGroup_.enqueueTask(new InefficientFileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+                taskGroup.enqueueTask(new InefficientFileExtractionTask(taskGroup, counter++, fname, extractionItems));
             } else {
                 throw eckit::SeriousBug("Got remote URI from FDB, but forwardExtraction enabled in gribjump config.");
             }
         } else {
-            taskGroup_.enqueueTask(new FileExtractionTask(taskGroup_, counter++, fname, extractionItems));
+            taskGroup.enqueueTask(new FileExtractionTask(taskGroup, counter++, fname, extractionItems));
         }
     }
-    taskGroup_.waitForTasks();
-    return taskGroup_.report();
+    taskGroup.waitForTasks();
+    return taskGroup.report();
 }
 
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
@@ -137,20 +139,22 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     ExItemMap keyToExtractionItem;
     metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
 
+    // Build file map
     filemap_t filemap = buildFileMap(unionreq, keyToExtractionItem);
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
+    // Schedule tasks
     TaskReport report = scheduleExtractionTasks(filemap);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
+    // Collect results
     ResultsMap results = collectResults(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
-
     timer.reset("Gribjump Engine: Repackaged results");
 
-    return {results, report};
+    return {std::move(results), std::move(report)};
 }
 
 ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
@@ -165,13 +169,14 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
     return results;
 }
 
-size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
+TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
 
     std::vector<eckit::URI> uris = FDBLister::instance().URIs(requests);
 
+    // XXX do we explicitly need this?
     if (uris.empty()) {
         MetricsManager::instance().set("count_scanned_fields", 0);
-        return 0;
+        return {0, TaskReport()};
     }
 
     // forwarded scan requests
@@ -188,31 +193,32 @@ size_t Engine::scan(const MarsRequests& requests, bool byfiles) {
         }
     }
     
-    return scan(filemap);
+    return scheduleScanTasks(filemap);
 }
 
-size_t Engine::scan(std::vector<eckit::PathName> files) {
+TaskOutcome<size_t> Engine::scan(std::vector<eckit::PathName> files) {
 
     scanmap_t scanmap;
     for (auto& fname : files) {
         scanmap[fname] = {};
     }
 
-    return scan(scanmap);
+    return scheduleScanTasks(scanmap);
 }
 
-size_t Engine::scan(const scanmap_t& scanmap) {
+TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 
     size_t counter = 0;
     std::atomic<size_t> nfields(0);
+    TaskGroup taskGroup;
     for (auto& [uri, offsets] : scanmap) {
-        taskGroup_.enqueueTask(new FileScanTask(taskGroup_, counter++, uri.path(), offsets, nfields));
+        taskGroup.enqueueTask(new FileScanTask(taskGroup, counter++, uri.path(), offsets, nfields));
     }
-    taskGroup_.waitForTasks();
+    taskGroup.waitForTasks();
 
     MetricsManager::instance().set("count_scanned_fields", static_cast<size_t>(nfields));
 
-    return nfields;
+    return {nfields, taskGroup.report()};
 }
 
 std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request, int level) {
@@ -220,13 +226,6 @@ std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::
     return FDBLister::instance().axes(request, level);
 }
 
-void Engine::reportErrors(eckit::Stream& client) {
-    taskGroup_.reportErrors(client);
-}
-
-void Engine::raiseErrors() {
-    taskGroup_.raiseErrors();
-}
 //----------------------------------------------------------------------------------------------------------------------
 
 } // namespace gribjump

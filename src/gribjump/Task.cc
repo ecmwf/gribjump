@@ -54,14 +54,6 @@ void Task::notifyError(const std::string& s) {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TaskGroup::TaskGroup() {}
-
-TaskGroup::~TaskGroup() {
-    for (auto& t : tasks_) {
-        delete t;
-    }
-}
-
 void TaskGroup::notify(size_t taskid) {
     std::lock_guard<std::mutex> lock(m_);
     taskStatus_[taskid] = Task::Status::DONE;
@@ -118,14 +110,20 @@ void TaskGroup::waitForTasks() {
     }
 }
 
-void TaskGroup::reportErrors(eckit::Stream& client) {
+//----------------------------------------------------------------------------------------------------------------------
+
+TaskReport::TaskReport() {}
+
+TaskReport::TaskReport(std::vector<std::string>&& errors) : errors_(std::move(errors)) {}
+
+void TaskReport::reportErrors(eckit::Stream& client) const {
     client << errors_.size();
     for (const auto& s : errors_) {
         client << s;
     }
 }
 
-void TaskGroup::raiseErrors() {
+void TaskReport::raiseErrors() const {
     if (errors_.size() > 0) {
         std::stringstream ss;
         ss << "Encountered " << eckit::Plural(errors_.size(), "error") << " during task execution:" << std::endl;
