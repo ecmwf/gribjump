@@ -11,6 +11,7 @@
 #pragma once
 
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 #include "eckit/serialisation/Stream.h"
 
