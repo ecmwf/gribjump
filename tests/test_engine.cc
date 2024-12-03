@@ -126,8 +126,8 @@ CASE ("Engine: Basic extraction") {
     // drop the final request
     exRequests.pop_back();
 
-    ResultsMap results = engine.extract(exRequests);
-    EXPECT_NO_THROW(engine.raiseErrors());
+    auto [results, report] = engine.extract(exRequests);
+    EXPECT_NO_THROW(report.raiseErrors());
 
     // print contents of map
     for (auto& [req, exs] : results) {

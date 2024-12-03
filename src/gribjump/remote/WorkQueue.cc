@@ -65,7 +65,8 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gri
     }
 }
 
-void WorkQueue::push(WorkItem& item) {
+void WorkQueue::push(Task* task) {
+    WorkItem item(task);
     queue_.push(item);
 }
 

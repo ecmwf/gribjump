@@ -34,7 +34,8 @@ public:
     void error(const std::string& s);
 
 private:
-    Task* task_;
+
+    Task* task_; //< non-owning pointer
 };
 
 //----------------------------------------------------------------------------------------------------------------------
