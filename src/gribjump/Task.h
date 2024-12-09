@@ -11,6 +11,7 @@
 #pragma once
 
 #include <mutex>
+#include <atomic>
 #include <condition_variable>
 #include "eckit/serialisation/Stream.h"
 
@@ -30,8 +31,10 @@ public:
 
     enum Status {
         DONE = 0,
-        PENDING = 1,
-        FAILED = 2
+        PENDING,
+        FAILED,
+        EXECUTING,
+        CANCELLED,
     };
 
     Task(TaskGroup& taskGroup, size_t id);
@@ -41,71 +44,110 @@ public:
     size_t id() const { return taskid_; }
 
     /// executes the task to completion
-    virtual void execute() = 0;
+    virtual void execute() final;
 
     /// notifies the completion of the task
-    virtual void notify();
+    void notify();
+
+    /// notifies that the task was cancelled before execution e.g. because of an error in a related task
+    void notifyCancelled();
 
     /// notifies the error in execution of the task
-    virtual void notifyError(const std::string& s);
+    void notifyError(const std::string& s);
+
+    /// cancels the task. If execute() is called after this, it will return immediately.
+    void cancel();
+
+protected:
+    virtual void executeImpl() = 0;
 
 protected:
     
     TaskGroup& taskGroup_; //< Groups like-tasks to be executed in parallel
     size_t taskid_; //< Task id within parent request
+    std::atomic<Status> status_ = Status::PENDING;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// TaskReport contains error messages and other information produced by a TaskGroup, and methods to either 
+// report them to a client or raise an exception.
+// TaskGroup will return a TaskReport object to calling code.
+class TaskReport {
+
+public:
+    TaskReport();
+    TaskReport(std::vector<std::string>&& errors);
+
+    void reportErrors(eckit::Stream& client) const;
+    void raiseErrors() const;
+
+private:
+    std::vector<std::string> errors_; //< stores error messages, empty if no errors
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+//
 class TaskGroup {
 public:
 
-    TaskGroup();
-
-    ~TaskGroup();
+    TaskGroup() = default;
 
     /// Notify that a task has been completed
-    /// potentially completing all the work for this request
     void notify(size_t taskid);
 
     /// Notify that a task has finished with error
-    /// potentially completing all the work for this request
     void notifyError(size_t taskid, const std::string& s);
 
-    /// Enqueue tasks to be executed to complete this request
-    void enqueueTask(Task* task);
-    
+    /// Notify that a task was cancelled
+    void notifyCancelled(size_t taskid);
+
+    /// Enqueue tasks on the global task queue
+    template <typename TaskType, typename... Args>
+    void enqueueTask(Args&&... args) {
+        enqueueTask(new TaskType(*this, tasks_.size(), std::forward<Args>(args)...));
+    }
+
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
-    void reportErrors(eckit::Stream& client);
-    void raiseErrors();
-
-
-    std::mutex debugMutex_;
+    /// Report on errors and other status information about executed tasks.
+    /// Calling code may use this to report to a client or raise an exception.
+    TaskReport report() {
+        std::lock_guard<std::mutex> lock(m_);
+        ASSERT(done_);
+        return TaskReport(std::move(errors_)); 
+    }
 
     size_t nTasks() const { 
         std::lock_guard<std::mutex> lock(m_);
-        return taskStatus_.size();
+        return tasks_.size();
     }
+
     size_t nErrors() const { 
         std::lock_guard<std::mutex> lock(m_);
         return errors_.size();
     }
-    
+
 private:
 
-    int counter_ = 0;  //< incremented by notify() or notifyError()
+    void enqueueTask(Task* task);
+
+    void cancelTasks();
+
+private:
+
+    int nComplete_ = 0;  //< incremented when a task completes
+    int nCancelledTasks_ = 0; //< incremented by notifyCancelled()
     int logcounter_ = 1; //< used to log progress
     int logincrement_ = 1; //< used to log progress
-    bool waiting_ = false;
-
+    bool waiting_ = false; //< true if waiting for tasks to complete
+    bool done_ = false; //< true if all tasks have completed
 
     mutable std::mutex m_;
     std::condition_variable cv_;
     
-    std::vector<Task*> tasks_; //< stores tasks status, must be initialised by derived class
-    std::vector<size_t> taskStatus_;
+    std::vector<std::shared_ptr<Task>> tasks_;
     std::vector<std::string> errors_; //< stores error messages, empty if no errors
 
 };
@@ -119,7 +161,7 @@ public:
 
     FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
 
-    void execute() override;
+    void executeImpl() override;
 
     virtual void extract();
 
@@ -150,7 +192,7 @@ public:
 
     ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap);
 
-    void execute() override;
+    void executeImpl() override;
 
 private:
     eckit::net::Endpoint endpoint_;
@@ -163,7 +205,7 @@ public:
 
     ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields_);
 
-    void execute() override;
+    void executeImpl() override;
 
 private:
     eckit::net::Endpoint endpoint_;
@@ -180,7 +222,7 @@ public:
 
     FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields);
 
-    void execute() override;
+    void executeImpl() override;
 
     void scan();
 

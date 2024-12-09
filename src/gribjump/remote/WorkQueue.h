@@ -18,6 +18,7 @@
 
 #include "gribjump/ExtractionData.h"
 #include "gribjump/remote/WorkItem.h"
+#include "gribjump/Task.h"
 
 namespace gribjump {
 
@@ -30,7 +31,7 @@ public:
     
     ~WorkQueue();
 
-    void push(WorkItem& item);
+    void push(Task* task);
 
 protected:
     WorkQueue();
