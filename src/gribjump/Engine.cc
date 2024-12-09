@@ -172,7 +172,7 @@ TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
 
     std::vector<eckit::URI> uris = FDBLister::instance().URIs(requests);
 
-    // XXX do we explicitly need this?
+    /// @todo do we explicitly need this?
     if (uris.empty()) {
         MetricsManager::instance().set("count_scanned_fields", 0);
         return {0, TaskReport()};

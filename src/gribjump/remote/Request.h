@@ -28,7 +28,7 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 class Request {
-public: // methods
+public:
 
     Request(eckit::Stream& stream);
 
@@ -45,8 +45,8 @@ public: // methods
 protected: // members
 
     eckit::Stream& client_;
-    Engine engine_; //< Engine and schedule tasks based on request // XXX Can we now remove this?
-    TaskReport report_; // 
+    Engine engine_;
+    TaskReport report_;
     uint64_t id_;
 };
 

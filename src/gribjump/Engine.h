@@ -35,7 +35,6 @@ public:
     Engine();
     ~Engine();
 
-    // ResultsMap extract(ExtractionRequests& requests);
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
     
     // byfiles: scan entire file, not just fields matching request

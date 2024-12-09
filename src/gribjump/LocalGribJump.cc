@@ -119,10 +119,6 @@ ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests, cons
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {
-
-    // Note: This is likely to be removed from GribJump, and moved to FDB.
-    // Here for now to support polytope.
-
     return Engine().axes(request, level);
 }
 
