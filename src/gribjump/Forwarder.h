@@ -10,6 +10,8 @@
 
 /// @author Christopher Bradley
 #include "gribjump/Types.h"
+#include "gribjump/Task.h"
+#include "gribjump/Engine.h"
 #include "eckit/net/Endpoint.h"
 
 #pragma once
@@ -25,8 +27,8 @@ public:
     Forwarder();
     ~Forwarder();
 
-    size_t scan(const std::vector<eckit::URI>& uris);
-    void extract(filemap_t& filemap);
+    TaskOutcome<size_t> scan(const std::vector<eckit::URI>& uris);
+    TaskReport extract(filemap_t& filemap);
 
 private: 
 
