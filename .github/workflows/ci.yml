@@ -4,10 +4,10 @@ on:
   # Trigger the workflow on push to master or develop, except tag creation
   push:
     branches:
-      - 'master'
-      - 'develop'
+      - "master"
+      - "develop"
     tags-ignore:
-      - '**'
+      - "**"
 
   # Trigger the workflow on pull request
   pull_request: ~
@@ -27,6 +27,7 @@ jobs:
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       gribjump: ecmwf/gribjump@${{ github.event.pull_request.head.sha || github.sha }}
+      pygribjump: pygribjump:ecmwf/gribjump@${{ github.event.pull_request.head.sha || github.sha }}
       codecov_upload: true
     secrets: inherit
 
@@ -55,6 +56,7 @@ jobs:
     uses: ecmwf-actions/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
     with:
       gribjump: ecmwf/gribjump@${{ github.event.pull_request.head.sha || github.sha }}
+      pygribjump: pygribjump:ecmwf/gribjump@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
 
   # Run CI of private downstream packages on HPC
