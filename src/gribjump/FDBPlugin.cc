@@ -35,7 +35,7 @@ FDBPlugin& FDBPlugin::instance() {
 
 FDBPlugin::FDBPlugin() {
     // NB: Can't access eckit::Resource outside the callback because eckit::main has not finished initialising
-    fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::FDB& fdb) {
+    fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::CallbackInterface& fdb) {
         static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); 
         static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
         if (enableGribjump && !disableGribjump) {
@@ -44,7 +44,7 @@ FDBPlugin::FDBPlugin() {
     });
 }
 
-void FDBPlugin::addFDB(fdb5::FDB& fdb) {
+void FDBPlugin::addFDB(fdb5::CallbackInterface& fdb) {
 
     parseConfig();
     std::lock_guard<std::mutex> lock(mutex_);
