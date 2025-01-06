@@ -114,9 +114,12 @@ void TaskGroup::cancelTasks() {
 }
 
 void TaskGroup::enqueueTask(Task* task) {
-    std::lock_guard<std::mutex> lock(m_);
-    tasks_.push_back(std::unique_ptr<Task>(task)); // TaskGroup takes ownership of its tasks
-    WorkQueue::instance().push(task);
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        tasks_.push_back(std::unique_ptr<Task>(task)); // TaskGroup takes ownership of its tasks
+    }
+   
+    WorkQueue::instance().push(task); /// @note Can block, so release the lock first
 
     LOG_DEBUG_LIB(LibGribJump) << "Queued task " <<  tasks_.size() << std::endl;
 }
