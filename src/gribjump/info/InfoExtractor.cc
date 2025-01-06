@@ -53,6 +53,7 @@ std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathN
 
     eckit::FileHandle fh(path);
     std::vector<std::unique_ptr<JumpInfo>> infos;
+    infos.reserve(offsets.size());
 
     for (size_t i = 0; i < offsets.size(); i++) {
         fh.openForRead();
