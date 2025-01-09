@@ -39,6 +39,9 @@ void DumpInfo::usage(const std::string &tool) const {
 void DumpInfo::execute(const eckit::option::CmdArgs &args) {
     for (size_t i = 0; i < args.count(); i++) {
         eckit::PathName file(args(i));
+        if (!file.exists()) {
+            throw eckit::UserError("File not found", file);
+        }
         IndexFile index = IndexFile(file);
         index.print(std::cout);
     }
