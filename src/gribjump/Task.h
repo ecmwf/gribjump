@@ -58,11 +58,14 @@ public:
     /// cancels the task. If execute() is called after this, it will return immediately.
     void cancel();
 
+    /// Write description of task to eckit::Log::status() for monitoring
+    virtual void info() const = 0;
+
 protected:
     virtual void executeImpl() = 0;
 
 protected:
-    
+
     TaskGroup& taskGroup_; //< Groups like-tasks to be executed in parallel
     size_t taskid_; //< Task id within parent request
     std::atomic<Status> status_ = Status::PENDING;
@@ -129,6 +132,8 @@ public:
         return errors_.size();
     }
 
+    void info() const;
+
 private:
 
     void enqueueTask(Task* task);
@@ -165,6 +170,8 @@ public:
 
     virtual void extract();
 
+    virtual void info() const override;
+
 protected:
     eckit::PathName fname_;
     ExtractionItems& extractionItems_;
@@ -183,6 +190,8 @@ public:
 
     void extract() override;
 
+    virtual void info() const override;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -193,6 +202,8 @@ public:
     ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap);
 
     void executeImpl() override;
+
+    virtual void info() const override;
 
 private:
     eckit::net::Endpoint endpoint_;
@@ -206,6 +217,8 @@ public:
     ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields_);
 
     void executeImpl() override;
+
+    virtual void info() const override;
 
 private:
     eckit::net::Endpoint endpoint_;
@@ -225,6 +238,8 @@ public:
     void executeImpl() override;
 
     void scan();
+
+    virtual void info() const override;
 
 private:
     eckit::PathName fname_;

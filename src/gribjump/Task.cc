@@ -55,11 +55,12 @@ void Task::notifyCancelled() {
 }
 
 void Task::execute() {
-    // atomically set status to executing, but only if it is currently pending
+    // atomically set status to executing, but only if it is currently pending (i.e. not cancelled)
     Status expected = Status::PENDING;
     if (!status_.compare_exchange_strong(expected, Status::EXECUTING)) {
         return;
     }
+    info();
     executeImpl();
     notify();
 }
@@ -85,6 +86,7 @@ void TaskGroup::notify(size_t taskid) {
     }
 
     cv_.notify_one();
+    info();
 }
 
 void TaskGroup::notifyCancelled(size_t taskid) {
@@ -92,6 +94,7 @@ void TaskGroup::notifyCancelled(size_t taskid) {
     nComplete_++;
     nCancelledTasks_++;
     cv_.notify_one();
+    info();
 }
 
 void TaskGroup::notifyError(size_t taskid, const std::string& s) {
@@ -99,10 +102,15 @@ void TaskGroup::notifyError(size_t taskid, const std::string& s) {
     errors_.push_back(s);
     nComplete_++;
     cv_.notify_one();
+    info();
 
     if (cancelOnFirstError) {
         cancelTasks();
     }
+}
+
+void TaskGroup::info() const {
+    eckit::Log::status() << nComplete_ << " of " << tasks_.size() << " tasks complete" << std::endl;
 }
 
 // Note: This will only affect tasks that have not yet started. Cancelled tasks will call notifyCancelled() when they are executed.
@@ -227,6 +235,10 @@ void FileExtractionTask::extract() {
     }
 }
 
+void FileExtractionTask::info() const {
+    eckit::Log::status() << "Extract " << extractionItems_.size() << " items from " << fname_ << std::endl;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 // Forward the work to a remote server, and wait for the results.
@@ -242,6 +254,12 @@ void ForwardExtractionTask::executeImpl(){
     remoteGribJump.forwardExtract(filemap_);
 }
 
+void ForwardExtractionTask::info() const {
+    eckit::Log::status() << "Forward extract to " << endpoint_ << "nfiles=" << filemap_.size() << std::endl;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
 ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields):
     Task(taskgroup, id),
     endpoint_(endpoint),
@@ -253,6 +271,10 @@ void ForwardScanTask::executeImpl(){
 
     RemoteGribJump remoteGribJump(endpoint_);
     nfields_ += remoteGribJump.forwardScan(scanmap_);
+}
+
+void ForwardScanTask::info() const {
+    eckit::Log::status() << "Forward scan to " << endpoint_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -299,6 +321,10 @@ void InefficientFileExtractionTask::extract() {
     }
 }
 
+void InefficientFileExtractionTask::info() const {
+    eckit::Log::status() << "Inefficiently extract " << extractionItems_.size() << " items from " << fname_ << std::endl;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 
@@ -323,6 +349,10 @@ void FileScanTask::scan() {
     }
 
     nfields_ += InfoCache::instance().scan(fname_, offsets_);
+}
+
+void FileScanTask::info() const {
+    eckit::Log::status() << "Scan " << offsets_.size() << " offsets in " << fname_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
