@@ -23,7 +23,7 @@ class FDBPlugin {
 public:
 
     static FDBPlugin& instance();
-    void addFDB(fdb5::FDB& fdb);
+    void addFDB(fdb5::CallbackRegistry& fdb);
 
 private:
 
