@@ -66,6 +66,10 @@ void ScanRequest::replyToClient() {
     client_ << nFields_;
 }
 
+void ScanRequest::info() const {
+    eckit::Log::status() << "New ScanRequest: nRequests=" << requests_.size() << std::endl;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 
@@ -127,6 +131,10 @@ void ExtractRequest::replyToClient() {
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
 }
 
+void ExtractRequest::info() const {
+    eckit::Log::status() << "New ExtractRequest: nRequests=" << requests_.size() << std::endl;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
@@ -178,6 +186,9 @@ void ForwardedExtractRequest::replyToClient() {
     }
 }
 
+void ForwardedExtractRequest::info() const {
+    eckit::Log::status() << "New ForwardedExtractRequest: nItems=" << items_.size() << std::endl;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -209,6 +220,10 @@ void ForwardedScanRequest::execute() {
 
 void ForwardedScanRequest::replyToClient() {
     client_ << nfields_;
+}
+
+void ForwardedScanRequest::info() const {
+    eckit::Log::status() << "New ForwardedScanRequest: nfiles=" << scanmap_.size() << std::endl;
 }
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -244,6 +259,10 @@ void AxesRequest::replyToClient() {
             client_ << val;
         }
     }
+}
+
+void AxesRequest::info() const {
+    eckit::Log::status() << "New AxesRequest: " << request_ << ", level=" << level_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------

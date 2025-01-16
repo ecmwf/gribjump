@@ -43,6 +43,7 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gri
             // GribJump gj = GribJump(); // one per thread
             
             for (;;) {
+                eckit::Log::status() << "Waiting for job" << std::endl;
                 WorkItem item;
                 if (queue_.pop(item) == -1) {
                     LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " stopping (queue closed)" << std::endl;
