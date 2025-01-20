@@ -5,8 +5,9 @@ dependencies: |
   ecmwf/eckit@develop
   ecmwf/metkit
   ecmwf/fdb
+  ecmwf/gribjump
 dependency_cmake_options: |
-  ecmwf/fdb: "-DENABLE_FDB_BUILD_TOOLS=ON"
+  ecmwf/gribjump: "-DENABLE_FDB_BUILD_TOOLS=ON"
 dependency_branch: develop
 parallelism_factor: 8
 self_build: false
