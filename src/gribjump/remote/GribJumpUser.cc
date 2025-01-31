@@ -98,6 +98,7 @@ void GribJumpUser::processRequest(eckit::Stream& s) {
     RequestType request(s);
     MetricsManager::instance().set("elapsed_receive", timer.elapsed());
     timer.reset("Request received");
+    request.info();
 
     request.execute();
     MetricsManager::instance().set("elapsed_execute", timer.elapsed());

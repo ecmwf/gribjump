@@ -13,8 +13,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 ### dependencies and options
 
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
-ecbuild_find_package( NAME eckit VERSION 1.25.2 REQUIRED )
-ecbuild_find_package( NAME metkit VERSION 1.5 REQUIRED )
+ecbuild_find_package( NAME eckit VERSION 1.28.3 REQUIRED )
+ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )
 
 # Set "GRIBJUMP_LOCAL_EXTRACT" to build everything. If it is off, build only minimal clientside functionality.
 ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
@@ -22,7 +22,7 @@ ecbuild_add_option( FEATURE GRIBJUMP_LOCAL_EXTRACT
                     DESCRIPTION "Build local extraction and serverside functionality")
 
 if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
-  ecbuild_find_package( NAME fdb5 VERSION 5.13.1 REQUIRED )
+  ecbuild_find_package( NAME fdb5 VERSION 5.14.0 REQUIRED )
   set(GRIBJUMP_HAVE_FDB 1)
 
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )

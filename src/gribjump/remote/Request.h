@@ -42,6 +42,9 @@ public:
 
     void reportErrors();
 
+    /// Print information about the request to status(), for monitoring
+    virtual void info() const = 0;
+
 protected: // members
 
     eckit::Stream& client_;
@@ -62,6 +65,8 @@ public:
     void execute() override;
 
     void replyToClient() override;
+
+    void info() const override;
 
 private:
 
@@ -85,6 +90,8 @@ public:
 
     void replyToClient() override;
 
+    void info() const override;
+
 private:
     std::vector<ExtractionRequest> requests_;
 
@@ -104,6 +111,8 @@ public:
     void execute() override;
 
     void replyToClient() override;
+
+    void info() const override;
 
 private:
 
@@ -127,6 +136,8 @@ public:
 
     void replyToClient() override;
 
+    void info() const override;
+
 private:
 
     std::vector<std::unique_ptr<ExtractionItem>> items_;
@@ -148,6 +159,8 @@ public:
     void execute() override;
 
     void replyToClient() override;
+
+    void info() const override;
 
 private:
 
