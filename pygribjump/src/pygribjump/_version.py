@@ -1,5 +1,5 @@
 from pathlib import Path
 from .pygribjump import *
+import importlib.metadata
 
-with open(Path(__file__).parent / "VERSION") as f:
-    __version__ = f.read().strip()
+__version__ = importlib.metadata.version("pygribjump")

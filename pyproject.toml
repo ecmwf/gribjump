@@ -45,4 +45,7 @@ include-package-data = true
 zip-safe = false
 
 [tool.setuptools.package-data]
-"pygribjump" = ["VERSION", "pygribjump/src/pygribjump/gribjump_c.h"]
+"pygribjump" = [
+    "VERSION", 
+    "gribjump_c.h"
+]
