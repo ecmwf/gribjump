@@ -12,6 +12,7 @@
 
 #include "eckit/log/Plural.h"
 #include "eckit/utils/StringTools.h"
+#include "eckit/config/Resource.h"
 
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
@@ -39,26 +40,42 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     // We also canonicalise the requests such that their keys are in alphabetical order
     /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should look into
     /// merging into the minimum number of requests.
-
+    static bool ignoreYearMonth = eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", true);
     std::map<std::string, std::set<std::string>> keyValues;
+    bool dropYearMonth = false;
     for (auto& r : requests) {
         const std::string& s = r.requestString();
+
+        /// @todo: this ignoreYearMonth logic is duplicated somewhat in Lister.cc. We should consolidate.
+        // If "year" and "month" are present, we must drop them if "date" is also present.
+        if (ignoreYearMonth && s.find("year") != std::string::npos && s.find("month") != std::string::npos && s.find("date") != std::string::npos) {
+            dropYearMonth = true;
+        }
+
         std::vector<std::string> kvs = eckit::StringTools::split(",", s); /// @todo might be faster to use tokenizer directly.
+        std::vector<std::string> kvs_sanitized;
+        kvs_sanitized.reserve(kvs.size());
+
         for (auto& kv : kvs) {
             std::vector<std::string> kv_s = eckit::StringTools::split("=", kv);
             if (kv_s.size() != 2) continue; // ignore verb
+            if (dropYearMonth && (kv_s[0] == "year" || kv_s[0] == "month")) {
+                continue;
+            }
             keyValues[kv_s[0]].insert(kv_s[1]);
+            kvs_sanitized.push_back(kv);
         }
 
         // Canonicalise string by sorting keys
-        std::sort(kvs.begin(), kvs.end());
+        std::sort(kvs_sanitized.begin(), kvs_sanitized.end());
         std::string canonicalised = "";
-        for (auto& kv : kvs) {
+        for (auto& kv : kvs_sanitized) {
             canonicalised += kv;
-            if (kv != kvs.back()) {
+            if (kv != kvs_sanitized.back()) {
                 canonicalised += ",";
             }
         }
+
         ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end()); // no repeats
         r.requestString(canonicalised);
         auto extractionItem = std::make_unique<ExtractionItem>(canonicalised, r.ranges());
