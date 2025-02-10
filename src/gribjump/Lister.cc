@@ -68,8 +68,9 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
     std::string separator = "";
     std::set<std::string> keys = key.keys();
 
-    // Special case: If date is present, ignore year and month.
-    if (keys.find("date") != keys.end()) {
+    // Special case: If date is present, ignore year and month as they are aliases.
+    static bool ignoreYearMonth = eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", true);
+    if (ignoreYearMonth && keys.find("date") != keys.end()) {
         keys.erase("year");
         keys.erase("month");
     }
