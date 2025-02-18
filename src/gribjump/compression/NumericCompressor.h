@@ -36,9 +36,11 @@ class NumericDecompressor {
 public:
   using CompressedData = eckit::Buffer;
   using Values = std::vector<ValueType>;
+  using Offsets = std::vector<size_t>;
+
   virtual Values decode(const CompressedData&) = 0;
   virtual Values decode(const std::shared_ptr<DataAccessor>, const Block&) = 0;
-
+  virtual Offsets decode_offsets(const CompressedData&) {NOTIMP;}
 
   virtual std::vector<Values> decode(const std::shared_ptr<DataAccessor>& accessor, const std::vector<mc::Block>& ranges) {
     using Values = typename NumericDecompressor<ValueType>::Values;

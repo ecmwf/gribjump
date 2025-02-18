@@ -171,6 +171,35 @@ public:
   using CompressedData = typename mc::NumericDecompressor<ValueType>::CompressedData;
   using Values = typename mc::NumericDecompressor<ValueType>::Values;
 
+  Offsets decode_offsets(const CompressedData& in_buf) override {
+    // only decode the offsets, if at all possible.
+
+    size_t nbytes = (bits_per_sample_ + 7) / 8;
+    if (nbytes == 3)
+      nbytes = 4;
+
+    size_t i;
+    Offsets offsets;
+    switch (nbytes) {
+      case 1:
+        offsets = decode_offsets_<uint8_t>(in_buf);
+        break;
+      case 2:
+        offsets = decode_offsets_<uint16_t>(in_buf);
+        break;
+      case 4:
+        offsets = decode_offsets_<uint32_t>(in_buf);
+        break;
+      default:
+        std::stringstream ss;
+        ss << nbytes;
+        throw eckit::SeriousBug("Invalid number of bytes per sample: " + ss.str(), Here());
+    }
+
+    return offsets;
+  }
+
+
   Values decode(const CompressedData& in_buf) override
   {
     auto bscale = codes_power<double>(binary_scale_factor_, 2);
@@ -262,6 +291,18 @@ private:
     return values;
   }
 
+  template <typename SimpleValueType>
+    Offsets decode_offsets_ (const typename AecDecompressor<SimpleValueType>::CompressedData& in_buf) {
+    AecDecompressor<SimpleValueType> aec{};
+    auto flags = modify_aec_flags(flags_);
+    aec.flags(flags);
+    aec.bits_per_sample(bits_per_sample_);
+    aec.block_size(block_size_);
+    aec.rsi(rsi_);
+    aec.n_elems(n_elems_);
+
+    return aec.decode_offsets(in_buf);
+  }
 
   template <typename SimpleValueType>
   Values decode_all_ (const typename AecDecompressor<SimpleValueType>::CompressedData& in_buf, double bscale, double dscale) {
@@ -274,7 +315,7 @@ private:
     aec.n_elems(n_elems_);
 
     typename AecDecompressor<SimpleValueType>::Values simple_values = aec.decode(in_buf);
-
+    
     if (aec.offsets()) {
       offsets_ = aec.offsets().value();
     }

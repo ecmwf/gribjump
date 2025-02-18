@@ -142,6 +142,11 @@ public:
   using CompressedData = typename NumericCompressor<ValueType>::CompressedData;
   using Values = typename NumericCompressor<ValueType>::Values;
 
+  Offsets decode_offsets(const CompressedData& encoded) override {
+    decode(encoded);
+    return std::move(offsets_);
+  }
+
   Values decode(const CompressedData& encoded) override {
     if (sizeof(ValueType) == 1 && !(bits_per_sample_ > 0 && bits_per_sample_ <= 8))
       throw eckit::BadValue("bits_per_sample must be between 1 and 8 for 1-byte types", Here());
@@ -165,7 +170,6 @@ public:
     strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
 
     //print_aec_stream_info(&strm, "Decompressing");
-
     if (aec_decode_init(&strm) != AEC_OK)
       throw eckit::FailedLibraryCall("libaec", "aec_decode_init", "Error initializing decoder", Here());
 
