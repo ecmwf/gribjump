@@ -10,6 +10,9 @@
 
 #include "gribjump/compression/compressors/Aec.h"
 
+#include <bitset>
+#include <algorithm>
+
 #include <libaec.h>
 
 #define AEC_CALL(a) aec_call(a, #a)
@@ -158,6 +161,7 @@ AecParams::Offsets AecDecompressor<ValueType>::decode_offsets(const typename Num
     decode(encoded); // sets offsets_
     return std::move(offsets_);
 }
+
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
 void AecDecompressor<ValueType>::validateBitsPerSample() {
