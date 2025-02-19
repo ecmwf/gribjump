@@ -122,9 +122,7 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     compression/compressors/Ccsds.cc
     compression/compressors/Ccsds.h
 
-    compression/compressors/algorithms/SimplePacking.h
-    compression/compressors/algorithms/LibEccodes.h
-    compression/compressors/algorithms/LibEccodes.cc
+    compression/compressors/SimplePacking.h
 
     FDBPlugin.cc
     FDBPlugin.h

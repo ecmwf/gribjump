@@ -10,7 +10,7 @@
 
 
 #include "gribjump/compression/compressors/Simple.h"
-#include "gribjump/compression/compressors/algorithms/SimplePacking.h"
+#include "gribjump/compression/compressors/SimplePacking.h"
 
 namespace  {
 
