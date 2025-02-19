@@ -10,22 +10,14 @@
 
 #pragma once
 
-#include "../NumericCompressor.h"
-#include "Aec.h"
-
-#include <eckit/io/Buffer.h>
-#include <eckit/serialisation/MemoryStream.h>
-#include "eckit/exception/Exceptions.h"
-
-#include <stdlib.h>
 #include <optional>
-#include <cassert>
 
-#pragma once
-
+#include "gribjump/compression/compressors/Aec.h"
+#include "gribjump/compression/NumericCompressor.h"
 
 namespace mc {
 
+/// @todo can we unify this with AecParams? There is a lot of overlap.
 class CcsdsParams {
 public:
     using Offsets = std::vector<size_t>;
@@ -89,11 +81,8 @@ public:  // methods
     size_t n_elems() const { return n_elems_; }
     CcsdsDecompressor& n_elems(size_t n_elems) { n_elems_ = n_elems; return *this; }
 
-
-private:
-
+private: // methods
     size_t sample_nbytes() const;
-
 
     // Wrappers around aec.decode
 

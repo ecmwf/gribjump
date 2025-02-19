@@ -7,11 +7,14 @@
  * granted to it by virtue of its status as an intergovernmental organisation nor
  * does it submit to any jurisdiction.
  */
+ 
+#include "gribjump/compression/compressors/Ccsds.h"
 
-#include "Ccsds.h"
-#include "Aec.h"
-#include <memory>
 #include <algorithm>
+#include <memory>
+#include <libaec.h>
+
+#include "gribjump/compression/compressors/Aec.h"
 
 namespace  {
 
