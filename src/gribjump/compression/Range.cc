@@ -12,23 +12,25 @@
 #include <algorithm>
 #include <cassert>
 
-std::pair<size_t, size_t> begin_end(const mc::Block& range)
+namespace gribjump::mc{
+
+std::pair<size_t, size_t> begin_end(const Block& range)
 {
     const auto [offset, size] = range;
     return {offset, offset + size};
 }
 
 
-mc::Block operator+(const mc::Block& r1, const mc::Block& r2)
+Block operator+(const Block& r1, const Block& r2)
 {
     auto [b1, e1] = begin_end(r1);
     auto [b2, e2] = begin_end(r2);
     assert(!((b1 > e2) && (b2 > e1)));
-    return mc::Block{std::min(b1, b2), std::max(e1, e2) - std::min(b1, b2)};
+    return Block{std::min(b1, b2), std::max(e1, e2) - std::min(b1, b2)};
 }
 
 
-std::ostream& operator<<(std::ostream& os, const mc::Block& range)
+std::ostream& operator<<(std::ostream& os, const Block& range)
 {
     auto [rb, re] = begin_end(range);
     os << "[" << rb << ", " << re << "]";
@@ -36,7 +38,7 @@ std::ostream& operator<<(std::ostream& os, const mc::Block& range)
 }
 
 
-std::ostream& operator<<(std::ostream& os, const mc::BlockBucket& range)
+std::ostream& operator<<(std::ostream& os, const BlockBucket& range)
 {
     os << range.first <<  std::endl;
     for (const auto& r : range.second) {
@@ -47,20 +49,20 @@ std::ostream& operator<<(std::ostream& os, const mc::BlockBucket& range)
 }
 
 
-mc::BlockBuckets& operator<<(mc::BlockBuckets& buckets, const mc::Block& r) {
+BlockBuckets& operator<<(BlockBuckets& buckets, const Block& r) {
 
-    const mc::Block sub_range{r};
+    const Block sub_range{r};
     const auto [sub_start, sub_end] = begin_end(sub_range);
 
     // Find the position where the range might be inserted
     auto it = std::lower_bound(buckets.begin(), buckets.end(), sub_range,
-        [](const mc::BlockBucket& bucket, const mc::Block& range) {
+        [](const BlockBucket& bucket, const Block& range) {
             const auto [bucket_start, bucket_end] = begin_end(bucket.first);
             return bucket_end < range.first;
         });
 
-    mc::Block merged_range = sub_range;
-    mc::SubBlocks merged_subranges = {sub_range};
+    Block merged_range = sub_range;
+    SubBlocks merged_subranges = {sub_range};
 
     // Merge with any overlapping buckets before the insertion point
     while (it != buckets.begin()) {
@@ -98,11 +100,12 @@ mc::BlockBuckets& operator<<(mc::BlockBuckets& buckets, const mc::Block& r) {
     return buckets;
 }
 
-std::size_t std::hash<mc::Block>::operator() (const mc::Block& range) const
+} // namespace gribjump::mc
+
+std::size_t std::hash<gribjump::mc::Block>::operator() (const gribjump::mc::Block& range) const
 {
     static_assert(sizeof(std::size_t) == sizeof(std::uint64_t), "std::size_t must be 64 bits");
     const auto [offset, size] = range;
     return offset ^ (size << 32);
 }
-
 

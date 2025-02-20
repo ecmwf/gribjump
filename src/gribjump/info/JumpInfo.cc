@@ -23,10 +23,6 @@
 #include "gribjump/info/SimpleInfo.h"
 #include "gribjump/GribJumpException.h"
 
-extern "C" {
-    double grib_power(long s, long n); // Todo: Do we really need this?
-}
-
 namespace gribjump {
 
 // --------------------------------------------------------------------------------------------
@@ -88,9 +84,6 @@ JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startO
 
 }
 
-// XXX Need to do something about message start offset ...
-// Stop using it.
-
 JumpInfo::JumpInfo(const eckit::message::Message& msg):
     version_(currentVersion_) {
 
@@ -138,7 +131,6 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
         sphericalHarmonics_ = 0;
     }
 }
-
 
 JumpInfo::JumpInfo(eckit::Stream& s) : Streamable(s) {
     s >> version_;
