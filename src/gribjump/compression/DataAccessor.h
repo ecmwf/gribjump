@@ -25,7 +25,6 @@ namespace mc {
 class DataAccessor {
 public:
     virtual ~DataAccessor() = default;
-    virtual void write(const eckit::Buffer& buffer, const size_t offset) const = 0;
     virtual eckit::Buffer read(const Block& range) const = 0;
     virtual eckit::Buffer read() const = 0;
     virtual size_t eof() const = 0;
@@ -35,10 +34,6 @@ public:
 class MemoryAccessor : public DataAccessor {
 public:
     explicit MemoryAccessor(const eckit::Buffer& buffer) : buf_{buffer.data(), buffer.size()} {}
-
-    void write(const eckit::Buffer& buffer, const size_t offset) const override {
-        NOTIMP;
-    }
 
     eckit::Buffer read(const Block& range) const override {
         const auto [offset, size] = range;

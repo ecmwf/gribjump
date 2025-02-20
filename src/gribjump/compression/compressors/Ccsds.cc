@@ -18,25 +18,6 @@
 
 namespace  {
 
-/* Return n to the power of s */
-template <typename T>
-constexpr T codes_power(long s, long n) {
-    T divisor = 1.0;
-    if (s == 0)
-        return 1.0;
-    if (s == 1)
-        return n;
-    while (s < 0) {
-        divisor /= n;
-        s++;
-    }
-    while (s > 0) {
-        divisor *= n;
-        s--;
-    }
-    return divisor;
-}
-
 bool is_big_endian() {
     unsigned char is_big_endian = 0;
     unsigned short endianess_test = 1;

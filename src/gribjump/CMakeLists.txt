@@ -123,6 +123,7 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     compression/compressors/Ccsds.h
 
     compression/compressors/SimplePacking.h
+    compression/compressors/SimplePacking.cc
 
     FDBPlugin.cc
     FDBPlugin.h

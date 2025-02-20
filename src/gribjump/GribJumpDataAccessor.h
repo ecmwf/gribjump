@@ -21,10 +21,6 @@ class GribJumpDataAccessor : public mc::DataAccessor {
 public:
     GribJumpDataAccessor(eckit::DataHandle& dh, const mc::Block range) : dh_{dh}, data_section_range_{range} {}
 
-    void write(const eckit::Buffer& buffer, const size_t offset) const override {
-        NOTIMP;
-    }
-
     eckit::Buffer read(const mc::Block& range) const override {
         eckit::Offset offset = range.first;
         eckit::Length size = range.second;

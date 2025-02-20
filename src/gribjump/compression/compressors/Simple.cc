@@ -88,7 +88,6 @@ typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::de
     return out_buf;
 }
 
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Explicit instantiations of the template class
 template class SimpleDecompressor<double>;
