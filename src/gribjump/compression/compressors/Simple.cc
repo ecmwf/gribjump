@@ -26,7 +26,7 @@ size_t bin_pos(size_t value_idx, size_t bits_per_value) {
     
 } // namespace
 
-namespace mc {
+namespace gribjump::mc {
 
 template <typename ValueType>
 typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::decode(const std::shared_ptr<DataAccessor> accessor, const Block& range){
@@ -92,4 +92,4 @@ typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::de
 // Explicit instantiations of the template class
 template class SimpleDecompressor<double>;
 
-} // namespace mc
+} // namespace gribjump::mc

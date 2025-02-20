@@ -20,7 +20,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 
-namespace mc {
+namespace gribjump::mc {
 
 class DataAccessor {
 public:
@@ -56,4 +56,4 @@ private:
     eckit::Buffer buf_;
 };
 
-} // namespace mc
+} // namespace gribjump::mc

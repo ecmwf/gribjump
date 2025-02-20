@@ -15,7 +15,7 @@
 #include "gribjump/compression/compressors/Aec.h"
 #include "gribjump/compression/NumericCompressor.h"
 
-namespace mc {
+namespace gribjump::mc {
 
 /// @todo can we unify this with AecParams? There is a lot of overlap.
 class CcsdsParams {
@@ -98,5 +98,5 @@ private: // methods
 private: // members
     size_t n_elems_;
 };
-} // namespace mc
+} // namespace gribjump::mc
 

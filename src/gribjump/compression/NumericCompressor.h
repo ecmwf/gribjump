@@ -18,7 +18,7 @@
 #include <eckit/io/Buffer.h>
 #include <unordered_map>
 
-namespace mc {
+namespace gribjump::mc {
 
 template <typename ValueType>
 class NumericDecompressor;
@@ -101,4 +101,4 @@ constexpr T codes_power(long s, long n) {
     return divisor;
 }
 
-} // namespace mc
+} // namespace gribjump::mc

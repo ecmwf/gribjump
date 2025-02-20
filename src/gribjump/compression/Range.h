@@ -17,17 +17,17 @@
 #include <iostream>
 #include <tuple>
 #include <cstdint>
-namespace mc {
+namespace gribjump::mc {
 using Block = std::pair<size_t, size_t>;
 }
 
 template<>
-struct std::hash<mc::Block> {
-    std::size_t operator()(const mc::Block& range) const;
+struct std::hash<gribjump::mc::Block> {
+    std::size_t operator()(const gribjump::mc::Block& range) const;
 };
 
 
-namespace mc {
+namespace gribjump::mc {
 
 // A bucket is a continous range of data that can be decoded in one go
 std::pair<size_t, size_t> get_begin_end(const Block& range);
@@ -35,11 +35,12 @@ using SubBlock = Block;
 using SubBlocks = std::vector<SubBlock>;
 using BlockBucket = std::pair<Block, SubBlocks>;
 using BlockBuckets = std::vector<BlockBucket>; // Sorted to allow binary search (std::lower_bound)
-} // namespace mc
 
-std::ostream& operator<<(std::ostream& os, const mc::Block& range);
-std::ostream& operator<<(std::ostream& os, const mc::BlockBucket& bucket);
-mc::BlockBuckets& operator<<(mc::BlockBuckets& buckets, const mc::Block& r);
-mc::Block operator+(const mc::Block& r1, const mc::Block& r2);
+std::ostream& operator<<(std::ostream& os, const Block& range);
+std::ostream& operator<<(std::ostream& os, const BlockBucket& bucket);
+BlockBuckets& operator<<(BlockBuckets& buckets, const Block& r);
+Block operator+(const Block& r1, const Block& r2);
 
-std::pair<size_t, size_t> begin_end(const mc::Block& range);
+std::pair<size_t, size_t> begin_end(const Block& range);
+
+} // namespace gribjump::mc

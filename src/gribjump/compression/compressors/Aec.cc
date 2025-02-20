@@ -53,7 +53,7 @@ void print_binary(const char* name, const void* data, size_t n_bytes) {
 
 } // namespace
 
-namespace mc {
+namespace gribjump::mc {
 
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
@@ -179,4 +179,4 @@ template class AecDecompressor<uint8_t>;
 template class AecDecompressor<uint16_t>;
 template class AecDecompressor<uint32_t>;
 
-} // namespace mc
+} // namespace gribjump::mc

@@ -12,7 +12,7 @@
 
 #include "gribjump/compression/NumericCompressor.h"
 
-namespace mc {
+namespace gribjump::mc {
 
 class SimpleParams {
 public:
@@ -59,4 +59,4 @@ private:
     size_t buffer_size_;
 };
 
-} // namespace mc
+} // namespace gribjump::mc

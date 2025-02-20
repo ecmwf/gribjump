@@ -13,7 +13,7 @@
 #include <cstddef>
 #include <vector>
 
-namespace mc {
+namespace gribjump::mc {
     
 template <typename T>
 struct DecodeParameters {
@@ -41,4 +41,4 @@ public:
     Values unpack(const DecodeParameters<ValueType>& params, const Buffer& buffer);
 };
 
-} // namespace mc
+} // namespace gribjump::mc

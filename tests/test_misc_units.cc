@@ -60,7 +60,7 @@ CASE( "test_lru" ){
 
 //-----------------------------------------------------------------------------
 CASE( "test buckets" ){
-    using namespace mc;
+    using namespace gribjump::mc;
     BlockBuckets buckets;
     for (size_t i = 100; i < 1000; i += 100) {
         mc::Block r{i, 10};

@@ -92,7 +92,7 @@ int decode_array(const unsigned char* p, long bitsPerValue,
 
 } // namespace
 
-namespace mc {
+namespace gribjump::mc {
 
 template <typename ValueType>
 typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
@@ -127,4 +127,4 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
 // Explicit instantiations of the template class
 template class SimplePacking<double>;
 
-} // namespace mc
+} // namespace gribjump::mc

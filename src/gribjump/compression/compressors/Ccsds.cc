@@ -36,7 +36,7 @@ size_t modify_aec_flags(size_t flags) {
 
 } // namespace
 
-namespace mc {
+namespace gribjump::mc {
 
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
@@ -195,4 +195,4 @@ typename CcsdsDecompressor<ValueType>::Values CcsdsDecompressor<ValueType>::deco
 // Explicit instantiations of the template class
 template class CcsdsDecompressor<double>;
 
-} // namespace mc
+} // namespace gribjump::mc

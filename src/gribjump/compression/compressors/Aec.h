@@ -13,7 +13,7 @@
 
 #include <optional>
 #include "gribjump/compression/NumericCompressor.h"
-namespace mc {
+namespace gribjump::mc {
 
 class AecParams {
 public:
@@ -76,5 +76,5 @@ private: // members
 };
 
 
-} // namespace mc
+} // namespace gribjump::mc
 
