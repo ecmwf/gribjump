@@ -70,7 +70,6 @@ private:
     ~FDBLister();
 
 private:
-    fdb5::FDB fdb_;
     bool allowMissing_;
 };
 
