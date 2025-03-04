@@ -12,7 +12,6 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
-#include "eckit/thread/AutoLock.h"
 
 #include "gribjump/Lister.h"
 #include "gribjump/GribJumpException.h"
@@ -43,8 +42,6 @@ FDBLister::~FDBLister() {
 }
 
 std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequest> requests) {
-
-    eckit::AutoLock<FDBLister> lock(this);
 
     std::vector<eckit::URI> uris;
     fdb5::FDB fdb;
@@ -84,7 +81,6 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
-    eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
@@ -171,7 +167,6 @@ std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std
 } 
 
 std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequest>& requests) {
-    eckit::AutoLock<FDBLister> lock(this);
     std::vector<eckit::URI> uris;
     fdb5::FDB fdb;
     for (auto& request : requests) {
@@ -193,7 +188,6 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const st
 }
 
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {
-    eckit::AutoLock<FDBLister> lock(this);
     std::map<std::string, std::unordered_set<std::string>> values;
 
     LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
