@@ -34,6 +34,12 @@ export DYLD_LIBRARY_PATH="$binary/lib:$binary/lib64:$DYLD_LIBRARY_PATH"
 export LD_LIBRARY_PATH="$binary/lib:$binary/lib64:$LD_LIBRARY_PATH"
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
+#debugging:
+export GRIBJUMP_DEBUG=1
+export FDB_DEBUG=1
+export ECKIT_DEBUG=1
+export DEBUG=1 # pre main
+
 # -- Setup ---------------------------------------------------------------
 
 # Generate configs and cleanup previous tests
@@ -68,6 +74,10 @@ cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
 FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
+
+# debugging: reaching this line means the plugin was found.
+exit 0
+
 
 # -- Write to FDB ---------------------------------------------------------------
 
