@@ -20,74 +20,20 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
 
-namespace mc {
+namespace gribjump::mc {
 
 class DataAccessor {
 public:
     virtual ~DataAccessor() = default;
-    virtual void write(const eckit::Buffer& buffer, const size_t offset) const = 0;
     virtual eckit::Buffer read(const Block& range) const = 0;
     virtual eckit::Buffer read() const = 0;
     virtual size_t eof() const = 0;
 };
 
 
-class PosixAccessor : public DataAccessor {
-public:
-    explicit PosixAccessor(const std::string& path) : ifs_{path, std::ifstream::binary} {}
-    ~PosixAccessor() {
-        ifs_.close();
-    }
-
-    void write(const eckit::Buffer& buffer, const size_t offset) const override {
-        NOTIMP;
-    }
-
-    eckit::Buffer read(const Block& range) const override {
-        const auto [offset, size] = range;
-        eckit::Buffer buf(size);
-        ifs_.seekg(offset, std::ios::beg);
-        ifs_.read(reinterpret_cast<char*>(buf.data()), size);
-        if (!ifs_) {
-            std::stringstream ss;
-            ss << "Error: only " << ifs_.gcount() << " could be read";
-            throw eckit::ReadError(ss.str(), Here());
-        }
-        assert(size != 0);
-        return eckit::Buffer{buf.data(), size};
-    }
-
-    eckit::Buffer read() const override {
-        ifs_.seekg(0, std::ios::end);
-        size_t size = ifs_.tellg();
-        ifs_.seekg(0, std::ios::beg);
-        eckit::Buffer buf(size);
-        ifs_.read(reinterpret_cast<char*>(buf.data()), size);
-        if (!ifs_) {
-            std::stringstream ss;
-            ss << "Error: only " << ifs_.gcount() << " could be read";
-            throw eckit::ReadError(ss.str(), Here());
-        }
-        assert(size != 0);
-        return eckit::Buffer{buf.data(), size};
-    }
-
-    size_t eof() const override {
-        ifs_.seekg(0, std::ios::end);
-        return ifs_.tellg();
-    }
-private:
-    mutable std::ifstream ifs_;
-};
-
-
 class MemoryAccessor : public DataAccessor {
 public:
     explicit MemoryAccessor(const eckit::Buffer& buffer) : buf_{buffer.data(), buffer.size()} {}
-
-    void write(const eckit::Buffer& buffer, const size_t offset) const override {
-        NOTIMP;
-    }
 
     eckit::Buffer read(const Block& range) const override {
         const auto [offset, size] = range;
@@ -110,4 +56,4 @@ private:
     eckit::Buffer buf_;
 };
 
-} // namespace mc
+} // namespace gribjump::mc

@@ -12,9 +12,7 @@
 
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
-#include "eckit/thread/AutoLock.h"
 
-#include "gribjump/GribJump.h"
 #include "gribjump/Lister.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/URIHelper.h"
@@ -45,13 +43,12 @@ FDBLister::~FDBLister() {
 
 std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequest> requests) {
 
-    eckit::AutoLock<FDBLister> lock(this);
-
     std::vector<eckit::URI> uris;
+    fdb5::FDB fdb;
     for (auto& request : requests) {
 
         fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, true);
+        auto listIter = fdb.list(fdbreq, true);
 
         fdb5::ListElement elem;
         while (listIter.next(elem)) {
@@ -84,11 +81,12 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
-    eckit::AutoLock<FDBLister> lock(this);
     filemap_t filemap;
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
-    auto listIter = fdb_.list(fdbreq, true);
+
+    fdb5::FDB fdb;
+    auto listIter = fdb.list(fdbreq, true);
 
     size_t fdb_count = 0;
     size_t count = 0;
@@ -169,11 +167,11 @@ std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std
 } 
 
 std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequest>& requests) {
-    eckit::AutoLock<FDBLister> lock(this);
     std::vector<eckit::URI> uris;
+    fdb5::FDB fdb;
     for (auto& request : requests) {
         fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, true);
+        auto listIter = fdb.list(fdbreq, true);
         fdb5::ListElement elem;
         while (listIter.next(elem)) {
             uris.push_back(elem.location().fullUri());
@@ -190,12 +188,12 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const st
 }
 
 std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {
-    eckit::AutoLock<FDBLister> lock(this);
     std::map<std::string, std::unordered_set<std::string>> values;
 
     LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
     
-    fdb5::IndexAxis ax = fdb_.axes(request, level);
+    fdb5::FDB fdb;
+    fdb5::IndexAxis ax = fdb.axes(request, level);
     ax.sort();
     std::map<std::string, eckit::DenseSet<std::string>> fdbValues = ax.map();
 
@@ -217,41 +215,5 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fd
 
 //  ------------------------------------------------------------------
 
-#if 0
-// map (file : offsets)
-std::map< eckit::PathName, eckit::OffsetList > FDBLister::list(const std::vector<metkit::mars::MarsRequest> requests) {
-
-    eckit::AutoLock<FDBLister> lock(this);
-
-    std::map< eckit::PathName, eckit::OffsetList > files; 
-
-    for (auto& request : requests) {
-
-        size_t count = request.count(); // worse case scenario all fields in one file
-
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb_.list(fdbreq, true);
-
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-                        
-            const fdb5::FieldLocation& loc = elem.location();
-
-            eckit::PathName path = loc.uri().path();
-
-            auto it = files.find(path);
-            if(it == files.end()) {
-                eckit::OffsetList offsets;
-                offsets.reserve(count);
-                offsets.push_back(loc.offset());
-                files.emplace(path, offsets);
-            }
-            else {
-                it->second.push_back(loc.offset());
-            }
-        }
-    }
-}
-#endif
 
 } // namespace gribjump

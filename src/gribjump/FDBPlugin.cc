@@ -39,7 +39,11 @@ FDBPlugin::FDBPlugin() {
         static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); 
         static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
         if (enableGribjump && !disableGribjump) {
+            LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin has been enabled" << std::endl;
             FDBPlugin::instance().addFDB(fdb);
+        }
+        else {
+            LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin has been disabled" << std::endl;
         }
     });
 }

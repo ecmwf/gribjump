@@ -44,10 +44,14 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
         try {
             s << e;
         }
-        catch (std::exception& a) {
-            eckit::Log::error() << "** " << a.what() << " Caught in " << Here() << std::endl;
+        catch (...) {
             eckit::Log::error() << "** Exception is ignored" << std::endl;
         }
+    }
+    catch (...) {
+        eckit::Log::error() << "** Unknown exception caught in " << Here() << std::endl;
+        eckit::Log::error() << "** Exception is ignored" << std::endl;
+        MetricsManager::instance().set("error", "Uncaught exception");
     }
         
     LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;

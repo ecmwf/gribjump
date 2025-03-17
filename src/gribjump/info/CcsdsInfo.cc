@@ -32,7 +32,7 @@ static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi", true);
 //----------------------------------------------------------------------------------------------------------------------
 
 CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) : JumpInfo(h, startOffset) {
-    
+
     ccsdsFlags_ = grib::ccsdsFlags(h);
     ccsdsBlockSize_ = grib::ccsdsBlockSize(h);
     ccsdsRsi_ = grib::ccsdsRsi(h);
@@ -53,17 +53,16 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
 
     mc::CcsdsDecompressor<double> ccsds{};
     ccsds
-        .flags(ccsdsFlags_)
-        .bits_per_sample(bitsPerValue_)
-        .block_size(ccsdsBlockSize_)
-        .rsi(ccsdsRsi_)
-        .reference_value(referenceValue_)
-        .binary_scale_factor(binaryScaleFactor_)
-        .decimal_scale_factor(decimalScaleFactor_);
+    .flags(ccsdsFlags_)
+    .bits_per_sample(bitsPerValue_)
+    .block_size(ccsdsBlockSize_)
+    .rsi(ccsdsRsi_)
+    .reference_value(referenceValue_)
+    .binary_scale_factor(binaryScaleFactor_)
+    .decimal_scale_factor(decimalScaleFactor_);
     ccsds.n_elems(numberOfValues_);
-    ccsds.decode(buffer);
-    
-    ccsdsOffsets_ = ccsds.offsets().value();
+
+    ccsdsOffsets_ = ccsds.decode_offsets(buffer);
 }
 
 CcsdsInfo::CcsdsInfo(const eckit::message::Message& msg) : JumpInfo(msg) {
