@@ -34,7 +34,7 @@ export DYLD_LIBRARY_PATH="$binary/lib:$binary/lib64:$DYLD_LIBRARY_PATH"
 export LD_LIBRARY_PATH="$binary/lib:$binary/lib64:$LD_LIBRARY_PATH"
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
-# Do an LD_PRELOAD of the libaec library cmake found earlier. To avoid issues in downstream CI where eckit is linked against an earlier version.
+# LD PRELOAD AEC to prevent issues where eckit is linked against an incompatible version (GRIBJUMP-39).
 aecpath="@AEC_LIBRARY@"
 if [ -n "$aecpath" ]; then
     export LD_PRELOAD="$aecpath"
