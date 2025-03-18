@@ -75,10 +75,6 @@ cat $selected $unselected > $testdata
 selectedrequests=${bindir}/requests
 FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
 
-# debugging: reaching this line means the plugin was found.
-exit 0
-
-
 # -- Write to FDB ---------------------------------------------------------------
 
 # 1: Reference FDB
