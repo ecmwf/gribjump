@@ -34,6 +34,12 @@ export DYLD_LIBRARY_PATH="$binary/lib:$binary/lib64:$DYLD_LIBRARY_PATH"
 export LD_LIBRARY_PATH="$binary/lib:$binary/lib64:$LD_LIBRARY_PATH"
 export LOAD_PLUGINS="int.ecmwf.gribjump-plugin"
 
+# LD PRELOAD AEC to prevent downstream-CI issues where eckit is linked against an incompatible version (GRIBJUMP-39).
+aecpath="@AEC_LIBRARY@"
+if [ -e "$aecpath" ]; then
+    export LD_PRELOAD="$aecpath"
+fi
+
 # -- Setup ---------------------------------------------------------------
 
 # Generate configs and cleanup previous tests
