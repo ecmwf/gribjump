@@ -73,7 +73,7 @@ $gribset -s "expver=xxxy" $selected $unselected
 cat $selected $unselected > $testdata
 
 selectedrequests=${bindir}/requests
-FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null > $selectedrequests
+FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${selected} /dev/null | grep retrieve - > $selectedrequests
 
 # -- Write to FDB ---------------------------------------------------------------
 
@@ -157,7 +157,7 @@ done
 # -------------------------------------
 # Extract from all fdbs and compare the output
 extractrequests=${bindir}/extractrequests
-FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${supporteddata} /dev/null > $extractrequests
+FDB5_CONFIG_FILE=${bindir}/config_root1.yaml $fdbread --extract ${supporteddata} /dev/null | grep retrieve - > $extractrequests
 
 ranges=${bindir}/ranges
 echo "0-10,20-30,40-50" > $ranges
