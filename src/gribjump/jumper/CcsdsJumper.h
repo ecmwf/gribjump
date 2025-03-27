@@ -18,11 +18,14 @@ namespace gribjump {
 
 class CcsdsJumper : public Jumper {
 public:
+
     CcsdsJumper();
     ~CcsdsJumper();
 
 private:
-    virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem& ExtractionItem) override;
+
+    virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                            const std::vector<Interval>& intervals, ExtractionItem& ExtractionItem) override;
 };
 
-} // namespace gribjump
+}  // namespace gribjump

@@ -19,6 +19,7 @@ namespace gribjump {
 class UnsupportedInfo : public JumpInfo {
 
 public:
+
     UnsupportedInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
     UnsupportedInfo(const eckit::message::Message& msg);
     UnsupportedInfo(eckit::Stream& s);
@@ -36,5 +37,5 @@ private:
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<UnsupportedInfo> reanimator_;
 };
-    
-} // namespace gribjump
+
+}  // namespace gribjump

@@ -8,8 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-#include "gribjump/LibGribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
+#include "gribjump/LibGribJump.h"
 
 using eckit::Log;
 
@@ -48,8 +48,7 @@ void GribJumpTool::finish(const eckit::option::CmdArgs&) {}
 
 GribJumpToolException::GribJumpToolException(const std::string& w) : Exception(w) {}
 
-GribJumpToolException::GribJumpToolException(const std::string& w, const eckit::CodeLocation& l) :
-    Exception(w, l) {}
+GribJumpToolException::GribJumpToolException(const std::string& w, const eckit::CodeLocation& l) : Exception(w, l) {}
 
 
 //----------------------------------------------------------------------------------------------------------------------

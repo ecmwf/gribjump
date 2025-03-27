@@ -27,32 +27,33 @@ class ExtractionItem : public eckit::NonCopyable {
 
 public:
 
-    ExtractionItem(const std::string& baseRequest, const Ranges& ranges): 
-        request_(baseRequest), ranges_(ranges) {
-            /// @note We could reserve the values and mask here based on the ranges
-            /// @note We're not always going to have mars requests (e.g. file name, tree, ...) More generic object?
+    ExtractionItem(const std::string& baseRequest, const Ranges& ranges) : request_(baseRequest), ranges_(ranges) {
+        /// @note We could reserve the values and mask here based on the ranges
+        /// @note We're not always going to have mars requests (e.g. file name, tree, ...) More generic object?
     }
 
-    ExtractionItem(const Ranges& ranges) : request_(""), ranges_(ranges) {} // Because sometimes we dont use marsrequests.
+    ExtractionItem(const Ranges& ranges) :
+        request_(""), ranges_(ranges) {}  // Because sometimes we dont use marsrequests.
 
     ~ExtractionItem() {};
-    
+
     const eckit::URI& URI() const { return uri_; }
     // const ExValues& values() const { return values_; }
     ExValues& values() { return values_; }
     const ExMask& mask() const { return mask_; }
     const Ranges& intervals() const { return ranges_; }
     const std::string& request() const { return request_; }
-    
+
     /// @note alternatively we could store the offset directly instead of the uri.
     eckit::Offset offset() const {
-        
-        std::string fragment =  uri_.fragment();
+
+        std::string fragment = uri_.fragment();
         eckit::Offset offset;
-        
+
         try {
             offset = std::stoll(fragment);
-        } catch (std::invalid_argument& e) {
+        }
+        catch (std::invalid_argument& e) {
             throw eckit::BadValue("Invalid offset: '" + fragment + "' in URI: " + uri_.asString(), Here());
         }
 
@@ -95,7 +96,7 @@ public:
             std::cout << "}" << std::endl;
         }
         std::cout << "}" << std::endl;
-        
+
         std::cout << "}" << std::endl;
     }
 
@@ -112,9 +113,9 @@ private:
     ExMask mask_;
 
     // Optional extras
-    std::string gridHash_=""; //< if supplied, check hash matches the jumpinfo
+    std::string gridHash_ = "";  //< if supplied, check hash matches the jumpinfo
 };
 
 // ------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

@@ -10,31 +10,32 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/compression/compressors/Ccsds.h"
+#include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/GribJumpDataAccessor.h"
+#include "gribjump/compression/compressors/Ccsds.h"
 #include "gribjump/info/CcsdsInfo.h"
-#include "gribjump/jumper/CcsdsJumper.h" 
 #include "gribjump/jumper/JumperFactory.h"
 
 
 namespace gribjump {
 
-CcsdsJumper::CcsdsJumper(): Jumper() {}
+CcsdsJumper::CcsdsJumper() : Jumper() {}
 
 CcsdsJumper::~CcsdsJumper() {}
 
-void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item) {
+void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in,
+                             const std::vector<Interval>& intervals, ExtractionItem& item) {
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(&info_in);
 
-    if (!pccsds) throw BadJumpInfoException("CcsdsJumper::readValues: info is not of type CcsdsInfo", Here());
+    if (!pccsds)
+        throw BadJumpInfoException("CcsdsJumper::readValues: info is not of type CcsdsInfo", Here());
 
     const CcsdsInfo& info = *pccsds;
     ASSERT(info.ccsdsOffsets().size() > 0);
 
     mc::CcsdsDecompressor<double> ccsds{};
-    ccsds
-        .flags(info.ccsdsFlags())
+    ccsds.flags(info.ccsdsFlags())
         .bits_per_sample(info.bitsPerValue())
         .block_size(info.ccsdsBlockSize())
         .rsi(info.ccsdsRsi())
@@ -57,4 +58,4 @@ void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, 
 
 static JumperBuilder<CcsdsJumper> ccsdsJumperBuilder("grid_ccsds");
 
-} // namespace gribjump
+}  // namespace gribjump

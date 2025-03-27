@@ -13,14 +13,14 @@
 #pragma once
 
 #include <future>
-#include "eckit/io/MemoryHandle.h"
 #include "eckit/container/Queue.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "gribjump/info/InfoExtractor.h"
 
 namespace fdb5 {
-    class FieldLocation;
+class FieldLocation;
 }
 
 namespace gribjump {
@@ -33,11 +33,13 @@ class InfoAggregator {
     using locPair = std::pair<std::future<std::shared_ptr<const fdb5::FieldLocation>>, std::unique_ptr<JumpInfo>>;
 
 public:
+
     InfoAggregator();
     ~InfoAggregator();
 
-    void add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
-    
+    void add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle,
+             eckit::Offset offset);
+
     void flush();
 
 private:
@@ -46,20 +48,22 @@ private:
     void close();
 
 private:
+
     InfoExtractor extractor_;
-    std::map<std::string, size_t> count_; 
+    std::map<std::string, size_t> count_;
     eckit::Queue<locPair> futures_;
     std::thread consumer_;
-
 };
 
 // Simpler aggregator which does not create a consumer thread. Instead, it blocks in add() while waiting for the future.
 class SerialAggregator {
 public:
+
     SerialAggregator();
     ~SerialAggregator();
 
-    void add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset);
+    void add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle,
+             eckit::Offset offset);
     void flush();
 
 private:
@@ -69,6 +73,6 @@ private:
 private:
 
     InfoExtractor extractor_;
-    std::map<std::string, size_t> count_; 
+    std::map<std::string, size_t> count_;
 };
-} // namespace gribjump
+}  // namespace gribjump

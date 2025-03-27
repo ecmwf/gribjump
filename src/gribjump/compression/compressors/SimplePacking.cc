@@ -9,8 +9,8 @@
  */
 
 #include "gribjump/compression/compressors/SimplePacking.h"
-#include "gribjump/compression/NumericCompressor.h"
 #include "eckit/exception/Exceptions.h"
+#include "gribjump/compression/NumericCompressor.h"
 
 namespace {
 
@@ -21,9 +21,8 @@ inline unsigned long bitmask(size_t x) {
 
 /// @note Appears to have been copied from eccodes...
 template <typename T>
-int decode_array(const unsigned char* p, long bitsPerValue,
-                             double reference_value, double s, double d,
-                             size_t n_vals, T* val) {
+int decode_array(const unsigned char* p, long bitsPerValue, double reference_value, double s, double d, size_t n_vals,
+                 T* val) {
     unsigned long lvalue = 0;
     T x;
 
@@ -51,7 +50,7 @@ int decode_array(const unsigned char* p, long bitsPerValue,
 
         /* pi: position of bitp in p[]. >>3 == /8 */
         long bitp = 0;
-        long pi = 0;
+        long pi   = 0;
         /* some bits might of the current byte at pi might be used */
         /* by the previous number usefulBitsInByte gives remaining unused bits */
         /* number of useful bits in current byte */
@@ -90,14 +89,13 @@ int decode_array(const unsigned char* p, long bitsPerValue,
     return 0;
 }
 
-} // namespace
+}  // namespace
 
 namespace gribjump::mc {
 
 template <typename ValueType>
-typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
-    const DecodeParameters<ValueType>& params,
-    const Buffer& buf) {
+typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(const DecodeParameters<ValueType>& params,
+                                                                           const Buffer& buf) {
 
     if (params.bits_per_value > (sizeof(long) * 8)) {
         throw eckit::BadValue("Invalid BPV", Here());
@@ -107,18 +105,19 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
     if (params.n_vals == 0) {
         return Values{};
     }
-    
+
     /// @todo: I think there is already logic for checking for constant fields upstream of this code.
     // Constant field
     if (params.bits_per_value == 0) {
         return Values(params.n_vals, params.reference_value);
     }
-    
+
     double s = mc::codes_power<double>(params.binary_scale_factor, 2);
-    double d = mc::codes_power<double>(-params.decimal_scale_factor, 10); 
+    double d = mc::codes_power<double>(-params.decimal_scale_factor, 10);
 
     Values values(params.n_vals);
-    decode_array<ValueType>(buf.data(), params.bits_per_value, params.reference_value, s, d, params.n_vals, values.data());
+    decode_array<ValueType>(buf.data(), params.bits_per_value, params.reference_value, s, d, params.n_vals,
+                            values.data());
 
     return values;
 }
@@ -127,4 +126,4 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(
 // Explicit instantiations of the template class
 template class SimplePacking<double>;
 
-} // namespace gribjump::mc
+}  // namespace gribjump::mc

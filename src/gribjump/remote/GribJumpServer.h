@@ -25,21 +25,24 @@ namespace gribjump {
 
 class GribJumpServer : private eckit::NonCopyable {
 public:
-    GribJumpServer(int port): svc_(new GribJumpService(port)), tcsvc_(svc_) {
+
+    GribJumpServer(int port) : svc_(new GribJumpService(port)), tcsvc_(svc_) {
         eckit::Log::info() << "Starting GribJumpServer on port " << port << std::endl;
-        WorkQueue::instance(); // start the work queue
+        WorkQueue::instance();  // start the work queue
         tcsvc_.start();
     }
     ~GribJumpServer() {}
 
 private:  // methods
+
     int port() const { return svc_->port(); }
 
 private:  // members
+
     eckit::net::NetService* svc_;
     eckit::ThreadControler tcsvc_;
 };
 
 //-------------------------------------------------------------------------------------------------
 
-}  // namespace dhskit
+}  // namespace gribjump

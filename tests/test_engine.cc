@@ -13,25 +13,25 @@
 
 #include "eckit/testing/Test.h"
 
-#include "eckit/filesystem/PathName.h"
-#include "eckit/io/FileHandle.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/serialisation/FileStream.h"
 #include "eckit/filesystem/LocalPathName.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/serialisation/FileStream.h"
 
 #include "fdb5/api/FDB.h"
 
 #include "metkit/codes/GribHandle.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 
+#include "gribjump/Engine.h"
+#include "gribjump/ExtractionItem.h"
+#include "gribjump/GribJumpException.h"
+#include "gribjump/LibGribJump.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/tools/EccodesExtract.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/Engine.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/GribJumpException.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
@@ -44,7 +44,7 @@ namespace test {
 // use the same tmpdir between tests
 static eckit::PathName tmpdir;
 static eckit::PathName gribName = "extract_ranges.grib";
-static std::string gridHash = "33c7d6025995e1b4913811e77d38ec50";
+static std::string gridHash     = "33c7d6025995e1b4913811e77d38ec50";
 
 //-----------------------------------------------------------------------------
 const std::string fdbConfig(const eckit::PathName& tmpdir) {
@@ -55,7 +55,8 @@ const std::string fdbConfig(const eckit::PathName& tmpdir) {
         schema: schema
         spaces:
         - roots:
-          - path: ")XX" + tmpdir + R"XX("
+          - path: ")XX" + tmpdir +
+                                 R"XX("
     )XX");
     return config_str;
 }
@@ -72,12 +73,12 @@ const std::string setupFDB(const eckit::PathName& tmpdir) {
     fdb5::FDB fdb;
     fdb.archive(*gribName.fileHandle());
     fdb.flush();
-    
+
     return config_str;
 }
 
 
-size_t expectedCount(std::vector<std::vector<Interval>> allIntervals){
+size_t expectedCount(std::vector<std::vector<Interval>> allIntervals) {
     // count the number of values expected given the intervals
     size_t count = 0;
     for (auto& intervals : allIntervals) {
@@ -86,34 +87,34 @@ size_t expectedCount(std::vector<std::vector<Interval>> allIntervals){
         }
     }
 
-    return count; 
+    return count;
 }
 
-CASE ("Engine: pre-test setup") {
+CASE("Engine: pre-test setup") {
     tmpdir = eckit::TmpDir(eckit::LocalPathName::cwd().c_str());
     setupFDB(tmpdir);
 }
 
 
-CASE ("Engine: Basic extraction") {
+CASE("Engine: Basic extraction") {
     // // --- Setup
     eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
-    eckit::testing::SetEnv allowmissing("GRIBJUMP_ALLOW_MISSING", "0"); // We have deliberately missing data in the request.
+    eckit::testing::SetEnv allowmissing("GRIBJUMP_ALLOW_MISSING",
+                                        "0");  // We have deliberately missing data in the request.
 
     // --- Extract (test 1)
     std::vector<std::string> requests = {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
-        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type=fc" // Deliberately missing data
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1000,stream=oper,time=1200,type="
+        "fc"  // Deliberately missing data
     };
 
-    std::vector<std::vector<Interval>> allIntervals = {
-        {std::make_pair(0, 5),  std::make_pair(20, 30)},
-        {std::make_pair(0, 5),  std::make_pair(20, 30)},
-        {std::make_pair(0, 5),  std::make_pair(20, 30)},
-        {std::make_pair(0, 5),  std::make_pair(20, 30)}
-    };
+    std::vector<std::vector<Interval>> allIntervals = {{std::make_pair(0, 5), std::make_pair(20, 30)},
+                                                       {std::make_pair(0, 5), std::make_pair(20, 30)},
+                                                       {std::make_pair(0, 5), std::make_pair(20, 30)},
+                                                       {std::make_pair(0, 5), std::make_pair(20, 30)}};
 
     Engine engine;
     ExtractionRequests exRequests;
@@ -137,13 +138,13 @@ CASE ("Engine: Basic extraction") {
         }
     }
 
-    // Check correct values 
+    // Check correct values
     size_t count = 0;
     for (size_t i = 0; i < 3; i++) {
-        metkit::mars::MarsRequest req = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
+        metkit::mars::MarsRequest req   = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
         std::vector<Interval> intervals = allIntervals[i];
-        auto& exs = results[requests[i]];
-        auto comparisonValues = eccodesExtract(req, intervals);
+        auto& exs                       = results[requests[i]];
+        auto comparisonValues           = eccodesExtract(req, intervals);
         for (size_t j = 0; j < exs.size(); j++) {
             for (size_t k = 0; k < comparisonValues[j].size(); k++) {
                 for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
@@ -218,7 +219,6 @@ CASE ("Engine: Basic extraction") {
 
     /// @todo: request touching multiple files?
     /// @todo: request involving unsupported packingType?
-
 }
 
 //-----------------------------------------------------------------------------
@@ -227,7 +227,6 @@ CASE ("Engine: Basic extraction") {
 }  // namespace gribjump
 
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

@@ -20,18 +20,20 @@ class InfoBuilderBase {
     std::string name_;
 
 public:
+
     InfoBuilderBase(const std::string& name);
     virtual ~InfoBuilderBase();
 
-    virtual std::unique_ptr<JumpInfo> make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) const = 0;
+    virtual std::unique_ptr<JumpInfo> make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h,
+                                           const eckit::Offset startOffset) const    = 0;
     virtual std::unique_ptr<JumpInfo> make(const eckit::message::Message& msg) const = 0;
-
 };
 
 template <class T>
 class InfoBuilder : public InfoBuilderBase {
-   
-    std::unique_ptr<JumpInfo> make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, eckit::Offset startOffset) const override {
+
+    std::unique_ptr<JumpInfo> make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh,
+                                   eckit::Offset startOffset) const override {
         return std::make_unique<T>(h, gh, startOffset);
     }
 
@@ -40,6 +42,7 @@ class InfoBuilder : public InfoBuilderBase {
     }
 
 public:
+
     InfoBuilder(const std::string& name) : InfoBuilderBase(name) {}
     ~InfoBuilder() override = default;
 };
@@ -66,7 +69,6 @@ private:
 
     std::map<std::string, InfoBuilderBase*> builders_;
     std::mutex mutex_;
-
 };
 
 }  // namespace gribjump

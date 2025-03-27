@@ -11,9 +11,9 @@
 #pragma once
 
 
+#include <cassert>
 #include <fstream>
 #include <iomanip>
-#include <cassert>
 
 #include "Range.h"
 
@@ -24,15 +24,17 @@ namespace gribjump::mc {
 
 class DataAccessor {
 public:
-    virtual ~DataAccessor() = default;
+
+    virtual ~DataAccessor()                              = default;
     virtual eckit::Buffer read(const Block& range) const = 0;
-    virtual eckit::Buffer read() const = 0;
-    virtual size_t eof() const = 0;
+    virtual eckit::Buffer read() const                   = 0;
+    virtual size_t eof() const                           = 0;
 };
 
 
 class MemoryAccessor : public DataAccessor {
 public:
+
     explicit MemoryAccessor(const eckit::Buffer& buffer) : buf_{buffer.data(), buffer.size()} {}
 
     eckit::Buffer read(const Block& range) const override {
@@ -45,15 +47,13 @@ public:
         return eckit::Buffer{reinterpret_cast<const char*>(buf_.data()) + offset, size};
     }
 
-    eckit::Buffer read() const override {
-        return eckit::Buffer{buf_.data(), buf_.size()};
-    }
+    eckit::Buffer read() const override { return eckit::Buffer{buf_.data(), buf_.size()}; }
 
-    size_t eof() const override {
-        return buf_.size();
-    }
+    size_t eof() const override { return buf_.size(); }
+
 private:
+
     eckit::Buffer buf_;
 };
 
-} // namespace gribjump::mc
+}  // namespace gribjump::mc

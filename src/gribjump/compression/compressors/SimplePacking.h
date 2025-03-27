@@ -14,7 +14,7 @@
 #include <vector>
 
 namespace gribjump::mc {
-    
+
 template <typename T>
 struct DecodeParameters {
     using ValueType = T;
@@ -25,20 +25,22 @@ struct DecodeParameters {
     long bits_per_value;
     size_t n_vals;
 
-    DecodeParameters() : reference_value(0), binary_scale_factor(0), decimal_scale_factor(0), bits_per_value(0), n_vals(0) {}
+    DecodeParameters() :
+        reference_value(0), binary_scale_factor(0), decimal_scale_factor(0), bits_per_value(0), n_vals(0) {}
 };
 
 template <typename T>
 class SimplePacking {
 public:
-    using ValueType = T;
-    using Buffer = std::vector<unsigned char>;
-    using Values = std::vector<ValueType>;
 
-    SimplePacking() = default;
+    using ValueType = T;
+    using Buffer    = std::vector<unsigned char>;
+    using Values    = std::vector<ValueType>;
+
+    SimplePacking()  = default;
     ~SimplePacking() = default;
 
     Values unpack(const DecodeParameters<ValueType>& params, const Buffer& buffer);
 };
 
-} // namespace gribjump::mc
+}  // namespace gribjump::mc

@@ -11,18 +11,18 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#include <set>
 #include <chrono>
+#include <set>
 
+#include "eckit/config/Resource.h"
+#include "eckit/container/Queue.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/serialisation/FileStream.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/container/Queue.h"
-#include "eckit/log/Timer.h"
 #include "eckit/thread/AutoLock.h"
-#include "eckit/config/Resource.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -43,8 +43,7 @@ using namespace metkit::mars;
 
 typedef std::chrono::high_resolution_clock Clock;
 
-LocalGribJump::LocalGribJump(const Config& config): GribJumpBase(config) {
-}
+LocalGribJump::LocalGribJump(const Config& config) : GribJumpBase(config) {}
 
 LocalGribJump::~LocalGribJump() {}
 
@@ -60,7 +59,9 @@ size_t LocalGribJump::scan(const std::vector<MarsRequest>& requests, bool byfile
     return result;
 }
 
-std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
+std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit::PathName& path,
+                                                                    const std::vector<eckit::Offset>& offsets,
+                                                                    const std::vector<std::vector<Range>>& ranges) {
     // Directly from file, no cache, no queue, no threads
 
     InfoExtractor extractor;
@@ -106,7 +107,8 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extra
     return extractionResults;
 }
 
-ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests, const std::vector<std::vector<Range>>& ranges) {
+ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests,
+                                  const std::vector<std::vector<Range>>& ranges) {
     ExtractionRequests extractionRequests;
 
     for (size_t i = 0; i < requests.size(); i++) {
@@ -124,4 +126,4 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
 
 static GribJumpBuilder<LocalGribJump> builder("local");
 
-} // namespace gribjump
+}  // namespace gribjump

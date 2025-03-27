@@ -11,16 +11,16 @@
 
 #include <fstream>
 
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/tools/GribJumpTool.h"
+#include "gribjump/tools/ToolUtils.h"
 
 
 // Tool to perform an extraction request on a given request, and compare the results with the
@@ -29,21 +29,21 @@
 // Note: Tool should work for local and remote gribjump, though eccodes will always be local.
 
 namespace gribjump::tool {
-    
-class CompareEccodes: public GribJumpTool {
-    
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+
+class CompareEccodes : public GribJumpTool {
+
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
-  
-  public:
-    CompareEccodes(int argc, char **argv): GribJumpTool(argc, argv) {
+
+public:
+
+    CompareEccodes(int argc, char** argv) : GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
-
 };
 
-void CompareEccodes::usage(const std::string &tool) const {
+void CompareEccodes::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <mars request file> <ranges file>" << std::endl
                        << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl;
@@ -51,7 +51,7 @@ void CompareEccodes::usage(const std::string &tool) const {
 }
 
 
-void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
+void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
     bool raw = args.getBool("raw", false);
 
     // Build request(s) from input
@@ -66,7 +66,8 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
     if (raw) {
         for (auto r : parsedRequests)
             requests.push_back(r);
-    } else {
+    }
+    else {
         bool inherit = false;
         metkit::mars::MarsExpension expand(inherit);
         requests = expand.expand(parsedRequests);
@@ -104,7 +105,8 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
             // also print the request
             std::stringstream ss;
             ss << requests[i];
-            throw eckit::UserError("This tool requires cardinality of each request to be 1, but gribjump found " + std::to_string(r.size()) + " results for request " + ss.str());
+            throw eckit::UserError("This tool requires cardinality of each request to be 1, but gribjump found " +
+                                   std::to_string(r.size()) + " results for request " + ss.str());
         }
     }
 
@@ -120,14 +122,14 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
 
         for (int j = 0; j < results[i].size(); j++) {
             const auto& ecval = ecvalues[j];
-            const auto& gjval= results[i][j]->values();
+            const auto& gjval = results[i][j]->values();
 
             ASSERT(ecval.size() == gjval.size());
 
             // debug: print everything
             for (int k = 0; k < ecval.size(); k++) {
-                LOG_DEBUG_LIB(LibGribJump)  << "ecval[" << k << "]: " << ecval[k] << std::endl;
-                LOG_DEBUG_LIB(LibGribJump)  << "gjval[" << k << "]: " << gjval[k] << std::endl;
+                LOG_DEBUG_LIB(LibGribJump) << "ecval[" << k << "]: " << ecval[k] << std::endl;
+                LOG_DEBUG_LIB(LibGribJump) << "gjval[" << k << "]: " << gjval[k] << std::endl;
             }
 
             for (int k = 0; k < ecval.size(); k++) {
@@ -141,12 +143,10 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
     }
 
     eckit::Log::info() << "Compared " << countAllValues << " values. All match." << std::endl;
-    
 }
-} // namespace gribjump::tool
+}  // namespace gribjump::tool
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     gribjump::tool::CompareEccodes app(argc, argv);
     return app.start();
 }
-

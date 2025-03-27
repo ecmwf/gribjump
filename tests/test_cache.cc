@@ -10,17 +10,17 @@
 
 #include <cmath>
 
-#include "eckit/testing/Test.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/testing/Test.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/info/InfoCache.h"
-#include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/InfoExtractor.h"
+#include "gribjump/info/JumpInfo.h"
 
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 
 namespace gribjump {
@@ -28,7 +28,7 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 
-CASE( "test_cache" ){
+CASE("test_cache") {
 
     // --------------------------------------------------------------------------------------------
 
@@ -40,21 +40,21 @@ CASE( "test_cache" ){
     tmpdir.mkdir();
     eckit::testing::SetEnv env("GRIBJUMP_CACHE_DIR", tmpdir.asString().c_str());
 
-    eckit::PathName path = "extract_ranges.grib"; // TODO, use a file with mixed ccsds and simple grids
+    eckit::PathName path = "extract_ranges.grib";  // TODO, use a file with mixed ccsds and simple grids
     InfoExtractor extractor;
 
-    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>>  offsetInfos = extractor.extract(path);
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> offsetInfos = extractor.extract(path);
 
     // --------------------------------------------------------------------------------------------
-    
+
     // pre-populate the cache
     for (size_t i = 0; i < offsetInfos.size(); i++) {
         std::unique_ptr<JumpInfo> info(extractor.extract(path, offsetInfos[i].first));
         InfoCache::instance().insert(path, offsetInfos[i].first, std::move(info));
     }
-    
+
     // Test 1: getting fields from cache.
-    
+
     for (size_t i = 0; i < offsetInfos.size(); i++) {
         std::shared_ptr<JumpInfo> info = InfoCache::instance().get(path, offsetInfos[i].first);
         EXPECT(info);
@@ -71,7 +71,6 @@ CASE( "test_cache" ){
         EXPECT(info);
         EXPECT(*info == *offsetInfos[i].second);
     }
-
 }
 //-----------------------------------------------------------------------------
 
@@ -79,7 +78,6 @@ CASE( "test_cache" ){
 }  // namespace gribjump
 
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

@@ -8,37 +8,37 @@
  * does it submit to any jurisdiction.
  */
 
-# include "gribjump/GribJump.h"
+#include "gribjump/GribJump.h"
 
 #pragma once
 
 namespace gribjump {
 
 class GribJumpFactory {
-    virtual GribJumpBase *make(const Config& config) const = 0;
+    virtual GribJumpBase* make(const Config& config) const = 0;
 
 protected:
-    explicit GribJumpFactory(const std::string &);
+
+    explicit GribJumpFactory(const std::string&);
     virtual ~GribJumpFactory();
 
     std::string name_;
 
 public:
-    static GribJumpBase *build(const Config& config);
 
+    static GribJumpBase* build(const Config& config);
 };
 
 /// Templated specialisation of the self-registering factory,
 /// that does the self-registration, and the construction of each object.
 
-template< class T>
+template <class T>
 class GribJumpBuilder : public GribJumpFactory {
-    GribJumpBase *make(const Config& config) const override {
-        return new T(config);
-    }
+    GribJumpBase* make(const Config& config) const override { return new T(config); }
 
 public:
-    explicit GribJumpBuilder(const std::string &name) : GribJumpFactory(name) {}
+
+    explicit GribJumpBuilder(const std::string& name) : GribJumpFactory(name) {}
 };
 
-} // namespace gribjump
+}  // namespace gribjump

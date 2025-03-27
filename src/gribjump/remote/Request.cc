@@ -15,11 +15,11 @@
 #include "gribjump/Engine.h"
 
 namespace {
-    static std::atomic<uint64_t> requestid_{0};
-    static uint64_t requestid() {
-        return requestid_++;
-    }
-} // namespace
+static std::atomic<uint64_t> requestid_{0};
+static uint64_t requestid() {
+    return requestid_++;
+}
+}  // namespace
 
 namespace gribjump {
 
@@ -58,8 +58,8 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
 
 void ScanRequest::execute() {
     auto [nfields, report] = engine_.scan(requests_, byfiles_);
-    nFields_ = nfields;
-    report_ = std::move(report);
+    nFields_               = nfields;
+    report_                = std::move(report);
 }
 
 void ScanRequest::replyToClient() {
@@ -93,9 +93,9 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 void ExtractRequest::execute() {
 
     auto [results, report] = engine_.extract(requests_);
-    results_ = std::move(results);
-    report_ = std::move(report);
-    
+    results_               = std::move(results);
+    report_                = std::move(report);
+
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
             LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
@@ -150,14 +150,14 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
         size_t nItems;
         client_ >> fname;
         client_ >> nItems;
-        filemap_[fname] = std::vector<ExtractionItem*>(); // non-owning pointers
+        filemap_[fname] = std::vector<ExtractionItem*>();  // non-owning pointers
         filemap_[fname].reserve(nItems);
 
         for (size_t j = 0; j < nItems; j++) {
             ExtractionRequest req(client_);
             eckit::URI uri("file", eckit::URI(client_));
             auto extractionItem = std::make_unique<ExtractionItem>(req.ranges());
-            extractionItem->gridHash(req.gridHash()); // @todo, tidy this up.
+            extractionItem->gridHash(req.gridHash());  // @todo, tidy this up.
             extractionItem->URI(uri);
             filemap_[fname].push_back(extractionItem.get());
             items_.push_back(std::move(extractionItem));
@@ -166,7 +166,7 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
     }
     MetricsManager::instance().set("count_requests", count);
 
-    ASSERT(count > 0); // We should not be talking to this server if we have no requests.
+    ASSERT(count > 0);  // We should not be talking to this server if we have no requests.
 }
 
 void ForwardedExtractRequest::execute() {
@@ -176,7 +176,7 @@ void ForwardedExtractRequest::execute() {
 void ForwardedExtractRequest::replyToClient() {
 
     for (auto& [fname, extractionItems] : filemap_) {
-        client_ << fname; // sanity check
+        client_ << fname;  // sanity check
         size_t nItems = extractionItems.size();
         client_ << nItems;
         for (auto& item : extractionItems) {
@@ -214,8 +214,8 @@ ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream) : Request(stre
 
 void ForwardedScanRequest::execute() {
     auto [nfields, report] = engine_.scheduleScanTasks(scanmap_);
-    nfields_ = nfields;
-    report_ = std::move(report);
+    nfields_               = nfields;
+    report_                = std::move(report);
 }
 
 void ForwardedScanRequest::replyToClient() {

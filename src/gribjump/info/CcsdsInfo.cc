@@ -27,15 +27,16 @@ namespace grib {
 static GribAccessor<unsigned long> ccsdsFlags("ccsdsFlags", true);
 static GribAccessor<unsigned long> ccsdsBlockSize("ccsdsBlockSize", true);
 static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi", true);
-} // namespace grib
+}  // namespace grib
 
 //----------------------------------------------------------------------------------------------------------------------
 
-CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) : JumpInfo(h, startOffset) {
+CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) :
+    JumpInfo(h, startOffset) {
 
-    ccsdsFlags_ = grib::ccsdsFlags(h);
+    ccsdsFlags_     = grib::ccsdsFlags(h);
     ccsdsBlockSize_ = grib::ccsdsBlockSize(h);
-    ccsdsRsi_ = grib::ccsdsRsi(h);
+    ccsdsRsi_       = grib::ccsdsRsi(h);
 
     // Special case: constant field (no data section)
     if (bitsPerValue_ == 0 || offsetAfterData_ == offsetBeforeData_) {
@@ -52,23 +53,22 @@ CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& 
     handle.read(buffer, len);
 
     mc::CcsdsDecompressor<double> ccsds{};
-    ccsds
-    .flags(ccsdsFlags_)
-    .bits_per_sample(bitsPerValue_)
-    .block_size(ccsdsBlockSize_)
-    .rsi(ccsdsRsi_)
-    .reference_value(referenceValue_)
-    .binary_scale_factor(binaryScaleFactor_)
-    .decimal_scale_factor(decimalScaleFactor_);
+    ccsds.flags(ccsdsFlags_)
+        .bits_per_sample(bitsPerValue_)
+        .block_size(ccsdsBlockSize_)
+        .rsi(ccsdsRsi_)
+        .reference_value(referenceValue_)
+        .binary_scale_factor(binaryScaleFactor_)
+        .decimal_scale_factor(decimalScaleFactor_);
     ccsds.n_elems(numberOfValues_);
 
     ccsdsOffsets_ = ccsds.decode_offsets(buffer);
 }
 
 CcsdsInfo::CcsdsInfo(const eckit::message::Message& msg) : JumpInfo(msg) {
-    ccsdsFlags_ = msg.getLong("ccsdsFlags");
+    ccsdsFlags_     = msg.getLong("ccsdsFlags");
     ccsdsBlockSize_ = msg.getLong("ccsdsBlockSize");
-    ccsdsRsi_ = msg.getLong("ccsdsRsi");
+    ccsdsRsi_       = msg.getLong("ccsdsRsi");
 
     eckit::Length len = offsetAfterData_ - offsetBeforeData_;
     eckit::Buffer buffer(len);
@@ -78,8 +78,7 @@ CcsdsInfo::CcsdsInfo(const eckit::message::Message& msg) : JumpInfo(msg) {
     dh->read(buffer, len);
 
     mc::CcsdsDecompressor<double> ccsds{};
-    ccsds
-        .flags(ccsdsFlags_)
+    ccsds.flags(ccsdsFlags_)
         .bits_per_sample(bitsPerValue_)
         .block_size(ccsdsBlockSize_)
         .rsi(ccsdsRsi_)
@@ -96,7 +95,7 @@ CcsdsInfo::CcsdsInfo(eckit::Stream& s) : JumpInfo(s) {
     s >> ccsdsFlags_;
     s >> ccsdsBlockSize_;
     s >> ccsdsRsi_;
-    s >> ccsdsOffsets_;    
+    s >> ccsdsOffsets_;
 }
 
 void CcsdsInfo::encode(eckit::Stream& s) const {
@@ -117,23 +116,25 @@ void CcsdsInfo::print(std::ostream& s) const {
 }
 
 bool CcsdsInfo::equals(const JumpInfo& other) const {
-    
-    if (!JumpInfo::equals(other)) return false;
+
+    if (!JumpInfo::equals(other))
+        return false;
 
     const auto& o = static_cast<const CcsdsInfo&>(other);
-    return ccsdsFlags_ == o.ccsdsFlags_ &&
-           ccsdsBlockSize_ == o.ccsdsBlockSize_ &&
-           ccsdsRsi_ == o.ccsdsRsi_ &&
+    return ccsdsFlags_ == o.ccsdsFlags_ && ccsdsBlockSize_ == o.ccsdsBlockSize_ && ccsdsRsi_ == o.ccsdsRsi_ &&
            ccsdsOffsets_ == o.ccsdsOffsets_;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-eckit::ClassSpec CcsdsInfo::classSpec_ = {&JumpInfo::classSpec(), "CcsdsInfo",};
+eckit::ClassSpec CcsdsInfo::classSpec_ = {
+    &JumpInfo::classSpec(),
+    "CcsdsInfo",
+};
 eckit::Reanimator<CcsdsInfo> CcsdsInfo::reanimator_;
 
 static InfoBuilder<CcsdsInfo> ccsdsInfoBuilder("grid_ccsds");
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

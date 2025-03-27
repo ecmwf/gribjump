@@ -13,12 +13,12 @@
 #pragma once
 
 #include "eckit/serialisation/Stream.h"
-#include "metkit/mars/MarsRequest.h"
 #include "gribjump/ExtractionItem.h"
-#include "gribjump/Task.h"
 #include "gribjump/Lister.h"
-#include "gribjump/Types.h"
 #include "gribjump/Metrics.h"
+#include "gribjump/Task.h"
+#include "gribjump/Types.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 
@@ -31,30 +31,29 @@ struct TaskOutcome {
 
 class Engine {
 public:
-    
+
     Engine();
     ~Engine();
 
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
-    
+
     // byfiles: scan entire file, not just fields matching request
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false);
     TaskOutcome<size_t> scan(std::vector<eckit::PathName> files);
     TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap);
 
-    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level=3);
+    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3);
 
     TaskReport scheduleExtractionTasks(filemap_t& filemap);
 
-private: 
+private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
-    metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem );
+    metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
-
 };
 
 
-} // namespace gribjump
+}  // namespace gribjump

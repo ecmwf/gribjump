@@ -8,27 +8,27 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+#include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-#include "eckit/config/Resource.h"
-#include "eckit/config/YAMLConfiguration.h"
 
 #include "fdb5/LibFdb5.h"
 
-#include "gribjump/LibGribJump.h"
 #include "gribjump/FDBPlugin.h"
+#include "gribjump/LibGribJump.h"
 
 using namespace fdb5;
 
 namespace gribjump {
 
 namespace {
-    // Register the constructor callback immediately.
-    FDBPlugin& pluginInstance = FDBPlugin::instance();
-}
+// Register the constructor callback immediately.
+FDBPlugin& pluginInstance = FDBPlugin::instance();
+}  // namespace
 
-FDBPlugin& FDBPlugin::instance() { 
+FDBPlugin& FDBPlugin::instance() {
     static FDBPlugin instance_;
     return instance_;
 }
@@ -36,8 +36,9 @@ FDBPlugin& FDBPlugin::instance() {
 FDBPlugin::FDBPlugin() {
     // NB: Can't access eckit::Resource outside the callback because eckit::main has not finished initialising
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::CallbackRegistry& fdb) {
-        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false); 
-        static bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false); // Emergency off-switch
+        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+        static bool disableGribjump =
+            eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false);  // Emergency off-switch
         if (enableGribjump && !disableGribjump) {
             LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin has been enabled" << std::endl;
             FDBPlugin::instance().addFDB(fdb);
@@ -56,7 +57,8 @@ void FDBPlugin::addFDB(fdb5::CallbackRegistry& fdb) {
     aggregators_.emplace_back(std::make_unique<std::optional<InfoAggregator>>());
     std::optional<InfoAggregator>& aggregator = *aggregators_.back();
 
-    fdb.registerArchiveCallback([this, &aggregator](const fdb5::Key& key, const void* data, const size_t length, std::future<std::shared_ptr<const FieldLocation>> future)  {
+    fdb.registerArchiveCallback([this, &aggregator](const fdb5::Key& key, const void* data, const size_t length,
+                                                    std::future<std::shared_ptr<const FieldLocation>> future) {
         if (!matches(key) || length < 4)
             return;
 
@@ -71,19 +73,20 @@ void FDBPlugin::addFDB(fdb5::CallbackRegistry& fdb) {
 
 
     fdb.registerFlushCallback([&aggregator]() {
-        if (!aggregator) return; // It's possible that no keys ever matched, so the aggregator was never created.
+        if (!aggregator)
+            return;  // It's possible that no keys ever matched, so the aggregator was never created.
         LOG_DEBUG_LIB(LibGribJump) << "Flush callback" << std::endl;
         aggregator->flush();
         aggregator.reset();
     });
-
 }
 
 // TODO: Look also at the multio select functionality, which is more complete.
 // Which can specify match and exclusions, for instance. Which is probably nicer.
 void FDBPlugin::parseConfig() {
     std::lock_guard<std::mutex> lock(mutex_);
-    if (configParsed_) return;
+    if (configParsed_)
+        return;
     configParsed_ = true;
 
     const Config& config = LibGribJump::instance().config();
@@ -113,21 +116,22 @@ void FDBPlugin::parseConfig() {
             LOG_DEBUG_LIB(LibGribJump) << "    " << kv.first << " => " << kv.second << std::endl;
         }
     }
-
 }
 
 // Check if selectDict matches key
 bool FDBPlugin::matches(const fdb5::Key& key) const {
 
-    if (selectDict_.empty()) return false;
+    if (selectDict_.empty())
+        return false;
 
     for (const auto& kv : selectDict_) {
         std::string value = key.get(kv.first);
         eckit::Regex regex(kv.second);
-        if (!regex.match(value)) return false;
+        if (!regex.match(value))
+            return false;
     }
 
     return true;
 }
 
-} // namespace gribjump
+}  // namespace gribjump

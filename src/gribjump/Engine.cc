@@ -10,9 +10,9 @@
 
 /// @author Christopher Bradley
 
+#include "eckit/config/Resource.h"
 #include "eckit/log/Plural.h"
 #include "eckit/utils/StringTools.h"
-#include "eckit/config/Resource.h"
 
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
@@ -20,13 +20,12 @@
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Forwarder.h"
-#include "gribjump/remote/WorkQueue.h"
 #include "gribjump/jumper/JumperFactory.h"
-
+#include "gribjump/remote/WorkQueue.h"
 
 
 namespace gribjump {
-    
+
 //----------------------------------------------------------------------------------------------------------------------
 
 // Stringify requests and keys alphabetically
@@ -35,11 +34,11 @@ Engine::Engine() {}
 
 Engine::~Engine() {}
 
-metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem ){
+metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
     // Split strings into one unified map
     // We also canonicalise the requests such that their keys are in alphabetical order
-    /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should look into
-    /// merging into the minimum number of requests.
+    /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should
+    /// look into merging into the minimum number of requests.
     static bool ignoreYearMonth = eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", true);
     std::map<std::string, std::set<std::string>> keyValues;
     bool dropYearMonth = false;
@@ -48,17 +47,20 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
 
         /// @todo: this ignoreYearMonth logic is duplicated somewhat in Lister.cc. We should consolidate.
         // If "year" and "month" are present, we must drop them if "date" is also present.
-        if (ignoreYearMonth && s.find("year") != std::string::npos && s.find("month") != std::string::npos && s.find("date") != std::string::npos) {
+        if (ignoreYearMonth && s.find("year") != std::string::npos && s.find("month") != std::string::npos &&
+            s.find("date") != std::string::npos) {
             dropYearMonth = true;
         }
 
-        std::vector<std::string> kvs = eckit::StringTools::split(",", s); /// @todo might be faster to use tokenizer directly.
+        std::vector<std::string> kvs =
+            eckit::StringTools::split(",", s);  /// @todo might be faster to use tokenizer directly.
         std::vector<std::string> kvs_sanitized;
         kvs_sanitized.reserve(kvs.size());
 
         for (auto& kv : kvs) {
             std::vector<std::string> kv_s = eckit::StringTools::split("=", kv);
-            if (kv_s.size() != 2) continue; // ignore verb
+            if (kv_s.size() != 2)
+                continue;  // ignore verb
             if (dropYearMonth && (kv_s[0] == "year" || kv_s[0] == "month")) {
                 continue;
             }
@@ -76,22 +78,23 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
             }
         }
 
-        ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end()); // no repeats
+        ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end());  // no repeats
         r.requestString(canonicalised);
         auto extractionItem = std::make_unique<ExtractionItem>(canonicalised, r.ranges());
         extractionItem->gridHash(r.gridHash());
-        keyToExtractionItem.emplace(canonicalised, std::move(extractionItem)); // 1-to-1-map
+        keyToExtractionItem.emplace(canonicalised, std::move(extractionItem));  // 1-to-1-map
     }
 
     // Construct the union request
 
     std::string result = "retrieve,";
-    size_t i = 0;
+    size_t i           = 0;
     for (auto& [key, values] : keyValues) {
         result += key + "=";
         if (values.size() == 1) {
             result += *values.begin();
-        } else {
+        }
+        else {
             size_t j = 0;
             for (auto& value : values) {
                 result += value;
@@ -121,7 +124,7 @@ filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, Ex
     return filemap;
 }
 
-TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap){
+TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap) {
 
     bool forwardExtraction = LibGribJump::instance().config().getBool("forwardExtraction", false);
     if (forwardExtraction) {
@@ -137,10 +140,12 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap){
         if (extractionItems[0]->isRemote()) {
             if (inefficientExtraction) {
                 taskGroup.enqueueTask<InefficientFileExtractionTask>(fname, extractionItems);
-            } else {
+            }
+            else {
                 throw eckit::SeriousBug("Got remote URI from FDB, but forwardExtraction enabled in gribjump config.");
             }
-        } else {
+        }
+        else {
             taskGroup.enqueueTask<FileExtractionTask>(fname, extractionItems);
         }
     }
@@ -151,7 +156,7 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap){
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
     eckit::Timer timer("Engine::extract");
-    
+
     ExItemMap keyToExtractionItem;
     metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
 
@@ -174,7 +179,7 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 }
 
 ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
-    
+
     // Create map of base request to vector of extraction items. Takes ownership of the ExtractionItems
     ResultsMap results;
 
@@ -201,14 +206,14 @@ TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
         return forwarder.scan(uris);
     }
 
-    std::map< eckit::PathName, eckit::OffsetList > filemap = FDBLister::instance().filesOffsets(uris);
+    std::map<eckit::PathName, eckit::OffsetList> filemap = FDBLister::instance().filesOffsets(uris);
 
-    if (byfiles) { // ignore offsets and scan entire file
+    if (byfiles) {  // ignore offsets and scan entire file
         for (auto& [uri, offsets] : filemap) {
             offsets.clear();
         }
     }
-    
+
     return scheduleScanTasks(filemap);
 }
 
@@ -236,11 +241,11 @@ TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
     return {nfields, taskGroup.report()};
 }
 
-std::map<std::string, std::unordered_set<std::string> > Engine::axes(const std::string& request, int level) {
+std::map<std::string, std::unordered_set<std::string>> Engine::axes(const std::string& request, int level) {
     MetricsManager::instance().set("request", request);
     return FDBLister::instance().axes(request, level);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

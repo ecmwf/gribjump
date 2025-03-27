@@ -31,14 +31,14 @@ namespace gribjump {
 class Lister {
 public:
 
-    virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) = 0; // <-- May not want to use mars request?
-    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0 ;
+    virtual std::vector<eckit::URI> list(
+        const std::vector<metkit::mars::MarsRequest> requests) = 0;  // <-- May not want to use mars request?
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0;
 
 protected:
 
     Lister();
     ~Lister();
-    
 };
 
 //  ------------------------------------------------------------------
@@ -49,24 +49,30 @@ public:
     static FDBLister& instance();
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
-    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) override;
-    virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request, int level);
-    
-    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToXRR); // Used during extraction
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request,
+                                                                         int level) override;
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request,
+                                                                         int level);
 
-    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(const std::vector<metkit::mars::MarsRequest>& requests); // Used during scan
-    std::map< eckit::PathName, eckit::OffsetList > filesOffsets(const std::vector<eckit::URI>& uris);
+    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest,
+                      const ExItemMap& reqToXRR);  // Used during extraction
+
+    std::map<eckit::PathName, eckit::OffsetList> filesOffsets(
+        const std::vector<metkit::mars::MarsRequest>& requests);  // Used during scan
+    std::map<eckit::PathName, eckit::OffsetList> filesOffsets(const std::vector<eckit::URI>& uris);
 
     std::vector<eckit::URI> URIs(const std::vector<metkit::mars::MarsRequest>& requests);
-    
+
 private:
+
     FDBLister();
     ~FDBLister();
 
 private:
+
     bool allowMissing_;
 };
 
 // ------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

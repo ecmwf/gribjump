@@ -29,23 +29,24 @@ using BaseApp = dhskit::DHSApplication;
 #else
 using BaseApp = eckit::Application;
 #endif
-} // namespace
+}  // namespace
 
 
 namespace gribjump {
 
-class GribJumpServerApp: public BaseApp, public GribJumpServer {
+class GribJumpServerApp : public BaseApp, public GribJumpServer {
 public:
-    GribJumpServerApp(int argc, char** argv) : 
-        BaseApp(argc, argv, "GRIBJUMP_HOME"), 
-        GribJumpServer(eckit::net::Port( // gribjumpServerPort
-            "gribjumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", LibGribJump::instance().config().getInt("server.port", 9777)
-        )))
-        {}
+
+    GribJumpServerApp(int argc, char** argv) :
+        BaseApp(argc, argv, "GRIBJUMP_HOME"),
+        GribJumpServer(eckit::net::Port(  // gribjumpServerPort
+            "gribjumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT",
+                                                   LibGribJump::instance().config().getInt("server.port", 9777)))) {}
 
     ~GribJumpServerApp() {}
 
 private:
+
     GribJumpServerApp(const GribJumpServerApp&);
     void run() override {
         unique();

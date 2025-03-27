@@ -15,7 +15,8 @@
 
 namespace gribjump {
 
-SimpleInfo::SimpleInfo(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, const eckit::Offset startOffset) : JumpInfo(gh, startOffset) {}
+SimpleInfo::SimpleInfo(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, const eckit::Offset startOffset) :
+    JumpInfo(gh, startOffset) {}
 
 SimpleInfo::SimpleInfo(const eckit::message::Message& msg) : JumpInfo(msg) {}
 
@@ -32,11 +33,14 @@ void SimpleInfo::print(std::ostream& s) const {
 
 // -----------------------------------------------------------------------------
 
-eckit::ClassSpec SimpleInfo::classSpec_ = {&JumpInfo::classSpec(), "SimpleInfo",};
+eckit::ClassSpec SimpleInfo::classSpec_ = {
+    &JumpInfo::classSpec(),
+    "SimpleInfo",
+};
 eckit::Reanimator<SimpleInfo> SimpleInfo::reanimator_;
 
 static InfoBuilder<SimpleInfo> simpleInfoBuilder("grid_simple");
 
 // -----------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

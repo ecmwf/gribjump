@@ -15,21 +15,21 @@
 
 #include <unordered_set>
 
-#include "eckit/memory/NonCopyable.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/memory/NonCopyable.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/ExtractionItem.h"
-#include "gribjump/Config.h"
-#include "gribjump/Stats.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/Metrics.h"
+#include "gribjump/Stats.h"
 #include "gribjump/Types.h"
 
 namespace fdb5 {
-    class Key;
-    class FieldLocation;
-} // namespace fdb5
+class Key;
+class FieldLocation;
+}  // namespace fdb5
 
 namespace gribjump {
 
@@ -37,10 +37,10 @@ using ResultsMap = std::map<std::string, std::vector<std::unique_ptr<ExtractionI
 
 class GribJumpBase : public eckit::NonCopyable {
 public:
-    
+
     GribJumpBase(const Config& config);
     GribJumpBase();
-    
+
     virtual ~GribJumpBase();
 
     size_t virtual scan(const std::vector<eckit::PathName>& paths) = 0;
@@ -48,15 +48,17 @@ public:
     virtual size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) = 0;
 
     virtual std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>&) = 0;
-    virtual std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) = 0;
-    
+    virtual std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path,
+                                                                 const std::vector<eckit::Offset>& offsets,
+                                                                 const std::vector<std::vector<Range>>& ranges)  = 0;
+
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) = 0;
-    
+
     virtual void stats();
 
-protected: // members
+protected:  // members
 
     Stats stats_;
 };
 
-} // namespace gribjump
+}  // namespace gribjump

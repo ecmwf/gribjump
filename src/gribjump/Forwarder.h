@@ -9,17 +9,18 @@
  */
 
 /// @author Christopher Bradley
-#include "gribjump/Types.h"
-#include "gribjump/Task.h"
-#include "gribjump/Engine.h"
 #include "eckit/net/Endpoint.h"
+#include "gribjump/Engine.h"
+#include "gribjump/Task.h"
+#include "gribjump/Types.h"
 
 #pragma once
 
 // Class used by Engine to forward requests onto remote servers
 // Example: when the remoteFDB is in use, data is distributed across multiple stores and a catalogue
-// The Engine will obtain the URIs from the catalogue and use this class to forward the requests to the appropriate gribjump server
-namespace gribjump{
+// The Engine will obtain the URIs from the catalogue and use this class to forward the requests to the appropriate
+// gribjump server
+namespace gribjump {
 
 class Forwarder {
 public:
@@ -30,12 +31,11 @@ public:
     TaskOutcome<size_t> scan(const std::vector<eckit::URI>& uris);
     TaskReport extract(filemap_t& filemap);
 
-private: 
+private:
 
     std::unordered_map<eckit::net::Endpoint, filemap_t> serverFileMap(filemap_t& filemap);
-    
-    const eckit::net::Endpoint& serverForURI(const eckit::URI& uri) const;
 
+    const eckit::net::Endpoint& serverForURI(const eckit::URI& uri) const;
 };
 
-} // namespace gribjump
+}  // namespace gribjump

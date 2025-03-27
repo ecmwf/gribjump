@@ -55,7 +55,6 @@ private:
     // From Streamable
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<CcsdsInfo> reanimator_;
-
 };
-    
-} // namespace gribjump
+
+}  // namespace gribjump

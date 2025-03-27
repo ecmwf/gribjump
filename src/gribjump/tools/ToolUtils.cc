@@ -11,16 +11,16 @@
 
 #include <fstream>
 
-#include "eckit/utils/StringTools.h"
 #include "eckit/filesystem/PathName.h"
-#include "metkit/mars/MarsExpension.h"
+#include "eckit/utils/StringTools.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/tools/ToolUtils.h"
+#include "metkit/mars/MarsExpension.h"
 
 namespace gribjump {
 
 std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname) {
-    
+
     // plain text file with the following format:
     //      10-20, 30-40
     //      10-20, 60-70, 80-90
@@ -52,11 +52,11 @@ std::vector<std::vector<Range>> parseRangesFile(eckit::PathName fname) {
 
 class CollectFlattenedRequests : public metkit::mars::FlattenCallback {
 public:
-    CollectFlattenedRequests(std::vector<metkit::mars::MarsRequest>& flattenedRequests) : flattenedRequests_(flattenedRequests) {}
 
-    virtual void operator()(const metkit::mars::MarsRequest& req) {
-        flattenedRequests_.push_back(req);
-    }
+    CollectFlattenedRequests(std::vector<metkit::mars::MarsRequest>& flattenedRequests) :
+        flattenedRequests_(flattenedRequests) {}
+
+    virtual void operator()(const metkit::mars::MarsRequest& req) { flattenedRequests_.push_back(req); }
 
     std::vector<metkit::mars::MarsRequest>& flattenedRequests_;
 };
@@ -66,7 +66,7 @@ std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRe
     metkit::mars::MarsExpension expansion(false);
     metkit::mars::DummyContext ctx;
     std::vector<metkit::mars::MarsRequest> flattenedRequests;
-    
+
     CollectFlattenedRequests cb(flattenedRequests);
     expansion.flatten(ctx, request, cb);
 
@@ -81,4 +81,4 @@ std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRe
     return flattenedRequests;
 }
 
-} // namespace gribjump
+}  // namespace gribjump

@@ -17,11 +17,13 @@
 
 namespace gribjump {
 
-std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges);
+std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request,
+                                                             std::vector<Range> ranges);
 
-std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets, std::vector<Range> ranges);
+std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets,
+                                                             std::vector<Range> ranges);
 
 // Flat extract with no ranges, assumes message is at offset 0.
 std::vector<double> eccodesExtract(eckit::PathName path);
 
-} // namespace gribjump
+}  // namespace gribjump

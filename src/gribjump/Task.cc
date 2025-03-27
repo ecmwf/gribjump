@@ -8,34 +8,33 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
+#include "eckit/io/AutoCloser.h"
+#include "eckit/io/Length.h"
+#include "eckit/io/MemoryHandle.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
 #include "eckit/thread/AutoLock.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/io/Length.h"
-#include "eckit/io/AutoCloser.h"
-#include "eckit/config/Resource.h"
 
 #include "fdb5/api/FDB.h"
 
+#include "gribjump/LibGribJump.h"
 #include "gribjump/Task.h"
 #include "gribjump/info/InfoCache.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/jumper/JumperFactory.h"
-#include "gribjump/remote/WorkQueue.h"
 #include "gribjump/info/InfoFactory.h"
+#include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/remote/RemoteGribJump.h"
+#include "gribjump/remote/WorkQueue.h"
 
 namespace gribjump {
 
-constexpr bool cancelOnFirstError = true; ///@todo make this configurable
+constexpr bool cancelOnFirstError = true;  ///@todo make this configurable
 
 //----------------------------------------------------------------------------------------------------------------------
 
-Task::Task(TaskGroup& taskGroup, size_t taskid) : taskGroup_(taskGroup), taskid_(taskid) {
-}
+Task::Task(TaskGroup& taskGroup, size_t taskid) : taskGroup_(taskGroup), taskid_(taskid) {}
 
 Task::~Task() {}
 
@@ -80,7 +79,8 @@ void TaskGroup::notify(size_t taskid) {
     // Logging progress
     if (waiting_) {
         if (nComplete_ == logcounter_) {
-            eckit::Log::info() << "Gribjump Progress: " << nComplete_ << " of " << tasks_.size() << " tasks complete" << std::endl;
+            eckit::Log::info() << "Gribjump Progress: " << nComplete_ << " of " << tasks_.size() << " tasks complete"
+                               << std::endl;
             logcounter_ += logincrement_;
         }
     }
@@ -113,8 +113,8 @@ void TaskGroup::info() const {
     eckit::Log::status() << nComplete_ << " of " << tasks_.size() << " tasks complete" << std::endl;
 }
 
-// Note: This will only affect tasks that have not yet started. Cancelled tasks will call notifyCancelled() when they are executed.
-// NB: We do not lock a mutex as this will be called from notifyError()
+// Note: This will only affect tasks that have not yet started. Cancelled tasks will call notifyCancelled() when they
+// are executed. NB: We do not lock a mutex as this will be called from notifyError()
 void TaskGroup::cancelTasks() {
     for (auto& task : tasks_) {
         task->cancel();
@@ -124,12 +124,12 @@ void TaskGroup::cancelTasks() {
 void TaskGroup::enqueueTask(Task* task) {
     {
         std::lock_guard<std::mutex> lock(m_);
-        tasks_.push_back(std::unique_ptr<Task>(task)); // TaskGroup takes ownership of its tasks
+        tasks_.push_back(std::unique_ptr<Task>(task));  // TaskGroup takes ownership of its tasks
     }
-   
-    WorkQueue::instance().push(task); /// @note Can block, so release the lock first
 
-    LOG_DEBUG_LIB(LibGribJump) << "Queued task " <<  tasks_.size() << std::endl;
+    WorkQueue::instance().push(task);  /// @note Can block, so release the lock first
+
+    LOG_DEBUG_LIB(LibGribJump) << "Queued task " << tasks_.size() << std::endl;
 }
 
 void TaskGroup::waitForTasks() {
@@ -137,15 +137,15 @@ void TaskGroup::waitForTasks() {
     ASSERT(tasks_.size() > 0);
     LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(tasks_.size(), "task") << "..." << std::endl;
 
-    waiting_ = true;
+    waiting_      = true;
     logincrement_ = tasks_.size() / 10;
     if (logincrement_ == 0) {
         logincrement_ = 1;
     }
 
-    cv_.wait(lock, [&]{return nComplete_ == tasks_.size();});
+    cv_.wait(lock, [&] { return nComplete_ == tasks_.size(); });
     waiting_ = false;
-    done_ = true;
+    done_    = true;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
 
     MetricsManager::instance().set("count_tasks", tasks_.size());
@@ -182,20 +182,19 @@ void TaskReport::raiseErrors() const {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems) :
+FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+                                       ExtractionItems& extractionItems) :
     Task(taskgroup, id),
     fname_(fname),
     extractionItems_(extractionItems),
-    ignoreGrid_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID", LibGribJump::instance().config().getBool("ignoreGridHash", false)))
-    {
-}
+    ignoreGrid_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID",
+                                      LibGribJump::instance().config().getBool("ignoreGridHash", false))) {}
 
-void FileExtractionTask::executeImpl()  {
+void FileExtractionTask::executeImpl() {
 
     // Sort extractionItems_ by offset
-    std::sort(extractionItems_.begin(), extractionItems_.end(), [](const ExtractionItem* a, const ExtractionItem* b) {
-        return a->offset() < b->offset();
-    });
+    std::sort(extractionItems_.begin(), extractionItems_.end(),
+              [](const ExtractionItem* a, const ExtractionItem* b) { return a->offset() < b->offset(); });
 
     extract();
 }
@@ -219,18 +218,22 @@ void FileExtractionTask::extract() {
 
     for (size_t i = 0; i < extractionItems_.size(); i++) {
         ExtractionItem* extractionItem = extractionItems_[i];
-        const JumpInfo& info = *infos[i];
+        const JumpInfo& info           = *infos[i];
 
         const std::string& expectedHash = extractionItem->gridHash();
 
         if (!ignoreGrid_ && expectedHash.empty()) {
-            throw eckit::BadValue("Grid hash was not specified in request but is required. (Extraction item " + std::to_string(i) + " in file " + fname_ + ")");
+            throw eckit::BadValue("Grid hash was not specified in request but is required. (Extraction item " +
+                                  std::to_string(i) + " in file " + fname_ + ")");
         }
         if (!ignoreGrid_ && (expectedHash != info.md5GridSection())) {
-            throw eckit::BadValue("Grid hash mismatch for extraction item " + std::to_string(i) + " in file " + fname_ + ". Request specified: " + expectedHash + ", JumpInfo contains: " + info.md5GridSection());
+            throw eckit::BadValue("Grid hash mismatch for extraction item " + std::to_string(i) + " in file " + fname_ +
+                                  ". Request specified: " + expectedHash +
+                                  ", JumpInfo contains: " + info.md5GridSection());
         }
 
-        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info)); // todo, dont build a new jumper for each info.
+        std::unique_ptr<Jumper> jumper(
+            JumperFactory::instance().build(info));  // todo, dont build a new jumper for each info.
         jumper->extract(fh, offsets[i], info, *extractionItem);
     }
 }
@@ -242,13 +245,11 @@ void FileExtractionTask::info() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 // Forward the work to a remote server, and wait for the results.
-ForwardExtractionTask::ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, filemap_t& filemap) :
-    Task(taskgroup, id),
-    endpoint_(endpoint),
-    filemap_(filemap)
-{}
+ForwardExtractionTask::ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint,
+                                             filemap_t& filemap) :
+    Task(taskgroup, id), endpoint_(endpoint), filemap_(filemap) {}
 
-void ForwardExtractionTask::executeImpl(){
+void ForwardExtractionTask::executeImpl() {
 
     RemoteGribJump remoteGribJump(endpoint_);
     remoteGribJump.forwardExtract(filemap_);
@@ -260,14 +261,11 @@ void ForwardExtractionTask::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields):
-    Task(taskgroup, id),
-    endpoint_(endpoint),
-    scanmap_(scanmap),
-    nfields_(nfields) {
-}
+ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint,
+                                 scanmap_t& scanmap, std::atomic<size_t>& nfields) :
+    Task(taskgroup, id), endpoint_(endpoint), scanmap_(scanmap), nfields_(nfields) {}
 
-void ForwardScanTask::executeImpl(){
+void ForwardScanTask::executeImpl() {
 
     RemoteGribJump remoteGribJump(endpoint_);
     nfields_ += remoteGribJump.forwardScan(scanmap_);
@@ -278,9 +276,10 @@ void ForwardScanTask::info() const {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems):
-    FileExtractionTask(taskgroup, id, fname, extractionItems) {
-}
+InefficientFileExtractionTask::InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id,
+                                                             const eckit::PathName& fname,
+                                                             ExtractionItems& extractionItems) :
+    FileExtractionTask(taskgroup, id, fname, extractionItems) {}
 
 void InefficientFileExtractionTask::extract() {
 
@@ -305,35 +304,32 @@ void InefficientFileExtractionTask::extract() {
 
         {
             // eckit::AutoLock lock(taskGroup_.debugMutex_); // Force single-threaded execution
-            long read = 0;
+            long read   = 0;
             long toRead = length;
             while ((read = remoteHandle->read(buffer, toRead)) != 0) {
                 toRead -= read;
             }
         }
-            
+
         // Straight to factory, don't even check the cache
         memHandle.openForRead();
         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(memHandle, 0));
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(*info));
         jumper->extract(memHandle, 0, *info, *extractionItem);
-
     }
 }
 
 void InefficientFileExtractionTask::info() const {
-    eckit::Log::status() << "Inefficiently extract " << extractionItems_.size() << " items from " << fname_ << std::endl;
+    eckit::Log::status() << "Inefficiently extract " << extractionItems_.size() << " items from " << fname_
+                         << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
 
-FileScanTask::FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields) :
-    Task(taskgroup, id),
-    fname_(fname),
-    offsets_(offsets),
-    nfields_(nfields){
-}
+FileScanTask::FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+                           const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields) :
+    Task(taskgroup, id), fname_(fname), offsets_(offsets), nfields_(nfields) {}
 
 void FileScanTask::executeImpl() {
 
@@ -357,4 +353,4 @@ void FileScanTask::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

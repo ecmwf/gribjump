@@ -10,31 +10,33 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/compression/compressors/Simple.h"
-#include "gribjump/GribJumpDataAccessor.h"
-#include "gribjump/info/SimpleInfo.h"
 #include "gribjump/jumper/SimpleJumper.h"
+#include "gribjump/GribJumpDataAccessor.h"
+#include "gribjump/compression/compressors/Simple.h"
+#include "gribjump/info/SimpleInfo.h"
 #include "gribjump/jumper/JumperFactory.h"
 
 namespace gribjump {
 
-SimpleJumper::SimpleJumper(): Jumper() {}
+SimpleJumper::SimpleJumper() : Jumper() {}
 
 SimpleJumper::~SimpleJumper() {}
 
-void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in, const std::vector<Interval>& intervals, ExtractionItem& item) {
+void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in,
+                              const std::vector<Interval>& intervals, ExtractionItem& item) {
 
     const SimpleInfo* psimple = dynamic_cast<const SimpleInfo*>(&info_in);
 
-    if (!psimple) throw BadJumpInfoException("SimpleJumper::readValues: info is not of type SimpleInfo", Here());
+    if (!psimple)
+        throw BadJumpInfoException("SimpleJumper::readValues: info is not of type SimpleInfo", Here());
 
     const SimpleInfo& info = *psimple;
 
 
-    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(dh, mc::Block{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()}); // TODO XXX
+    std::shared_ptr<mc::DataAccessor> data_accessor = std::make_shared<GribJumpDataAccessor>(
+        dh, mc::Block{offset + info.offsetBeforeData(), info.offsetAfterData() - info.offsetBeforeData()});  // TODO XXX
     mc::SimpleDecompressor<double> simple{};
-    simple
-        .bits_per_value(info.bitsPerValue())
+    simple.bits_per_value(info.bitsPerValue())
         .reference_value(info.referenceValue())
         .binary_scale_factor(info.binaryScaleFactor())
         .decimal_scale_factor(info.decimalScaleFactor());
@@ -49,4 +51,4 @@ void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset,
 
 static JumperBuilder<SimpleJumper> simpleJumperBuilder("grid_simple");
 
-} // namespace gribjump
+}  // namespace gribjump

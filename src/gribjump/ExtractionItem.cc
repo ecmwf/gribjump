@@ -16,4 +16,4 @@ namespace gribjump {
 
 // ------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

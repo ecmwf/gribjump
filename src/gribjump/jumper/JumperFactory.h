@@ -20,21 +20,20 @@ class JumperBuilderBase {
     std::string name_;
 
 public:
+
     JumperBuilderBase(const std::string& name);
     virtual ~JumperBuilderBase();
 
     virtual Jumper* make() const = 0;
-
 };
 
 template <class T>
 class JumperBuilder : public JumperBuilderBase {
-   
-    Jumper* make() const override {
-        return new T();
-    }
+
+    Jumper* make() const override { return new T(); }
 
 public:
+
     JumperBuilder(const std::string& name) : JumperBuilderBase(name) {}
     ~JumperBuilder() override = default;
 };
@@ -61,7 +60,6 @@ private:
 
     std::map<std::string, JumperBuilderBase*> builders_;
     std::mutex mutex_;
-
 };
 
 }  // namespace gribjump

@@ -10,9 +10,9 @@
 
 #include <fstream>
 
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
@@ -28,43 +28,45 @@
 
 namespace gribjump::tool {
 
-class Scan: public GribJumpTool {
-    
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual int numberOfPositionalArguments() const { return -1; }
-  
-  public:
-    Scan(int argc, char **argv): GribJumpTool(argc, argv) {
-        options_.push_back(new eckit::option::SimpleOption<std::string>("file", "Reads the mars requests from a file, rather than from the command line"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
-        options_.push_back(new eckit::option::SimpleOption<bool>("byfiles", "Scan entire files matching the request (default: true)"));
-    }
+class Scan : public GribJumpTool {
 
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
+    virtual int numberOfPositionalArguments() const { return -1; }
+
+public:
+
+    Scan(int argc, char** argv) : GribJumpTool(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<std::string>(
+            "file", "Reads the mars requests from a file, rather than from the command line"));
+        options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
+        options_.push_back(
+            new eckit::option::SimpleOption<bool>("byfiles", "Scan entire files matching the request (default: true)"));
+    }
 };
 
-void Scan::usage(const std::string &tool) const {
+void Scan::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " class=od,stream=oper,expver=xxxx" << std::endl
-                       << "       " << tool << " --file=<mars request file>" << std::endl
-                       ;
+                       << "       " << tool << " --file=<mars request file>" << std::endl;
 
     GribJumpTool::usage(tool);
 }
 
-void Scan::execute(const eckit::option::CmdArgs &args) {
+void Scan::execute(const eckit::option::CmdArgs& args) {
 
-    bool raw = args.getBool("raw", false);
-    bool byfiles = args.getBool("byfiles", false);
+    bool raw         = args.getBool("raw", false);
+    bool byfiles     = args.getBool("byfiles", false);
     std::string file = args.getString("file", "");
 
     std::vector<metkit::mars::MarsRequest> requests;
-    
+
     if (args.count() > 0 && !file.empty()) {
-        throw eckit::UserError("Invalid arguments: Cannot specify both a file (--file) and a request (positional arguments)");
+        throw eckit::UserError(
+            "Invalid arguments: Cannot specify both a file (--file) and a request (positional arguments)");
     }
-    
-    if (!file.empty()){
+
+    if (!file.empty()) {
         // Build request(s) from <file>
         std::ifstream in(file);
         if (in.bad()) {
@@ -76,12 +78,14 @@ void Scan::execute(const eckit::option::CmdArgs &args) {
         if (raw) {
             for (auto r : parsedRequests)
                 requests.push_back(r);
-        } else {
+        }
+        else {
             bool inherit = false;
             metkit::mars::MarsExpension expand(inherit);
             requests = expand.expand(parsedRequests);
         }
-    } else {
+    }
+    else {
         // Build request(s) from positional arguments
         std::vector<std::string> requests_in;
         for (size_t i = 0; i < args.count(); ++i) {
@@ -100,10 +104,9 @@ void Scan::execute(const eckit::option::CmdArgs &args) {
     eckit::Log::info() << "Scanned " << nfields << " field(s)" << std::endl;
 }
 
-} // gribjump::tool
+}  // namespace gribjump::tool
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     gribjump::tool::Scan app(argc, argv);
     return app.start();
 }
-

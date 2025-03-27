@@ -11,20 +11,20 @@
 #include <cmath>
 #include <fstream>
 
-#include "eckit/testing/Test.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/testing/Test.h"
 
-#include "gribjump/GribJump.h"
 #include "gribjump/FDBPlugin.h"
+#include "gribjump/GribJump.h"
 #include "gribjump/info/InfoCache.h"
-#include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/InfoExtractor.h"
+#include "gribjump/info/JumpInfo.h"
 
 #include "fdb5/api/FDB.h"
 
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 
 namespace gribjump {
@@ -33,7 +33,7 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 // See also tests/tools/callback_vs_scan.sh.in
-CASE( "test_plugin" ){
+CASE("test_plugin") {
 
     // --- Setup ------------------------------------------------------------------------------------------
     // write the test_plugin.yaml file
@@ -63,17 +63,19 @@ CASE( "test_plugin" ){
         schema: schema
         spaces:
         - roots:
-          - path: ")XX" + tmpdir + R"XX("
+          - path: ")XX" + tmpdir +
+                                 R"XX("
     )XX");
     std::cout << config_str << std::endl;
 
     SetEnv env("FDB5_CONFIG", config_str.c_str());
 
-    eckit::PathName gribName = "extract_ranges.grib"; // contains 3 messages, expver=xxxx, step=1,2,3. Expect 2 messages selected by the regex
+    eckit::PathName gribName =
+        "extract_ranges.grib";  // contains 3 messages, expver=xxxx, step=1,2,3. Expect 2 messages selected by the regex
 
     // --- Write fdb data ---------------------------------------------------------------------------------
 
-    fdb5::FDB fdb; // callback should be automatically registered
+    fdb5::FDB fdb;  // callback should be automatically registered
     fdb.archive(*gribName.fileHandle());
     fdb.flush();
 
@@ -87,22 +89,22 @@ CASE( "test_plugin" ){
     tmpdir.childrenRecursive(files, dir);
     size_t count = 0;
     for (const auto& file : files) {
-        if (file.extension() != ".gribjump") continue;
+        if (file.extension() != ".gribjump")
+            continue;
         ++count;
         std::cout << file << std::endl;
         IndexFile index = IndexFile(file);
         index.print(std::cout);
-        EXPECT_EQUAL(index.size(), 4); // match 2 messages, twice.
+        EXPECT_EQUAL(index.size(), 4);  // match 2 messages, twice.
 
         // Check what happens when a cached file is modified
         fdb.archive(*gribName.fileHandle());
         fdb.flush();
-        EXPECT_EQUAL(index.size(), 4); // does not autoreload
+        EXPECT_EQUAL(index.size(), 4);  // does not autoreload
         index.reload();
-        EXPECT_EQUAL(index.size(), 6); 
-    
+        EXPECT_EQUAL(index.size(), 6);
     }
-    EXPECT_EQUAL(count, 1 ); // because we should be appending to the same file
+    EXPECT_EQUAL(count, 1);  // because we should be appending to the same file
 }
 //-----------------------------------------------------------------------------
 
@@ -110,7 +112,6 @@ CASE( "test_plugin" ){
 }  // namespace gribjump
 
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

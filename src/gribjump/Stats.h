@@ -15,21 +15,24 @@
 #include "eckit/log/Statistics.h"
 
 namespace gribjump {
-class Stats: public eckit::Statistics {
+class Stats : public eckit::Statistics {
 public:
+
     Stats();
 
     void addExtract(eckit::Timer& timer);
     void addInfo(eckit::Timer& timer);
     void addInspect(eckit::Timer& timer);
-    
+
     void report(std::ostream& out, const char* prefix) const;
 
 private:
+
     void reportTimeStats(std::ostream& out, const std::string& title, size_t count, double sum_times,
-                                 double sum_times_squared, double min, double max, const char* indent) const;
-    
+                         double sum_times_squared, double min, double max, const char* indent) const;
+
 private:
+
     size_t countExtract_;
     size_t countInfos_;
     size_t countInspects_;
@@ -49,5 +52,4 @@ private:
     double elapsedInfosSquared_;
     double elaspedInspectsSquared_;
 };
-} // namespace gribjump
-
+}  // namespace gribjump

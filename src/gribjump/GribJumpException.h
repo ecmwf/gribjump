@@ -21,20 +21,17 @@ namespace gribjump {
 class GribJumpException : public eckit::Exception {
 public:
 
-    GribJumpException(const std::string& msg) :
-        eckit::Exception(std::string("GribJumpException: ") + msg) {}
+    GribJumpException(const std::string& msg) : eckit::Exception(std::string("GribJumpException: ") + msg) {}
 
     GribJumpException(const std::string& msg, const eckit::CodeLocation& here) :
         eckit::Exception(std::string("GribJumpException: ") + msg, here) {}
-
 };
 
 // For requests matching data that is not found
 class DataNotFoundException : public GribJumpException {
 public:
 
-    DataNotFoundException(const std::string& msg) :
-        GribJumpException("DataNotFound. " + msg) {}
+    DataNotFoundException(const std::string& msg) : GribJumpException("DataNotFound. " + msg) {}
 
     DataNotFoundException(const std::string& msg, const eckit::CodeLocation& here) :
         GribJumpException("DataNotFound. " + msg, here) {}
@@ -51,4 +48,4 @@ public:
 };
 
 
-} // namespace gribjump
+}  // namespace gribjump
