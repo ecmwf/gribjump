@@ -12,6 +12,7 @@
 
 #include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/GribJumpDataAccessor.h"
+#include "gribjump/Types.h"
 #include "gribjump/compression/compressors/Ccsds.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/jumper/JumperFactory.h"
@@ -24,7 +25,7 @@ CcsdsJumper::CcsdsJumper() : Jumper() {}
 CcsdsJumper::~CcsdsJumper() {}
 
 void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in,
-                             const std::vector<Interval>& intervals, ExtractionItem& item) {
+                             const std::vector<Interval>& intervals, ExValues& values) {
 
     const CcsdsInfo* pccsds = dynamic_cast<const CcsdsInfo*>(&info_in);
 
@@ -51,7 +52,7 @@ void CcsdsJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, 
     // TODO(maee): Optimize this
     auto ranges = toRanges(intervals);
 
-    ccsds.decode(data_accessor, ranges, item.values());
+    ccsds.decode(data_accessor, ranges, values);
 
     return;
 }

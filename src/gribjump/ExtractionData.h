@@ -28,7 +28,7 @@ class ExtractionResult {
 public:  // methods
 
     ExtractionResult();
-    ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
+    ExtractionResult(std::vector<std::vector<double>>&& values, std::vector<std::vector<std::bitset<64>>>&& mask);
     explicit ExtractionResult(eckit::Stream& s);
 
     // Movable, not copyable
@@ -37,6 +37,13 @@ public:  // methods
 
     ExtractionResult(ExtractionResult&&)            = default;
     ExtractionResult& operator=(ExtractionResult&&) = default;
+
+    std::vector<std::vector<double>>& mutable_values() { return values_; }
+    std::vector<std::vector<std::bitset<64>>>& mutable_mask() { return mask_; }
+
+    /// @todo can we remove these now?
+    void values(ExValues&& values) { values_ = std::move(values); }
+    void mask(ExMask&& mask) { mask_ = std::move(mask); }
 
     const std::vector<std::vector<double>>& values() const { return values_; }
     const std::vector<std::vector<std::bitset<64>>>& mask() const { return mask_; }
@@ -56,6 +63,7 @@ public:  // methods
 
     // For exposing buffers to C
     // Use carefully, as the vector values_ still owns the data.
+    /// @todo: Completely remove this when we have a C/python iterator
     void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
 
 private:  // methods
@@ -86,6 +94,7 @@ public:  // methods
     const std::string& requestString() const { return request_; }
     void requestString(const std::string& s) { request_ = s; }
     const std::string& gridHash() const { return gridHash_; }
+    void gridHash(const std::string& s) { gridHash_ = s; }  // ideally never use this, and then delete it.
 
 private:  // methods
 

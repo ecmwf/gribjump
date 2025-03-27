@@ -39,7 +39,7 @@ public:
 private:
 
     virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
-                            const std::vector<Interval>& intervals, ExtractionItem& item) {
+                            const std::vector<Interval>& intervals, ExValues& values) {
         NOTIMP;
     }
     Bitmap readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info) const;

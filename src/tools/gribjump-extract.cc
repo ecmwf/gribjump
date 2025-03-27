@@ -106,7 +106,7 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs& args) {
 
     // Extract values
     GribJump gj;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gj.extract(polyRequest);
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gj.extract_old(polyRequest);
 
     // Print extracted values
     if (!printout)

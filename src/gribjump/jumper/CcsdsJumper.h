@@ -25,7 +25,7 @@ public:
 private:
 
     virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
-                            const std::vector<Interval>& intervals, ExtractionItem& ExtractionItem) override;
+                            const std::vector<Interval>& intervals, ExValues& values) override;
 };
 
 }  // namespace gribjump
