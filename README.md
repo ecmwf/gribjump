@@ -66,4 +66,4 @@ See the `pygribjump/example*.py` files for simple use cases.
 
 ## Acknowledgements
 
-Past and current funding and support is listed in the adjoining [Acknowledgements](./ACKNOWLEDGEMENTS.rst).
+Past and current funding and support is listed in the [Acknowledgements](./ACKNOWLEDGEMENTS.rst).
