@@ -66,8 +66,8 @@ public:
     void URI(const eckit::URI& uri) { uri_ = uri; }
     bool isRemote() const { return URIHelper::isRemote(uri_); }
 
-    void values(ExValues values) { values_ = std::move(values); }
-    void mask(ExMask mask) { mask_ = std::move(mask); }
+    void values(ExValues&& values) { values_ = std::move(values); }
+    void mask(ExMask&& mask) { mask_ = std::move(mask); }
 
     void debug_print() const {
         std::cout << "ExtractionItem: {" << std::endl;

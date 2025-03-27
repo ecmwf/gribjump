@@ -41,6 +41,9 @@ public:  // methods
     const std::vector<std::vector<double>>& values() const { return values_; }
     const std::vector<std::vector<std::bitset<64>>>& mask() const { return mask_; }
 
+    std::vector<std::vector<double>>&& take_values() { return std::move(values_); }
+    std::vector<std::vector<std::bitset<64>>>&& take_mask() { return std::move(mask_); }
+
     size_t nrange() const { return values_.size(); }
     size_t nvalues(size_t i) const { return values_[i].size(); }
     size_t total_values() const {
