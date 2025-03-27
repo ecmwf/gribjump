@@ -191,8 +191,8 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
         for (size_t j = 0; j < nItems; j++) {
             ExtractionResult res(stream);
 
-            filemap[fname][j]->values(res.values());
-            filemap[fname][j]->mask(res.mask());
+            filemap[fname][j]->values(std::move(res.take_values()));
+            filemap[fname][j]->mask(std::move(res.take_mask()));
         }
     }
 
