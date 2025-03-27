@@ -22,7 +22,7 @@ inline unsigned long bitmask(size_t x) {
 /// @note Appears to have been copied from eccodes...
 template <typename T>
 int decode_array(const unsigned char* p, long bitsPerValue, double reference_value, double s, double d, size_t n_vals,
-                 T* val) {
+                 T* val, long bitp = 0) {
     unsigned long lvalue = 0;
     T x;
 
@@ -49,8 +49,7 @@ int decode_array(const unsigned char* p, long bitsPerValue, double reference_val
         unsigned long mask = bitmask(bitsPerValue);
 
         /* pi: position of bitp in p[]. >>3 == /8 */
-        long bitp = 0;
-        long pi   = 0;
+        long pi = bitp / 8;
         /* some bits might of the current byte at pi might be used */
         /* by the previous number usefulBitsInByte gives remaining unused bits */
         /* number of useful bits in current byte */
@@ -95,7 +94,7 @@ namespace gribjump::mc {
 
 template <typename ValueType>
 typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(const DecodeParameters<ValueType>& params,
-                                                                           const Buffer& buf) {
+                                                                           const eckit::Buffer& encoded, long bitp) {
 
     if (params.bits_per_value > (sizeof(long) * 8)) {
         throw eckit::BadValue("Invalid BPV", Here());
@@ -116,8 +115,8 @@ typename SimplePacking<ValueType>::Values SimplePacking<ValueType>::unpack(const
     double d = mc::codes_power<double>(-params.decimal_scale_factor, 10);
 
     Values values(params.n_vals);
-    decode_array<ValueType>(buf.data(), params.bits_per_value, params.reference_value, s, d, params.n_vals,
-                            values.data());
+    decode_array<ValueType>(reinterpret_cast<const unsigned char*>(encoded.data()), params.bits_per_value,
+                            params.reference_value, s, d, params.n_vals, values.data(), bitp);
 
     return values;
 }
