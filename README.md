@@ -62,3 +62,8 @@ python3 -m pip install --upgrade git+ssh://git@github.com/ecmwf/gribjump.git@mas
 `pygribjump` uses [findlibs](https://github.com/ecmwf/findlibs) to find an installed `libgribjump` library. You can use `export GRIBJUMP_HOME=/path/to/gribjump/install` to help with finding the library.
 
 See the `pygribjump/example*.py` files for simple use cases.
+
+
+## Acknowledgements
+
+Past and current funding and support is listed in the adjoining [Acknowledgements](./ACKNOWLEDGEMENTS.rst).
