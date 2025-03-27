@@ -80,8 +80,8 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
 
         ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end());  // no repeats
         r.requestString(canonicalised);
-        auto extractionItem = std::make_unique<ExtractionItem>(canonicalised, r.ranges());
-        extractionItem->gridHash(r.gridHash());
+
+        auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));
         keyToExtractionItem.emplace(canonicalised, std::move(extractionItem));  // 1-to-1-map
     }
 

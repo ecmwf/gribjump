@@ -102,10 +102,9 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
     return nfields;
 }
 
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(
-    std::vector<ExtractionRequest>& requests) {
+std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> result;
+    std::vector<std::unique_ptr<ExtractionResult>> result;
 
     // connect to server
     eckit::net::TCPClient client;
@@ -132,10 +131,9 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extr
         std::vector<std::unique_ptr<ExtractionResult>> response;
         size_t nfields;
         stream >> nfields;
-        for (size_t i = 0; i < nfields; i++) {
-            response.push_back(std::make_unique<ExtractionResult>(stream));
-        }
-        result.push_back(std::move(response));
+        ASSERT(nfields == 1);  // temporary. Note will have to update remote protocol if we wish to not send this. Not
+                               // really a problem though.
+        result.push_back(std::make_unique<ExtractionResult>(stream));
     }
     timer.report("All data recieved");
     return result;
@@ -189,10 +187,7 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
         stream >> nItems;
         ASSERT(nItems == filemap[fname].size());
         for (size_t j = 0; j < nItems; j++) {
-            ExtractionResult res(stream);
-
-            filemap[fname][j]->values(std::move(res.take_values()));
-            filemap[fname][j]->mask(std::move(res.take_mask()));
+            filemap[fname][j]->result(std::make_unique<ExtractionResult>(stream));
         }
     }
 

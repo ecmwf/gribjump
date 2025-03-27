@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "gribjump/Types.h"
 #include "gribjump/jumper/Jumper.h"
 
 namespace gribjump {
@@ -25,7 +26,7 @@ public:
 private:
 
     virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
-                            const std::vector<Interval>& intervals, ExtractionItem& item) override;
+                            const std::vector<Interval>& intervals, ExValues& values) override;
 };
 
 }  // namespace gribjump

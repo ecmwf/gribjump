@@ -31,7 +31,6 @@
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LocalGribJump.h"
-#include "gribjump/info/InfoCache.h"
 
 #include "gribjump/Engine.h"
 #include "gribjump/info/InfoExtractor.h"
@@ -85,39 +84,24 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
     return results;
 }
 
-/// @todo, change API, remove extraction request
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests& requests) {
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
 
     auto [results, report] = Engine().extract(requests);
     report.raiseErrors();
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
+    // Map -> Vector
+    std::vector<std::unique_ptr<ExtractionResult>> extractionResults;
     for (auto& req : requests) {
         auto it = results.find(req.requestString());
-
         ASSERT(it != results.end());
-        std::vector<std::unique_ptr<ExtractionResult>> res;
-        for (auto& item : it->second) {
-            res.push_back(std::make_unique<ExtractionResult>(item->values(), item->mask()));
-        }
-
+        ASSERT(it->second.size() == 1);  /// @todo: temp, eventually second should not even have a size.
+        auto& item = it->second[0];
+        auto res   = item->result();
+        ASSERT(res);
         extractionResults.push_back(std::move(res));
     }
 
     return extractionResults;
-}
-
-ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests,
-                                  const std::vector<std::vector<Range>>& ranges) {
-    ExtractionRequests extractionRequests;
-
-    for (size_t i = 0; i < requests.size(); i++) {
-        extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
-    }
-
-    auto [results, report] = Engine().extract(extractionRequests);
-    report.raiseErrors();
-    return std::move(results);
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {

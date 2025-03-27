@@ -133,8 +133,8 @@ std::vector<std::vector<std::bitset<64>>> decodeMask(eckit::Stream& s) {
 
 ExtractionResult::ExtractionResult() {}
 
-ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values,
-                                   std::vector<std::vector<std::bitset<64>>> mask) :
+ExtractionResult::ExtractionResult(std::vector<std::vector<double>>&& values,
+                                   std::vector<std::vector<std::bitset<64>>>&& mask) :
     values_(std::move(values)), mask_(std::move(mask)) {}
 
 ExtractionResult::ExtractionResult(eckit::Stream& s) {

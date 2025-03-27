@@ -14,6 +14,7 @@
 #include "eckit/runtime/Main.h"
 #include "eckit/utils/StringTools.h"
 #include "gribjump/GribJump.h"
+#include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/gribjump_version.h"
 #include "metkit/mars/MarsParser.h"
 
@@ -223,12 +224,15 @@ int gribjump_delete_result(gribjump_extraction_result_t* result) {
 int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request,
                    gribjump_extraction_result_t*** results_array, unsigned long* nfields) {
     return wrapApiFunction([=] {
-        ExtractionRequest req                                                = *request;
-        std::vector<ExtractionRequest> vec                                   = {req};
-        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> resultsv = handle->extract(vec);
-        ASSERT(resultsv.size() == 1);
+        ExtractionRequest req              = *request;
+        std::vector<ExtractionRequest> vec = {req};
+        std::vector<std::unique_ptr<ExtractionResult>> results;
 
-        std::vector<std::unique_ptr<ExtractionResult>> results = std::move(resultsv[0]);
+        ExtractionIterator it = handle->extract_new(vec);
+        while (it.hasNext()) {
+            results.push_back(it.next());
+        }
+
 
         *nfields       = results.size();
         *results_array = new gribjump_extraction_result_t*[*nfields];
@@ -251,8 +255,10 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
             logctx = LogContext(ctx);
         }
 
-        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results;
-        results = handle->extract(reqs, logctx);
+        ///@todo: the new way
+        // std::vector<std::unique_ptr<ExtractionResult>> results = handle->extract(reqs, logctx);
+        // NOTIMP;
+        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results = handle->extract_old(reqs, logctx);
 
         *nfields       = new unsigned long[nrequests];
         *results_array = new gribjump_extraction_result_t**[nrequests];
