@@ -1,8 +1,13 @@
 # GribJump
 
+[![Static Badge](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity/incubating_badge.svg)](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity)
+
 GribJump is a C++ library for extracting subsets of data from GRIB files, particularly data archived in the [FDB](https://github.com/ecmwf/fdb).
 
-:warning: **This is a work in progress.** Expect bugs, and for interfaces and functionality to change. Consult the developers before using.
+<!-- :warning: **This is a work in progress.** Expect bugs, and for interfaces and functionality to change. Consult the developers before using. -->
+
+> \[!IMPORTANT\]
+> This software is **Incubating** and subject to ECMWF's guidelines on [Software Maturity](https://github.com/ecmwf/codex/raw/refs/heads/main/Project%20Maturity).
 
 ## Installation
 
@@ -57,3 +62,8 @@ python3 -m pip install --upgrade git+ssh://git@github.com/ecmwf/gribjump.git@mas
 `pygribjump` uses [findlibs](https://github.com/ecmwf/findlibs) to find an installed `libgribjump` library. You can use `export GRIBJUMP_HOME=/path/to/gribjump/install` to help with finding the library.
 
 See the `pygribjump/example*.py` files for simple use cases.
+
+
+## Acknowledgements
+
+Past and current funding and support is listed in the [Acknowledgements](./ACKNOWLEDGEMENTS.rst).
