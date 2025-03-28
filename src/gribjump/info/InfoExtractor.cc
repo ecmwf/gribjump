@@ -15,7 +15,7 @@
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/info/JumpInfo.h"
 
-#include "eccodes/eccodes.h"
+#include "eccodes.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
