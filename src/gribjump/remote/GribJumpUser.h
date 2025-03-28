@@ -24,6 +24,7 @@ namespace gribjump {
 
 class GribJumpUser : public eckit::net::NetUser {
 public:
+
     GribJumpUser(eckit::net::TCPSocket& protocol);
 
     ~GribJumpUser();
@@ -38,7 +39,6 @@ private:  // methods
     void processRequest(eckit::Stream& s);
 
 private:  // members
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

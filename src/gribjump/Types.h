@@ -10,10 +10,10 @@
 
 #pragma once
 
+#include <bitset>
+#include <map>
 #include <memory>
 #include <vector>
-#include <map>
-#include <bitset>
 #include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
@@ -21,23 +21,23 @@ namespace gribjump {
 class ExtractionItem;
 class ExtractionRequest;
 
-using MarsRequests = std::vector<metkit::mars::MarsRequest>;
-using Range = std::pair<size_t, size_t>;
-using Interval = std::pair<size_t, size_t>;
-using RangesList = std::vector<std::vector<Range>>;
-using GridHashes = std::vector<std::string>;
+using MarsRequests       = std::vector<metkit::mars::MarsRequest>;
+using Range              = std::pair<size_t, size_t>;
+using Interval           = std::pair<size_t, size_t>;
+using RangesList         = std::vector<std::vector<Range>>;
+using GridHashes         = std::vector<std::string>;
 using ExtractionRequests = std::vector<ExtractionRequest>;
-using Bitmap = std::vector<bool>;
+using Bitmap             = std::vector<bool>;
 
-using Ranges = std::vector<Range>;
+using Ranges   = std::vector<Range>;
 using ExValues = std::vector<std::vector<double>>;
-using ExMask = std::vector<std::vector<std::bitset<64>>>;
+using ExMask   = std::vector<std::vector<std::bitset<64>>>;
 
-using ExtractionItems = std::vector<ExtractionItem*>; // Non-owning pointers
-using ExItemMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
+using ExtractionItems = std::vector<ExtractionItem*>;  // Non-owning pointers
+using ExItemMap       = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
 // filemap holds non-owning pointers to ExtractionItems
-using filemap_t = std::map<std::string, ExtractionItems>; // filename -> ExtractionItems
-using scanmap_t = std::map<eckit::PathName, eckit::OffsetList>; // filename -> offsets
+using filemap_t = std::map<std::string, ExtractionItems>;        // filename -> ExtractionItems
+using scanmap_t = std::map<eckit::PathName, eckit::OffsetList>;  // filename -> offsets
 
-} // namespace gribjump
+}  // namespace gribjump

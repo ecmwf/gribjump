@@ -11,19 +11,19 @@
 
 #include <cmath>
 
-#include "eckit/testing/Test.h"
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/filesystem/LocalPathName.h"
+#include "eckit/testing/Test.h"
 
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/tools/EccodesExtract.h"
 
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 
 
 using namespace eckit::testing;
@@ -31,10 +31,10 @@ using namespace eckit::testing;
 namespace gribjump {
 namespace test {
 
-CASE ("test_api_axes") {
+CASE("test_api_axes") {
 
     // --------------------------------------------------------------------------------------------
-    
+
     // Prep: Write test data to FDB
 
     std::string s = eckit::LocalPathName::cwd();
@@ -49,7 +49,8 @@ CASE ("test_api_axes") {
         schema: schema
         spaces:
         - roots:
-          - path: ")XX" + tmpdir + R"XX("
+          - path: ")XX" + tmpdir +
+                                 R"XX("
     )XX");
 
     eckit::testing::SetEnv env("FDB5_CONFIG", config_str.c_str());
@@ -75,13 +76,14 @@ CASE ("test_api_axes") {
         std::cout << std::endl;
     }
 
-    std::map<std::string , std::unordered_set<std::string>> expectedValues = {
+    std::map<std::string, std::unordered_set<std::string>> expectedValues = {
         {"class", {"rd"}},
         {"date", {"20230508", "20230509"}},
         {"domain", {"g"}},
         {"expver", {"xxxx"}},
         {"levtype", {"sfc"}},
-        {"levelist", {""}}, // XXX I think long term, we *do* want to include this, especially if axes includes sfc and pl, need to be able to assign some kind of null level to sfc.
+        {"levelist", {""}},  // XXX I think long term, we *do* want to include this, especially if axes includes sfc and
+                             // pl, need to be able to assign some kind of null level to sfc.
         {"param", {"151130"}},
         {"step", {"3", "2", "1"}},
         {"stream", {"oper"}},
@@ -106,8 +108,7 @@ CASE ("test_api_axes") {
 }  // namespace test
 }  // namespace gribjump
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
     // print the current directoy
-    return run_tests ( argc, argv );
+    return run_tests(argc, argv);
 }

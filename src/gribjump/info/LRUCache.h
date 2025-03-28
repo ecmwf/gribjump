@@ -22,6 +22,7 @@ namespace gribjump {
 template <typename K, typename V>
 class LRUCache {
 public:
+
     LRUCache(size_t capacity) : capacity_(capacity) {}
 
     void put(const K& key, const V& value) {
@@ -32,7 +33,8 @@ public:
                 map_.erase(last);
             }
             list_.push_front(key);
-        } else {
+        }
+        else {
             list_.remove(key);
             list_.push_front(key);
         }
@@ -49,17 +51,11 @@ public:
         return map_[key];
     }
 
-    bool exists(const K& key) {
-        return map_.find(key) != map_.end();
-    }
+    bool exists(const K& key) { return map_.find(key) != map_.end(); }
 
-    typename std::unordered_map<K, V>::const_iterator begin() const {
-        return map_.begin();
-    }
+    typename std::unordered_map<K, V>::const_iterator begin() const { return map_.begin(); }
 
-    typename std::unordered_map<K, V>::const_iterator end() const {
-        return map_.end();
-    }
+    typename std::unordered_map<K, V>::const_iterator end() const { return map_.end(); }
 
     void clear() {
         list_.clear();
@@ -67,9 +63,10 @@ public:
     }
 
 private:
+
     size_t capacity_;
     std::list<K> list_;
     std::unordered_map<K, V> map_;
 };
 
-} // namespace gribjump
+}  // namespace gribjump

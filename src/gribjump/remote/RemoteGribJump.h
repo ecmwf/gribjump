@@ -30,7 +30,7 @@ constexpr static uint16_t remoteProtocolVersion = 3;
 
 class RemoteGribJump : public GribJumpBase {
 
-public: // methods
+public:  // methods
 
     RemoteGribJump(const Config& config);
     RemoteGribJump(eckit::net::Endpoint endpoint);
@@ -40,21 +40,25 @@ public: // methods
     size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) override;
     size_t forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map);
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>& polyRequest) override;
-    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
+    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(
+        std::vector<ExtractionRequest>& polyRequest) override;
+    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path,
+                                                         const std::vector<eckit::Offset>& offsets,
+                                                         const std::vector<std::vector<Range>>& ranges) override;
     void forwardExtract(filemap_t& filemap);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
-private: // methods
+private:  // methods
 
-    bool receiveErrors(eckit::Stream& stream, bool raise=true);
+    bool receiveErrors(eckit::Stream& stream, bool raise = true);
     void sendHeader(eckit::net::InstantTCPStream& stream, RequestType type);
 
-private: // members
+private:  // members
+
     std::string host_;
     int port_;
 };
 
 
-}// namespace gribjump
+}  // namespace gribjump

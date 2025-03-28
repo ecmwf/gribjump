@@ -9,11 +9,11 @@
  */
 
 #include <cmath>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 
-#include "eckit/testing/Test.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/testing/Test.h"
 
 #include "gribjump/GribJump.h"
 #include "gribjump/info/InfoExtractor.h"
@@ -27,10 +27,10 @@ namespace test {
 
 using Values = std::vector<double>;
 
-void print_result(const Interval& interval, const std::vector<std::bitset<64>>& mask, const Values& actual, const Values& expected)
-{
+void print_result(const Interval& interval, const std::vector<std::bitset<64>>& mask, const Values& actual,
+                  const Values& expected) {
     auto [start, end] = interval;
-    auto size = end - start;
+    auto size         = end - start;
 
     std::cerr << "interval: " << "[" << start << "-" << end << "]" << std::endl;
 
@@ -68,7 +68,7 @@ std::vector<std::bitset<64>> to_bitset(const Bitmap& bitmap) {
 }
 
 void test_compression() {
-       // TODO(maee): Use expected string in these tests
+    // TODO(maee): Use expected string in these tests
 
     for (const auto& data : testData) {
         std::cerr << "Testing " << data.gribFileName << std::endl;
@@ -90,40 +90,36 @@ void test_compression() {
         EXPECT(numberOfDataPoints == data.expectedData.size());
 
         std::vector<Interval> all_intervals = {
-            std::make_pair(0, 30),
-            std::make_pair(31, 60),
-            std::make_pair(60, 66),
-            std::make_pair(91, 120),
-            std::make_pair(200, 400),
-            std::make_pair(401, 402),
-            std::make_pair(403, 600),
+            std::make_pair(0, 30),    std::make_pair(31, 60),   std::make_pair(60, 66),   std::make_pair(91, 120),
+            std::make_pair(200, 400), std::make_pair(401, 402), std::make_pair(403, 600),
         };
 
         std::vector<Interval> intervals;
-        std::copy_if(all_intervals.begin(), all_intervals.end(), std::back_inserter(intervals), [&](const auto& interval) {
-            return interval.second <= numberOfDataPoints && interval.first < interval.second;
-        });
+        std::copy_if(all_intervals.begin(), all_intervals.end(), std::back_inserter(intervals),
+                     [&](const auto& interval) {
+                         return interval.second <= numberOfDataPoints && interval.first < interval.second;
+                     });
 
         std::unique_ptr<ExtractionItem> result(std::move(gribjump.extract(data.gribFileName, {0}, {intervals})[0]));
         auto actual_all = result->values();
-        auto mask_all = result->mask();
+        auto mask_all   = result->mask();
 
         const auto expected = data.expectedData;
 
         for (size_t index = 0; index < intervals.size(); index++) {
             // Compare mask if it exists
             if (!mask_all.empty()) {
-                auto actual_mask = mask_all[index];
+                auto actual_mask       = mask_all[index];
                 Bitmap expected_bitmap = generate_bitmap(expected, intervals[index]);
-                auto expected_mask = to_bitset(expected_bitmap);
-                //print_bitmap(expected_bitmap);
-                //print_mask(expected_mask);
-                //print_mask(actual_mask);
+                auto expected_mask     = to_bitset(expected_bitmap);
+                // print_bitmap(expected_bitmap);
+                // print_mask(expected_mask);
+                // print_mask(actual_mask);
                 EXPECT(actual_mask == expected_mask);
             }
 
             // Compare values
-            auto [start, end] = intervals[index];
+            auto [start, end]  = intervals[index];
             auto actual_values = actual_all[index];
             EXPECT(actual_values.size() == end - start);
             for (size_t i = 0; i < actual_values.size(); i++) {
@@ -132,7 +128,7 @@ void test_compression() {
                     continue;
                 }
 
-                if (actual_values[i] != expected[start + i]){
+                if (actual_values[i] != expected[start + i]) {
                     print_result(intervals[index], {}, actual_values, expected);
                     std::stringstream ss;
                     ss << "actual: " << actual_values[i] << ", expected: " << expected[start + i] << std::endl;
@@ -140,15 +136,14 @@ void test_compression() {
                 }
 
                 EXPECT(actual_values[i] == expected[start + i]);
-                
             }
         }
     }
 }
 
 
-CASE( "test_compression" ) {
-    setGribJumpData(); // Set the data used by the test cases
+CASE("test_compression") {
+    setGribJumpData();  // Set the data used by the test cases
 
     test_compression();
 }
@@ -158,9 +153,8 @@ CASE( "test_compression" ) {
 
 
 }  // namespace test
-} // namespace gribjump
+}  // namespace gribjump
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

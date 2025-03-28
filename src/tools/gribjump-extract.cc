@@ -13,44 +13,46 @@
 
 #include "eckit/testing/Test.h"
 
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/GribJumpTool.h"
+#include "gribjump/tools/ToolUtils.h"
 
 namespace gribjump::tool {
 
-class GribJumpExtract: public GribJumpTool{
+class GribJumpExtract : public GribJumpTool {
 
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
 
 public:
-    GribJumpExtract(int argc, char **argv): GribJumpTool(argc, argv) {
+
+    GribJumpExtract(int argc, char** argv) : GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("print", "Prints the results"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
 
 private:
-        std::vector<eckit::option::Option*> options_;
+
+    std::vector<eckit::option::Option*> options_;
 };
 
-void GribJumpExtract::usage(const std::string &tool) const {
+void GribJumpExtract::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <request_file> <ranges_file>" << std::endl
                        << "       " << tool << " --raw <request_file> <ranges_file>" << std::endl;
-                       ;
+    ;
     GribJumpTool::usage(tool);
 }
 
-void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
+void GribJumpExtract::execute(const eckit::option::CmdArgs& args) {
     // Testing tool for extract / directJump functionality
-    using MarsRequests = metkit::mars::MarsRequest;
-    const bool raw = args.getBool("raw", false);
+    using MarsRequests  = metkit::mars::MarsRequest;
+    const bool raw      = args.getBool("raw", false);
     const bool printout = args.getBool("print", true);
 
     // Build request(s) from input
@@ -65,7 +67,8 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
     if (raw) {
         for (auto r : parsedRequests)
             requests.push_back(r);
-    } else {
+    }
+    else {
         metkit::mars::MarsExpension expand(/* inherit */ false);
         requests = expand.expand(parsedRequests);
     }
@@ -106,21 +109,23 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gj.extract(polyRequest);
 
     // Print extracted values
-    if (!printout) return;
-    
+    if (!printout)
+        return;
+
     eckit::Log::info() << "Extracted values:" << std::endl;
-    for (size_t i = 0; i < output.size(); i++) { // each request
+    for (size_t i = 0; i < output.size(); i++) {  // each request
         eckit::Log::info() << "Request " << i << ": " << requests[i] << std::endl;
         eckit::Log::info() << "  Number of fields: " << output[i].size() << std::endl;
-        for (size_t j = 0; j < output[i].size(); j++) { // each field
+        for (size_t j = 0; j < output[i].size(); j++) {  // each field
             eckit::Log::info() << "  Field " << j << std::endl;
-            auto values = output[i][j]->values(); 
-            auto mask = output[i][j]->mask();
+            auto values = output[i][j]->values();
+            auto mask   = output[i][j]->mask();
 
-            for (size_t k = 0; k < values.size(); k++) { // each range
+            for (size_t k = 0; k < values.size(); k++) {  // each range
                 eckit::Log::info() << "    Range " << k;
-                eckit::Log::info() << " (" << std::get<0>(allRanges[i][k]) << "-" << std::get<1>(allRanges[i][k]) << "): ";
-                for (size_t l = 0; l < values[k].size(); l++) { // each value
+                eckit::Log::info() << " (" << std::get<0>(allRanges[i][k]) << "-" << std::get<1>(allRanges[i][k])
+                                   << "): ";
+                for (size_t l = 0; l < values[k].size(); l++) {  // each value
                     eckit::Log::info() << values[k][l] << ", ";
                 }
                 eckit::Log::info() << std::endl;
@@ -129,10 +134,9 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs &args) {
     }
 }
 
-} // namespace gribjump::tool
+}  // namespace gribjump::tool
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     gribjump::tool::GribJumpExtract app(argc, argv);
     return app.start();
 }
-

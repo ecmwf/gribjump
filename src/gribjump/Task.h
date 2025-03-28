@@ -10,16 +10,16 @@
 
 #pragma once
 
-#include <mutex>
 #include <atomic>
 #include <condition_variable>
+#include <mutex>
 #include "eckit/serialisation/Stream.h"
 
-#include "gribjump/GribJump.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/GribJump.h"
 
 namespace gribjump {
-    
+
 class TaskGroup;
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -62,23 +62,25 @@ public:
     virtual void info() const = 0;
 
 protected:
+
     virtual void executeImpl() = 0;
 
 protected:
 
-    TaskGroup& taskGroup_; //< Groups like-tasks to be executed in parallel
-    size_t taskid_; //< Task id within parent request
+    TaskGroup& taskGroup_;  //< Groups like-tasks to be executed in parallel
+    size_t taskid_;         //< Task id within parent request
     std::atomic<Status> status_ = Status::PENDING;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// TaskReport contains error messages and other information produced by a TaskGroup, and methods to either 
+// TaskReport contains error messages and other information produced by a TaskGroup, and methods to either
 // report them to a client or raise an exception.
 // TaskGroup will return a TaskReport object to calling code.
 class TaskReport {
 
 public:
+
     TaskReport();
     TaskReport(std::vector<std::string>&& errors);
 
@@ -86,7 +88,8 @@ public:
     void raiseErrors() const;
 
 private:
-    std::vector<std::string> errors_; //< stores error messages, empty if no errors
+
+    std::vector<std::string> errors_;  //< stores error messages, empty if no errors
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -119,15 +122,15 @@ public:
     TaskReport report() {
         std::lock_guard<std::mutex> lock(m_);
         ASSERT(done_);
-        return TaskReport(std::move(errors_)); 
+        return TaskReport(std::move(errors_));
     }
 
-    size_t nTasks() const { 
+    size_t nTasks() const {
         std::lock_guard<std::mutex> lock(m_);
         return tasks_.size();
     }
 
-    size_t nErrors() const { 
+    size_t nErrors() const {
         std::lock_guard<std::mutex> lock(m_);
         return errors_.size();
     }
@@ -142,19 +145,18 @@ private:
 
 private:
 
-    int nComplete_ = 0;  //< incremented when a task completes
-    int nCancelledTasks_ = 0; //< incremented by notifyCancelled()
-    int logcounter_ = 1; //< used to log progress
-    int logincrement_ = 1; //< used to log progress
-    bool waiting_ = false; //< true if waiting for tasks to complete
-    bool done_ = false; //< true if all tasks have completed
+    int nComplete_       = 0;      //< incremented when a task completes
+    int nCancelledTasks_ = 0;      //< incremented by notifyCancelled()
+    int logcounter_      = 1;      //< used to log progress
+    int logincrement_    = 1;      //< used to log progress
+    bool waiting_        = false;  //< true if waiting for tasks to complete
+    bool done_           = false;  //< true if all tasks have completed
 
     mutable std::mutex m_;
     std::condition_variable cv_;
-    
-    std::vector<std::shared_ptr<Task>> tasks_;
-    std::vector<std::string> errors_; //< stores error messages, empty if no errors
 
+    std::vector<std::shared_ptr<Task>> tasks_;
+    std::vector<std::string> errors_;  //< stores error messages, empty if no errors
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -164,7 +166,8 @@ public:
 
     // Each extraction item is assumed to be for the same file.
 
-    FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
+    FileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+                       ExtractionItems& extractionItems);
 
     void executeImpl() override;
 
@@ -173,6 +176,7 @@ public:
     virtual void info() const override;
 
 protected:
+
     eckit::PathName fname_;
     ExtractionItems& extractionItems_;
     bool ignoreGrid_ = false;
@@ -186,12 +190,12 @@ protected:
 class InefficientFileExtractionTask : public FileExtractionTask {
 public:
 
-    InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, ExtractionItems& extractionItems);
+    InefficientFileExtractionTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+                                  ExtractionItems& extractionItems);
 
     void extract() override;
 
     virtual void info() const override;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -206,6 +210,7 @@ public:
     virtual void info() const override;
 
 private:
+
     eckit::net::Endpoint endpoint_;
     filemap_t& filemap_;
 };
@@ -214,13 +219,15 @@ private:
 class ForwardScanTask : public Task {
 public:
 
-    ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap, std::atomic<size_t>& nfields_);
+    ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint, scanmap_t& scanmap,
+                    std::atomic<size_t>& nfields_);
 
     void executeImpl() override;
 
     virtual void info() const override;
 
 private:
+
     eckit::net::Endpoint endpoint_;
     scanmap_t& scanmap_;
     std::atomic<size_t>& nfields_;
@@ -233,7 +240,8 @@ public:
 
     // Each extraction item is assumed to be for the same file.
 
-    FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields);
+    FileScanTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+                 const std::vector<eckit::Offset>& offsets, std::atomic<size_t>& nfields);
 
     void executeImpl() override;
 
@@ -242,10 +250,11 @@ public:
     virtual void info() const override;
 
 private:
+
     eckit::PathName fname_;
     std::vector<eckit::Offset> offsets_;
     std::atomic<size_t>& nfields_;
 };
 
 
-} // namespace gribjump
+}  // namespace gribjump

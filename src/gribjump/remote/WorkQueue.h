@@ -17,8 +17,8 @@
 #include "eckit/container/Queue.h"
 
 #include "gribjump/ExtractionData.h"
-#include "gribjump/remote/WorkItem.h"
 #include "gribjump/Task.h"
+#include "gribjump/remote/WorkItem.h"
 
 namespace gribjump {
 
@@ -27,16 +27,18 @@ namespace gribjump {
 class WorkQueue : private eckit::NonCopyable {
 public:
 
-    static WorkQueue& instance(); // singleton
-    
+    static WorkQueue& instance();  // singleton
+
     ~WorkQueue();
 
     void push(Task* task);
 
 protected:
+
     WorkQueue();
 
 private:
+
     eckit::Queue<WorkItem> queue_;
     std::vector<std::thread> workers_;
 };

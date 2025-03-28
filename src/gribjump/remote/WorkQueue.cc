@@ -10,10 +10,10 @@
 
 /// @author Christopher Bradley
 
+#include "gribjump/remote/WorkQueue.h"
+#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
-#include "eckit/config/Resource.h"
-#include "gribjump/remote/WorkQueue.h"
 #include "gribjump/LibGribJump.h"
 
 
@@ -30,23 +30,23 @@ WorkQueue::~WorkQueue() {
     for (auto& w : workers_) {
         w.join();
     }
-
 }
 
 WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gribjumpQueueSize", 1024)) {
-    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS;gribjumpThreads", LibGribJump::instance().config().getInt("threads", 1));
+    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS;gribjumpThreads",
+                                           LibGribJump::instance().config().getInt("threads", 1));
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] {
-
             LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " starting" << std::endl;
             // GribJump gj = GribJump(); // one per thread
-            
+
             for (;;) {
                 eckit::Log::status() << "Waiting for job" << std::endl;
                 WorkItem item;
                 if (queue_.pop(item) == -1) {
-                    LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " stopping (queue closed)" << std::endl;
+                    LOG_DEBUG_LIB(LibGribJump)
+                        << "Thread " << std::this_thread::get_id() << " stopping (queue closed)" << std::endl;
                     break;
                 }
                 LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " new job" << std::endl;
@@ -54,11 +54,13 @@ WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gri
                     item.run();
                 }
                 catch (const std::exception& e) {
-                    LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " exception: " << e.what() << std::endl;
+                    LOG_DEBUG_LIB(LibGribJump)
+                        << "Thread " << std::this_thread::get_id() << " exception: " << e.what() << std::endl;
                     item.error(e.what());
                 }
                 catch (...) {
-                    LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " unknown exception" << std::endl;
+                    LOG_DEBUG_LIB(LibGribJump)
+                        << "Thread " << std::this_thread::get_id() << " unknown exception" << std::endl;
                     item.error("Unknown exception");
                 }
             }

@@ -10,8 +10,8 @@
 
 #include "fdb5/api/FDB.h"
 
-#include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/GribJump.h"
+#include "gribjump/tools/GribJumpTool.h"
 
 /// @author Christopher Bradley
 
@@ -19,34 +19,36 @@
 /// Output directory is specified in the configuration file.
 
 namespace gribjump::tool {
-    
-class ScanFiles: public GribJumpTool { // dont use fdb tool
-    
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
-    virtual int numberOfPositionalArguments() const { return -1; }
-  
-  public:
-    ScanFiles(int argc, char **argv): GribJumpTool(argc, argv) {
-        options_.push_back(new eckit::option::SimpleOption<bool>("overwrite", "If true, overwrite existing .gribjump files instead of skipping. Default false."));
-        options_.push_back(new eckit::option::SimpleOption<bool>("merge", "If true, merge jumpinfos with existing .gribjump files instead of skipping. Default false."));
-        options_.push_back(new eckit::option::SimpleOption<bool>("dry-run", "If true, do not write the .gribjump files. Default false."));
-    }
 
+class ScanFiles : public GribJumpTool {  // dont use fdb tool
+
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
+    virtual int numberOfPositionalArguments() const { return -1; }
+
+public:
+
+    ScanFiles(int argc, char** argv) : GribJumpTool(argc, argv) {
+        options_.push_back(new eckit::option::SimpleOption<bool>(
+            "overwrite", "If true, overwrite existing .gribjump files instead of skipping. Default false."));
+        options_.push_back(new eckit::option::SimpleOption<bool>(
+            "merge", "If true, merge jumpinfos with existing .gribjump files instead of skipping. Default false."));
+        options_.push_back(new eckit::option::SimpleOption<bool>(
+            "dry-run", "If true, do not write the .gribjump files. Default false."));
+    }
 };
 
-void ScanFiles::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " <list of files>" << std::endl;
+void ScanFiles::usage(const std::string& tool) const {
+    eckit::Log::info() << std::endl << "Usage: " << tool << " <list of files>" << std::endl;
 
     GribJumpTool::usage(tool);
 }
 
-void ScanFiles::execute(const eckit::option::CmdArgs &args) {
+void ScanFiles::execute(const eckit::option::CmdArgs& args) {
 
     bool overwrite = args.getBool("overwrite", false);
-    bool merge = args.getBool("merge", false);
-    bool dryrun = args.getBool("dry-run", false);
+    bool merge     = args.getBool("merge", false);
+    bool dryrun    = args.getBool("dry-run", false);
     std::vector<std::string> files_in(args.begin(), args.end());
 
     if (overwrite && merge) {
@@ -54,7 +56,7 @@ void ScanFiles::execute(const eckit::option::CmdArgs &args) {
     }
 
     if (merge || overwrite) {
-        NOTIMP; // later...
+        NOTIMP;  // later...
     }
 
     if (files_in.empty()) {
@@ -65,7 +67,7 @@ void ScanFiles::execute(const eckit::option::CmdArgs &args) {
     // Check each file exists, and also check if corresponding the .gribjump file exists.
     std::vector<eckit::PathName> files_scan;
     std::vector<eckit::PathName> files_skip;
-    
+
     for (const std::string& file : files_in) {
         eckit::PathName path(file);
         if (!path.exists()) {
@@ -75,13 +77,15 @@ void ScanFiles::execute(const eckit::option::CmdArgs &args) {
         eckit::PathName index = path + ".gribjump";
         if (index.exists() && !overwrite && !merge) {
             files_skip.push_back(path);
-        } else {
+        }
+        else {
             files_scan.push_back(path);
         }
     }
 
     if (!files_skip.empty()) {
-        eckit::Log::info() << "Skipping files with existing .gribjump files (use --overwrite option to regenerate):" << std::endl;
+        eckit::Log::info() << "Skipping files with existing .gribjump files (use --overwrite option to regenerate):"
+                           << std::endl;
         for (const eckit::PathName& path : files_skip) {
             eckit::Log::info() << "  " << path << std::endl;
         }
@@ -97,17 +101,16 @@ void ScanFiles::execute(const eckit::option::CmdArgs &args) {
         eckit::Log::info() << "  " << path << std::endl;
     }
 
-    if (dryrun) return;
+    if (dryrun)
+        return;
 
     GribJump gj;
-    gj.scan(files_scan); // take merge/overwrite into account?
-
+    gj.scan(files_scan);  // take merge/overwrite into account?
 }
 
-} // namespace gribjump::tool
+}  // namespace gribjump::tool
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     gribjump::tool::ScanFiles app(argc, argv);
     return app.start();
 }
-

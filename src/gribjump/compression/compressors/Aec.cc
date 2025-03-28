@@ -10,8 +10,8 @@
 
 #include "gribjump/compression/compressors/Aec.h"
 
-#include <bitset>
 #include <algorithm>
+#include <bitset>
 
 #include <libaec.h>
 
@@ -30,7 +30,8 @@ void aec_call(int err, std::string func) {
 [[maybe_unused]]
 void print_aec_stream_info(struct aec_stream* strm, const char* func) {
     eckit::Log::info() << "DEBUG CCSDS " << func << " aec_stream.flags=" << strm->flags << std::endl;
-    eckit::Log::info() << "DEBUG CCSDS " << func << " aec_stream.bits_per_sample=" << strm->bits_per_sample << std::endl;
+    eckit::Log::info() << "DEBUG CCSDS " << func << " aec_stream.bits_per_sample=" << strm->bits_per_sample
+                       << std::endl;
     eckit::Log::info() << "DEBUG CCSDS " << func << " aec_stream.block_size=" << strm->block_size << std::endl;
     eckit::Log::info() << "DEBUG CCSDS " << func << " aec_stream.rsi=" << strm->rsi << std::endl;
     eckit::Log::info() << "DEBUG CCSDS " << func << " aec_stream.avail_out=" << strm->avail_out << std::endl;
@@ -51,38 +52,39 @@ void print_binary(const char* name, const void* data, size_t n_bytes) {
     eckit::Log::info() << std::endl;
 }
 
-} // namespace
+}  // namespace
 
 namespace gribjump::mc {
 
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
-typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode(const typename NumericCompressor<ValueType>::CompressedData& encoded) {
-    
+typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode(
+    const typename NumericCompressor<ValueType>::CompressedData& encoded) {
+
     validateBitsPerSample();
-    
+
     Values decoded(n_elems_);
 
     struct aec_stream strm;
-    strm.rsi = rsi_;
-    strm.block_size = block_size_;
+    strm.rsi             = rsi_;
+    strm.block_size      = block_size_;
     strm.bits_per_sample = bits_per_sample_;
-    strm.flags = flags_;
-    strm.avail_in  = encoded.size();
-    strm.next_in   = reinterpret_cast<const unsigned char*>(encoded.data());
-    strm.avail_out = decoded.size() * sizeof(ValueType);
-    strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
-    
+    strm.flags           = flags_;
+    strm.avail_in        = encoded.size();
+    strm.next_in         = reinterpret_cast<const unsigned char*>(encoded.data());
+    strm.avail_out       = decoded.size() * sizeof(ValueType);
+    strm.next_out        = reinterpret_cast<unsigned char*>(decoded.data());
+
     AEC_CALL(aec_decode_init(&strm));
     AEC_CALL(aec_decode_enable_offsets(&strm));
     AEC_CALL(aec_decode(&strm, AEC_FLUSH));
-    
+
     size_t offsets_count = 0;
     AEC_CALL(aec_decode_count_offsets(&strm, &offsets_count));
-    
+
     std::vector<size_t> offsets(offsets_count);
     AEC_CALL(aec_decode_get_offsets(&strm, offsets.data(), offsets.size()));
-    
+
     AEC_CALL(aec_decode_end(&strm));
 
     offsets_ = std::move(offsets);
@@ -91,21 +93,22 @@ typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode
 
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
-typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode(const std::shared_ptr<DataAccessor> accessor, const Block& range) {
-    
+typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode(
+    const std::shared_ptr<DataAccessor> accessor, const Block& range) {
+
     validateBitsPerSample();
 
     ASSERT(!offsets_.empty());
 
     auto [range_offset, range_size] = range;
-    auto range_offset_bytes = range_offset * sizeof(ValueType);
-    auto range_size_bytes   = range_size * sizeof(ValueType);
+    auto range_offset_bytes         = range_offset * sizeof(ValueType);
+    auto range_size_bytes           = range_size * sizeof(ValueType);
 
     Values decoded(range_size);
 
     size_t nbytes = (bits_per_sample_ + 7) / 8;
     if (nbytes == 3) {
-      nbytes = 4;
+        nbytes = 4;
     }
     size_t rsi_size_bytes = rsi_ * block_size_ * nbytes;
 
@@ -115,20 +118,20 @@ typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode
     ASSERT(start_idx < end_idx);
     ASSERT(end_idx <= offsets_.size());
 
-    size_t start_offset_bits = offsets_[start_idx];
+    size_t start_offset_bits  = offsets_[start_idx];
     size_t start_offset_bytes = start_offset_bits / 8;
     // size_t end_offset_bits = end_idx == offsets_.size() ? accessor->eof() * 8 : offsets_[end_idx];
     size_t end_offset_bytes = end_idx == offsets_.size() ? accessor->eof() : (offsets_[end_idx] + 7) / 8;
 
-    // The new offset to the RSI may not be aligned to the start of the range, so we need to shift the offsets by the difference
+    // The new offset to the RSI may not be aligned to the start of the range, so we need to shift the offsets by the
+    // difference
     /// @todo It seems unlikely that two copies are required here.
     std::vector<size_t> new_offsets_tmp;
     std::vector<size_t> new_offsets;
     std::copy(offsets_.begin() + start_idx, offsets_.end(), std::back_inserter(new_offsets_tmp));
-    size_t shift = start_offset_bits >> 3 << 3; // align to byte boundary
-    std::transform(new_offsets_tmp.begin(), new_offsets_tmp.end(), std::back_inserter(new_offsets), [shift] (size_t offset) {
-      return offset - shift;
-    });
+    size_t shift = start_offset_bits >> 3 << 3;  // align to byte boundary
+    std::transform(new_offsets_tmp.begin(), new_offsets_tmp.end(), std::back_inserter(new_offsets),
+                   [shift](size_t offset) { return offset - shift; });
 
     ASSERT(!new_offsets.empty());
 
@@ -136,17 +139,17 @@ typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode
     CompressedData encoded = accessor->read({start_offset_bytes, end_offset_bytes - start_offset_bytes});
 
     struct aec_stream strm;
-    strm.rsi = rsi_;
-    strm.block_size = block_size_;
+    strm.rsi             = rsi_;
+    strm.block_size      = block_size_;
     strm.bits_per_sample = bits_per_sample_;
-    strm.flags = flags_;
-    strm.avail_in  = encoded.size();
-    strm.next_in   = reinterpret_cast<const unsigned char*>(encoded.data());
-    strm.avail_out = decoded.size() * sizeof(ValueType);
-    strm.next_out  = reinterpret_cast<unsigned char*>(decoded.data());
+    strm.flags           = flags_;
+    strm.avail_in        = encoded.size();
+    strm.next_in         = reinterpret_cast<const unsigned char*>(encoded.data());
+    strm.avail_out       = decoded.size() * sizeof(ValueType);
+    strm.next_out        = reinterpret_cast<unsigned char*>(decoded.data());
 
     size_t new_offset_bytes = range_offset_bytes - rsi_size_bytes * start_idx;
-    size_t new_size_bytes = range_size_bytes;
+    size_t new_size_bytes   = range_size_bytes;
 
     AEC_CALL(aec_decode_init(&strm));
     AEC_CALL(aec_decode_range(&strm, new_offsets.data(), new_offsets.size(), new_offset_bytes, new_size_bytes));
@@ -157,8 +160,9 @@ typename NumericCompressor<ValueType>::Values AecDecompressor<ValueType>::decode
 
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
-AecParams::Offsets AecDecompressor<ValueType>::decode_offsets(const typename NumericCompressor<ValueType>::CompressedData& encoded) {
-    decode(encoded); // sets offsets_
+AecParams::Offsets AecDecompressor<ValueType>::decode_offsets(
+    const typename NumericCompressor<ValueType>::CompressedData& encoded) {
+    decode(encoded);  // sets offsets_
     return std::move(offsets_);
 }
 
@@ -179,4 +183,4 @@ template class AecDecompressor<uint8_t>;
 template class AecDecompressor<uint16_t>;
 template class AecDecompressor<uint32_t>;
 
-} // namespace gribjump::mc
+}  // namespace gribjump::mc

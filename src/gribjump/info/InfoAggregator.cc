@@ -13,10 +13,10 @@
 
 #include "fdb5/database/FieldLocation.h"
 
-#include "gribjump/info/InfoAggregator.h"
-#include "gribjump/info/InfoFactory.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/info/InfoAggregator.h"
 #include "gribjump/info/InfoCache.h"
+#include "gribjump/info/InfoFactory.h"
 
 namespace {
 bool isGrib(eckit::DataHandle& handle) {
@@ -26,19 +26,20 @@ bool isGrib(eckit::DataHandle& handle) {
     handle.seek(offset);
     return buffer[0] == 'G' && buffer[1] == 'R' && buffer[2] == 'I' && buffer[3] == 'B';
 }
-} // namespace
+}  // namespace
 
 namespace gribjump {
 
 static const size_t AGGREGATOR_QUEUE_SIZE = 8;
 
-InfoAggregator::InfoAggregator(): futures_(AGGREGATOR_QUEUE_SIZE) {
+InfoAggregator::InfoAggregator() : futures_(AGGREGATOR_QUEUE_SIZE) {
     consumer_ = std::thread([this]() {
         for (;;) {
             locPair elem;
-            if (futures_.pop(elem) == -1) break;
+            if (futures_.pop(elem) == -1)
+                break;
             std::shared_ptr<const fdb5::FieldLocation> location = elem.first.get();
-            std::unique_ptr<JumpInfo> info = std::move(elem.second);
+            std::unique_ptr<JumpInfo> info                      = std::move(elem.second);
             insert(location->fullUri(), std::move(info));
         }
     });
@@ -48,7 +49,8 @@ InfoAggregator::~InfoAggregator() {
     close();
 }
 
-void InfoAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
+void InfoAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle,
+                         eckit::Offset offset) {
 
     handle.openForRead();
     eckit::AutoClose closer(handle);
@@ -58,7 +60,8 @@ void InfoAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>>
         return;
     }
 
-    // Note: it is important we build the info at this stage (and not in the consumer thread) as we don't want to extend the lifetime of the data.
+    // Note: it is important we build the info at this stage (and not in the consumer thread) as we don't want to extend
+    // the lifetime of the data.
     std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(handle, offset));
     futures_.emplace(std::move(future), std::move(info));
 }
@@ -78,7 +81,7 @@ void InfoAggregator::flush() {
 
     close();
     ASSERT(futures_.empty());
-    
+
     InfoCache::instance().flush(true);
 
     if (LibGribJump::instance().debug()) {
@@ -96,19 +99,19 @@ void InfoAggregator::close() {
     }
 }
 
-SerialAggregator::SerialAggregator() {
-}
+SerialAggregator::SerialAggregator() {}
 
-SerialAggregator::~SerialAggregator() {
-}
+SerialAggregator::~SerialAggregator() {}
 
-void SerialAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle, eckit::Offset offset) {
+void SerialAggregator::add(std::future<std::shared_ptr<const fdb5::FieldLocation>> future, eckit::MemoryHandle& handle,
+                           eckit::Offset offset) {
 
     handle.openForRead();
     eckit::AutoClose closer(handle);
 
     if (!isGrib(handle)) {
-        eckit::Log::warning() << "Warning: Gribjump SerialAggregator received non-grib message. Skipping..." << std::endl;
+        eckit::Log::warning() << "Warning: Gribjump SerialAggregator received non-grib message. Skipping..."
+                              << std::endl;
         return;
     }
 
@@ -139,4 +142,4 @@ void SerialAggregator::flush() {
     }
 }
 
-} // namespace gribjump
+}  // namespace gribjump

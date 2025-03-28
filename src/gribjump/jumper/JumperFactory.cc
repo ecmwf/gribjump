@@ -78,4 +78,4 @@ JumperBuilderBase* JumperFactory::get(const std::string& name) {
 
 // --------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

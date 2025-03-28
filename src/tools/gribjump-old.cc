@@ -30,11 +30,14 @@
 // public:
 
 //     GribJumpTool(int argc, char **argv) : metkit::MetkitTool(argc, argv) {
-//         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract info from grib header to write to binary metadata file (set by -o)"));
-//         options_.push_back(new eckit::option::SimpleOption<std::string>("meta", "Name of binary metadata file to write/read to/from (default: <input_grib_name>.bin)"));
-//         options_.push_back(new eckit::option::SimpleOption<bool>("query", "Query data range from grib file"));
-//         options_.push_back(new eckit::option::SimpleOption<std::string>("msgs", "Which message(s) (from 0 to N-1) of the N messages in grib file to query (comma separated string)"));
-//         options_.push_back(new eckit::option::SimpleOption<std::string>("time", "Filename to write timing info to (default: none - no timing info written)"));
+//         options_.push_back(new eckit::option::SimpleOption<bool>("extract", "Extract info from grib header to write
+//         to binary metadata file (set by -o)")); options_.push_back(new
+//         eckit::option::SimpleOption<std::string>("meta", "Name of binary metadata file to write/read to/from
+//         (default: <input_grib_name>.bin)")); options_.push_back(new eckit::option::SimpleOption<bool>("query", "Query
+//         data range from grib file")); options_.push_back(new eckit::option::SimpleOption<std::string>("msgs", "Which
+//         message(s) (from 0 to N-1) of the N messages in grib file to query (comma separated string)"));
+//         options_.push_back(new eckit::option::SimpleOption<std::string>("time", "Filename to write timing info to
+//         (default: none - no timing info written)"));
 //     }
 
 // private: // methods
@@ -68,7 +71,8 @@
 //                         << "e.g. Process and extract metadata from data.grib to data.grib.bin:" << std::endl
 //                         << tool << " --extract data.grib" << std::endl
 //                         << std::endl
-//                         << "e.g. Retrieve data in range [12, 45) and [56, 789) from the 0th, 1st and 10th, message in data.grib." << std::endl
+//                         << "e.g. Retrieve data in range [12, 45) and [56, 789) from the 0th, 1st and 10th, message in
+//                         data.grib." << std::endl
 //                         << tool << " --query --msgs=0,1,10 data.grib 12 45 56 789" << std::endl
 //                         << std::endl;
 // }
@@ -110,7 +114,7 @@
 // }
 
 // void GribJumpTool::execute(const eckit::option::CmdArgs& args) {
-    
+
 //     auto startTime = std::chrono::high_resolution_clock::now();
 //     Timing timing;
 //     JumpHandle dataSource(gribFileName_);
@@ -132,9 +136,9 @@
 //     if (doQuery_){
 //         JumpInfo gribInfo;
 //         for (auto msg : msgids_){
-//             std::cout << "Grib file: " << gribFileName_ << ", jump info file: " << binFileName_ << ", msg id: " << msg << std::endl;
-//             gribInfo = JumpInfo::fromFile(binFileName_, msg);
-        
+//             std::cout << "Grib file: " << gribFileName_ << ", jump info file: " << binFileName_ << ", msg id: " <<
+//             msg << std::endl; gribInfo = JumpInfo::fromFile(binFileName_, msg);
+
 //             ASSERT(gribInfo.ready());
 
 //             if (doRange_){

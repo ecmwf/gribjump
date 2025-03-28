@@ -33,13 +33,13 @@ private:
     bool matches(const fdb5::Key& key) const;
 
 private:
+
     bool configParsed_ = false;
     std::map<std::string, eckit::Regex> selectDict_;
 
     std::mutex mutex_;
 
     std::vector<std::unique_ptr<std::optional<InfoAggregator>>> aggregators_;
-
 };
 
-} // namespace fdb5
+}  // namespace gribjump

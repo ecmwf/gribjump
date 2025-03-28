@@ -17,17 +17,17 @@
 
 #include <vector>
 
-#include "eckit/runtime/Tool.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
+#include "eckit/runtime/Tool.h"
 
 namespace eckit {
-    namespace option {
-    class Option;
-    class CmdArgs;
-    }
-}
+namespace option {
+class Option;
+class CmdArgs;
+}  // namespace option
+}  // namespace eckit
 
 namespace gribjump {
 
@@ -35,27 +35,27 @@ namespace gribjump {
 
 class GribJumpTool : public eckit::Tool {
 
-protected: // methods
+protected:  // methods
 
-    GribJumpTool(int argc, char **argv);
+    GribJumpTool(int argc, char** argv);
     ~GribJumpTool() override {}
 
     void run() override;
 
-public: // methods
+public:  // methods
 
-    virtual void usage(const std::string &tool) const;
+    virtual void usage(const std::string& tool) const;
 
-protected: // members
+protected:  // members
 
-    std::vector<eckit::option::Option *> options_;
+    std::vector<eckit::option::Option*> options_;
 
-protected: // methods
+protected:  // methods
 
     virtual void init(const eckit::option::CmdArgs& args);
     virtual void finish(const eckit::option::CmdArgs& args);
 
-private: // methods
+private:  // methods
 
     virtual void execute(const eckit::option::CmdArgs& args) = 0;
 
@@ -68,6 +68,7 @@ private: // methods
 
 class GribJumpToolException : public eckit::Exception {
 public:
+
     GribJumpToolException(const std::string&);
     GribJumpToolException(const std::string&, const eckit::CodeLocation&);
 };
@@ -75,4 +76,4 @@ public:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump
