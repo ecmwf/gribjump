@@ -123,8 +123,7 @@ void ExtractRequest::replyToClient() {
         size_t nfields = items.size();
         client_ << nfields;
         for (size_t i = 0; i < nfields; i++) {
-            ExtractionResult res(items[i]->values(), items[i]->mask());
-            client_ << res;
+            client_ << *(items[i]->result());
         }
     }
 
@@ -154,12 +153,9 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
         filemap_[fname].reserve(nItems);
 
         for (size_t j = 0; j < nItems; j++) {
-            ExtractionRequest req(client_);
-            eckit::URI uri("file", eckit::URI(client_));
-            auto extractionItem = std::make_unique<ExtractionItem>(req.ranges());
-            extractionItem->gridHash(req.gridHash());  // @todo, tidy this up.
-            extractionItem->URI(uri);
-            filemap_[fname].push_back(extractionItem.get());
+            auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(client_));
+            extractionItem->URI(eckit::URI("file", client_));
+            filemap_[fname].push_back(extractionItem.get());  // non-owning pointers
             items_.push_back(std::move(extractionItem));
         }
         count += nItems;
@@ -180,8 +176,7 @@ void ForwardedExtractRequest::replyToClient() {
         size_t nItems = extractionItems.size();
         client_ << nItems;
         for (auto& item : extractionItems) {
-            ExtractionResult res(item->values(), item->mask());
-            client_ << res;
+            client_ << *(item->result());
         }
     }
 }

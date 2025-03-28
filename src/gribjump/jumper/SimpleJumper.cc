@@ -23,7 +23,7 @@ SimpleJumper::SimpleJumper() : Jumper() {}
 SimpleJumper::~SimpleJumper() {}
 
 void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info_in,
-                              const std::vector<Interval>& intervals, ExtractionItem& item) {
+                              const std::vector<Interval>& intervals, ExValues& values) {
 
     const SimpleInfo* psimple = dynamic_cast<const SimpleInfo*>(&info_in);
 
@@ -44,7 +44,7 @@ void SimpleJumper::readValues(eckit::DataHandle& dh, const eckit::Offset offset,
     // TODO(maee): Optimize this
     auto ranges = toRanges(intervals);
 
-    simple.decode(data_accessor, ranges, item.values());
+    simple.decode(data_accessor, ranges, values);
 
     return;
 }

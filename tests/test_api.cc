@@ -21,6 +21,7 @@
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
 #include "gribjump/GribJump.h"
+#include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "metkit/mars/MarsExpension.h"
@@ -32,13 +33,23 @@ using namespace eckit::testing;
 namespace gribjump {
 namespace test {
 
+
+std::vector<std::unique_ptr<ExtractionResult>> dumpIterator(ExtractionIterator& it) {
+    std::vector<std::unique_ptr<ExtractionResult>> results;
+    while (it.hasNext()) {
+        results.push_back(it.next());
+    }
+    return results;
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 // Build expected values for test ranges
 constexpr double MISSING = std::numeric_limits<double>::quiet_NaN();
 
-void compareValues(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues,
-                   const std::vector<std::vector<std::unique_ptr<ExtractionResult>>>& output) {
+void compareValues_old(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues,
+                       const std::vector<std::vector<std::unique_ptr<ExtractionResult>>>& output, size_t nvalues) {
     EXPECT_EQUAL(expectedValues.size(), output.size());
+    size_t count = 0;
     for (size_t i = 0; i < expectedValues.size(); i++) {  // each mars request
         EXPECT_EQUAL(expectedValues[i].size(), output[i].size());
         for (size_t j = 0; j < expectedValues[i].size(); j++) {  // each field
@@ -48,7 +59,7 @@ void compareValues(const std::vector<std::vector<std::vector<std::vector<double>
             for (size_t k = 0; k < expectedValues[i][j].size(); k++) {  // each range
                 EXPECT_EQUAL(expectedValues[i][j][k].size(), values[k].size());
                 for (size_t l = 0; l < expectedValues[i][j][k].size(); l++) {  // each value
-
+                    count++;
                     if (expectedValues[i][j][k][l] == 9999) {
                         EXPECT(std::isnan(values[k][l]));
                         EXPECT(!mask[k][l / 64][l % 64]);
@@ -61,8 +72,39 @@ void compareValues(const std::vector<std::vector<std::vector<std::vector<double>
             }
         }
     }
+
+    // Ensure we did in fact check all the values
+    EXPECT_EQUAL(count, nvalues);
 }
 
+void compareValues(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues,
+                   const std::vector<std::unique_ptr<ExtractionResult>>& output, size_t nvalues) {
+    EXPECT_EQUAL(expectedValues.size(), output.size());
+    size_t count = 0;
+    for (size_t i = 0; i < expectedValues.size(); i++) {  // each mars request
+        EXPECT_EQUAL(expectedValues[i].size(), 1);        // 1.
+        auto values = output[i]->values();
+        auto mask   = output[i]->mask();
+        EXPECT_EQUAL(expectedValues[i][0].size(), values.size());
+        for (size_t k = 0; k < expectedValues[i][0].size(); k++) {  // each range
+            EXPECT_EQUAL(expectedValues[i][0][k].size(), values[k].size());
+            for (size_t l = 0; l < expectedValues[i][0][k].size(); l++) {  // each value
+                count++;
+                if (expectedValues[i][0][k][l] == 9999) {
+                    EXPECT(std::isnan(values[k][l]));
+                    EXPECT(!mask[k][l / 64][l % 64]);
+                    continue;
+                }
+
+                EXPECT_EQUAL(values[k][l], expectedValues[i][0][k][l]);
+                EXPECT(mask[k][l / 64][l % 64]);
+            }
+        }
+    }
+
+    // Ensure we did in fact check all the values
+    EXPECT_EQUAL(count, nvalues);
+}
 //----------------------------------------------------------------------------------------------------------------------
 
 CASE("test_gribjump_api_extract") {
@@ -104,19 +146,19 @@ CASE("test_gribjump_api_extract") {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
 
-    std::vector<std::vector<Interval>> allIntervals = {{// two distinct ranges
-                                                        std::make_pair(0, 5), std::make_pair(20, 30)},
-                                                       {
-                                                           // full message
-                                                           std::make_pair(0, 100),
-                                                       },
-                                                       {
-                                                           // two sets of adjacent ranges
-                                                           std::make_pair(0, 1),
-                                                           std::make_pair(1, 2),
-                                                           std::make_pair(3, 4),
-                                                           std::make_pair(4, 5),
-                                                       }};
+    std::vector<std::vector<Interval>> allIntervals = {
+        {
+            // two distinct ranges
+            std::make_pair(0, 5), std::make_pair(20, 30)  // 15 values
+        },
+        {
+            // full message
+            std::make_pair(0, 100),  // 100 values
+        },
+        {
+            // two sets of adjacent ranges
+            std::make_pair(0, 1), std::make_pair(1, 2), std::make_pair(3, 4), std::make_pair(4, 5),  // 4 values
+        }};
 
     using PolyRequest = std::vector<ExtractionRequest>;
     PolyRequest polyRequest1;
@@ -126,7 +168,9 @@ CASE("test_gribjump_api_extract") {
 
     // Extract values
     GribJump gj;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output1 = gj.extract(polyRequest1);
+    ExtractionIterator it                                  = gj.extract_new(polyRequest1);
+    std::vector<std::unique_ptr<ExtractionResult>> output1 = dumpIterator(it);
+    EXPECT_EQUAL(output1.size(), 3);
 
     // Eccodes expected values
     std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues;
@@ -134,11 +178,11 @@ CASE("test_gribjump_api_extract") {
         metkit::mars::MarsRequest marsreq = fdb5::FDBToolRequest::requestsFromString(req.requestString())[0].request();
         expectedValues.push_back(eccodesExtract(marsreq, req.ranges()));
     }
-    compareValues(expectedValues, output1);
+    compareValues(expectedValues, output1, 15 + 100 + 4);
 
     // --------------------------------------------------------------------------------------------
 
-#if 0  // NO LONGER SUPPORTED
+#if 0  // NO LONGER SUPPORTED || Bring back!
     // Test 2: Extract same fields as Test 1, but in a single step=2/1/3 request. One set of ranges for all fields.
     std::vector<metkit::mars::MarsRequest> marsrequests;
     {
@@ -172,56 +216,51 @@ CASE("test_gribjump_api_extract") {
 
     // Test 1.b: Extract but with an md5 hash
     std::vector<ExtractionRequest> vec = {ExtractionRequest(requests[0], ranges)};
-    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug);  // missing hash
+    EXPECT_THROWS_AS(gj.extract_new(vec), eckit::SeriousBug);  // missing hash
     vec = {ExtractionRequest(requests[0], ranges, "wronghash")};
-    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug);  // incorrect hash
+    EXPECT_THROWS_AS(gj.extract_new(vec), eckit::SeriousBug);  // incorrect hash
 
     // correct hash
-    vec = {ExtractionRequest(requests[0], ranges, gridHash)};
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2c = gj.extract(vec);
-    EXPECT_EQUAL(output2c[0][0]->total_values(), 15);
+    vec                                                     = {ExtractionRequest(requests[0], ranges, gridHash)};
+    ExtractionIterator it2                                  = gj.extract_new(vec);
+    std::vector<std::unique_ptr<ExtractionResult>> output2c = dumpIterator(it2);
+    EXPECT_EQUAL(output2c.size(), 1);
+    EXPECT_EQUAL(output2c[0]->total_values(), 15);
 
     // // --------------------------------------------------------------------------------------------
 
     // Test 3: Extract function using path and offsets, which skips engine and related tasks/checks.
 
-    std::vector<eckit::URI> uris;
+    // std::vector<eckit::URI> uris;
     fdb5::FDBToolRequest fdbreq = fdb5::FDBToolRequest::requestsFromString(
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc")
         [0];
     auto listIter = fdb.list(fdbreq, false);
     fdb5::ListElement elem;
-    while (listIter.next(elem)) {
-        const fdb5::FieldLocation& loc = elem.location();
-        uris.push_back(loc.fullUri());
-    }
 
     // Get the paths from the URI above. Offset from URI's fragment
-    std::vector<eckit::PathName> paths;
+    std::set<eckit::PathName> paths;
     std::vector<eckit::Offset> offsets;
-    for (const auto& uri : uris) {
-        paths.push_back(uri.path());
-        std::string fragment = uri.fragment();
-        offsets.push_back(std::stoll(fragment));
-    }
-
-    for (size_t i = 1; i < paths.size(); i++) {
-        EXPECT(paths[i] == paths[0]);
-    }
 
     std::vector<std::vector<Range>> rangesRepeat;
-    for (size_t i = 0; i < paths.size(); i++) {
-        rangesRepeat.push_back(ranges);
+    while (listIter.next(elem)) {
+        const fdb5::FieldLocation& loc = elem.location();
+        eckit::URI uri                 = loc.fullUri();
+        paths.insert(uri.path());
+        std::string fragment = uri.fragment();
+        offsets.push_back(std::stoll(fragment));
+        rangesRepeat.push_back(ranges);  // Extract same range from all fields
     }
+    EXPECT_EQUAL(paths.size(), 1);    // Only one file
+    EXPECT_EQUAL(offsets.size(), 3);  // 3 fields
 
-    std::vector<std::unique_ptr<ExtractionItem>> outputItems3 = gj.extract(paths[0], offsets, rangesRepeat);
+    std::vector<std::unique_ptr<ExtractionItem>> outputItems3 = gj.extract(*paths.begin(), offsets, rangesRepeat);
     EXPECT(outputItems3.size() == 3);
 
     /// @todo temp: convert to extractionResult
     std::vector<std::unique_ptr<ExtractionResult>> output3;
     for (size_t i = 0; i < outputItems3.size(); i++) {
-        // output3.push_back(new ExtractionResult(outputItems3[i]->values(), outputItems3[i]->mask()));
-        output3.push_back(std::make_unique<ExtractionResult>(outputItems3[i]->values(), outputItems3[i]->mask()));
+        output3.push_back(outputItems3[i]->result());
     }
 
     // Expect output to be the same as output2[0]
@@ -229,8 +268,8 @@ CASE("test_gribjump_api_extract") {
     expectedValues.push_back(eccodesExtract(fdbreq.request(), ranges));
 
     std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output3v;
-    output3v.push_back(std::move(output3));  // i.e. == {output3}
-    compareValues(expectedValues, output3v);
+    output3v.push_back(std::move(output3));           // i.e. == {output3}
+    compareValues_old(expectedValues, output3v, 45);  // 15 * 3 fields
 
     std::cout << "test_gribjump_api_extract got to the end" << std::endl;
 }

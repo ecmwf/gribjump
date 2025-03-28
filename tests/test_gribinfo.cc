@@ -236,7 +236,7 @@ CASE("test_wrong_jumper") {
 // ~ i.e. internals of FileExtractionTask
 CASE("test_ExtractionItem_extract") {
     auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
-    ExtractionItem exItem("", intervals);
+    ExtractionItem exItem(intervals);
 
     eckit::PathName path = "2t_O1280.grib";
 
