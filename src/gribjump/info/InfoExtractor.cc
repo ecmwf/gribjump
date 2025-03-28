@@ -24,9 +24,6 @@
 
 #include <cstddef>
 #include <cstdlib>
-#include <memory>
-#include <utility>
-#include <vector>
 
 namespace gribjump {
 

@@ -16,6 +16,11 @@
 #include "eckit/message/Message.h"
 #include "gribjump/info/JumpInfo.h"
 
+#include <memory>
+#include <utility>
+#include <vector>
+
+
 namespace gribjump {
 
 class InfoExtractor {
