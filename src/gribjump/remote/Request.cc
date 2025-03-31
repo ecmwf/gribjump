@@ -12,6 +12,7 @@
 /// @author Tiago Quintino
 
 #include "gribjump/remote/Request.h"
+#include <cstddef>
 #include "gribjump/Engine.h"
 
 namespace {
@@ -99,9 +100,8 @@ void ExtractRequest::execute() {
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
             LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
-            for (auto& item : pair.second) {
-                item->debug_print();
-            }
+            pair.second->debug_print();
+            LOG_DEBUG_LIB(LibGribJump) << std::endl;
         }
     }
 }
@@ -118,13 +118,9 @@ void ExtractRequest::replyToClient() {
 
         auto it = results_.find(requests_[i].requestString());
         ASSERT(it != results_.end());
-        std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
-        // ExtractionItems items = it->second;
-        size_t nfields = items.size();
+        size_t nfields = 1;  // @todo: remove this (bump protocol version)
         client_ << nfields;
-        for (size_t i = 0; i < nfields; i++) {
-            client_ << *(items[i]->result());
-        }
+        client_ << *(it->second->result());
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;

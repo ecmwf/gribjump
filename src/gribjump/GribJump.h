@@ -48,18 +48,18 @@ public:
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false,
                 const LogContext& ctx = LogContext("none"));
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract_old(std::vector<ExtractionRequest>& requests,
-                                                                            const LogContext& ctx = LogContext("none"));
-    ExtractionIterator extract_new(std::vector<ExtractionRequest>& requests,
-                                   const LogContext& ctx = LogContext("none"));
 
-    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path,
-                                                         const std::vector<eckit::Offset>& offsets,
-                                                         const std::vector<std::vector<Range>>& ranges,
-                                                         const LogContext& ctx = LogContext("none"));
-    ExtractionIterator extract_new(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
-                                   const std::vector<std::vector<Range>>& ranges,
-                                   const LogContext& ctx = LogContext("none"));
+    // Extract from a vector of requests
+    ExtractionIterator extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx = LogContext("none"));
+
+    // Extract from all fields matching a mars request (which will be expanded into a vector of ExtractionRequests)
+    ExtractionIterator extract(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges,
+                               const std::string& gridHash, const LogContext& ctx = LogContext("none"));
+
+    // Extract from a specific file, with grib messages starting at the given offsets
+    ExtractionIterator extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
+                               const std::vector<std::vector<Range>>& ranges,
+                               const LogContext& ctx = LogContext("none"));
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
                                                                 const LogContext& ctx = LogContext("none"));

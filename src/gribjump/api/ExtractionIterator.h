@@ -58,6 +58,15 @@ public:
     // Caller takes ownership of the returned pointer
     std::unique_ptr<ExtractionResult> next() { return source_->next(); }
 
+    // Convenience function
+    std::vector<std::unique_ptr<ExtractionResult>> dumpVector() {
+        std::vector<std::unique_ptr<ExtractionResult>> results;
+        while (hasNext()) {
+            results.push_back(next());
+        }
+        return results;
+    }
+
 private:
 
     // Polymorphic pointer to "something" that can yield ExtractionResults

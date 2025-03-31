@@ -131,11 +131,9 @@ CASE("Engine: Basic extraction") {
     EXPECT_NO_THROW(report.raiseErrors());
 
     // print contents of map
-    for (auto& [req, exs] : results) {
+    for (auto& [req, ex] : results) {
         LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
-        for (auto& ex : exs) {
-            ex->debug_print();
-        }
+        ex->debug_print();
     }
 
     // Check correct values
@@ -143,20 +141,20 @@ CASE("Engine: Basic extraction") {
     for (size_t i = 0; i < 3; i++) {
         metkit::mars::MarsRequest req   = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
         std::vector<Interval> intervals = allIntervals[i];
-        auto& exs                       = results[requests[i]];
+        auto& ex                        = results[requests[i]];
         auto comparisonValues           = eccodesExtract(req, intervals);
-        for (size_t j = 0; j < exs.size(); j++) {
-            for (size_t k = 0; k < comparisonValues[j].size(); k++) {
-                for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
-                    count++;
-                    double v = exs[j]->values()[k][l];
-                    if (std::isnan(v)) {
-                        EXPECT(comparisonValues[j][k][l] == 9999);
-                        continue;
-                    }
-
-                    EXPECT(comparisonValues[j][k][l] == v);
+        ASSERT(comparisonValues.size() == 1);  // @todo: drop a dimension in the eccodesExtract functions
+        size_t j = 0;
+        for (size_t k = 0; k < comparisonValues[j].size(); k++) {
+            for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
+                count++;
+                double v = ex->values()[k][l];
+                if (std::isnan(v)) {
+                    EXPECT(comparisonValues[j][k][l] == 9999);
+                    continue;
                 }
+
+                EXPECT(comparisonValues[j][k][l] == v);
             }
         }
     }

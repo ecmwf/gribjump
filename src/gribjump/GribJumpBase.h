@@ -33,7 +33,8 @@ class FieldLocation;
 
 namespace gribjump {
 
-using ResultsMap = std::map<std::string, std::vector<std::unique_ptr<ExtractionItem>>>;
+///@todo: Why is this *here*? and not in Engine
+using ResultsMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
 class GribJumpBase : public eckit::NonCopyable {
 public:

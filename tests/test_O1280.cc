@@ -137,9 +137,10 @@ void test(eckit::PathName gribname) {
             Range(6560000, expectedNumberOfValues),
         };
 
-        const std::vector<eckit::Offset> offsets = {0};
-        std::unique_ptr<ExtractionItem> output(std::move(gj.extract(gribname, offsets, {ranges})[0]));
-        auto values = output->values();
+        const std::vector<eckit::Offset> offsets{0};
+        std::vector<std::unique_ptr<ExtractionResult>> output = gj.extract(gribname, offsets, {ranges}).dumpVector();
+        EXPECT_EQUAL(output.size(), 1);
+        const auto& values = output[0]->values();
 
         EXPECT(values.size() == ranges.size());
 
@@ -167,11 +168,12 @@ void test(eckit::PathName gribname) {
     // Plus the last one
     singlePoints.push_back(Range(expectedNumberOfValues - 1, expectedNumberOfValues));
 
-    std::vector<eckit::Offset> offsets = {0};
+    std::vector<eckit::Offset> offsets{0};
 
-    std::unique_ptr<ExtractionItem> output(std::move(gj.extract(gribname, offsets, {singlePoints})[0]));
+    std::vector<std::unique_ptr<ExtractionResult>> output = gj.extract(gribname, offsets, {singlePoints}).dumpVector();
+    EXPECT(output.size() == 1);
 
-    auto values = output->values();
+    const auto& values = output[0]->values();
 
     EXPECT(values.size() == singlePoints.size());
 

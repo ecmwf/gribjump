@@ -184,7 +184,7 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
     ResultsMap results;
 
     for (auto& [key, ex] : keyToExtractionItem) {
-        results[ex->request()].push_back(std::move(ex));
+        results[ex->request()] = std::move(ex);
     }
 
     return results;

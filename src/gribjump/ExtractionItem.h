@@ -59,10 +59,8 @@ public:
 
     /// @note alternatively we could store the offset directly instead of the uri.
     eckit::Offset offset() const {
-
         std::string fragment = uri_.fragment();
         eckit::Offset offset;
-
 
         try {
             offset = std::stoll(fragment);

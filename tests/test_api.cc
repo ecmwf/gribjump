@@ -34,18 +34,10 @@ namespace gribjump {
 namespace test {
 
 
-std::vector<std::unique_ptr<ExtractionResult>> dumpIterator(ExtractionIterator& it) {
-    std::vector<std::unique_ptr<ExtractionResult>> results;
-    while (it.hasNext()) {
-        results.push_back(it.next());
-    }
-    return results;
-}
-
 //----------------------------------------------------------------------------------------------------------------------
 // Build expected values for test ranges
 constexpr double MISSING = std::numeric_limits<double>::quiet_NaN();
-
+///@todo: continue refactoring these functions to be simpler.
 void compareValues_old(const std::vector<std::vector<std::vector<std::vector<double>>>>& expectedValues,
                        const std::vector<std::vector<std::unique_ptr<ExtractionResult>>>& output, size_t nvalues) {
     EXPECT_EQUAL(expectedValues.size(), output.size());
@@ -113,9 +105,9 @@ CASE("test_gribjump_api_extract") {
 
     // Prep: Write test data to FDB
 
-    std::string s = eckit::LocalPathName::cwd();
+    std::string cwd = eckit::LocalPathName::cwd();
 
-    eckit::TmpDir tmpdir(s.c_str());
+    eckit::TmpDir tmpdir(cwd.c_str());
     tmpdir.mkdir();
 
     const std::string config_str(R"XX(
@@ -168,8 +160,7 @@ CASE("test_gribjump_api_extract") {
 
     // Extract values
     GribJump gj;
-    ExtractionIterator it                                  = gj.extract_new(polyRequest1);
-    std::vector<std::unique_ptr<ExtractionResult>> output1 = dumpIterator(it);
+    std::vector<std::unique_ptr<ExtractionResult>> output1 = gj.extract(polyRequest1).dumpVector();
     EXPECT_EQUAL(output1.size(), 3);
 
     // Eccodes expected values
@@ -182,48 +173,39 @@ CASE("test_gribjump_api_extract") {
 
     // --------------------------------------------------------------------------------------------
 
-#if 0  // NO LONGER SUPPORTED || Bring back!
     // Test 2: Extract same fields as Test 1, but in a single step=2/1/3 request. One set of ranges for all fields.
-    std::vector<metkit::mars::MarsRequest> marsrequests;
-    {
-        std::istringstream s(
-            "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc\n"
-        );
-        metkit::mars::MarsParser parser(s);
-        auto parsedRequests = parser.parse();
-        metkit::mars::MarsExpension expand(/* inherit */ false);
-        marsrequests = expand.expand(parsedRequests);
+    std::istringstream ss(
+        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/"
+        "3,stream=oper,time=1200,type=fc\n");
+    metkit::mars::MarsParser parser(ss);
+    auto parsedRequests = parser.parse();
+    metkit::mars::MarsExpension expand(/* inherit */ false);
+    metkit::mars::MarsRequest req = expand.expand(parsedRequests)[0];
+
+    std::vector<Interval> ranges = {std::make_pair(0, 5), std::make_pair(20, 30)};  // 15 values
+    std::vector<std::unique_ptr<ExtractionResult>> output2 = gj.extract(req, ranges, gridHash).dumpVector();
+    EXPECT_EQUAL(output2.size(), 3);
+
+    // Eccodes expected values
+    std::vector<std::vector<std::vector<std::vector<double>>>> expectedValues2;
+    for (auto req : polyRequest1) {
+        metkit::mars::MarsRequest marsreq = fdb5::FDBToolRequest::requestsFromString(req.requestString())[0].request();
+        expectedValues2.push_back(eccodesExtract(marsreq, ranges));
     }
+    compareValues(expectedValues2, output2, 15 * 3);
 
-    requests = {
-        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc"
-    };
-    
-    std::vector<Interval> ranges = allIntervals[0];
-    PolyRequest polyRequest2;
-    polyRequest2.push_back(ExtractionRequest(requests[0], ranges, gridHash));
-
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output2 = gj.extract(polyRequest2);
-    EXPECT(output2.size() == 1);
-    EXPECT(output2[0].size() == 3);
-
-    expectedValues.clear();
-    expectedValues.push_back(eccodesExtract(marsrequests[0], ranges));
-    compareValues(expectedValues, output2);
-#endif
     // --------------------------------------------------------------------------------------------
-    std::vector<Interval> ranges = allIntervals[0];
+    ranges = {std::make_pair(0, 5), std::make_pair(20, 30)};  // 15 values
 
     // Test 1.b: Extract but with an md5 hash
     std::vector<ExtractionRequest> vec = {ExtractionRequest(requests[0], ranges)};
-    EXPECT_THROWS_AS(gj.extract_new(vec), eckit::SeriousBug);  // missing hash
+    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug);  // missing hash
     vec = {ExtractionRequest(requests[0], ranges, "wronghash")};
-    EXPECT_THROWS_AS(gj.extract_new(vec), eckit::SeriousBug);  // incorrect hash
+    EXPECT_THROWS_AS(gj.extract(vec), eckit::SeriousBug);  // incorrect hash
 
     // correct hash
     vec                                                     = {ExtractionRequest(requests[0], ranges, gridHash)};
-    ExtractionIterator it2                                  = gj.extract_new(vec);
-    std::vector<std::unique_ptr<ExtractionResult>> output2c = dumpIterator(it2);
+    std::vector<std::unique_ptr<ExtractionResult>> output2c = gj.extract(vec).dumpVector();
     EXPECT_EQUAL(output2c.size(), 1);
     EXPECT_EQUAL(output2c[0]->total_values(), 15);
 
@@ -254,14 +236,9 @@ CASE("test_gribjump_api_extract") {
     EXPECT_EQUAL(paths.size(), 1);    // Only one file
     EXPECT_EQUAL(offsets.size(), 3);  // 3 fields
 
-    std::vector<std::unique_ptr<ExtractionItem>> outputItems3 = gj.extract(*paths.begin(), offsets, rangesRepeat);
-    EXPECT(outputItems3.size() == 3);
-
-    /// @todo temp: convert to extractionResult
-    std::vector<std::unique_ptr<ExtractionResult>> output3;
-    for (size_t i = 0; i < outputItems3.size(); i++) {
-        output3.push_back(outputItems3[i]->result());
-    }
+    std::vector<std::unique_ptr<ExtractionResult>> output3 =
+        gj.extract(*paths.begin(), offsets, rangesRepeat).dumpVector();
+    EXPECT_EQUAL(output3.size(), 3);
 
     // Expect output to be the same as output2[0]
     expectedValues.clear();

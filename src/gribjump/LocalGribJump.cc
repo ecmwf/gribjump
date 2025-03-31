@@ -121,12 +121,11 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(Extraction
 
     // Map -> Vector
     std::vector<std::unique_ptr<ExtractionResult>> extractionResults;
+    extractionResults.reserve(requests.size());
     for (auto& req : requests) {
         auto it = results.find(req.requestString());
         ASSERT(it != results.end());
-        ASSERT(it->second.size() == 1);  /// @todo: temp, eventually second should not even have a size.
-        auto& item = it->second[0];
-        auto res   = item->result();
+        auto res = it->second->result();
         ASSERT(res);
         extractionResults.push_back(std::move(res));
     }

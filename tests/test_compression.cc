@@ -100,9 +100,11 @@ void test_compression() {
                          return interval.second <= numberOfDataPoints && interval.first < interval.second;
                      });
 
-        std::unique_ptr<ExtractionItem> result(std::move(gribjump.extract(data.gribFileName, {0}, {intervals})[0]));
-        auto actual_all = result->values();
-        auto mask_all   = result->mask();
+        std::vector<std::unique_ptr<ExtractionResult>> results =
+            gribjump.extract(data.gribFileName, {0}, {intervals}).dumpVector();
+        EXPECT_EQUAL(results.size(), 1);
+        auto actual_all = results[0]->values();
+        auto mask_all   = results[0]->mask();
 
         const auto expected = data.expectedData;
 
