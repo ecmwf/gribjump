@@ -139,12 +139,6 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     return result;
 }
 
-std::vector<std::unique_ptr<ExtractionItem>> RemoteGribJump::extract(const eckit::PathName& path,
-                                                                     const std::vector<eckit::Offset>& offsets,
-                                                                     const std::vector<std::vector<Range>>& ranges) {
-    NOTIMP;
-}
-
 // Forward extraction request to another server
 void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 
