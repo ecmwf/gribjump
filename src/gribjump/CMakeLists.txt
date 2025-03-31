@@ -48,7 +48,6 @@ list( APPEND gribjump_srcs
     ExtractionData.h
     Metrics.h
     Metrics.cc
-    Types.h
 
     api/ExtractionIterator.h
 )

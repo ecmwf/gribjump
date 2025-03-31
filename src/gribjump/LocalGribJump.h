@@ -37,9 +37,14 @@ public:
     std::vector<std::unique_ptr<ExtractionResult>> extract(ExtractionRequests& requests) override;
 
     // old API
-    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path,
-                                                         const std::vector<eckit::Offset>& offsets,
-                                                         const std::vector<std::vector<Range>>& ranges) override;
+    std::vector<std::unique_ptr<ExtractionItem>> extract_old(const eckit::PathName& path,
+                                                             const std::vector<eckit::Offset>& offsets,
+                                                             const std::vector<std::vector<Range>>& ranges) override;
+
+
+    std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
+                                                           const std::vector<eckit::Offset>& offsets,
+                                                           const std::vector<std::vector<Range>>& ranges) override;
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 

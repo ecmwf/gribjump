@@ -18,7 +18,6 @@
 
 #include "eckit/serialisation/Stream.h"
 #include "gribjump/Types.h"
-#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 
@@ -40,16 +39,8 @@ public:  // methods
 
     std::vector<std::vector<double>>& mutable_values() { return values_; }
     std::vector<std::vector<std::bitset<64>>>& mutable_mask() { return mask_; }
-
-    /// @todo can we remove these now?
-    void values(ExValues&& values) { values_ = std::move(values); }
-    void mask(ExMask&& mask) { mask_ = std::move(mask); }
-
     const std::vector<std::vector<double>>& values() const { return values_; }
     const std::vector<std::vector<std::bitset<64>>>& mask() const { return mask_; }
-
-    std::vector<std::vector<double>>&& take_values() { return std::move(values_); }
-    std::vector<std::vector<std::bitset<64>>>&& take_mask() { return std::move(mask_); }
 
     size_t nrange() const { return values_.size(); }
     size_t nvalues(size_t i) const { return values_[i].size(); }

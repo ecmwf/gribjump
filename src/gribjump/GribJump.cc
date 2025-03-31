@@ -13,10 +13,12 @@
 
 #include "eckit/log/Timer.h"
 
+#include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
 
 namespace gribjump {
@@ -82,7 +84,7 @@ ExtractionIterator GribJump::extract_new(std::vector<ExtractionRequest>& request
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
     }
-    return ExtractionIterator{std::make_unique<VectorSource>(VectorSource{impl_->extract(requests)})};
+    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
 }
 
 std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::PathName& path,
@@ -101,8 +103,7 @@ std::vector<std::unique_ptr<ExtractionItem>> GribJump::extract(const eckit::Path
         throw eckit::UserError("Offsets and ranges must be the same size", Here());
     }
 
-    auto out = impl_->extract(path, offsets, ranges);
-    return out;
+    return impl_->extract_old(path, offsets, ranges);
 }
 
 ExtractionIterator GribJump::extract_new(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
@@ -118,8 +119,8 @@ ExtractionIterator GribJump::extract_new(const eckit::PathName& path, const std:
     if (offsets.size() != ranges.size()) {
         throw eckit::UserError("Offsets and ranges must be the same size", Here());
     }
-    NOTIMP;  /// @todo the new way.
-    // return ExtractionIterator{std::make_unique<VectorSource>(VectorSource{impl_->extract(path, offsets, ranges)})};;
+
+    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(path, offsets, ranges))};
 }
 
 
