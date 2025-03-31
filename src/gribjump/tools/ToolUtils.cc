@@ -70,9 +70,8 @@ std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRe
     CollectFlattenedRequests cb(flattenedRequests);
     expansion.flatten(ctx, request, cb);
 
-    LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;
-
     if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;
         for (const auto& req : flattenedRequests) {
             LOG_DEBUG_LIB(LibGribJump) << "  Flattened request: " << req << std::endl;
         }

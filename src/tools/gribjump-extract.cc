@@ -106,31 +106,48 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs& args) {
 
     // Extract values
     GribJump gj;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gj.extract_old(polyRequest);
+    ExtractionIterator it = gj.extract(polyRequest);
 
     // Print extracted values
     if (!printout)
         return;
 
     eckit::Log::info() << "Extracted values:" << std::endl;
-    for (size_t i = 0; i < output.size(); i++) {  // each request
+    size_t i = 0;
+    while (it.hasNext()) {
+        auto result = it.next();
         eckit::Log::info() << "Request " << i << ": " << requests[i] << std::endl;
-        eckit::Log::info() << "  Number of fields: " << output[i].size() << std::endl;
-        for (size_t j = 0; j < output[i].size(); j++) {  // each field
-            eckit::Log::info() << "  Field " << j << std::endl;
-            auto values = output[i][j]->values();
-            auto mask   = output[i][j]->mask();
-
-            for (size_t k = 0; k < values.size(); k++) {  // each range
-                eckit::Log::info() << "    Range " << k;
-                eckit::Log::info() << " (" << std::get<0>(allRanges[i][k]) << "-" << std::get<1>(allRanges[i][k])
-                                   << "): ";
-                for (size_t l = 0; l < values[k].size(); l++) {  // each value
-                    eckit::Log::info() << values[k][l] << ", ";
+        auto values = result->values();
+        auto mask   = result->mask();
+        for (size_t k = 0; k < values.size(); k++) {  // each range
+            eckit::Log::info() << "    (" << std::get<0>(allRanges[i][k]) << "-" << std::get<1>(allRanges[i][k])
+                               << "): ";
+            for (size_t l = 0; l < values[k].size(); l++) {  // each value
+                eckit::Log::info() << values[k][l];
+                if (l < values[k].size() - 1) {
+                    eckit::Log::info() << ", ";
                 }
-                eckit::Log::info() << std::endl;
+            }
+            eckit::Log::info() << std::endl;
+        }
+
+        // Also print the mask
+        eckit::Log::info() << "    Mask: [" << std::hex;
+        for (size_t l = 0; l < mask.size(); l++) {
+            eckit::Log::info() << "[";
+            for (size_t m = 0; m < mask[l].size(); m++) {
+                eckit::Log::info() << mask[l][m].to_ullong();
+                if (m < mask[l].size() - 1) {
+                    eckit::Log::info() << ", ";
+                }
+            }
+            eckit::Log::info() << "]";
+            if (l < mask.size() - 1) {
+                eckit::Log::info() << " , ";
             }
         }
+        eckit::Log::info() << "]" << std::dec << std::endl;
+        i++;
     }
 }
 

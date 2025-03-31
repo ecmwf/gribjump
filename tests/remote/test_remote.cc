@@ -71,15 +71,12 @@ CASE("Remote protocol: extract") {
 
     GribJump gribjump;
     LogContext ctx("test_extract");
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> output = gribjump.extract_old(exRequests, ctx);
+    std::vector<std::unique_ptr<ExtractionResult>> output = gribjump.extract(exRequests, ctx).dumpVector();
 
     EXPECT_EQUAL(output.size(), 2);
     for (size_t i = 0; i < output.size(); i++) {
-        EXPECT_EQUAL(output[i].size(), 1);
-        for (size_t j = 0; j < output[i].size(); j++) {
-            EXPECT_EQUAL(output[i][j]->nvalues(0), 5);
-            EXPECT_EQUAL(output[i][j]->nvalues(1), 10);
-        }
+        EXPECT_EQUAL(output[i]->nvalues(0), 5);
+        EXPECT_EQUAL(output[i]->nvalues(1), 10);
     }
 }
 

@@ -228,7 +228,7 @@ int extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* req
         std::vector<ExtractionRequest> vec = {req};
         std::vector<std::unique_ptr<ExtractionResult>> results;
 
-        ExtractionIterator it = handle->extract_new(vec);
+        ExtractionIterator it = handle->extract(vec);
         while (it.hasNext()) {
             results.push_back(it.next());
         }
@@ -258,17 +258,17 @@ int extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
         ///@todo: the new way
         // std::vector<std::unique_ptr<ExtractionResult>> results = handle->extract(reqs, logctx);
         // NOTIMP;
-        std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results = handle->extract_old(reqs, logctx);
+        std::vector<std::unique_ptr<ExtractionResult>> results = handle->extract(reqs, logctx).dumpVector();
 
         *nfields       = new unsigned long[nrequests];
         *results_array = new gribjump_extraction_result_t**[nrequests];
-
+        size_t nfields_per_request =
+            1;  // todo: update c api to reflect dimensionality changes // or, return the iterator directly.
         for (size_t i = 0; i < nrequests; i++) {
-            (*nfields)[i]       = results[i].size();
+            (*nfields)[i]       = nfields_per_request;
             (*results_array)[i] = new gribjump_extraction_result_t*[(*nfields)[i]];
-            for (size_t j = 0; j < (*nfields)[i]; j++) {
-                (*results_array)[i][j] = new gribjump_extraction_result_t(std::move(results[i][j]));
-            }
+            (*results_array)[i][0] =
+                new gribjump_extraction_result_t(std::move(results[i]));  // todo: this has one useless dimension now.
         }
     });
 }
