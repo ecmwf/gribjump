@@ -40,7 +40,6 @@ typedef struct gribjump_extraction_request_t gribjump_extraction_request_t;
 struct gribjump_extractioniterator_t;
 typedef struct gribjump_extractioniterator_t gribjump_extractioniterator_t;
 
-
 struct gribjump_axes_t;
 typedef struct gribjump_axes_t gribjump_axes_t;
 
@@ -96,6 +95,7 @@ gribjump_error_t gribjump_axes_keys_old(gribjump_axes_t* axes, const char*** key
 gribjump_error_t gribjump_axes_values_old(gribjump_axes_t* axes, const char* key, const char*** values_out,
                                           unsigned long* size);  // old
 
+gribjump_error_t gribjump_axes_keys(gribjump_axes_t* axes, const char** keys, size_t size);
 gribjump_error_t gribjump_axes_keys_size(gribjump_axes_t* axes, size_t* size);
 gribjump_error_t gribjump_axes_values_size(gribjump_axes_t* axes, const char* key, size_t* size);
 gribjump_error_t gribjump_axes_values(gribjump_axes_t* axes, const char* key, const char** values, size_t size);

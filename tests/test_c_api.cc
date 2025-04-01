@@ -191,8 +191,8 @@ CASE("Axes") {
     test_success(gribjump_axes_keys_size(axes, &nkeys));
     EXPECT_EQUAL(nkeys, expectedValues.size());
 
-    const char** keys{};
-    test_success(gribjump_axes_keys_old(axes, &keys, &nkeys));
+    const char** keys = new const char*[nkeys];
+    test_success(gribjump_axes_keys(axes, keys, nkeys));
     EXPECT_EQUAL(nkeys, expectedValues.size());
 
     for (size_t i = 0; i < nkeys; i++) {
@@ -208,6 +208,11 @@ CASE("Axes") {
             EXPECT(expectedValues[key].find(values[j]) != expectedValues[key].end());
         }
     }
+
+    // cleanup
+    test_success(gribjump_delete_axes(axes));
+    delete[] keys;
+    test_success(gribjump_delete_handle(handle));
 }
 
 }  // namespace gribjump::test
