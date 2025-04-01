@@ -59,31 +59,6 @@ size_t LocalGribJump::scan(const std::vector<MarsRequest>& requests, bool byfile
     return result;
 }
 
-std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract_old(const eckit::PathName& path,
-                                                                        const std::vector<eckit::Offset>& offsets,
-                                                                        const std::vector<std::vector<Range>>& ranges) {
-    // Directly from file, no cache, no queue, no threads
-
-    InfoExtractor extractor;
-    std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(path, offsets);
-
-    eckit::FileHandle fh(path);
-    fh.openForRead();
-
-    std::vector<std::unique_ptr<ExtractionItem>> results;
-
-    for (size_t i = 0; i < offsets.size(); i++) {
-        JumpInfo& info = *infos[i];
-        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info));
-        std::unique_ptr<ExtractionItem> item(new ExtractionItem(ranges[i]));
-        jumper->extract(fh, offsets[i], info, *item);
-        results.push_back(std::move(item));
-    }
-
-    fh.close();
-
-    return results;
-}
 
 std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(const eckit::PathName& path,
                                                                       const std::vector<eckit::Offset>& offsets,

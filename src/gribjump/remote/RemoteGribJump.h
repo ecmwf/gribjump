@@ -43,13 +43,6 @@ public:  // methods
 
     std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>& polyRequest) override;
 
-    // old API
-    std::vector<std::unique_ptr<ExtractionItem>> extract_old(const eckit::PathName& path,
-                                                             const std::vector<eckit::Offset>& offsets,
-                                                             const std::vector<std::vector<Range>>& ranges) override {
-        NOTIMP;
-    }
-
     std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
                                                            const std::vector<eckit::Offset>& offsets,
                                                            const std::vector<std::vector<Range>>& ranges) override {
