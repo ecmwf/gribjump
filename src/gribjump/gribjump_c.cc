@@ -89,16 +89,6 @@ struct gribjump_extractioniterator_t : public ExtractionIterator {
     gribjump_extractioniterator_t(ExtractionIterator&& it) : ExtractionIterator(std::move(it)) {}
 };
 
-// struct gribjump_extraction_iterator_t {
-//     gribjump_extraction_iterator_t(ExtractionIterator* it) : it_(it) {}
-
-//     ~gribjump_extraction_iterator_t() {
-//         delete it_;
-//     }
-
-//     ExtractionIterator* it_;
-// };
-
 struct gribjump_axes_t {
 public:
 
@@ -154,6 +144,15 @@ public:
         int i = 0;
         for (const auto& value : values_[key]) {
             values_out[i++] = value.c_str();
+        }
+    }
+
+    void keys(const char** keys_out, size_t size) {
+        ASSERT(size == values_.size());
+        int i = 0;
+        for (const auto& v : values_) {
+            const auto& key = v.first;
+            keys_out[i++]   = key.c_str();
         }
     }
 
@@ -257,7 +256,7 @@ gribjump_error_t gribjump_result_values(gribjump_extraction_result_t* result, do
 }
 
 // Note: mask is encoded as 64-bit unsigned integers.
-// So if N values were extracted in a range, the mask array will contain N/64 elements.
+// So if N values were extracted in a range, the mask array will contain 1 + floor(N/64) elements.
 gribjump_error_t gribjump_result_mask(gribjump_extraction_result_t* result, unsigned long long** masks, size_t nmasks) {
     return tryCatch([=] {
         ASSERT(result);
@@ -400,6 +399,13 @@ gribjump_error_t gribjump_axes_keys_old(gribjump_axes_t* axes, const char*** key
     return tryCatch([=] {
         ASSERT(axes);
         axes->keys_old(keys_out, size);
+    });
+}
+
+gribjump_error_t gribjump_axes_keys(gribjump_axes_t* axes, const char** keys, size_t size) {
+    return tryCatch([=] {
+        ASSERT(axes);
+        axes->keys(keys, size);
     });
 }
 
