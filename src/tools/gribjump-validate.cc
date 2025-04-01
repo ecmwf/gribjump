@@ -50,7 +50,7 @@ void CompareEccodes::usage(const std::string& tool) const {
     GribJumpTool::usage(tool);
 }
 
-
+///@todo: review this tool
 void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
     bool raw = args.getBool("raw", false);
 
@@ -93,22 +93,10 @@ void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
     // Extract the data using gribjump
 
     GribJump gj;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results = gj.extract(polyRequest);
+    std::vector<std::unique_ptr<ExtractionResult>> results = gj.extract(polyRequest).dumpVector();
 
     ASSERT(results.size() == requests.size());
 
-    // TODO: Although gribjump.extract can deal with requests of cardinality > 1, (e.g. step=1/2/3), it is
-    // difficult to get the ordering consistent with eccodes. For now, we will require cardinality == 1.
-    for (size_t i = 0; i < results.size(); i++) {
-        const auto& r = results[i];
-        if (r.size() != 1) {
-            // also print the request
-            std::stringstream ss;
-            ss << requests[i];
-            throw eckit::UserError("This tool requires cardinality of each request to be 1, but gribjump found " +
-                                   std::to_string(r.size()) + " results for request " + ss.str());
-        }
-    }
 
     // Find the values using eccodes
 
@@ -118,26 +106,24 @@ void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
         LOG_DEBUG_LIB(LibGribJump) << "Results for request " << i << ": " << requests[i] << std::endl;
         std::vector<std::vector<std::vector<double>>> ecvalues = eccodesExtract(requests[i], allRanges[i]);
 
-        ASSERT(ecvalues.size() == results[i].size());
+        ASSERT(ecvalues.size() == 1);
 
-        for (int j = 0; j < results[i].size(); j++) {
-            const auto& ecval = ecvalues[j];
-            const auto& gjval = results[i][j]->values();
+        const auto& ecval = ecvalues[0];
+        const auto& gjval = results[i]->values();
 
-            ASSERT(ecval.size() == gjval.size());
+        ASSERT(ecval.size() == gjval.size());
 
-            // debug: print everything
-            for (int k = 0; k < ecval.size(); k++) {
-                LOG_DEBUG_LIB(LibGribJump) << "ecval[" << k << "]: " << ecval[k] << std::endl;
-                LOG_DEBUG_LIB(LibGribJump) << "gjval[" << k << "]: " << gjval[k] << std::endl;
-            }
+        // debug: print everything
+        for (int k = 0; k < ecval.size(); k++) {
+            LOG_DEBUG_LIB(LibGribJump) << "ecval[" << k << "]: " << ecval[k] << std::endl;
+            LOG_DEBUG_LIB(LibGribJump) << "gjval[" << k << "]: " << gjval[k] << std::endl;
+        }
 
-            for (int k = 0; k < ecval.size(); k++) {
-                ASSERT(ecval[k].size() == gjval[k].size());
-                for (int l = 0; l < ecval[k].size(); l++) {
-                    ASSERT(ecval[k][l] == gjval[k][l]);
-                    countAllValues++;
-                }
+        for (int k = 0; k < ecval.size(); k++) {
+            ASSERT(ecval[k].size() == gjval[k].size());
+            for (int l = 0; l < ecval[k].size(); l++) {
+                ASSERT(ecval[k][l] == gjval[k][l]);
+                countAllValues++;
             }
         }
     }

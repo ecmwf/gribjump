@@ -27,7 +27,7 @@ namespace gribjump {
 
 std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request,
                                                              std::vector<Range> ranges) {
-
+    // Potentially any cardinality.
     std::map<eckit::PathName, eckit::OffsetList> map = FDBLister::instance().filesOffsets({request});
 
     std::vector<std::vector<std::vector<double>>> results;
@@ -41,6 +41,26 @@ std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsR
         results.insert(results.end(), resultsFile.begin(), resultsFile.end());
     }
 
+    return results;
+}
+
+// Expects a request to have cardinality 1
+/// @todo: you wrote this but I dont think started to use it yet.
+std::vector<std::vector<double>> eccodesExtractSingle(metkit::mars::MarsRequest request, std::vector<Range> ranges) {
+    std::map<eckit::PathName, eckit::OffsetList> map = FDBLister::instance().filesOffsets({request});
+
+    // Should have exactly one pathname, and one element in the offset list.
+    if (map.size() != 1) {
+        throw eckit::UserError("Expected exactly one file for request: " + request.asString(), Here());
+    }
+
+    const eckit::PathName path      = map.begin()->first;
+    const eckit::OffsetList offsets = map.begin()->second;
+
+    if (offsets.size() != 1) {
+        throw eckit::UserError("Expected exactly one offset for request: " + request.asString(), Here());
+    }
+    std::vector<std::vector<double>> results = eccodesExtract(path, offsets, ranges)[0];
     return results;
 }
 

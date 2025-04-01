@@ -14,6 +14,7 @@
 
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
+#include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
 
 namespace gribjump {
@@ -40,11 +41,14 @@ public:  // methods
     size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) override;
     size_t forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map);
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(
-        std::vector<ExtractionRequest>& polyRequest) override;
-    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path,
-                                                         const std::vector<eckit::Offset>& offsets,
-                                                         const std::vector<std::vector<Range>>& ranges) override;
+    std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>& polyRequest) override;
+
+    std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
+                                                           const std::vector<eckit::Offset>& offsets,
+                                                           const std::vector<std::vector<Range>>& ranges) override {
+        NOTIMP;
+    }
+
     void forwardExtract(filemap_t& filemap);
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
