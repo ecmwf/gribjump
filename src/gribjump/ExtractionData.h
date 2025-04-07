@@ -52,11 +52,6 @@ public:  // methods
         return total;
     }
 
-    // For exposing buffers to C
-    // Use carefully, as the vector values_ still owns the data.
-    /// @todo: Completely remove this when we have a C/python iterator
-    void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
-
 private:  // methods
 
     void encode(eckit::Stream& s) const;

@@ -30,20 +30,12 @@ typedef struct gribjump_axes_t gribjump_axes_t;
 gribjump_error_t gribjump_new_handle(gribjump_handle_t** gj);
 gribjump_error_t gribjump_delete_handle(gribjump_handle_t* gj);
 
-///@todo: remove?
-gribjump_error_t extract_single(gribjump_handle_t* handle, gribjump_extraction_request_t* request,
-                                gribjump_extraction_result_t*** results_array, unsigned long* nfields);
-///@todo: remove?
-gribjump_error_t extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests, unsigned long nrequests,
-                         gribjump_extraction_result_t**** results_array, unsigned long** nfields, const char* ctx);
-
-
 gribjump_error_t gribjump_extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
                                   unsigned long nrequests, const char* ctx, gribjump_extractioniterator_t** iterator);
 
-///@todo: remove?
-gribjump_error_t gribjump_new_request_old(gribjump_extraction_request_t** request, const char* reqstr,
-                                          const char* rangesstr, const char* gridhash);
+gribjump_error_t gribjump_extract_single(gribjump_handle_t* handle, const char* request, const size_t* range_arr,
+                                         size_t range_arr_size, const char* gridhash, const char* ctx,
+                                         gribjump_extractioniterator_t** iterator);
 
 gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const size_t* ranges,
                                       size_t n_ranges, const char* gridhash);
@@ -51,16 +43,6 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
 gribjump_error_t gribjump_delete_request(gribjump_extraction_request_t* request);
 
 gribjump_error_t gribjump_new_result(gribjump_extraction_result_t** result);
-
-///@todo: remove?
-gribjump_error_t gribjump_result_values_old(gribjump_extraction_result_t* result, double*** values,
-                                            unsigned long* nrange, unsigned long** nvalues);
-///@todo: remove?
-gribjump_error_t gribjump_result_values_nocopy_old(gribjump_extraction_result_t* result, double*** values,
-                                                   unsigned long* nrange, unsigned long** nvalues);
-///@todo: remove?
-gribjump_error_t gribjump_result_mask_old(gribjump_extraction_result_t* result, unsigned long long*** masks,
-                                          unsigned long* nrange, unsigned long** nmasks);
 
 gribjump_error_t gribjump_result_values(gribjump_extraction_result_t* result, double** values, size_t nvalues);
 
@@ -72,12 +54,6 @@ gribjump_error_t gribjump_delete_result(gribjump_extraction_result_t* result);
 
 gribjump_error_t gribjump_new_axes(gribjump_handle_t* gj, const char* reqstr, int level, const char* ctx,
                                    gribjump_axes_t** axes);
-///@todo: remove?
-gribjump_error_t gribjump_axes_keys_old(gribjump_axes_t* axes, const char*** keys_out, unsigned long* size);  // old
-
-///@todo: remove?
-gribjump_error_t gribjump_axes_values_old(gribjump_axes_t* axes, const char* key, const char*** values_out,
-                                          unsigned long* size);  // old
 
 gribjump_error_t gribjump_axes_keys(gribjump_axes_t* axes, const char** keys, size_t size);
 gribjump_error_t gribjump_axes_keys_size(gribjump_axes_t* axes, size_t* size);
@@ -93,4 +69,4 @@ gribjump_error_t gribjump_extractioniterator_delete(const gribjump_extractionite
 gribjump_iterator_status_t gribjump_extractioniterator_next(gribjump_extractioniterator_t* it,
                                                             gribjump_extraction_result_t** result);
 
-const char* gribjump_error_string(gribjump_error_t err);
+const char* gribjump_error_string();

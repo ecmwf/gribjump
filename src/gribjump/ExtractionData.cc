@@ -147,16 +147,6 @@ void ExtractionResult::encode(eckit::Stream& s) const {
     encodeMask(s, mask_);
 }
 
-void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues) {
-    *nrange  = values_.size();
-    *values  = new double*[*nrange];
-    *nvalues = new unsigned long[*nrange];
-    for (size_t i = 0; i < *nrange; i++) {
-        (*nvalues)[i] = values_[i].size();
-        (*values)[i]  = values_[i].data();
-    }
-}
-
 void ExtractionResult::print(std::ostream& s) const {
     s << "ExtractionResult[Values:[";
     for (auto& v : values_) {

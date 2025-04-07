@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Based on pyfdb
 import numpy as np
 import cffi
 import os
@@ -20,8 +19,10 @@ import findlibs
 import warnings
 from ._version import __version__, __min_lib_version__
 from packaging import version
+from typing import Callable, Any, overload
 
 ffi = cffi.FFI()
+CData=ffi.CData
 
 class GribJumpException(RuntimeError):
     pass
@@ -69,40 +70,194 @@ class PatchedLib:
         if version.parse(versionstr) < version.parse(__min_lib_version__):
             raise RuntimeError(f"Pymetkit version {__version__} requires GribJump library version {__min_lib_version__} or later. Found {versionstr}")
 
-    def __read_header(self, hdr_path):
+    def __read_header(self, hdr_path : str):
         with open(hdr_path, 'r') as f:
             return f.read()
 
-    def __check_error(self, fn, name):
+    def __check_error(self, fn : Callable[..., Any], name: str) -> Callable[..., Any]:
         """
         If calls into the GribJump library return errors, ensure that they get detected and reported
         by throwing an appropriate python exception.
         """
+        # Some functions dont return error codes. Ignore these.
+        if name in ["gribjump_version", "gribjump_git_sha1", "gribjump_string_delete"]:
+            return fn
+        
+        # Iterator has a different set of error codes
+        if name in ["gribjump_extractioniterator_next"]:
+            def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
+                retval = fn(*args, **kwargs)
 
-        def wrapped_fn(*args, **kwargs):
-            # TODO Error string. See pyfdb
-            retval = fn(*args, **kwargs)
-            
-            # Some functions dont return error codes. Ignore these.
-            if name in ["gribjump_version", "gribjump_git_sha1", "gribjump_string_delete"]:
+                # error codes:
+                if retval not in (
+                    self.__lib.GRIBJUMP_ITERATOR_SUCCESS,
+                    self.__lib.GRIBJUMP_ITERATOR_COMPLETE,
+                ):
+                    err = ffi.string(self.__lib.gribjump_error_string()).decode()
+                    msg = "Error in function '{}': {}".format(name, err)
+                    raise GribJumpException(msg)
                 return retval
-            
-            # error codes:
-            if retval not in (
-                self.__lib.GRIBJUMP_SUCCESS,
-                self.__lib.GRIBJUMP_ITERATOR_SUCCESS,
-                self.__lib.GRIBJUMP_ITERATOR_COMPLETE,
-            ):
-                err = ffi.string(self.__lib.gribjump_get_error_string(retval)).decode()
-                msg = "Error in function '{}': {}".format(name, err)
-                raise GribJumpException(msg)
-            return retval
+
+        else:
+            def wrapped_fn(*args: Any, **kwargs: Any) -> Any:
+                retval = fn(*args, **kwargs)
+
+                if retval != self.__lib.GRIBJUMP_SUCCESS:
+                    err = ffi.string(self.__lib.gribjump_error_string()).decode()
+                    msg = "Error in function '{}': {}".format(name, err)
+                    raise GribJumpException(msg)
+                
+                return retval
 
         return wrapped_fn
 
 # Bootstrap the library
-
 lib = PatchedLib()
+
+class ExtractionRequest:
+    """
+    A class taking owernship of a GribJump extraction request.
+
+    Parameters
+    ----------
+    reqstr : str
+        The request mars-retrieve string.
+    ranges : [(lo, hi), (lo, hi), ...]
+        The ranges to extract.
+    """
+    def __init__(self, req, ranges, gridHash=None):
+        self.__shape = []
+        reqstr = dic_to_request(req)
+        request = ffi.new('gribjump_extraction_request_t**')
+        c_reqstr = ffi.new("char[]", reqstr.encode())
+        c_hash = ffi.NULL if gridHash is None else ffi.new("char[]", gridHash.encode())
+
+        # Flattened ranges
+        c_ranges = ffi.new('size_t[]', len(ranges)*2)
+        c_ranges_size = len(ranges)*2
+        for i, r in enumerate(ranges):
+            c_ranges[i*2] = r[0]
+            c_ranges[i*2+1] = r[1]
+            self.__shape.append(r[1] - r[0])
+
+        lib.gribjump_new_request(request, c_reqstr, c_ranges, c_ranges_size, c_hash)
+        self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
+
+    @property
+    def shape(self):
+        return self.__shape
+
+    @property
+    def ctype(self):
+        return self.__request
+
+
+class ExtractionIterator:
+    """
+    A class taking owernship of a GribJump extraction iterator.
+
+    Parameters
+    ----------
+    reqstr : str
+        The request mars-retrieve string.
+    ranges : [(lo, hi), (lo, hi), ...]
+        The ranges to extract.
+    """
+
+    def __init__(self, gribjump : CData, requests: list[ExtractionRequest], ctx : CData):
+        self.__shapes = [r.shape for r in requests]
+        iterator = ffi.new('gribjump_extractioniterator_t**')
+        c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
+        
+        lib.gribjump_extract(gribjump, c_requests, len(requests), ctx, iterator)
+        self.__iterator = ffi.gc(iterator[0], lib.gribjump_extractioniterator_delete)
+
+    def __iter__(self):
+        """
+        Iterate over the results of the extraction.
+        """
+        result_c = ffi.new('gribjump_extraction_result_t**')
+        i = 0
+        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
+            yield ExtractionResult(result_c[0], self.__shapes[i]) # Takes ownership of the result
+            i += 1
+
+
+    def dump_legacy(self):
+        """
+        Dump the iterator into a list of lists of lists of numpy arrays.
+        This exists for backwards compatibility with the old pygribjump interface, but it is not 
+        recommended and will be removed in the future.
+        """
+        res = [] # of size nrequests
+        for i, result in enumerate(self):
+            res.append(
+                [ # <-- pointless outer dimension for legacy reasons.
+                (result._copy_values(), result._copy_masks())  # maybe we should stop returning the mask if no one is using it / testing it.
+                ]
+            )
+
+        return res
+
+    def dump_full(self):
+        """
+        Dump the iterator into a list of lists of lists of numpy arrays.
+        This exists for backwards compatibility with the old pygribjump interface, but it is not 
+        recommended and will be removed in the future.
+        """
+        res = [] # of size nrequests
+        for i, result in enumerate(self):
+            res.append(
+                (result._copy_values(), result._copy_masks())  # maybe we should stop returning the mask if no one is using it / testing it.
+            )
+
+        return res
+    
+    def dump_values(self):
+        """
+        Dump the iterator into a list of lists of lists of numpy arrays.
+        This exists for backwards compatibility with the old pygribjump interface, but it is not 
+        recommended and will be removed in the future.
+        """
+        res = [] # of size nrequests
+        for i, result in enumerate(self):
+            res.append(result._copy_values())
+
+        return res
+    
+
+# Extraction iterator produced by a single request of arbitrary cardinality.
+class ExtractionSingleIterator (ExtractionIterator):
+
+    def __init__(self, gribjump : CData, request: dict[str, str | list], ranges: list[tuple[int, int]], gridHash : str, ctx : CData):
+        self.__shape = [] # All results will have the same shape
+        
+        # @todo: Have pymetkit handle the request manipulation
+        reqstr = "retrieve," + multivalued_dic_to_request(request)
+        c_reqstr = ffi.new("char[]", reqstr.encode())
+        c_hash = ffi.new("char[]", gridHash.encode())
+        
+        c_ranges = ffi.new('size_t[]', len(ranges)*2)
+        c_ranges_size = len(ranges)*2
+        for i, r in enumerate(ranges):
+            c_ranges[i*2] = r[0]
+            c_ranges[i*2+1] = r[1]
+            self.__shape.append(r[1] - r[0])
+        
+        iterator = ffi.new('gribjump_extractioniterator_t**')
+        lib.gribjump_extract_single(gribjump, c_reqstr, c_ranges, c_ranges_size, c_hash, ctx, iterator)
+        self.__iterator = ffi.gc(iterator[0], lib.gribjump_extractioniterator_delete)
+    
+    def __iter__(self):
+        """
+        Iterate over the results of the extraction.
+        """
+        result_c = ffi.new('gribjump_extraction_result_t**')
+        i = 0
+        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
+            yield ExtractionResult(result_c[0], self.__shape)
+            i += 1
+
 
 class GribJump:
     """This is the main container class for accessing GribJump"""
@@ -114,10 +269,19 @@ class GribJump:
         # Set free function
         self.__gribjump = ffi.gc(gribjump[0], lib.gribjump_delete_handle)
 
-    # todo: interface for one high cardinality request
 
-    def extract(self, polyrequest, ctx=None):
+    @overload
+    def extract(self, requests : ExtractionRequest, ctx=None) -> ExtractionIterator: ...
+
+    @overload
+    def extract(self, requests : list[ExtractionRequest], ctx=None) -> ExtractionIterator: ...
+
+    # todo: interface for one high cardinality request
+    def extract(self, polyrequest : list[tuple[str, list[tuple[int, int]]]], ctx=None) -> ExtractionIterator:
         """
+        Extract a list of requests.
+        Note: if a list of requests is passed, they must all have cardinality 1.
+        If a single request is passed, it may have any cardinality.
         Parameters
         ----------
         polyrequest : [
@@ -126,32 +290,47 @@ class GribJump:
             ...
         ]
 
-        dump : bool
-            If true, copy the values into a new numpy array. Otherwise, the values will be
-            stored in the original buffer, and will be garbage collected when the result object
-            is garbage collected.
         """
-        requests = self._unpack_polyrequest(polyrequest)
+        
+        # must be a list
+        if not isinstance(polyrequest, list):
+            raise ValueError("Polyrequest should be a list of tuples or ExtractionRequest objects")
+
+        if len(polyrequest) == 0:
+            raise ValueError("Polyrequest should not be empty")
+
+        # check type of first element to see if we must unpack
+        if isinstance(polyrequest[0], tuple):
+            requests = self._unpack_polyrequest(polyrequest)
+
+        elif isinstance(polyrequest[0], ExtractionRequest):
+            requests = polyrequest
+
+        else:
+            raise ValueError("Polyrequest should be a list of tuples or ExtractionRequest objects")
+
         logctx=str(ctx) if ctx else "pygribjump_extract"
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
-        iterator = ExtractionIterator(self.ctype, requests, logctx_c) # future: return this. For now, dump
-        return self._reshape_legacy(iterator)
-
-    def _reshape_legacy(self, iterator):
+        return ExtractionIterator(self.ctype, requests, logctx_c)
+    
+    def extract_single(self, request : dict[str, str | list], ranges : list[tuple[int, int]], gridHash : str="", ctx=None) -> ExtractionSingleIterator:
         """
-        Reshape the iterator into a list of lists of lists of numpy arrays.
+        Extract a single request with arbitrary cardinality.
+        Parameters
+        ----------
+        request : dict
+            The request mars-retrieve string.
+        ranges : [(lo, hi), (lo, hi), ...]
+            The ranges to extract.
+        hash : str
+            The hash of the request.
         """
-        res = [] # of size nrequests
-        for i, result in enumerate(iterator):
-            res.append(
-                [ # <-- pointless outer dimension for legacy reasons.
-                (result.copy_values(), result.copy_masks())  # maybe we should stop returning the mask if no one is using it / testing it.
-                ]
-            )
+        
+        logctx=str(ctx) if ctx else "pygribjump_extract_single"
+        logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
+        return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
-        return res
-
-    def _unpack_polyrequest(self, polyrequest):
+    def _unpack_polyrequest(self, polyrequest) -> list[ExtractionRequest]:
         requests = []
         for item in polyrequest:
             if len(item) == 2:
@@ -165,8 +344,7 @@ class GribJump:
         return requests
 
 
-    def axes(self, req, level=3, ctx=None):
-        # note old axes used a dict in. This is now a string.
+    def axes(self, req : dict[str, str], level : int = 3, ctx : str = None) -> dict[str, list[str]]:
         logctx=str(ctx) if ctx else "pygribjump_axes"
         ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         
@@ -195,73 +373,6 @@ class GribJump:
     @property
     def ctype(self):
         return self.__gribjump
-    
-class ExtractionRequest:
-    """
-    A class taking owernship of a GribJump extraction request.
-
-    Parameters
-    ----------
-    reqstr : str
-        The request mars-retrieve string.
-    ranges : [(lo, hi), (lo, hi), ...]
-        The ranges to extract.
-    """
-    def __init__(self, req, ranges, gridHash=None):
-        self.__shape = []
-        reqstr = dic_to_request(req)
-        request = ffi.new('gribjump_extraction_request_t**')
-        c_reqstr = ffi.new("char[]", reqstr.encode())
-        c_hash = ffi.NULL if gridHash is None else ffi.new("char[]", gridHash.encode())
-        # Flattened ranges
-        c_ranges = ffi.new('size_t[]', len(ranges)*2)
-        c_ranges_size = len(ranges)*2
-        for i, r in enumerate(ranges):
-            c_ranges[i*2] = r[0]
-            c_ranges[i*2+1] = r[1]
-            self.__shape.append(r[1] - r[0])
-
-        lib.gribjump_new_request(request, c_reqstr, c_ranges, c_ranges_size, c_hash)
-        self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
-
-    @property
-    def shape(self):
-        return self.__shape
-
-    @property
-    def ctype(self):
-        return self.__request
-
-class ExtractionIterator:
-    """
-    A class taking owernship of a GribJump extraction iterator.
-
-    Parameters
-    ----------
-    reqstr : str
-        The request mars-retrieve string.
-    ranges : [(lo, hi), (lo, hi), ...]
-        The ranges to extract.
-    """
-
-    def __init__(self, gribjump, requests: list[ExtractionRequest], ctx):
-        self.__shapes = [r.shape for r in requests]
-        iterator = ffi.new('gribjump_extractioniterator_t**')
-        c_requests = ffi.new('gribjump_extraction_request_t*[]', [r.ctype for r in requests])
-        
-        lib.gribjump_extract(gribjump, c_requests, len(requests), ctx, iterator)
-        self.__iterator = ffi.gc(iterator[0], lib.gribjump_extractioniterator_delete)
-
-    def __iter__(self):
-        """
-        Iterate over the results of the extraction.
-        """
-        result_c = ffi.new('gribjump_extraction_result_t**')
-        i = 0
-        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
-            yield ExtractionResult(result_c[0], self.__shapes[i]) # Takes ownership of the result
-            i += 1
-
 
 class ExtractionResult:
     """
@@ -277,30 +388,76 @@ class ExtractionResult:
         The shape of the result. This is required to unpack the result.
     """
 
-    def __init__(self, result_in, shape):
+    def __init__(self, result_in : CData, shape : list[int]):
+
         self.__shape = shape # required to unpack the result (need dimensions of ranges)
         self.__result = ffi.gc(result_in, lib.gribjump_delete_result) # Takes ownership of the result
+        self.__values = None
+        self.__mask = None
 
-    def copy_values(self):
+    @property
+    def values(self) -> list[np.ndarray]:
+        if self.__values is None:
+            self.__values = self._copy_values()
+        return self.__values
+
+    @property
+    def mask(self) -> list[np.ndarray]:
+        if self.__mask is None:
+            self.__mask = self._copy_masks()
+        return self.__mask
+
+    def compute_bool_mask(self) -> list[np.ndarray]:
+        """
+        Return the mask as a list of boolean arrays.
+        """
+        if self.__mask is None:
+            self.__mask = self._copy_masks()
+
+        # Convert the mask to a boolean array
+        result = []
+        count = 0
+        for i, mask in enumerate(self.__mask):
+            nvalues = self.__shape[i]
+            boolmask = np.zeros(nvalues, dtype=bool)
+            for j in range(len(mask)):
+                for k in range(64):
+                    bp = j*64 + k
+                    if bp >= nvalues: # We are done
+                        break
+                    # Check if the bit is set
+                    boolmask[bp] = (mask[j] >> np.uint64(k)) & np.uint64(1)
+                    count += 1
+            result.append(boolmask)
+
+        assert count == sum(self.__shape), f"Count mismatch: {count} != {sum(self.__shape)}"
+        return result
+
+    def _copy_values(self) -> list[np.ndarray]:
         nvalues = sum(self.__shape)
         values_array = ffi.new("double[]", nvalues)
         values_ptr = ffi.new("double*[1]")
         values_ptr[0] = values_array
 
         lib.gribjump_result_values(self.__result, values_ptr, nvalues)
- 
+
         # Values are stored in a 1D array, so we need to reshape them into the correct shape
         # @note: Copy for now as I do not trust the old frombuffer approach is playing nice with cffi garbage collection
         # We'll bring it back later.
         # Note, copying element by element here
-        result = [
-            np.array([values_array[i*size:(i+1)*size][j] for j in range(size)], dtype=np.float64)
-            for i, size in enumerate(self.__shape)
-        ]
-    
+        # result = [
+        #     np.array([values_array[i*size:(i+1)*size][j] for j in range(size)], dtype=np.float64)
+        #     for i, size in enumerate(self.__shape)
+        # ]
+        result = []
+        i = 0
+        for size in self.__shape:
+            result.append(np.array([values_array[j] for j in range(i, i+size)]))
+            i += size
+
         return result
 
-    def copy_masks(self):
+    def _copy_masks(self) -> list[np.ndarray]:
         # Bit mask is returned as an array of uint64
         mask_shape = [(size + 63) // 64 for size in self.__shape]
         nvalues = sum(mask_shape)
@@ -317,9 +474,10 @@ class ExtractionResult:
         return result
 
 # utils
-def rangestr_to_list(rangestr):
+def rangestr_to_list(rangestr : str) -> list[tuple[int, int]]:
     """
     Convert a range string to a list of ranges.
+    e.g. "0-6,7-12" -> [(0, 6), (7, 12)]
     """
     return [tuple(map(int, r.split('-'))) for r in rangestr.split(',')]
 
@@ -329,14 +487,30 @@ def list_to_rangestr(ranges):
     """
     return ','.join(['-'.join(map(str, r)) for r in ranges])
 
-def dic_to_request(dic):
+def dic_to_request(dic : dict [str, str]) -> str:
     # e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
     return ','.join(['='.join([k, v]) for k, v in dic.items()])
 
-def version():
+def multivalued_dic_to_request(dic : dict[str, str | list]) -> str:
+    # e.g. {"class":"od", "expver":"0001", "step":[1, 2, 3]} -> "class=od,expver=0001,step=1/2/3"
+    out = ""
+    for k, v in dic.items():
+        if isinstance(v, list):
+            out += f"{k}=" + '/'.join([str(i) for i in v]) + ","
+        else:
+            out += f"{k}={v},"
+    # Remove the last comma
+    out = out[:-1]
+    return out
+
+# def multivalued_dic_to_request(dic : dict [str, str | list[str]]) -> str:
+#     # e.g. {"class":"od", "expver":"0001", "step":[1, 2, 3]} -> "class=od,expver=0001,step=1/2/3"
+#     return ','.join(['='.join([k, '/'.join(map(str, v))]) for k, v in dic.items()])
+
+def version() -> str:
     return __version__
 
-def library_version():
+def library_version() -> str:
     tmp_str = ffi.new('char**')
     lib.gribjump_version_c(tmp_str)
     return ffi.string(tmp_str[0]).decode('utf-8')

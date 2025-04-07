@@ -28,7 +28,7 @@ constexpr double nan = std::numeric_limits<double>::quiet_NaN();
 void test_success(gribjump_error_t err) {
     // gribjump_error_values_t err = static_cast<gribjump_error_values_t>(e);
     if (err != GRIBJUMP_SUCCESS)
-        throw TestException("C-API error: " + std::string(gribjump_error_string(err)), Here());
+        throw TestException("C-API error: " + std::string(gribjump_error_string()), Here());
 }
 
 void EXPECT_STR_EQUAL(const char* a, const char* b) {
@@ -84,7 +84,7 @@ CASE("Extract") {
     size_t n_total_values = 5 + 10;
 
     // array of requests pointers
-    gribjump_extraction_request_t* requests_c[requests.size()];
+    gribjump_extraction_request_t* requests_c[3];
 
     for (size_t i = 0; i < requests.size(); i++) {
         test_success(
@@ -133,13 +133,59 @@ CASE("Extract") {
     EXPECT_EQUAL(status, GRIBJUMP_ITERATOR_COMPLETE);
     EXPECT_EQUAL(count, requests.size());
 
-    // ------------------------------------
     // Cleanup
     test_success(gribjump_extractioniterator_delete(iterator));
     for (size_t i = 0; i < requests.size(); i++) {
         test_success(gribjump_delete_request(requests_c[i]));
     }
 
+    // ---------------------------------------
+    // Same request but with extract_single
+
+    gribjump_extractioniterator_t* iterator_single{};
+    std::string requeststr =
+        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/"
+        "3,stream=oper,time=1200,type=fc";
+    test_success(gribjump_extract_single(handle, requeststr.c_str(), range_arr, range_arr_size, gridHash.c_str(),
+                                         nullptr, &iterator_single));
+
+    // check iterator
+    count = 0;
+    while ((status = gribjump_extractioniterator_next(iterator_single, &result)) == GRIBJUMP_ITERATOR_SUCCESS) {
+
+        // Extract the values. Allocate the array
+        double* values = new double[n_total_values];
+        test_success(gribjump_result_values(result, &values, n_total_values));
+
+        for (size_t i = 0; i < n_total_values; i++) {
+            if (std::isnan(expectedValues[i])) {
+                EXPECT(std::isnan(values[i]));
+                continue;
+            }
+            EXPECT_EQUAL(values[i], expectedValues[i]);
+        }
+
+        // check the mask/
+        size_t nmasks            = 2;  // == sum_i {range_size_i / 64}, summed over all ranges
+        unsigned long long* mask = new unsigned long long[nmasks];
+        test_success(gribjump_result_mask(result, &mask, nmasks));
+        for (size_t i = 0; i < nmasks; i++) {
+            EXPECT_EQUAL(mask[i], expectedMask[i]);
+        }
+
+        // cleanup
+        test_success(gribjump_delete_result(result));
+        delete[] values;
+        count++;
+    }
+
+    EXPECT_EQUAL(status, GRIBJUMP_ITERATOR_COMPLETE);
+    EXPECT_EQUAL(count, 3);
+
+    // Cleanup
+    test_success(gribjump_extractioniterator_delete(iterator_single));
+
+    // ------------------------------------
     test_success(gribjump_delete_handle(handle));
 }
 
