@@ -12,11 +12,13 @@
 
 #include "gribjump/gribjump_c.h"
 #include <functional>
+#include <sstream>
 #include "eckit/runtime/Main.h"
-#include "eckit/utils/StringTools.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 
 using namespace gribjump;
 
@@ -242,8 +244,16 @@ gribjump_error_t gribjump_extract_single(gribjump_handle_t* handle, const char* 
         if (ctx)
             logctx = LogContext(ctx);
 
-        std::string gridhash_str      = gridhash ? std::string(gridhash) : "";
-        metkit::mars::MarsRequest req = metkit::mars::MarsRequest::parse(request, true);
+        std::string gridhash_str = gridhash ? std::string(gridhash) : "";
+
+        // Parse the mars request
+        std::istringstream in(request);
+        metkit::mars::MarsParser parser(in);
+        metkit::mars::MarsExpension expand(false, true);
+        auto v = expand.expand(parser.parse());
+        ASSERT(v.size() == 1);
+        metkit::mars::MarsRequest req = v[0];
+
         *iterator = new gribjump_extractioniterator_t(handle->extract(req, ranges, gridhash_str, logctx));
     });
 }
