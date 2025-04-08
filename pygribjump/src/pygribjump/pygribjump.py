@@ -20,6 +20,7 @@ import warnings
 from ._version import __version__, __min_lib_version__
 from packaging import version
 from typing import Callable, Any, overload
+from itertools import accumulate
 
 ffi = cffi.FFI()
 CData=ffi.CData
@@ -198,8 +199,8 @@ class ExtractionIterator:
         res = [] # of size nrequests
 
         for i, result in enumerate(self):
-            values = result._copy_values()
-            masks = result._copy_masks()
+            values = result.copy_values()
+            masks = result.copy_masks()
             li = [[]] # pointless outer dimension for legacy reasons.
             for j in range(len(values)):
                 pair = (values[j], masks[j])
@@ -208,31 +209,8 @@ class ExtractionIterator:
 
         return res
 
-    def dump_full(self):
-        """
-        Dump the iterator into a list of lists of lists of numpy arrays.
-        This exists for backwards compatibility with the old pygribjump interface, but it is not 
-        recommended and will be removed in the future.
-        """
-        res = [] # of size nrequests
-        for i, result in enumerate(self):
-            res.append(
-                (result._copy_values(), result._copy_masks())  # maybe we should stop returning the mask if no one is using it / testing it.
-            )
-
-        return res
-    
-    def dump_values(self):
-        """
-        Dump the iterator into a list of lists of lists of numpy arrays.
-        This exists for backwards compatibility with the old pygribjump interface, but it is not 
-        recommended and will be removed in the future.
-        """
-        res = [] # of size nrequests
-        for i, result in enumerate(self):
-            res.append(result._copy_values())
-
-        return res
+    def dump_values(self) -> list[list[np.ndarray]]:
+        return [result.copy_values() for result in self]
     
 
 # Extraction iterator produced by a single request of arbitrary cardinality.
@@ -406,27 +384,25 @@ class ExtractionResult:
 
     @property
     def values(self) -> list[np.ndarray]:
+        # Note: This is a view of the data, so must not outlive the result object.
         if self.__values is None:
-            self.__values = self._copy_values()
+            self.__values = self._view_values()
         return self.__values
 
     @property
-    def mask(self) -> list[np.ndarray]:
+    def masks(self) -> list[np.ndarray]:
+        # Note: This is a view of the data, so must not outlive the result object.
         if self.__mask is None:
-            self.__mask = self._copy_masks()
+            self.__mask = self._view_masks()
         return self.__mask
 
-    def compute_bool_mask(self) -> list[np.ndarray]:
+    def compute_bool_masks(self) -> list[np.ndarray]:
         """
         Return the mask as a list of boolean arrays.
         """
-        if self.__mask is None:
-            self.__mask = self._copy_masks()
-
-        # Convert the mask to a boolean array
         result = []
         count = 0
-        for i, mask in enumerate(self.__mask):
+        for i, mask in enumerate(self.masks):
             nvalues = self.__shape[i]
             boolmask = np.zeros(nvalues, dtype=bool)
             for j in range(len(mask)):
@@ -442,46 +418,52 @@ class ExtractionResult:
         assert count == sum(self.__shape), f"Count mismatch: {count} != {sum(self.__shape)}"
         return result
 
-    def _copy_values(self) -> list[np.ndarray]:
+    def copy_values(self) -> list[np.ndarray]:
+        return [v.copy() for v in self.values]
+    
+    def copy_masks(self) -> list[np.ndarray]:
+        return [m.copy() for m in self.masks]
+
+    def _view_values(self) -> list[np.ndarray]:
+        """
+        Return the values as a list of numpy arrays.
+        This is a view of the data, so must not outlive the result object.
+        """
         nvalues = sum(self.__shape)
-        values_array = ffi.new("double[]", nvalues)
+        self.__values_cdata = ffi.new("double[]", nvalues)
         values_ptr = ffi.new("double*[1]")
-        values_ptr[0] = values_array
+        values_ptr[0] = self.__values_cdata
 
         lib.gribjump_result_values(self.__result, values_ptr, nvalues)
 
-        # Values are stored in a 1D array, so we need to reshape them into the correct shape
-        # @note: Copy for now as I do not trust the old frombuffer approach is playing nice with cffi garbage collection
-        # We'll bring it back later.
-        # Note, copying element by element here
-        # result = [
-        #     np.array([values_array[i*size:(i+1)*size][j] for j in range(size)], dtype=np.float64)
-        #     for i, size in enumerate(self.__shape)
-        # ]
-        result = []
-        i = 0
-        for size in self.__shape:
-            result.append(np.array([values_array[j] for j in range(i, i+size)]))
-            i += size
+        # Create a view of the data
+        view = np.frombuffer(ffi.buffer(self.__values_cdata, nvalues * ffi.sizeof('double')), dtype=np.float64)
 
-        return result
+        # Split into a list of views, one for each range
+        indices = list(accumulate(self.__shape))[:-1]
+        return np.split(view, indices)
 
-    def _copy_masks(self) -> list[np.ndarray]:
+    def _view_masks(self) -> list[np.ndarray]:
+        """
+        Return the mask as a list of numpy arrays.
+        This is a view of the data, so must not outlive the result object.
+        """
         # Bit mask is returned as an array of uint64
         mask_shape = [(size + 63) // 64 for size in self.__shape]
         nvalues = sum(mask_shape)
-        masks = ffi.new('unsigned long long[]', nvalues)
+        self.__mask_cdata = ffi.new('unsigned long long[]', nvalues)
         mask_ptr = ffi.new('unsigned long long*[1]')
-        mask_ptr[0] = masks
+        mask_ptr[0] = self.__mask_cdata
+
         lib.gribjump_result_mask(self.__result, mask_ptr, nvalues)
 
-        # Masks are stored in a 1D array, so we need to reshape them into the correct shape
-        result = [
-            np.array([masks[i*size:(i+1)*size][j] for j in range(size)], dtype=np.uint64)
-            for i, size in enumerate(mask_shape)
-        ]
-        return result
+        # Create a view of the data
+        view = np.frombuffer(ffi.buffer(self.__mask_cdata, nvalues * ffi.sizeof('unsigned long long')), dtype=np.uint64)
 
+        # Split into a list of views, one for each range
+        indices = list(accumulate(mask_shape))[:-1]
+        return np.split(view, indices)
+        
 # utils
 def rangestr_to_list(rangestr : str) -> list[tuple[int, int]]:
     """

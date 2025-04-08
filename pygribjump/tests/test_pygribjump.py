@@ -42,12 +42,12 @@ def compare_synthetic_data(values, expected):
     for i in range(len(values)):
         assert numpy.array_equal(values[i], expected[i], equal_nan=True)
 
-def validate_mask(result : ExtractionResult):
+def validate_masks(result : ExtractionResult):
     """
     For a given bitmask, check if the values are nan
     """
     values = result.values
-    boolmask = result.compute_bool_mask()
+    boolmask = result.compute_bool_masks()
 
     assert len(values) == len(boolmask)
 
@@ -172,7 +172,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
 
     for i, result in enumerate(gribjump.extract(polyrequest)):
         compare_synthetic_data(result.values, [synthetic_data[r[0]:r[1]] for r in (ranges[i])])
-        validate_mask(result)
+        validate_masks(result)
     assert i == len(ranges) - 1
 
     # list of ExtractionRequest api:
@@ -180,7 +180,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
 
     for i, result in enumerate(gribjump.extract(polyrequest)):
         compare_synthetic_data(result.values, [synthetic_data[r[0]:r[1]] for r in (ranges[i])])
-        validate_mask(result)
+        validate_masks(result)
     assert i == len(ranges) - 1
 
     # Single request api:
@@ -190,7 +190,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
     expected = [synthetic_data[r[0]:r[1]] for r in (ranges[0])]
     for i, result in enumerate(gribjump.extract_single(request, ranges[0])):
         compare_synthetic_data(result.values, expected)
-        validate_mask(result)
+        validate_masks(result)
 
     assert i == 3
 
