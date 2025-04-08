@@ -80,7 +80,6 @@ public:  // methods
     const std::string& requestString() const { return request_; }
     void requestString(const std::string& s) { request_ = s; }
     const std::string& gridHash() const { return gridHash_; }
-    void gridHash(const std::string& s) { gridHash_ = s; }  // ideally never use this, and then delete it.
 
 private:  // methods
 

@@ -182,20 +182,29 @@ class ExtractionIterator:
             yield ExtractionResult(result_c[0], self.__shapes[i]) # Takes ownership of the result
             i += 1
 
-
     def dump_legacy(self):
         """
-        Dump the iterator into a list of lists of lists of numpy arrays.
+        Dump the iterator into its unwieldy legacy format.
         This exists for backwards compatibility with the old pygribjump interface, but it is not 
         recommended and will be removed in the future.
+
+        Original dimensions:
+        [i]          : ith request
+        [i][j]       : jth field from this request. This is always a single element now, making this dimension pointless.
+        [i][j][k]    : kth range requested from this field.
+        [i][j][k][0] : the list of values extracted for this range
+        [i][j][k][1] : the mask (list of uint64) extracted for this range
         """
         res = [] # of size nrequests
+
         for i, result in enumerate(self):
-            res.append(
-                [ # <-- pointless outer dimension for legacy reasons.
-                (result._copy_values(), result._copy_masks())  # maybe we should stop returning the mask if no one is using it / testing it.
-                ]
-            )
+            values = result._copy_values()
+            masks = result._copy_masks()
+            li = [[]] # pointless outer dimension for legacy reasons.
+            for j in range(len(values)):
+                pair = (values[j], masks[j])
+                li[0].append(pair)
+            res.append(li)
 
         return res
 
