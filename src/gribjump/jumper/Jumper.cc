@@ -13,6 +13,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
 
+#include <memory>
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/jumper/Jumper.h"
 
@@ -87,14 +88,14 @@ void Jumper::extractNoMask(eckit::DataHandle& dh, const eckit::Offset offset, co
                            ExtractionItem& extractionItem) {
 
     const std::vector<Interval>& intervals = extractionItem.intervals();
-    readValues(dh, offset, info, intervals, extractionItem);
 
-    std::vector<std::vector<std::bitset<64>>> all_masks;  // all present
+    auto result = std::make_unique<ExtractionResult>();
+    readValues(dh, offset, info, intervals, result->mutable_values());
 
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks),
+    std::transform(intervals.begin(), intervals.end(), std::back_inserter(result->mutable_mask()),
                    [](const auto& interval) { return toBitset(std::vector(interval.second - interval.first, true)); });
 
-    extractionItem.mask(std::move(all_masks));
+    extractionItem.result(std::move(result));
     return;
 }
 
@@ -105,26 +106,27 @@ void Jumper::extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, co
     auto fullbitmap                            = readBitmap(dh, offset, info);
     auto [new_intervals, new_bitmaps]          = calculateMaskedIntervals(old_intervals, fullbitmap);
 
-    readValues(dh, offset, info, new_intervals, extractionItem);
-    auto all_decoded_values = extractionItem.values();
+    // This result object does not have the masked nans.
+    auto decoded = std::make_unique<ExtractionResult>();
+    readValues(dh, offset, info, new_intervals, decoded->mutable_values());
 
-    std::vector<Values> all_values;
-    std::vector<std::vector<std::bitset<64>>> all_masks;
+    // This result object will have nans in the masked positions.
+    auto output_result                                   = std::make_unique<ExtractionResult>();
+    std::vector<Values>& out_values                      = output_result->mutable_values();
+    std::vector<std::vector<std::bitset<64>>>& out_masks = output_result->mutable_mask();
 
-    /// @todo: Can we avoid copying the values?
+    /// @todo: Can we avoid copying the values e.g. resize + modify the vector in place? Possibly not worth it.
     for (size_t i = 0; i < old_intervals.size(); ++i) {
         Values values;
         values.reserve(new_bitmaps[i].size());
         for (size_t count = 0, j = 0; j < new_bitmaps[i].size(); ++j) {
-            values.push_back(new_bitmaps[i][j] ? all_decoded_values[i][count++] : MISSING_VALUE);
+            values.push_back(new_bitmaps[i][j] ? decoded->values()[i][count++] : MISSING_VALUE);
         }
-        all_values.push_back(values);
-        all_masks.push_back(toBitset(new_bitmaps[i]));
+        out_values.push_back(values);
+        out_masks.push_back(toBitset(new_bitmaps[i]));
     }
 
-    extractionItem.values(std::move(all_values));
-    extractionItem.mask(std::move(all_masks));
-
+    extractionItem.result(std::move(output_result));
     return;
 }
 
@@ -136,21 +138,18 @@ void Jumper::extractConstant(const JumpInfo& info, ExtractionItem& extractionIte
 
     const std::vector<Interval>& intervals = extractionItem.intervals();
 
-    std::vector<std::vector<std::bitset<64>>> all_masks;
-    std::vector<Values> all_values;
-
+    auto res            = std::make_unique<ExtractionResult>();
     auto referenceValue = info.referenceValue();
 
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_values),
+    std::transform(intervals.begin(), intervals.end(), std::back_inserter(res->mutable_values()),
                    [referenceValue](const Interval& interval) {
                        return Values(interval.second - interval.first, referenceValue);
                    });
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const Interval& interval) {
-        return toBitset(std::vector(interval.second - interval.first, true));
-    });
+    std::transform(
+        intervals.begin(), intervals.end(), std::back_inserter(res->mutable_mask()),
+        [](const Interval& interval) { return toBitset(std::vector(interval.second - interval.first, true)); });
 
-    extractionItem.values(std::move(all_values));
-    extractionItem.mask(std::move(all_masks));
+    extractionItem.result(std::move(res));
     return;
 }
 

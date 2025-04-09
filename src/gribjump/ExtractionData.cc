@@ -133,8 +133,8 @@ std::vector<std::vector<std::bitset<64>>> decodeMask(eckit::Stream& s) {
 
 ExtractionResult::ExtractionResult() {}
 
-ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values,
-                                   std::vector<std::vector<std::bitset<64>>> mask) :
+ExtractionResult::ExtractionResult(std::vector<std::vector<double>>&& values,
+                                   std::vector<std::vector<std::bitset<64>>>&& mask) :
     values_(std::move(values)), mask_(std::move(mask)) {}
 
 ExtractionResult::ExtractionResult(eckit::Stream& s) {
@@ -145,16 +145,6 @@ ExtractionResult::ExtractionResult(eckit::Stream& s) {
 void ExtractionResult::encode(eckit::Stream& s) const {
     encodeVectorVector(s, values_);
     encodeMask(s, mask_);
-}
-
-void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues) {
-    *nrange  = values_.size();
-    *values  = new double*[*nrange];
-    *nvalues = new unsigned long[*nrange];
-    for (size_t i = 0; i < *nrange; i++) {
-        (*nvalues)[i] = values_[i].size();
-        (*values)[i]  = values_[i].data();
-    }
 }
 
 void ExtractionResult::print(std::ostream& s) const {

@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <vector>
+#include "eckit/io/Buffer.h"
 
 namespace gribjump::mc {
 
@@ -34,13 +35,12 @@ class SimplePacking {
 public:
 
     using ValueType = T;
-    using Buffer    = std::vector<unsigned char>;
     using Values    = std::vector<ValueType>;
 
     SimplePacking()  = default;
     ~SimplePacking() = default;
 
-    Values unpack(const DecodeParameters<ValueType>& params, const Buffer& buffer);
+    Values unpack(const DecodeParameters<ValueType>& params, const eckit::Buffer& encoded, long bitp = 0);
 };
 
 }  // namespace gribjump::mc

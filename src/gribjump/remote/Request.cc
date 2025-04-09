@@ -12,6 +12,7 @@
 /// @author Tiago Quintino
 
 #include "gribjump/remote/Request.h"
+#include <cstddef>
 #include "gribjump/Engine.h"
 
 namespace {
@@ -99,9 +100,8 @@ void ExtractRequest::execute() {
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
             LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
-            for (auto& item : pair.second) {
-                item->debug_print();
-            }
+            pair.second->debug_print();
+            LOG_DEBUG_LIB(LibGribJump) << std::endl;
         }
     }
 }
@@ -118,14 +118,9 @@ void ExtractRequest::replyToClient() {
 
         auto it = results_.find(requests_[i].requestString());
         ASSERT(it != results_.end());
-        std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
-        // ExtractionItems items = it->second;
-        size_t nfields = items.size();
+        size_t nfields = 1;  // @todo: remove this (bump protocol version)
         client_ << nfields;
-        for (size_t i = 0; i < nfields; i++) {
-            ExtractionResult res(items[i]->values(), items[i]->mask());
-            client_ << res;
-        }
+        client_ << *(it->second->result());
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
@@ -154,12 +149,9 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
         filemap_[fname].reserve(nItems);
 
         for (size_t j = 0; j < nItems; j++) {
-            ExtractionRequest req(client_);
-            eckit::URI uri("file", eckit::URI(client_));
-            auto extractionItem = std::make_unique<ExtractionItem>(req.ranges());
-            extractionItem->gridHash(req.gridHash());  // @todo, tidy this up.
-            extractionItem->URI(uri);
-            filemap_[fname].push_back(extractionItem.get());
+            auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(client_));
+            extractionItem->URI(eckit::URI("file", client_));
+            filemap_[fname].push_back(extractionItem.get());  // non-owning pointers
             items_.push_back(std::move(extractionItem));
         }
         count += nItems;
@@ -180,8 +172,7 @@ void ForwardedExtractRequest::replyToClient() {
         size_t nItems = extractionItems.size();
         client_ << nItems;
         for (auto& item : extractionItems) {
-            ExtractionResult res(item->values(), item->mask());
-            client_ << res;
+            client_ << *(item->result());
         }
     }
 }

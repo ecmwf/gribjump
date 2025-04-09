@@ -27,11 +27,11 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
+#include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LocalGribJump.h"
-#include "gribjump/info/InfoCache.h"
 
 #include "gribjump/Engine.h"
 #include "gribjump/info/InfoExtractor.h"
@@ -59,9 +59,10 @@ size_t LocalGribJump::scan(const std::vector<MarsRequest>& requests, bool byfile
     return result;
 }
 
-std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit::PathName& path,
-                                                                    const std::vector<eckit::Offset>& offsets,
-                                                                    const std::vector<std::vector<Range>>& ranges) {
+
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(const eckit::PathName& path,
+                                                                      const std::vector<eckit::Offset>& offsets,
+                                                                      const std::vector<std::vector<Range>>& ranges) {
     // Directly from file, no cache, no queue, no threads
 
     InfoExtractor extractor;
@@ -70,14 +71,15 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
     eckit::FileHandle fh(path);
     fh.openForRead();
 
-    std::vector<std::unique_ptr<ExtractionItem>> results;
+    std::vector<std::unique_ptr<ExtractionResult>> results;
 
     for (size_t i = 0; i < offsets.size(); i++) {
         JumpInfo& info = *infos[i];
         std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info));
-        std::unique_ptr<ExtractionItem> item(new ExtractionItem(ranges[i]));
+        auto item = std::make_unique<ExtractionItem>(ranges[i]);
         jumper->extract(fh, offsets[i], info, *item);
-        results.push_back(std::move(item));
+        auto res = item->result();
+        results.push_back(std::move(res));
     }
 
     fh.close();
@@ -85,39 +87,25 @@ std::vector<std::unique_ptr<ExtractionItem>> LocalGribJump::extract(const eckit:
     return results;
 }
 
-/// @todo, change API, remove extraction request
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> LocalGribJump::extract(ExtractionRequests& requests) {
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
 
     auto [results, report] = Engine().extract(requests);
     report.raiseErrors();
 
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extractionResults;
+    ASSERT(results.size() == requests.size());
+
+    // Map -> Vector
+    std::vector<std::unique_ptr<ExtractionResult>> extractionResults;
+    extractionResults.reserve(requests.size());
     for (auto& req : requests) {
         auto it = results.find(req.requestString());
-
         ASSERT(it != results.end());
-        std::vector<std::unique_ptr<ExtractionResult>> res;
-        for (auto& item : it->second) {
-            res.push_back(std::make_unique<ExtractionResult>(item->values(), item->mask()));
-        }
-
+        auto res = it->second->result();
+        ASSERT(res);
         extractionResults.push_back(std::move(res));
     }
 
     return extractionResults;
-}
-
-ResultsMap LocalGribJump::extract(const std::vector<std::string>& requests,
-                                  const std::vector<std::vector<Range>>& ranges) {
-    ExtractionRequests extractionRequests;
-
-    for (size_t i = 0; i < requests.size(); i++) {
-        extractionRequests.push_back(ExtractionRequest(requests[i], ranges[i]));
-    }
-
-    auto [results, report] = Engine().extract(extractionRequests);
-    report.raiseErrors();
-    return std::move(results);
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {

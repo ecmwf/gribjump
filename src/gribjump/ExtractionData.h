@@ -18,7 +18,6 @@
 
 #include "eckit/serialisation/Stream.h"
 #include "gribjump/Types.h"
-#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 
@@ -28,7 +27,7 @@ class ExtractionResult {
 public:  // methods
 
     ExtractionResult();
-    ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
+    ExtractionResult(std::vector<std::vector<double>>&& values, std::vector<std::vector<std::bitset<64>>>&& mask);
     explicit ExtractionResult(eckit::Stream& s);
 
     // Movable, not copyable
@@ -38,6 +37,8 @@ public:  // methods
     ExtractionResult(ExtractionResult&&)            = default;
     ExtractionResult& operator=(ExtractionResult&&) = default;
 
+    std::vector<std::vector<double>>& mutable_values() { return values_; }
+    std::vector<std::vector<std::bitset<64>>>& mutable_mask() { return mask_; }
     const std::vector<std::vector<double>>& values() const { return values_; }
     const std::vector<std::vector<std::bitset<64>>>& mask() const { return mask_; }
 
@@ -50,10 +51,6 @@ public:  // methods
         }
         return total;
     }
-
-    // For exposing buffers to C
-    // Use carefully, as the vector values_ still owns the data.
-    void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
 
 private:  // methods
 
