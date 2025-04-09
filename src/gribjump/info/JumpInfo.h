@@ -14,28 +14,27 @@
 
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/types/FixedString.h"
-#include "eckit/serialisation/Streamable.h"
 #include "eckit/message/Message.h"
+#include "eckit/serialisation/Streamable.h"
+#include "eckit/types/FixedString.h"
 
 #include "metkit/codes/GribHandle.h"
 
-namespace gribjump
-{
+namespace gribjump {
 class JumpInfo : public eckit::Streamable {
 
 public:
 
     JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
     JumpInfo(const eckit::message::Message& msg);
-    JumpInfo(eckit::Stream&); 
+    JumpInfo(eckit::Stream&);
 
     virtual void encode(eckit::Stream&) const override;
     std::string toString() const;
 
     virtual void print(std::ostream&) const;
 
-    virtual std::string className() const override = 0;
+    virtual std::string className() const override                   = 0;
     virtual const eckit::ReanimatorBase& reanimator() const override = 0;
 
     // getters
@@ -66,17 +65,15 @@ private:
         return s;
     }
 
-    friend bool operator==(const JumpInfo& lhs, const JumpInfo& rhs) {
-        return lhs.equals(rhs);
-    }
+    friend bool operator==(const JumpInfo& lhs, const JumpInfo& rhs) { return lhs.equals(rhs); }
 
 protected:
 
     static constexpr uint8_t currentVersion_ = 1;
-    uint8_t       version_;
-    double        referenceValue_;
-    long          binaryScaleFactor_;
-    long          decimalScaleFactor_;
+    uint8_t version_;
+    double referenceValue_;
+    long binaryScaleFactor_;
+    long decimalScaleFactor_;
     unsigned long editionNumber_;
     unsigned long bitsPerValue_;
     eckit::Offset offsetBeforeData_;
@@ -85,10 +82,9 @@ protected:
     unsigned long numberOfValues_;
     unsigned long numberOfDataPoints_;
     eckit::Length totalLength_;
-    long          sphericalHarmonics_;
-    std::string   md5GridSection_;
-    std::string   packingType_ = "none";
-
+    long sphericalHarmonics_;
+    std::string md5GridSection_;
+    std::string packingType_ = "none";
 };
 
-} // namespace gribjump
+}  // namespace gribjump

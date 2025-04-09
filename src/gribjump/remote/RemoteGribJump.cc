@@ -12,17 +12,17 @@
 #include <algorithm>
 
 #include "eckit/log/Log.h"
-#include "eckit/log/Timer.h"
 #include "eckit/log/Plural.h"
+#include "eckit/log/Timer.h"
 
-#include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/GribJumpFactory.h"
+#include "gribjump/remote/RemoteGribJump.h"
 
 namespace gribjump {
 
-RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
+RemoteGribJump::RemoteGribJump(const Config& config) : GribJumpBase(config) {
     std::string uri = config.getString("uri", "");
-    
+
     if (uri.empty())
         throw eckit::UserError("RemoteGribJump requires uri to be set in config (format host:port)", Here());
 
@@ -31,7 +31,7 @@ RemoteGribJump::RemoteGribJump(const Config& config): GribJumpBase(config){
     port_ = endpoint.port();
 }
 
-RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint): host_(endpoint.host()), port_(endpoint.port()) {}
+RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) : host_(endpoint.host()), port_(endpoint.port()) {}
 
 RemoteGribJump::~RemoteGribJump() {}
 
@@ -85,12 +85,12 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
 
     size_t nFiles = map.size();
     stream << nFiles;
-    
+
     for (auto& [fname, offsets] : map) {
         stream << fname;
         stream << offsets;
     }
-    
+
     bool error = receiveErrors(stream);
 
     size_t nfields = 0;
@@ -102,9 +102,9 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
     return nfields;
 }
 
-std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
+std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
     eckit::Timer timer("RemoteGribJump::extract()");
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> result;
+    std::vector<std::unique_ptr<ExtractionResult>> result;
 
     // connect to server
     eckit::net::TCPClient client;
@@ -131,21 +131,16 @@ std::vector<std::vector<std::unique_ptr<ExtractionResult>>> RemoteGribJump::extr
         std::vector<std::unique_ptr<ExtractionResult>> response;
         size_t nfields;
         stream >> nfields;
-        for (size_t i = 0; i < nfields; i++) {
-            response.push_back(std::make_unique<ExtractionResult>(stream));
-        }
-        result.push_back(std::move(response));
+        ASSERT(nfields == 1);  // temporary. Note will have to update remote protocol if we wish to not send this. Not
+                               // really a problem though.
+        result.push_back(std::make_unique<ExtractionResult>(stream));
     }
     timer.report("All data recieved");
     return result;
 }
 
-std::vector<std::unique_ptr<ExtractionItem>> RemoteGribJump::extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) {
-    NOTIMP;
-}
-
 // Forward extraction request to another server
-void RemoteGribJump::forwardExtract(filemap_t& filemap){
+void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 
     eckit::Timer timer("RemoteGribJump::forwardExtract()");
 
@@ -161,9 +156,8 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap){
 
     for (auto& [fname, extractionItems] : filemap) {
         // we will send (and receive) the extraction items in order of offset
-        std::sort(extractionItems.begin(), extractionItems.end(), [](const ExtractionItem* a, const ExtractionItem* b) {
-            return a->offset() < b->offset();
-        });
+        std::sort(extractionItems.begin(), extractionItems.end(),
+                  [](const ExtractionItem* a, const ExtractionItem* b) { return a->offset() < b->offset(); });
 
         stream << fname;
         size_t nItems = extractionItems.size();
@@ -180,17 +174,14 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap){
     bool error = receiveErrors(stream);
 
     // receive results
-    for (size_t i=0; i<nFiles; i++) {
+    for (size_t i = 0; i < nFiles; i++) {
         std::string fname;
         stream >> fname;
         size_t nItems;
         stream >> nItems;
         ASSERT(nItems == filemap[fname].size());
-        for (size_t j=0; j<nItems; j++) {
-            ExtractionResult res(stream);
-
-            filemap[fname][j]->values(res.values());
-            filemap[fname][j]->mask(res.mask());
+        for (size_t j = 0; j < nItems; j++) {
+            filemap[fname][j]->result(std::make_unique<ExtractionResult>(stream));
         }
     }
 
@@ -201,7 +192,7 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap){
 
 std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request, int level) {
     eckit::Timer timer("RemoteGribJump::axes()");
-    std::map<std::string, std::unordered_set<std::string>> result;   
+    std::map<std::string, std::unordered_set<std::string>> result;
 
     // connect to server
     eckit::net::TCPClient client;
@@ -231,7 +222,7 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
             vals.insert(val);
         }
         result[axisName] = vals;
-    }        
+    }
     timer.report("Axes received");
 
     return result;
@@ -253,12 +244,13 @@ bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
     }
     if (raise) {
         throw eckit::RemoteException(ss.str(), Here());
-    } else {
+    }
+    else {
         eckit::Log::error() << ss.str() << std::endl;
     }
     return true;
 }
 
 static GribJumpBuilder<RemoteGribJump> builder("remote");
-    
-} // namespace gribjump
+
+}  // namespace gribjump

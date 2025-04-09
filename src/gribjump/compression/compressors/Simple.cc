@@ -12,84 +12,65 @@
 #include "gribjump/compression/compressors/Simple.h"
 #include "gribjump/compression/compressors/SimplePacking.h"
 
-namespace  {
-
-size_t bin_pos(size_t value_idx, size_t bits_per_value) {
-    constexpr size_t chunk_nvals = 8;
-    size_t chunk_size = bits_per_value;
-    size_t chunk_idx = value_idx / chunk_nvals;
-    size_t value_idx_first_in_chunk = chunk_idx * chunk_nvals;
-    size_t chunk_offset_bytes = value_idx_first_in_chunk * bits_per_value / chunk_nvals;
-
-    return chunk_offset_bytes;
-}
-    
-} // namespace
-
 namespace gribjump::mc {
 
 template <typename ValueType>
-typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::decode(const std::shared_ptr<DataAccessor> accessor, const Block& range){
+typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::decode(
+    const std::shared_ptr<DataAccessor> accessor, const Block& range) {
     using SP = SimplePacking<ValueType>;
     SimplePacking<double> sp{};
     DecodeParameters<ValueType> params{};
     constexpr int VSIZE = sizeof(ValueType);
 
-    auto [offset, size] = range;
-    params.bits_per_value = bits_per_value_;
-    params.reference_value = reference_value_;
-    params.binary_scale_factor = binary_scale_factor_;
+    auto [offset, size]         = range;
+    params.bits_per_value       = bits_per_value_;
+    params.reference_value      = reference_value_;
+    params.binary_scale_factor  = binary_scale_factor_;
     params.decimal_scale_factor = decimal_scale_factor_;
 
-    constexpr size_t chunk_nvals = 8;
-    size_t new_offset = offset / chunk_nvals * chunk_nvals;
-    size_t end = offset + size;
-    size_t new_end = (end + (chunk_nvals - 1)) / chunk_nvals * chunk_nvals;
-    size_t new_size = new_end - new_offset;
-    Block inclusive_range{new_offset, new_size};
+    size_t end_offset = offset + size;
+    params.n_vals     = size;
 
-    params.n_vals = new_size;
+    // Convert from index ranges to byte ranges
+    size_t start_offset_bytes = (offset * bits_per_value_) / 8;          // Round down to the nearest byte
+    size_t skipbits           = (offset * bits_per_value_) % 8;          // bits to skip to get to the first value
+    size_t end_offset_bytes   = (end_offset * bits_per_value_ + 7) / 8;  // Round up to the nearest byte
+    size_t size_bytes         = end_offset_bytes - start_offset_bytes;
 
-    size_t last_pos = std::min(bin_pos(new_size, bits_per_value_), accessor->eof() - bin_pos(new_offset, bits_per_value_));
-    Block data_range{bin_pos(new_offset, bits_per_value_), last_pos};
-    eckit::Buffer compressed = accessor->read(data_range);
+    eckit::Buffer encoded       = accessor->read({start_offset_bytes, size_bytes});
+    typename SP::Values decoded = sp.unpack(params, encoded, skipbits);
 
-    typename SP::Buffer data{(unsigned char*) compressed.data(), (unsigned char*) compressed.data() + data_range.second};
-    typename SP::Values decoded = sp.unpack(params, data);
-
-    size_t shift_offset = offset - new_offset;
-    Values out_values{decoded.data() + shift_offset, decoded.data() + shift_offset + size};
-
-    return out_values;
+    return decoded;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 template <typename ValueType>
-typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::decode(const typename NumericDecompressor<ValueType>::CompressedData& in_buf){
-    
-    using SP = SimplePacking<ValueType>;
-    SP sp{};
-    DecodeParameters<ValueType> params{};
-    params.bits_per_value = bits_per_value_;
-    params.reference_value = reference_value_;
-    params.binary_scale_factor = binary_scale_factor_;
-    params.decimal_scale_factor = decimal_scale_factor_;
-    params.n_vals = in_buf.size() * 8 / bits_per_value_;
+typename SimpleDecompressor<ValueType>::Values SimpleDecompressor<ValueType>::decode(
+    const typename NumericDecompressor<ValueType>::CompressedData& in_buf) {
+    NOTIMP;  //< I believe the implementation is wrong/untested
+    // using SP = SimplePacking<ValueType>;
+    // SP sp{};
+    // DecodeParameters<ValueType> params{};
+    // params.bits_per_value = bits_per_value_;
+    // params.reference_value = reference_value_;
+    // params.binary_scale_factor = binary_scale_factor_;
+    // params.decimal_scale_factor = decimal_scale_factor_;
+    // params.n_vals = in_buf.size() * 8 / bits_per_value_;
 
-    typename SP::Buffer data{(unsigned char*) in_buf.data(), (unsigned char*) in_buf.data() + params.n_vals};
-    typename SP::Values decoded = sp.unpack(params, data);
+    // typename SP::Buffer data{(unsigned char*) in_buf.data(), (unsigned char*) in_buf.data() + params.n_vals}; // <--
+    // I don't think the size is correct here typename SP::Values decoded = sp.unpack(params, data);
 
-    auto decoded_data = reinterpret_cast<ValueType*>(decoded.data());
-    
-    /// @todo: this line looks very strange to me.
-    Values out_buf{decoded_data, decoded_data + decoded.size()}; 
-    //Values out_buf{decoded.data(), decoded.size() * sizeof(ValueType)};
+    // auto decoded_data = reinterpret_cast<ValueType*>(decoded.data());
 
-    return out_buf;
+    // /// @todo: this line looks very strange to me.
+    // Values out_buf{decoded_data, decoded_data + decoded.size()};
+    // //Values out_buf{decoded.data(), decoded.size() * sizeof(ValueType)};
+
+    // return out_buf;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Explicit instantiations of the template class
 template class SimpleDecompressor<double>;
 
-} // namespace gribjump::mc
+}  // namespace gribjump::mc

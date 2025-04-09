@@ -10,11 +10,12 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/io/DataHandle.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/DataHandle.h"
 
-#include "gribjump/jumper/Jumper.h"
+#include <memory>
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/jumper/Jumper.h"
 
 namespace gribjump {
 // -----------------------------------------------------------------------------
@@ -57,9 +58,8 @@ std::vector<mc::Block> toRanges(const std::vector<Interval>& intervals) {
 bool checkIntervals(const std::vector<Interval>& intervals) {
     ASSERT(intervals.size() > 0);
     std::vector<char> check;
-    std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(check), [](const auto& a, const auto& b) {
-        return a.second <= b.first;
-    });
+    std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(check),
+                   [](const auto& a, const auto& b) { return a.second <= b.first; });
     return std::all_of(check.begin(), check.end(), [](char c) { return c; });
 }
 // -----------------------------------------------------------------------------
@@ -70,83 +70,86 @@ Jumper::Jumper() {}
 Jumper::~Jumper() {}
 
 
-void Jumper::extract(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extract(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                     ExtractionItem& extractionItem) {
     ASSERT(checkIntervals(extractionItem.intervals()));
     ASSERT(!info.sphericalHarmonics());
 
-    if (info.bitsPerValue() == 0) return extractConstant(info, extractionItem);
+    if (info.bitsPerValue() == 0)
+        return extractConstant(info, extractionItem);
 
-    if (!info.offsetBeforeBitmap()) return extractNoMask(dh, offset, info, extractionItem);
+    if (!info.offsetBeforeBitmap())
+        return extractNoMask(dh, offset, info, extractionItem);
 
     return extractMasked(dh, offset, info, extractionItem);
 }
 
-void Jumper::extractNoMask(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extractNoMask(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                           ExtractionItem& extractionItem) {
 
     const std::vector<Interval>& intervals = extractionItem.intervals();
-    readValues(dh, offset, info, intervals, extractionItem);
 
-    std::vector<std::vector<std::bitset<64>>> all_masks; // all present
+    auto result = std::make_unique<ExtractionResult>();
+    readValues(dh, offset, info, intervals, result->mutable_values());
 
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const auto& interval) {
-        return toBitset(std::vector(interval.second - interval.first, true));
-    });
+    std::transform(intervals.begin(), intervals.end(), std::back_inserter(result->mutable_mask()),
+                   [](const auto& interval) { return toBitset(std::vector(interval.second - interval.first, true)); });
 
-    extractionItem.mask(std::move(all_masks));
+    extractionItem.result(std::move(result));
     return;
-    
 }
 
-void Jumper::extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                           ExtractionItem& extractionItem) {
 
     const std::vector<Interval>& old_intervals = extractionItem.intervals();
-    auto fullbitmap = readBitmap(dh, offset, info);
-    auto [new_intervals, new_bitmaps] = calculateMaskedIntervals(old_intervals, fullbitmap);
+    auto fullbitmap                            = readBitmap(dh, offset, info);
+    auto [new_intervals, new_bitmaps]          = calculateMaskedIntervals(old_intervals, fullbitmap);
 
-    readValues(dh, offset, info, new_intervals, extractionItem);
-    auto all_decoded_values = extractionItem.values();
+    // This result object does not have the masked nans.
+    auto decoded = std::make_unique<ExtractionResult>();
+    readValues(dh, offset, info, new_intervals, decoded->mutable_values());
 
-    std::vector<Values> all_values;
-    std::vector<std::vector<std::bitset<64>>> all_masks;
+    // This result object will have nans in the masked positions.
+    auto output_result                                   = std::make_unique<ExtractionResult>();
+    std::vector<Values>& out_values                      = output_result->mutable_values();
+    std::vector<std::vector<std::bitset<64>>>& out_masks = output_result->mutable_mask();
 
-    /// @todo: Can we avoid copying the values?
+    /// @todo: Can we avoid copying the values e.g. resize + modify the vector in place? Possibly not worth it.
     for (size_t i = 0; i < old_intervals.size(); ++i) {
         Values values;
         values.reserve(new_bitmaps[i].size());
         for (size_t count = 0, j = 0; j < new_bitmaps[i].size(); ++j) {
-            values.push_back(new_bitmaps[i][j] ? all_decoded_values[i][count++] : MISSING_VALUE);
+            values.push_back(new_bitmaps[i][j] ? decoded->values()[i][count++] : MISSING_VALUE);
         }
-        all_values.push_back(values);
-        all_masks.push_back(toBitset(new_bitmaps[i]));
+        out_values.push_back(values);
+        out_masks.push_back(toBitset(new_bitmaps[i]));
     }
 
-    extractionItem.values(std::move(all_values));
-    extractionItem.mask(std::move(all_masks));
-
+    extractionItem.result(std::move(output_result));
     return;
 }
 
 // Constant fields
 void Jumper::extractConstant(const JumpInfo& info, ExtractionItem& extractionItem) {
 
-    // ASSERT(!info.offsetBeforeBitmap()); /// @todo: handle constant fields with bitmaps <- It looks like eccodes ignores the bitmap?
+    // ASSERT(!info.offsetBeforeBitmap()); /// @todo: handle constant fields with bitmaps <- It looks like eccodes
+    // ignores the bitmap?
 
     const std::vector<Interval>& intervals = extractionItem.intervals();
 
-    std::vector<std::vector<std::bitset<64>>> all_masks;
-    std::vector<Values> all_values;
-
+    auto res            = std::make_unique<ExtractionResult>();
     auto referenceValue = info.referenceValue();
-    
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_values), [referenceValue] (const Interval& interval) {
-        return Values(interval.second - interval.first, referenceValue);
-    });
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(all_masks), [](const Interval& interval) {
-        return toBitset(std::vector(interval.second - interval.first, true));
-    });
 
-    extractionItem.values(std::move(all_values));
-    extractionItem.mask(std::move(all_masks));
+    std::transform(intervals.begin(), intervals.end(), std::back_inserter(res->mutable_values()),
+                   [referenceValue](const Interval& interval) {
+                       return Values(interval.second - interval.first, referenceValue);
+                   });
+    std::transform(
+        intervals.begin(), intervals.end(), std::back_inserter(res->mutable_mask()),
+        [](const Interval& interval) { return toBitset(std::vector(interval.second - interval.first, true)); });
+
+    extractionItem.result(std::move(res));
     return;
 }
 
@@ -157,7 +160,7 @@ Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, con
 
 
     eckit::Offset bitmapOffset = offset + info.offsetBeforeBitmap();
-    auto bitmapSize = (info.numberOfDataPoints() + 7) / 8;
+    auto bitmapSize            = (info.numberOfDataPoints() + 7) / 8;
 
     if (bitmapSize == 0)
         return Bitmap{};
@@ -186,42 +189,50 @@ Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, con
 // This is necessary because data section does not contain missing values
 // Intervals need to be shifted by the number of missing values before the interval
 // TODO(maee): optimization: read only the bitmap for the requested interval
-std::pair<std::vector<Interval>, std::vector<Bitmap>> Jumper::calculateMaskedIntervals(const std::vector<Interval>& intervals_tmp, const Bitmap& bitmap) const {
+std::pair<std::vector<Interval>, std::vector<Bitmap>> Jumper::calculateMaskedIntervals(
+    const std::vector<Interval>& intervals_tmp, const Bitmap& bitmap) const {
     struct ExtendedInterval {
-        enum class Type {GAP, INTERVAL};
-        Type type;          // GAP or INTERVAL
-        size_t begin;       // begin is inclusive
-        size_t end;         // end is exclusive
-        size_t missing_cum; // number of missing values before the interval
-        size_t missing;     // number of missing values in the interval
-        Bitmap bitmap;      // bitmap for the interval
+        enum class Type {
+            GAP,
+            INTERVAL
+        };
+        Type type;           // GAP or INTERVAL
+        size_t begin;        // begin is inclusive
+        size_t end;          // end is exclusive
+        size_t missing_cum;  // number of missing values before the interval
+        size_t missing;      // number of missing values in the interval
+        Bitmap bitmap;       // bitmap for the interval
 
         ExtendedInterval(Type type, size_t begin, size_t end, const Bitmap& all_bitmap) :
-            type(type), begin(begin), end(end), missing_cum{0}, bitmap{all_bitmap.begin() + begin, all_bitmap.begin() + end}
-        {
+            type(type),
+            begin(begin),
+            end(end),
+            missing_cum{0},
+            bitmap{all_bitmap.begin() + begin, all_bitmap.begin() + end} {
             missing = std::count(bitmap.begin(), bitmap.end(), false);
         }
     };
 
     std::vector<ExtendedInterval> intervals;
-    std::transform(intervals_tmp.begin(), intervals_tmp.end(), std::back_inserter(intervals), [&bitmap](const auto& interval) {
-        return ExtendedInterval{ExtendedInterval::Type::INTERVAL, interval.first, interval.second, bitmap};
-    });
+    std::transform(
+        intervals_tmp.begin(), intervals_tmp.end(), std::back_inserter(intervals), [&bitmap](const auto& interval) {
+            return ExtendedInterval{ExtendedInterval::Type::INTERVAL, interval.first, interval.second, bitmap};
+        });
 
     assert(intervals.size() > 0);
     std::vector<ExtendedInterval> gaps;
     gaps.push_back(ExtendedInterval{ExtendedInterval::Type::GAP, 0, intervals.front().begin, bitmap});
-    std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(gaps), [&bitmap](const auto& a, const auto& b) {
-        return ExtendedInterval{ExtendedInterval::Type::GAP, a.end, b.begin, bitmap};
-    });
+    std::transform(intervals.begin(), intervals.end() - 1, intervals.begin() + 1, std::back_inserter(gaps),
+                   [&bitmap](const auto& a, const auto& b) {
+                       return ExtendedInterval{ExtendedInterval::Type::GAP, a.end, b.begin, bitmap};
+                   });
 
     std::vector<ExtendedInterval> intervals_and_gaps;
-    std::merge(intervals.begin(), intervals.end(), gaps.begin(), gaps.end(), std::back_inserter(intervals_and_gaps), [](const auto& a, const auto& b) {
-        return a.begin < b.begin;
-    });
+    std::merge(intervals.begin(), intervals.end(), gaps.begin(), gaps.end(), std::back_inserter(intervals_and_gaps),
+               [](const auto& a, const auto& b) { return a.begin < b.begin; });
 
     for (size_t i = 1; i < intervals_and_gaps.size(); i++) {
-        intervals_and_gaps[i].missing_cum = intervals_and_gaps[i-1].missing_cum + intervals_and_gaps[i-1].missing;
+        intervals_and_gaps[i].missing_cum = intervals_and_gaps[i - 1].missing_cum + intervals_and_gaps[i - 1].missing;
     }
 
     std::vector<Interval> new_intervals;
@@ -237,4 +248,4 @@ std::pair<std::vector<Interval>, std::vector<Bitmap>> Jumper::calculateMaskedInt
 }
 
 
-} // namespace gribjump
+}  // namespace gribjump

@@ -11,8 +11,8 @@
 /// @author Christopher Bradley
 
 #include "gribjump/ExtractionData.h"
-#include "eckit/value/Value.h"
 #include "eckit/io/Buffer.h"
+#include "eckit/value/Value.h"
 
 namespace gribjump {
 
@@ -32,7 +32,7 @@ std::vector<T> decodeVector(eckit::Stream& s) {
     s >> size;
     eckit::Buffer buffer(size * sizeof(T));
     s >> buffer;
-    T* data = (T*) buffer.data();
+    T* data = (T*)buffer.data();
 
     return std::vector<T>(data, data + size);
 }
@@ -60,7 +60,7 @@ void encodeVectorVector(eckit::Stream& s, const std::vector<std::vector<T>>& vv)
 template <typename T>
 std::vector<std::vector<T>> decodeVectorVector(eckit::Stream& s) {
     std::vector<size_t> sizes = decodeVector<size_t>(s);
-    std::vector<T> flat = decodeVector<T>(s);
+    std::vector<T> flat       = decodeVector<T>(s);
 
     std::vector<std::vector<T>> vv;
     size_t pos = 0;
@@ -74,20 +74,20 @@ std::vector<std::vector<T>> decodeVectorVector(eckit::Stream& s) {
 void encodeRanges(eckit::Stream& s, const std::vector<Range>& ranges) {
     size_t size = ranges.size();
     s << size;
-    eckit::Buffer buffer(ranges.data(), size * sizeof(size_t)*2); // does this really work?
+    eckit::Buffer buffer(ranges.data(), size * sizeof(size_t) * 2);  // does this really work?
     s << buffer;
 }
 
 std::vector<Range> decodeRanges(eckit::Stream& s) {
     size_t size;
     s >> size;
-    eckit::Buffer buffer(size * sizeof(size_t)*2);
+    eckit::Buffer buffer(size * sizeof(size_t) * 2);
     s >> buffer;
-    size_t* data = (size_t*) buffer.data();
+    size_t* data = (size_t*)buffer.data();
 
     std::vector<Range> ranges;
     for (size_t i = 0; i < size; i++) {
-        ranges.push_back(std::make_pair(data[i*2], data[i*2+1]));
+        ranges.push_back(std::make_pair(data[i * 2], data[i * 2 + 1]));
     }
 
     return ranges;
@@ -114,7 +114,7 @@ void encodeMask(eckit::Stream& s, const std::vector<std::vector<std::bitset<64>>
 
 std::vector<std::vector<std::bitset<64>>> decodeMask(eckit::Stream& s) {
 
-    std::vector<size_t> sizes = decodeVector<size_t>(s);
+    std::vector<size_t> sizes  = decodeVector<size_t>(s);
     std::vector<uint64_t> flat = decodeVector<uint64_t>(s);
 
     std::vector<std::vector<std::bitset<64>>> mask;
@@ -129,33 +129,22 @@ std::vector<std::vector<std::bitset<64>>> decodeMask(eckit::Stream& s) {
     }
     return mask;
 }
-} // namespace
+}  // namespace
 
 ExtractionResult::ExtractionResult() {}
 
-ExtractionResult::ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask): 
-    values_(std::move(values)),
-    mask_(std::move(mask))
-    {}
+ExtractionResult::ExtractionResult(std::vector<std::vector<double>>&& values,
+                                   std::vector<std::vector<std::bitset<64>>>&& mask) :
+    values_(std::move(values)), mask_(std::move(mask)) {}
 
 ExtractionResult::ExtractionResult(eckit::Stream& s) {
     values_ = decodeVectorVector<double>(s);
-    mask_ = decodeMask(s);
+    mask_   = decodeMask(s);
 }
 
 void ExtractionResult::encode(eckit::Stream& s) const {
     encodeVectorVector(s, values_);
     encodeMask(s, mask_);
-}
-
-void ExtractionResult::values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues) {
-    *nrange = values_.size();
-    *values = new double*[*nrange];
-    *nvalues = new unsigned long[*nrange];
-    for (size_t i = 0; i < *nrange; i++) {
-        (*nvalues)[i] = values_[i].size();
-        (*values)[i] = values_[i].data();
-    }
 }
 
 void ExtractionResult::print(std::ostream& s) const {
@@ -186,11 +175,9 @@ eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o) {
 
 //---------------------------------------------------------------------------------------------------------------------
 
-ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges, std::string gridHash):
-    ranges_(ranges),
-    request_(request),
-    gridHash_(gridHash)
-    {}
+ExtractionRequest::ExtractionRequest(const std::string& request, const std::vector<Range>& ranges,
+                                     std::string gridHash) :
+    ranges_(ranges), request_(request), gridHash_(gridHash) {}
 
 ExtractionRequest::ExtractionRequest() {}
 
@@ -224,4 +211,4 @@ std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {
     return s;
 }
 
-} // namespace gribjump
+}  // namespace gribjump

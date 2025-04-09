@@ -14,9 +14,9 @@
 
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
 
 #include "eckit/system/Library.h"
 #include "eckit/system/Plugin.h"
@@ -29,8 +29,10 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 
 class LibGribJump : public eckit::system::Plugin {
-// class LibGribJump : public eckit::system::Library {
+    // class LibGribJump : public eckit::system::Library {
+
 public:
+
     LibGribJump();
 
     static LibGribJump& instance();
@@ -39,9 +41,10 @@ public:
 
     virtual std::string version() const override;
 
-    virtual std::string gitsha1(unsigned int count=40u) const override;
+    virtual std::string gitsha1(unsigned int count = 40u) const override;
 
-private: 
+private:
+
     Config loadConfig();
 
 private:

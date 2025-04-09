@@ -13,27 +13,27 @@
 
 #include "eccodes.h"
 
-#include "eckit/testing/Test.h"
-#include "eckit/serialisation/MemoryStream.h"
 #include "eckit/io/AutoCloser.h"
+#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/testing/Test.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/FileHandle.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
-#include "metkit/codes/GribHandle.h"
 #include "metkit/codes/CodesContent.h"
+#include "metkit/codes/GribHandle.h"
 
+#include "gribjump/Engine.h"
+#include "gribjump/ExtractionItem.h"
+#include "gribjump/LibGribJump.h"
 #include "gribjump/info/InfoFactory.h"
-#include "gribjump/jumper/SimpleJumper.h"
 #include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/jumper/JumperFactory.h"
+#include "gribjump/jumper/SimpleJumper.h"
 #include "gribjump/tools/EccodesExtract.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/Engine.h"
-#include "gribjump/LibGribJump.h"
 
 using namespace eckit::testing;
 
@@ -42,22 +42,21 @@ namespace test {
 
 //-----------------------------------------------------------------------------
 
-CASE( "test_reanimate_info" ) {
-    
+CASE("test_reanimate_info") {
+
     // Extract jumpinfos from a grib file, write to disk, reanimate and compare
 
     // TODO! Add spectral.grib to nexus and to cmake!
 
     std::vector<eckit::PathName> paths = {
-        "2t_O1280.grib",   // simple packed
-        "ceil_O1280.grib", // ccsds
+        "2t_O1280.grib",    // simple packed
+        "ceil_O1280.grib",  // ccsds
         // "spectral.grib", // NB: Should build an UnsupportedInfo
         /* Todo: A file with a mix of both in a different test */
     };
 
     std::vector<std::string> expectedPacking = {
-        "grid_simple",
-        "grid_ccsds",
+        "grid_simple", "grid_ccsds",
         // "spectral_complex",
     };
 
@@ -72,7 +71,7 @@ CASE( "test_reanimate_info" ) {
         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
         EXPECT(info);
         EXPECT(info->packingType() == expectedPacking[count++]);
-        
+
         fh.close();
 
         // Write to file
@@ -86,30 +85,31 @@ CASE( "test_reanimate_info" ) {
         // Reanimate
         {
             eckit::FileStream sin(filename.asString().c_str(), "r");
-            auto c             = eckit::closer(sin);
+            auto c = eckit::closer(sin);
             std::unique_ptr<JumpInfo> info_in(eckit::Reanimator<JumpInfo>::reanimate(sin));
             EXPECT(*info_in == *info);
         }
-        
-        if (filename.exists()) filename.unlink();
+
+        if (filename.exists())
+            filename.unlink();
     }
 }
 
 //-----------------------------------------------------------------------------
 
-CASE( "test_build_from_message" ) {
-    
+CASE("test_build_from_message") {
+
     // Build from an eckit message, compare with the same info built from a file
 
     std::vector<eckit::PathName> paths = {
-        "2t_O1280.grib",   // simple packed
-        "ceil_O1280.grib", // ccsds
+        "2t_O1280.grib",    // simple packed
+        "ceil_O1280.grib",  // ccsds
     };
     for (auto path : paths) {
 
         // Make the message.
         eckit::AutoStdFile f(path);
-        int err = 0;
+        int err         = 0;
         codes_handle* h = codes_handle_new_from_file(nullptr, f, PRODUCT_GRIB, &err);
         EXPECT(err == 0);
         metkit::codes::CodesContent* content = new metkit::codes::CodesContent(h, true);
@@ -134,13 +134,13 @@ CASE( "test_build_from_message" ) {
     }
 }
 //-----------------------------------------------------------------------------
-const size_t O1280_size = 6599680; // O1280
+const size_t O1280_size = 6599680;  // O1280
 
-CASE ("test_jumpers_filehandle") {
+CASE("test_jumpers_filehandle") {
 
     std::vector<eckit::PathName> paths = {
-        "2t_O1280.grib",   // simple packed
-        "ceil_O1280.grib", // ccsds
+        "2t_O1280.grib",    // simple packed
+        "ceil_O1280.grib",  // ccsds
     };
 
     for (auto path : paths) {
@@ -149,7 +149,7 @@ CASE ("test_jumpers_filehandle") {
 
         eckit::Offset offset = 0;
         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
-    
+
         EXPECT(info->numberOfDataPoints() == O1280_size);
 
         auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
@@ -160,9 +160,9 @@ CASE ("test_jumpers_filehandle") {
 
         fh.close();
 
-        // Check correct values 
+        // Check correct values
         std::vector<std::vector<double>> comparisonValues = eccodesExtract(path, {offset}, intervals)[0];
-        std::vector<std::vector<double>> values = extractionItem.values();
+        std::vector<std::vector<double>> values           = extractionItem.values();
         EXPECT(comparisonValues.size() == 3);
         EXPECT(values.size() == comparisonValues.size());
 
@@ -176,11 +176,11 @@ CASE ("test_jumpers_filehandle") {
     }
 }
 
-CASE ("test_wrong_jumper") {
+CASE("test_wrong_jumper") {
     // Negative test: intentionally use the wrong jumper, make sure it throws correctly
 
     {
-         // simple packed grib, use ccsds jumper
+        // simple packed grib, use ccsds jumper
         eckit::PathName path = "2t_O1280.grib";
 
         eckit::FileHandle fh(path);
@@ -196,8 +196,9 @@ CASE ("test_wrong_jumper") {
         try {
             ExtractionItem item(intervals);
             jumper->extract(fh, offset, *info, item);
-            EXPECT(false); // Reaching here is an error!
-        } catch (BadJumpInfoException& e) {
+            EXPECT(false);  // Reaching here is an error!
+        }
+        catch (BadJumpInfoException& e) {
             // As expected!
         }
 
@@ -206,7 +207,7 @@ CASE ("test_wrong_jumper") {
 
     {
         // ccsds packed grib, use simple jumper
-        eckit::PathName path = "ceil_O1280.grib"; 
+        eckit::PathName path = "ceil_O1280.grib";
 
         eckit::FileHandle fh(path);
         fh.openForRead();
@@ -222,7 +223,8 @@ CASE ("test_wrong_jumper") {
             ExtractionItem item(intervals);
             jumper->extract(fh, offset, *info, item);
             EXPECT(false);
-        } catch (BadJumpInfoException& e) {
+        }
+        catch (BadJumpInfoException& e) {
             // As expected!
         }
 
@@ -232,9 +234,9 @@ CASE ("test_wrong_jumper") {
 //-----------------------------------------------------------------------------
 // Testing the extract functionality using ExtractionItem
 // ~ i.e. internals of FileExtractionTask
-CASE ("test_ExtractionItem_extract") {
+CASE("test_ExtractionItem_extract") {
     auto intervals = std::vector<Interval>{{0, 10}, {3000000, 3000010}, {6599670, 6599680}};
-    ExtractionItem exItem("", intervals );
+    ExtractionItem exItem(intervals);
 
     eckit::PathName path = "2t_O1280.grib";
 
@@ -253,8 +255,8 @@ CASE ("test_ExtractionItem_extract") {
     jumper->extract(fh, offset, *info, exItem);
 
     exItem.debug_print();
-    
-    // Check correct values 
+
+    // Check correct values
     std::vector<std::vector<double>> comparisonValues = eccodesExtract(path, {offset}, intervals)[0];
     EXPECT(comparisonValues.size() == 3);
 
@@ -272,7 +274,6 @@ CASE ("test_ExtractionItem_extract") {
 }  // namespace gribjump
 
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

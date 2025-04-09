@@ -10,33 +10,34 @@
 /// @author Christopher Bradley
 
 #include "gribjump/GribJump.h"
-#include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/info/InfoCache.h"
+#include "gribjump/tools/GribJumpTool.h"
 
 namespace gribjump::tool {
 
-class DumpInfo: public GribJumpTool {
+class DumpInfo : public GribJumpTool {
 
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
     virtual int numberOfPositionalArguments() const { return -1; }
 
 public:
-    DumpInfo(int argc, char **argv): GribJumpTool(argc, argv) {}
+
+    DumpInfo(int argc, char** argv) : GribJumpTool(argc, argv) {}
 
 private:
+
     std::vector<eckit::option::Option*> options_;
 };
 
-void DumpInfo::usage(const std::string &tool) const {
-    eckit::Log::info() << std::endl
-                       << "Usage: " << tool << " <path1> <path2> ..." << std::endl;
-                       ;
+void DumpInfo::usage(const std::string& tool) const {
+    eckit::Log::info() << std::endl << "Usage: " << tool << " <path1> <path2> ..." << std::endl;
+    ;
 
     GribJumpTool::usage(tool);
 }
 
-void DumpInfo::execute(const eckit::option::CmdArgs &args) {
+void DumpInfo::execute(const eckit::option::CmdArgs& args) {
     for (size_t i = 0; i < args.count(); i++) {
         eckit::PathName file(args(i));
         if (!file.exists()) {
@@ -47,10 +48,9 @@ void DumpInfo::execute(const eckit::option::CmdArgs &args) {
     }
 }
 
-} // namespace gribjump::tool
+}  // namespace gribjump::tool
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     gribjump::tool::DumpInfo app(argc, argv);
     return app.start();
 }
-

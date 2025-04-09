@@ -11,23 +11,19 @@
 /// @author Tiago Quintino
 
 #include "gribjump/GribJumpBase.h"
-#include "gribjump/LibGribJump.h"
 #include "GribJumpBase.h"
+#include "gribjump/LibGribJump.h"
 
 namespace gribjump {
 
-GribJumpBase::GribJumpBase(const Config &config) {
-}
+GribJumpBase::GribJumpBase(const Config& config) {}
 
-GribJumpBase::GribJumpBase() {
-}
+GribJumpBase::GribJumpBase() {}
 
-GribJumpBase::~GribJumpBase() {
-}
+GribJumpBase::~GribJumpBase() {}
 
-void GribJumpBase::stats()
-{
+void GribJumpBase::stats() {
     stats_.report(eckit::Log::debug<LibGribJump>(), "Extraction stats: ");
 }
 
-} // namespace gribjump
+}  // namespace gribjump

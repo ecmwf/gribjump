@@ -11,16 +11,16 @@
 
 #include <fstream>
 
-#include "metkit/mars/MarsRequest.h"
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/GribJump.h"
-#include "gribjump/tools/ToolUtils.h"
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/tools/GribJumpTool.h"
+#include "gribjump/tools/ToolUtils.h"
 
 
 // Tool to perform an extraction request on a given request, and compare the results with the
@@ -29,29 +29,29 @@
 // Note: Tool should work for local and remote gribjump, though eccodes will always be local.
 
 namespace gribjump::tool {
-    
-class CompareEccodes: public GribJumpTool {
-    
-    virtual void execute(const eckit::option::CmdArgs &args);
-    virtual void usage(const std::string &tool) const;
+
+class CompareEccodes : public GribJumpTool {
+
+    virtual void execute(const eckit::option::CmdArgs& args);
+    virtual void usage(const std::string& tool) const;
     virtual int numberOfPositionalArguments() const { return 2; }
-  
-  public:
-    CompareEccodes(int argc, char **argv): GribJumpTool(argc, argv) {
+
+public:
+
+    CompareEccodes(int argc, char** argv) : GribJumpTool(argc, argv) {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
-
 };
 
-void CompareEccodes::usage(const std::string &tool) const {
+void CompareEccodes::usage(const std::string& tool) const {
     eckit::Log::info() << std::endl
                        << "Usage: " << tool << " <mars request file> <ranges file>" << std::endl
                        << "       " << tool << " --raw <mars request file> <ranges file>" << std::endl;
     GribJumpTool::usage(tool);
 }
 
-
-void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
+///@todo: review this tool
+void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
     bool raw = args.getBool("raw", false);
 
     // Build request(s) from input
@@ -66,7 +66,8 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
     if (raw) {
         for (auto r : parsedRequests)
             requests.push_back(r);
-    } else {
+    }
+    else {
         bool inherit = false;
         metkit::mars::MarsExpension expand(inherit);
         requests = expand.expand(parsedRequests);
@@ -92,21 +93,10 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
     // Extract the data using gribjump
 
     GribJump gj;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> results = gj.extract(polyRequest);
+    std::vector<std::unique_ptr<ExtractionResult>> results = gj.extract(polyRequest).dumpVector();
 
     ASSERT(results.size() == requests.size());
 
-    // TODO: Although gribjump.extract can deal with requests of cardinality > 1, (e.g. step=1/2/3), it is
-    // difficult to get the ordering consistent with eccodes. For now, we will require cardinality == 1.
-    for (size_t i = 0; i < results.size(); i++) {
-        const auto& r = results[i];
-        if (r.size() != 1) {
-            // also print the request
-            std::stringstream ss;
-            ss << requests[i];
-            throw eckit::UserError("This tool requires cardinality of each request to be 1, but gribjump found " + std::to_string(r.size()) + " results for request " + ss.str());
-        }
-    }
 
     // Find the values using eccodes
 
@@ -116,37 +106,33 @@ void CompareEccodes::execute(const eckit::option::CmdArgs &args) {
         LOG_DEBUG_LIB(LibGribJump) << "Results for request " << i << ": " << requests[i] << std::endl;
         std::vector<std::vector<std::vector<double>>> ecvalues = eccodesExtract(requests[i], allRanges[i]);
 
-        ASSERT(ecvalues.size() == results[i].size());
+        ASSERT(ecvalues.size() == 1);
 
-        for (int j = 0; j < results[i].size(); j++) {
-            const auto& ecval = ecvalues[j];
-            const auto& gjval= results[i][j]->values();
+        const auto& ecval = ecvalues[0];
+        const auto& gjval = results[i]->values();
 
-            ASSERT(ecval.size() == gjval.size());
+        ASSERT(ecval.size() == gjval.size());
 
-            // debug: print everything
-            for (int k = 0; k < ecval.size(); k++) {
-                LOG_DEBUG_LIB(LibGribJump)  << "ecval[" << k << "]: " << ecval[k] << std::endl;
-                LOG_DEBUG_LIB(LibGribJump)  << "gjval[" << k << "]: " << gjval[k] << std::endl;
-            }
+        // debug: print everything
+        for (int k = 0; k < ecval.size(); k++) {
+            LOG_DEBUG_LIB(LibGribJump) << "ecval[" << k << "]: " << ecval[k] << std::endl;
+            LOG_DEBUG_LIB(LibGribJump) << "gjval[" << k << "]: " << gjval[k] << std::endl;
+        }
 
-            for (int k = 0; k < ecval.size(); k++) {
-                ASSERT(ecval[k].size() == gjval[k].size());
-                for (int l = 0; l < ecval[k].size(); l++) {
-                    ASSERT(ecval[k][l] == gjval[k][l]);
-                    countAllValues++;
-                }
+        for (int k = 0; k < ecval.size(); k++) {
+            ASSERT(ecval[k].size() == gjval[k].size());
+            for (int l = 0; l < ecval[k].size(); l++) {
+                ASSERT(ecval[k][l] == gjval[k][l]);
+                countAllValues++;
             }
         }
     }
 
     eckit::Log::info() << "Compared " << countAllValues << " values. All match." << std::endl;
-    
 }
-} // namespace gribjump::tool
+}  // namespace gribjump::tool
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     gribjump::tool::CompareEccodes app(argc, argv);
     return app.start();
 }
-

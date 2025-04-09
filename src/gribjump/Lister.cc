@@ -13,19 +13,17 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 
-#include "gribjump/Lister.h"
 #include "gribjump/GribJumpException.h"
+#include "gribjump/Lister.h"
 #include "gribjump/URIHelper.h"
 
 namespace gribjump {
-    
+
 //  ------------------------------------------------------------------
 
-Lister::Lister() {
-}
+Lister::Lister() {}
 
-Lister::~Lister() {
-}
+Lister::~Lister() {}
 
 //  ------------------------------------------------------------------
 
@@ -34,12 +32,11 @@ FDBLister& FDBLister::instance() {
     return instance;
 }
 
-FDBLister::FDBLister():
-    allowMissing_(eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING", LibGribJump::instance().config().getBool("allowMissing", false))) {
-}
+FDBLister::FDBLister() :
+    allowMissing_(eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING",
+                                        LibGribJump::instance().config().getBool("allowMissing", false))) {}
 
-FDBLister::~FDBLister() {
-}
+FDBLister::~FDBLister() {}
 
 std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequest> requests) {
 
@@ -62,7 +59,7 @@ std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequ
 
 std::string fdbkeyToStr(const fdb5::Key& key) {
     std::stringstream ss;
-    std::string separator = "";
+    std::string separator      = "";
     std::set<std::string> keys = key.keys();
 
     // Special case: If date is present, ignore year and month as they are aliases.
@@ -72,7 +69,7 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
         keys.erase("month");
     }
 
-    for(const auto& k : keys) {
+    for (const auto& k : keys) {
         ss << separator << k << "=" << key.get(k);
         separator = ",";
     }
@@ -89,7 +86,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     auto listIter = fdb.list(fdbreq, true);
 
     size_t fdb_count = 0;
-    size_t count = 0;
+    size_t count     = 0;
     fdb5::ListElement elem;
     while (listIter.next(elem)) {
         fdb_count++;
@@ -97,17 +94,18 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         std::string key = fdbkeyToStr(elem.combinedKey());
 
         // If key not in map, not related to the request
-        if (reqToExtractionItem.find(key) == reqToExtractionItem.end()) continue;
+        if (reqToExtractionItem.find(key) == reqToExtractionItem.end())
+            continue;
 
         // Set the URI in the ExtractionItem
-        eckit::URI uri = elem.location().fullUri();
+        eckit::URI uri                 = elem.location().fullUri();
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
         // Add to filemap
         eckit::PathName fname = uri.path();
-        auto it = filemap.find(fname);
-        if(it == filemap.end()) {
+        auto it               = filemap.find(fname);
+        if (it == filemap.end()) {
             std::vector<ExtractionItem*> extractionItems;
             extractionItems.push_back(extractionItem);
             filemap.emplace(fname, extractionItems);
@@ -119,12 +117,16 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         count++;
     }
 
-    LOG_DEBUG_LIB(LibGribJump) << "FDB found " << fdb_count << " fields. Matched " << count << " fields in " << filemap.size() << " files" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "FDB found " << fdb_count << " fields. Matched " << count << " fields in "
+                               << filemap.size() << " files" << std::endl;
     if (count != reqToExtractionItem.size()) {
-        eckit::Log::warning() << "Warning: Number of fields matched (" << count << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size() << ")" << std::endl;
+        eckit::Log::warning() << "Warning: Number of fields matched (" << count
+                              << ") does not match number of keys in extractionItem map (" << reqToExtractionItem.size()
+                              << ")" << std::endl;
         if (!allowMissing_) {
             std::stringstream ss;
-            ss << "Matched " << count << " fields but " << reqToExtractionItem.size() << " were requested." << std::endl;
+            ss << "Matched " << count << " fields but " << reqToExtractionItem.size() << " were requested."
+               << std::endl;
             ss << "Union request: " << unionRequest << std::endl;
             throw DataNotFoundException(ss.str());
         }
@@ -144,17 +146,18 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     return filemap;
 }
 
-std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std::vector<metkit::mars::MarsRequest>& requests) {
+std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(
+    const std::vector<metkit::mars::MarsRequest>& requests) {
     return filesOffsets(URIs(requests));
 }
 
-std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std::vector<eckit::URI>& uris) {
-    std::map< eckit::PathName, eckit::OffsetList > files;
+std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(const std::vector<eckit::URI>& uris) {
+    std::map<eckit::PathName, eckit::OffsetList> files;
     for (auto& uri : uris) {
         eckit::PathName path = uri.path();
         eckit::Offset offset = URIHelper::offset(uri);
-        auto it = files.find(path);
-        if(it == files.end()) {
+        auto it              = files.find(path);
+        if (it == files.end()) {
             eckit::OffsetList offsets;
             offsets.push_back(offset);
             files.emplace(path, offsets);
@@ -164,7 +167,7 @@ std::map< eckit::PathName, eckit::OffsetList > FDBLister::filesOffsets(const std
         }
     }
     return files;
-} 
+}
 
 std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequest>& requests) {
     std::vector<eckit::URI> uris;
@@ -180,18 +183,19 @@ std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequ
     return uris;
 }
 
-std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const std::string& request, int level) {
-    std::vector<fdb5::FDBToolRequest> requests = fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
-    ASSERT(requests.size() == 1); // i.e. assume string is a single request.
+std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const std::string& request, int level) {
+    std::vector<fdb5::FDBToolRequest> requests =
+        fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
+    ASSERT(requests.size() == 1);  // i.e. assume string is a single request.
 
     return axes(requests.front(), level);
 }
 
-std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {
+std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {
     std::map<std::string, std::unordered_set<std::string>> values;
 
     LOG_DEBUG_LIB(LibGribJump) << "Using FDB's (new) axes impl" << std::endl;
-    
+
     fdb5::FDB fdb;
     fdb5::IndexAxis ax = fdb.axes(request, level);
     ax.sort();
@@ -199,12 +203,12 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fd
 
     for (const auto& kv : fdbValues) {
         // {
-            // Ignore if the value is a single empty string
-            // e.g. FDB returns "levellist:{''}" for levtype=sfc.
-            // Required for consistency with the old axes impl.
-            // if (kv.second.empty() || (kv.second.size() == 1 && kv.second.find("") != kv.second.end())) {
-            //     continue;
-            // }
+        // Ignore if the value is a single empty string
+        // e.g. FDB returns "levellist:{''}" for levtype=sfc.
+        // Required for consistency with the old axes impl.
+        // if (kv.second.empty() || (kv.second.size() == 1 && kv.second.find("") != kv.second.end())) {
+        //     continue;
+        // }
         // }
         values[kv.first] = std::unordered_set<std::string>(kv.second.begin(), kv.second.end());
     }
@@ -216,4 +220,4 @@ std::map<std::string, std::unordered_set<std::string> > FDBLister::axes(const fd
 //  ------------------------------------------------------------------
 
 
-} // namespace gribjump
+}  // namespace gribjump

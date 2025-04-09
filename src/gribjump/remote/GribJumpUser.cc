@@ -14,16 +14,16 @@
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
+#include "gribjump/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/remote/RemoteGribJump.h"
-#include "gribjump/LibGribJump.h"
 #include "gribjump/remote/Request.h"
 
 #include "gribjump/Engine.h"
 
 namespace gribjump {
 
-GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol):  NetUser(protocol) {}
+GribJumpUser::GribJumpUser(eckit::net::TCPSocket& protocol) : NetUser(protocol) {}
 
 GribJumpUser::~GribJumpUser() {}
 
@@ -53,7 +53,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
         eckit::Log::error() << "** Exception is ignored" << std::endl;
         MetricsManager::instance().set("error", "Uncaught exception");
     }
-        
+
     LOG_DEBUG_LIB(LibGribJump) << eckit::system::ResourceUsage() << std::endl;
 
     MetricsManager::instance().report();
@@ -65,7 +65,9 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
 
     s >> version;
     if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug("Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) + ", Clientside version: " + std::to_string(version));
+        throw eckit::SeriousBug(
+            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
+            ", Clientside version: " + std::to_string(version));
     }
 
     LogContext ctx(s);

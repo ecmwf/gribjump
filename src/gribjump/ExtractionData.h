@@ -17,32 +17,33 @@
 #include <vector>
 
 #include "eckit/serialisation/Stream.h"
-#include "metkit/mars/MarsRequest.h"
 #include "gribjump/Types.h"
 
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ExtractionResult  {
-public: // methods
+class ExtractionResult {
+public:  // methods
 
     ExtractionResult();
-    ExtractionResult(std::vector<std::vector<double>> values, std::vector<std::vector<std::bitset<64>>> mask);
+    ExtractionResult(std::vector<std::vector<double>>&& values, std::vector<std::vector<std::bitset<64>>>&& mask);
     explicit ExtractionResult(eckit::Stream& s);
 
     // Movable, not copyable
-    ExtractionResult(const ExtractionResult&) = delete;
+    ExtractionResult(const ExtractionResult&)            = delete;
     ExtractionResult& operator=(const ExtractionResult&) = delete;
 
-    ExtractionResult(ExtractionResult&&) = default;
+    ExtractionResult(ExtractionResult&&)            = default;
     ExtractionResult& operator=(ExtractionResult&&) = default;
 
-    const std::vector<std::vector<double>>& values() const {return values_;}
-    const std::vector<std::vector<std::bitset<64>>>& mask() const {return mask_;}
+    std::vector<std::vector<double>>& mutable_values() { return values_; }
+    std::vector<std::vector<std::bitset<64>>>& mutable_mask() { return mask_; }
+    const std::vector<std::vector<double>>& values() const { return values_; }
+    const std::vector<std::vector<std::bitset<64>>>& mask() const { return mask_; }
 
-    size_t nrange() const {return values_.size();}
-    size_t nvalues(size_t i) const {return values_[i].size();}
+    size_t nrange() const { return values_.size(); }
+    size_t nvalues(size_t i) const { return values_[i].size(); }
     size_t total_values() const {
         size_t total = 0;
         for (auto& v : values_) {
@@ -51,18 +52,16 @@ public: // methods
         return total;
     }
 
-    // For exposing buffers to C
-    // Use carefully, as the vector values_ still owns the data.
-    void values_ptr(double*** values, unsigned long* nrange, unsigned long** nvalues);
+private:  // methods
 
-private: // methods
     void encode(eckit::Stream& s) const;
     void print(std::ostream&) const;
     friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionResult& o);
     friend std::ostream& operator<<(std::ostream& s, const ExtractionResult& r);
 
 
-private: // members
+private:  // members
+
     std::vector<std::vector<double>> values_;
     std::vector<std::vector<std::bitset<64>>> mask_;
 };
@@ -71,24 +70,26 @@ private: // members
 
 class ExtractionRequest {
 
-public: // methods
+public:  // methods
 
     ExtractionRequest();
-    ExtractionRequest(const std::string&, const std::vector<Range>&, std::string gridHash="");
+    ExtractionRequest(const std::string&, const std::vector<Range>&, std::string gridHash = "");
     explicit ExtractionRequest(eckit::Stream& s);
 
-    const std::vector<Range>& ranges() const {return ranges_;}
-    const std::string& requestString() const {return request_;}
-    void requestString(const std::string& s) {request_ = s;}
-    const std::string& gridHash() const {return gridHash_;}
+    const std::vector<Range>& ranges() const { return ranges_; }
+    const std::string& requestString() const { return request_; }
+    void requestString(const std::string& s) { request_ = s; }
+    const std::string& gridHash() const { return gridHash_; }
 
-private: // methods
+private:  // methods
+
     void print(std::ostream&) const;
     void encode(eckit::Stream& s) const;
     friend eckit::Stream& operator<<(eckit::Stream& s, const ExtractionRequest& o);
     friend std::ostream& operator<<(std::ostream& s, const ExtractionRequest& r);
 
-private: // members
+private:  // members
+
     std::vector<Range> ranges_;
     std::string request_;
     std::string gridHash_;
@@ -96,4 +97,4 @@ private: // members
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

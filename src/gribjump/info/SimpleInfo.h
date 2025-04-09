@@ -19,6 +19,7 @@ namespace gribjump {
 class SimpleInfo : public JumpInfo {
 
 public:
+
     SimpleInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
     SimpleInfo(const eckit::message::Message& msg);
     SimpleInfo(eckit::Stream& s);
@@ -36,5 +37,5 @@ private:
     static eckit::ClassSpec classSpec_;
     static eckit::Reanimator<SimpleInfo> reanimator_;
 };
-    
-} // namespace gribjump
+
+}  // namespace gribjump

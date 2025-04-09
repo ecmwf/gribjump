@@ -12,12 +12,12 @@
 #include <fstream>
 
 #include "eckit/testing/Test.h"
-#include "gribjump/info/LRUCache.h"
 #include "gribjump/compression/NumericCompressor.h"
+#include "gribjump/info/LRUCache.h"
 
 
-#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 
 namespace gribjump {
@@ -25,8 +25,8 @@ namespace test {
 
 // Miscellanous unit tests
 //-----------------------------------------------------------------------------
-CASE( "test_lru" ){
-    
+CASE("test_lru") {
+
     LRUCache<std::string, int> cache(3);
 
     // Check basic functionality
@@ -59,7 +59,7 @@ CASE( "test_lru" ){
 }
 
 //-----------------------------------------------------------------------------
-CASE( "test buckets" ){
+CASE("test buckets") {
     using namespace gribjump::mc;
     BlockBuckets buckets;
     for (size_t i = 100; i < 1000; i += 100) {
@@ -76,8 +76,8 @@ CASE( "test buckets" ){
     // Add a bucket that extends {100, 10} backward
     buckets << Block{195, 10};
 
-    EXPECT_EQUAL(buckets.size(), 9); // We've only grown existing bucket
-    EXPECT_EQUAL(buckets[1].second.size(), 3); // The second bucket now has 3 subblocks
+    EXPECT_EQUAL(buckets.size(), 9);            // We've only grown existing bucket
+    EXPECT_EQUAL(buckets[1].second.size(), 3);  // The second bucket now has 3 subblocks
 
     // Check that it has the correct extents. Should be from 195 to 225 i.e. {195, 30}
     EXPECT_EQUAL(buckets[1].first.first, 195);
@@ -85,16 +85,16 @@ CASE( "test buckets" ){
 
     // Add a bucket that overlaps with nothing to the beginning, middle and end
     buckets << Block{0, 10} << Block{150, 10} << Block{1500, 10};
-    EXPECT_EQUAL(buckets.size(), 12); // We've added 3 new buckets
+    EXPECT_EQUAL(buckets.size(), 12);  // We've added 3 new buckets
 
     // Add a bucket that merges two adjacent buckets
     buckets << Block{305, 100};
     std::cout << buckets << std::endl;
-    EXPECT_EQUAL(buckets.size(), 11); // We've merged two buckets
+    EXPECT_EQUAL(buckets.size(), 11);  // We've merged two buckets
 
     // Add a bucket that completely overlaps with all buckets
     buckets << Block{0, 2000};
-    EXPECT_EQUAL(buckets.size(), 1); // We've merged all buckets
+    EXPECT_EQUAL(buckets.size(), 1);  // We've merged all buckets
     EXPECT_EQUAL(buckets[0].first.first, 0);
     EXPECT_EQUAL(buckets[0].first.second, 2000);
 }
@@ -103,7 +103,6 @@ CASE( "test buckets" ){
 }  // namespace gribjump
 
 
-int main(int argc, char **argv)
-{
-    return run_tests ( argc, argv );
+int main(int argc, char** argv) {
+    return run_tests(argc, argv);
 }

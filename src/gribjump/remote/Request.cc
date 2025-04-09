@@ -12,14 +12,15 @@
 /// @author Tiago Quintino
 
 #include "gribjump/remote/Request.h"
+#include <cstddef>
 #include "gribjump/Engine.h"
 
 namespace {
-    static std::atomic<uint64_t> requestid_{0};
-    static uint64_t requestid() {
-        return requestid_++;
-    }
-} // namespace
+static std::atomic<uint64_t> requestid_{0};
+static uint64_t requestid() {
+    return requestid_++;
+}
+}  // namespace
 
 namespace gribjump {
 
@@ -58,8 +59,8 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
 
 void ScanRequest::execute() {
     auto [nfields, report] = engine_.scan(requests_, byfiles_);
-    nFields_ = nfields;
-    report_ = std::move(report);
+    nFields_               = nfields;
+    report_                = std::move(report);
 }
 
 void ScanRequest::replyToClient() {
@@ -93,15 +94,14 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
 void ExtractRequest::execute() {
 
     auto [results, report] = engine_.extract(requests_);
-    results_ = std::move(results);
-    report_ = std::move(report);
-    
+    results_               = std::move(results);
+    report_                = std::move(report);
+
     if (LibGribJump::instance().debug()) {
         for (auto& pair : results_) {
             LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
-            for (auto& item : pair.second) {
-                item->debug_print();
-            }
+            pair.second->debug_print();
+            LOG_DEBUG_LIB(LibGribJump) << std::endl;
         }
     }
 }
@@ -118,14 +118,9 @@ void ExtractRequest::replyToClient() {
 
         auto it = results_.find(requests_[i].requestString());
         ASSERT(it != results_.end());
-        std::vector<std::unique_ptr<ExtractionItem>>& items = it->second;
-        // ExtractionItems items = it->second;
-        size_t nfields = items.size();
+        size_t nfields = 1;  // @todo: remove this (bump protocol version)
         client_ << nfields;
-        for (size_t i = 0; i < nfields; i++) {
-            ExtractionResult res(items[i]->values(), items[i]->mask());
-            client_ << res;
-        }
+        client_ << *(it->second->result());
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
@@ -150,23 +145,20 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
         size_t nItems;
         client_ >> fname;
         client_ >> nItems;
-        filemap_[fname] = std::vector<ExtractionItem*>(); // non-owning pointers
+        filemap_[fname] = std::vector<ExtractionItem*>();  // non-owning pointers
         filemap_[fname].reserve(nItems);
 
         for (size_t j = 0; j < nItems; j++) {
-            ExtractionRequest req(client_);
-            eckit::URI uri("file", eckit::URI(client_));
-            auto extractionItem = std::make_unique<ExtractionItem>(req.ranges());
-            extractionItem->gridHash(req.gridHash()); // @todo, tidy this up.
-            extractionItem->URI(uri);
-            filemap_[fname].push_back(extractionItem.get());
+            auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(client_));
+            extractionItem->URI(eckit::URI("file", client_));
+            filemap_[fname].push_back(extractionItem.get());  // non-owning pointers
             items_.push_back(std::move(extractionItem));
         }
         count += nItems;
     }
     MetricsManager::instance().set("count_requests", count);
 
-    ASSERT(count > 0); // We should not be talking to this server if we have no requests.
+    ASSERT(count > 0);  // We should not be talking to this server if we have no requests.
 }
 
 void ForwardedExtractRequest::execute() {
@@ -176,12 +168,11 @@ void ForwardedExtractRequest::execute() {
 void ForwardedExtractRequest::replyToClient() {
 
     for (auto& [fname, extractionItems] : filemap_) {
-        client_ << fname; // sanity check
+        client_ << fname;  // sanity check
         size_t nItems = extractionItems.size();
         client_ << nItems;
         for (auto& item : extractionItems) {
-            ExtractionResult res(item->values(), item->mask());
-            client_ << res;
+            client_ << *(item->result());
         }
     }
 }
@@ -214,8 +205,8 @@ ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream) : Request(stre
 
 void ForwardedScanRequest::execute() {
     auto [nfields, report] = engine_.scheduleScanTasks(scanmap_);
-    nfields_ = nfields;
-    report_ = std::move(report);
+    nfields_               = nfields;
+    report_                = std::move(report);
 }
 
 void ForwardedScanRequest::replyToClient() {

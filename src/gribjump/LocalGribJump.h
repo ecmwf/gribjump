@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "gribjump/GribJumpBase.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/GribJumpBase.h"
 #include "gribjump/info/InfoAggregator.h"
 
 namespace gribjump {
@@ -34,16 +34,15 @@ public:
 
     size_t scan(const std::vector<MarsRequest>& requests, bool byfiles) override;
 
-    // new API!
-    ResultsMap extract(const std::vector<std::string>& requests, const std::vector<std::vector<Range>>& ranges);
+    std::vector<std::unique_ptr<ExtractionResult>> extract(ExtractionRequests& requests) override;
 
-    // old API
-    std::vector<std::unique_ptr<ExtractionItem>> extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets, const std::vector<std::vector<Range>>& ranges) override;
-    std::vector<std::vector<std::unique_ptr<ExtractionResult>>> extract(std::vector<ExtractionRequest>&) override;
-    
+    std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
+                                                           const std::vector<eckit::Offset>& offsets,
+                                                           const std::vector<std::vector<Range>>& ranges) override;
+
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
 private:
 };
 
-} // namespace gribjump
+}  // namespace gribjump

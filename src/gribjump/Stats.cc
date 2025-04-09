@@ -82,7 +82,7 @@ void Stats::addInspect(eckit::Timer& timer) {
 
 
 void Stats::reportTimeStats(std::ostream& out, const std::string& title, size_t count, double sum_times,
-                                 double sum_times_squared, double min, double max, const char* indent) const {
+                            double sum_times_squared, double min, double max, const char* indent) const {
     if (count) {
         const size_t WIDTH = 34;
 
@@ -93,8 +93,7 @@ void Stats::reportTimeStats(std::ostream& out, const std::string& title, size_t 
             stdDeviation = std::sqrt(std::max((count * sum_times_squared) - (sum_times * sum_times), 0.0)) / count;
         }
 
-        out << indent << title << std::setw(WIDTH - title.length()) 
-            << std::scientific << std::setprecision(3)
+        out << indent << title << std::setw(WIDTH - title.length()) << std::scientific << std::setprecision(3)
             << " total: " << std::setw(10) << sum_times << " s"
             << ", mean: " << std::setw(10) << average << " s"
             << ", std: " << std::setw(10) << stdDeviation << " s"
@@ -105,9 +104,11 @@ void Stats::reportTimeStats(std::ostream& out, const std::string& title, size_t 
 }
 
 void Stats::report(std::ostream& out, const char* prefix) const {
-    reportTimeStats(out, "Inspect time ", countInspects_, elaspedInspects_, elaspedInspectsSquared_, minInspects_, maxInspects_, prefix);
+    reportTimeStats(out, "Inspect time ", countInspects_, elaspedInspects_, elaspedInspectsSquared_, minInspects_,
+                    maxInspects_, prefix);
     reportTimeStats(out, "Info time", countInfos_, elapsedInfos_, elapsedInfosSquared_, minInfos_, maxInfos_, prefix);
-    reportTimeStats(out, "Extraction time", countExtract_, elapsedExtract_, elapsedExtractSquared_, minExtract_, maxExtract_, prefix);
+    reportTimeStats(out, "Extraction time", countExtract_, elapsedExtract_, elapsedExtractSquared_, minExtract_,
+                    maxExtract_, prefix);
 }
 
-} // namespace gribjump
+}  // namespace gribjump

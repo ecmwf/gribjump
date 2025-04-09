@@ -10,21 +10,19 @@
 
 /// @author Christopher Bradley
 
-#include <unordered_map>
-#include <numeric> 
-#include <atomic>
-#include "eckit/filesystem/URI.h"
 #include "gribjump/Forwarder.h"
+#include <atomic>
+#include <numeric>
+#include <unordered_map>
+#include "eckit/filesystem/URI.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/LibGribJump.h"
 
 namespace gribjump {
 
-Forwarder::Forwarder() {
-}
+Forwarder::Forwarder() {}
 
-Forwarder::~Forwarder() {
-}
+Forwarder::~Forwarder() {}
 
 TaskOutcome<size_t> Forwarder::scan(const std::vector<eckit::URI>& uris) {
 
@@ -36,8 +34,8 @@ TaskOutcome<size_t> Forwarder::scan(const std::vector<eckit::URI>& uris) {
     // Match servers with files
     for (auto& uri : uris) {
         eckit::net::Endpoint server = this->serverForURI(uri);
-        eckit::Offset offset = URIHelper::offset(uri);
-        std::string fname = uri.path();
+        eckit::Offset offset        = URIHelper::offset(uri);
+        std::string fname           = uri.path();
         serverfilemaps[server][fname].push_back(offset);
     }
 
@@ -84,7 +82,7 @@ std::unordered_map<eckit::net::Endpoint, filemap_t> Forwarder::serverFileMap(fil
     // Match servers with files
     std::unordered_map<eckit::net::Endpoint, std::vector<std::string>> serverfiles;
     for (auto& [fname, extractionItems] : filemap) {
-        eckit::URI uri = extractionItems[0]->URI(); // URIs are already grouped by file
+        eckit::URI uri              = extractionItems[0]->URI();  // URIs are already grouped by file
         eckit::net::Endpoint server = serverForURI(uri);
         serverfiles[server].push_back(fname);
     }
@@ -104,4 +102,4 @@ std::unordered_map<eckit::net::Endpoint, filemap_t> Forwarder::serverFileMap(fil
 }
 
 
-} // namespace gribjump
+}  // namespace gribjump

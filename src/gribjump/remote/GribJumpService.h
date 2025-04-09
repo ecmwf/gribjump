@@ -22,22 +22,21 @@ namespace gribjump {
 class GribJumpService : public eckit::net::NetService {
 
 public:  // methods
-    GribJumpService(int port) : NetService(port) {
-    };
+
+    GribJumpService(int port) : NetService(port) {};
     ~GribJumpService() {}
 
     // No copy allowed
-    GribJumpService(const GribJumpService&) = delete;
+    GribJumpService(const GribJumpService&)            = delete;
     GribJumpService& operator=(const GribJumpService&) = delete;
 
 private:  // methods
-    eckit::net::NetUser* newUser(eckit::net::TCPSocket& protocol) const override {
-        return new GribJumpUser(protocol);
-    }
+
+    eckit::net::NetUser* newUser(eckit::net::TCPSocket& protocol) const override { return new GribJumpUser(protocol); }
     std::string name() const override { return "gribjumpserver"; }
     // bool preferToRunAsProcess() const override { return true;} // TODO: Is this correct?
 };
 
 //-------------------------------------------------------------------------------------------------
 
-} 
+}  // namespace gribjump

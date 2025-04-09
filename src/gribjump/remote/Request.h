@@ -13,15 +13,15 @@
 
 #pragma once
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 #include "eckit/serialisation/Stream.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/GribJump.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/remote/WorkQueue.h"
-#include "gribjump/Engine.h"
 
 namespace gribjump {
 
@@ -33,7 +33,7 @@ public:
     Request(eckit::Stream& stream);
 
     virtual ~Request() = default;
-    
+
     // Have engine execute the request
     virtual void execute() = 0;
 
@@ -45,7 +45,7 @@ public:
     /// Print information about the request to status(), for monitoring
     virtual void info() const = 0;
 
-protected: // members
+protected:  // members
 
     eckit::Stream& client_;
     Engine engine_;
@@ -74,7 +74,6 @@ private:
     bool byfiles_;
 
     size_t nFields_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -93,10 +92,10 @@ public:
     void info() const override;
 
 private:
+
     std::vector<ExtractionRequest> requests_;
 
     ResultsMap results_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -164,12 +163,11 @@ public:
 
 private:
 
-    std::string request_; /// @todo why is this a string?
+    std::string request_;  /// @todo why is this a string?
     int level_;
     std::map<std::string, std::unordered_set<std::string>> axes_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump

@@ -12,10 +12,10 @@
 
 #pragma once
 
-#include "gribjump/compression/NumericCompressor.h"
-#include "gribjump/info/JumpInfo.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/compression/NumericCompressor.h"
+#include "gribjump/info/JumpInfo.h"
 
 namespace gribjump {
 
@@ -27,21 +27,29 @@ typedef std::vector<bool> Bitmap;
 // todo: avoid rebuilding jumpers: one per thread per type
 class Jumper {
 public:
+
     Jumper();
     virtual ~Jumper() = 0;
 
-    // void extract(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem&);
-    void extract(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& extractionItem);
+    // void extract(eckit::DataHandle& dh, const JumpInfo& info, const std::vector<Interval>& intervals,
+    // ExtractionItem&);
+    void extract(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                 ExtractionItem& extractionItem);
+
 private:
 
-    virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, const std::vector<Interval>& intervals, ExtractionItem& item) {NOTIMP;}
+    virtual void readValues(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                            const std::vector<Interval>& intervals, ExValues& values) {
+        NOTIMP;
+    }
     Bitmap readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info) const;
 
     void extractConstant(const JumpInfo& info, ExtractionItem& item);
     void extractNoMask(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem&);
     void extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem&);
 
-    std::pair<std::vector<Range>, std::vector<Bitmap>> calculateMaskedIntervals(const std::vector<Interval>& intervals, const Bitmap& bitmap) const;
+    std::pair<std::vector<Range>, std::vector<Bitmap>> calculateMaskedIntervals(const std::vector<Interval>& intervals,
+                                                                                const Bitmap& bitmap) const;
 };
 
 // -----------------------------------------------------------------------------------------
@@ -51,7 +59,6 @@ public:
 
     BadJumpInfoException(const std::string& msg, const eckit::CodeLocation& here) :
         eckit::Exception(std::string("BadJumpInfoException: ") + msg, here) {}
-
 };
 
 // -----------------------------------------------------------------------------------------
@@ -61,4 +68,4 @@ public:
 // TODO(maee): Simplification: Switch to intervals or ranges
 std::vector<mc::Block> toRanges(const std::vector<Interval>& intervals);
 
-} // namespace gribjump
+}  // namespace gribjump

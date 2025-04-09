@@ -12,9 +12,9 @@
 #include <fstream>
 #include <memory>
 
-#include "eckit/utils/StringTools.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
+#include "eckit/utils/StringTools.h"
 
 #include "metkit/codes/GribHandle.h"
 
@@ -25,30 +25,50 @@
 
 namespace gribjump {
 
-std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request, std::vector<Range> ranges) {  
+std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request,
+                                                             std::vector<Range> ranges) {
+    // Potentially any cardinality.
+    std::map<eckit::PathName, eckit::OffsetList> map = FDBLister::instance().filesOffsets({request});
 
-    std::map< eckit::PathName, eckit::OffsetList > map = FDBLister::instance().filesOffsets({request});
-   
     std::vector<std::vector<std::vector<double>>> results;
     for (const auto& entry : map) {
-        const eckit::PathName path = entry.first;
+        const eckit::PathName path      = entry.first;
         const eckit::OffsetList offsets = entry.second;
         std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
         dh->openForRead();
 
         std::vector<std::vector<std::vector<double>>> resultsFile = eccodesExtract(path, offsets, ranges);
         results.insert(results.end(), resultsFile.begin(), resultsFile.end());
-
     }
 
     return results;
-
 }
 
-std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets, std::vector<Range> ranges) { 
+// Expects a request to have cardinality 1
+/// @todo: you wrote this but I dont think started to use it yet.
+std::vector<std::vector<double>> eccodesExtractSingle(metkit::mars::MarsRequest request, std::vector<Range> ranges) {
+    std::map<eckit::PathName, eckit::OffsetList> map = FDBLister::instance().filesOffsets({request});
+
+    // Should have exactly one pathname, and one element in the offset list.
+    if (map.size() != 1) {
+        throw eckit::UserError("Expected exactly one file for request: " + request.asString(), Here());
+    }
+
+    const eckit::PathName path      = map.begin()->first;
+    const eckit::OffsetList offsets = map.begin()->second;
+
+    if (offsets.size() != 1) {
+        throw eckit::UserError("Expected exactly one offset for request: " + request.asString(), Here());
+    }
+    std::vector<std::vector<double>> results = eccodesExtract(path, offsets, ranges)[0];
+    return results;
+}
+
+std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets,
+                                                             std::vector<Range> ranges) {
 
     std::vector<std::vector<std::vector<double>>> results;
-    
+
     std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
     dh->openForRead();
 
@@ -73,25 +93,24 @@ std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName pat
     }
 
     return results;
-
 }
 
 std::vector<double> eccodesExtract(eckit::PathName path) {
-    
-        std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
-        dh->openForRead();
-    
-        const metkit::grib::GribHandle handle(*dh, 0);
-    
-        size_t count;
-        std::unique_ptr<double[]> data(handle.getDataValues(count));
-    
-        std::vector<double> ecvalues;
-        for (size_t k = 0; k < count; k++) {
-            ecvalues.push_back(data[k]);
-        }
-    
-        return ecvalues;
+
+    std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
+    dh->openForRead();
+
+    const metkit::grib::GribHandle handle(*dh, 0);
+
+    size_t count;
+    std::unique_ptr<double[]> data(handle.getDataValues(count));
+
+    std::vector<double> ecvalues;
+    for (size_t k = 0; k < count; k++) {
+        ecvalues.push_back(data[k]);
+    }
+
+    return ecvalues;
 }
 
-} // namespace gribjump
+}  // namespace gribjump

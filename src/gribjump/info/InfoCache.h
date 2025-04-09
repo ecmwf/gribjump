@@ -15,24 +15,24 @@
 
 #include <map>
 
-#include "eckit/serialisation/Stream.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/serialisation/FileStream.h"
+#include "eckit/serialisation/Stream.h"
 
+#include "gribjump/LibGribJump.h"
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/LRUCache.h"
-#include "gribjump/LibGribJump.h"
 
 namespace gribjump {
 
 class IndexFile;
 class InfoCache {
 
-private: // types
+private:  // types
 
-    using filename_t = std::string; //< key is fieldlocation's path basename
-    using fileoffset_t = std::string; // filename+offset
-    using infocache_t = LRUCache<fileoffset_t, std::shared_ptr<JumpInfo>>; //< map fieldlocation's to gribinfo
+    using filename_t   = std::string;                                        //< key is fieldlocation's path basename
+    using fileoffset_t = std::string;                                        // filename+offset
+    using infocache_t  = LRUCache<fileoffset_t, std::shared_ptr<JumpInfo>>;  //< map fieldlocation's to gribinfo
 
 public:
 
@@ -43,7 +43,7 @@ public:
     /// @param offsets list of offsets to at which GribInfo should be extracted
     size_t scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
 
-    size_t scan(const eckit::PathName& path); // < scan all fields in a file
+    size_t scan(const eckit::PathName& path);  // < scan all fields in a file
 
 
     /// Inserts a JumpInfo entry
@@ -52,54 +52,60 @@ public:
 
     /// Get JumpInfo from memory cache
     /// @return JumpInfo, null if not found
-    std::shared_ptr<JumpInfo>  get(const eckit::PathName& path, const eckit::Offset offset);
-    std::shared_ptr<JumpInfo>  get(const eckit::URI& uri);
+    std::shared_ptr<JumpInfo> get(const eckit::PathName& path, const eckit::Offset offset);
+    std::shared_ptr<JumpInfo> get(const eckit::URI& uri);
 
-    std::vector<std::shared_ptr<JumpInfo>> get(const eckit::PathName& path, const eckit::OffsetList& offsets); // this version will generate on the fly... inconsistent?
+    std::vector<std::shared_ptr<JumpInfo>> get(
+        const eckit::PathName& path,
+        const eckit::OffsetList& offsets);  // this version will generate on the fly... inconsistent?
 
     void flush(bool append);
     void clear();
 
     void print(std::ostream& s) const;
 
-private: // methods
+private:  // methods
 
     InfoCache();
-    
+
     ~InfoCache();
 
     std::shared_ptr<IndexFile> getIndexFile(const eckit::PathName& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
 
-    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> getCached(const eckit::PathName& path, const eckit::OffsetList& offsets);
-    void putCache(const eckit::PathName& path, const eckit::OffsetList& offset, std::vector<std::shared_ptr<JumpInfo>>& infos);
- 
-private: // members
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> getCached(const eckit::PathName& path,
+                                                                 const eckit::OffsetList& offsets);
+    void putCache(const eckit::PathName& path, const eckit::OffsetList& offset,
+                  std::vector<std::shared_ptr<JumpInfo>>& infos);
+
+private:  // members
 
     eckit::PathName cacheDir_;
 
-    mutable std::mutex stageMutex_; //< mutex for stagedFiles_
-    std::map<filename_t, std::shared_ptr<IndexFile>> stagedFiles_; ///, Files which we are actively appending to (plugin)
+    mutable std::mutex stageMutex_;  //< mutex for stagedFiles_
+    std::map<filename_t, std::shared_ptr<IndexFile>>
+        stagedFiles_;  ///, Files which we are actively appending to (plugin)
 
-    mutable std::mutex infomutex_;; //< mutex for infocache_
+    mutable std::mutex infomutex_;
+    ;  //< mutex for infocache_
     infocache_t infocache_;
 
-    bool lazy_; //< if true, cache.get may construct JumpInfo on the fly
+    bool lazy_;  //< if true, cache.get may construct JumpInfo on the fly
 
-    bool shadowCache_ = false; //< if true, cache files are persisted next to the original data files (e.g. in FDB)
-                               //  This takes precedence over cacheDir_.
+    bool shadowCache_ = false;  //< if true, cache files are persisted next to the original data files (e.g. in FDB)
+                                //  This takes precedence over cacheDir_.
 };
 
 // Holds JumpInfo objects belonging to single file.
 class IndexFile {
 
     using infomap_t = std::map<eckit::Offset, std::shared_ptr<JumpInfo>>;
-    friend class InfoCache; 
+    friend class InfoCache;
 
 public:
 
-    IndexFile(const eckit::PathName& path, bool load=true);
+    IndexFile(const eckit::PathName& path, bool load = true);
 
     ~IndexFile();
 
@@ -107,13 +113,13 @@ public:
     void reload();
     void print(std::ostream& s);
     bool loaded() const { return loaded_; }
-    
+
     // For tests only
     size_t size() const { return map_.size(); }
 
     std::map<eckit::Offset, std::shared_ptr<JumpInfo>> get(const eckit::OffsetList& offsets);
 
-private: // Methods are only intended to be called from InfoCache
+private:  // Methods are only intended to be called from InfoCache
 
     void encode(eckit::Stream& s) const;
 
@@ -148,7 +154,7 @@ private:
 
     eckit::PathName path_;
     bool loaded_ = false;
-    mutable std::mutex mutex_; //< mutex for map_
+    mutable std::mutex mutex_;  //< mutex for map_
     infomap_t map_;
 };
 

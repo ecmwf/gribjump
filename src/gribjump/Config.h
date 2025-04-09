@@ -19,23 +19,28 @@
 namespace gribjump {
 
 class Config : public eckit::LocalConfiguration {
-public: // types
+public:  // types
+
     using ServerMap = std::unordered_map<eckit::net::Endpoint, eckit::net::Endpoint>;
+
 public:
+
     Config();
     Config(const eckit::PathName);
 
     const ServerMap& serverMap() const { return serverMap_; }
-    
+
     ///@note : Will be empty if default config is used
     const std::string& path() const { return path_; }
 
 private:
+
     ServerMap loadServerMap() const;
 
 private:
+
     ServerMap serverMap_;
     std::string path_;
 };
 
-} // namespace gribjump
+}  // namespace gribjump

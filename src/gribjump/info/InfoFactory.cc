@@ -11,12 +11,12 @@
 /// @author Christopher Bradley
 
 
-#include "metkit/codes/GribAccessor.h"
 #include "eckit/io/DataHandle.h"
+#include "metkit/codes/GribAccessor.h"
 
 #include "gribjump/info/InfoFactory.h"
 
-static metkit::grib::GribAccessor<std::string>   packingType("packingType");
+static metkit::grib::GribAccessor<std::string> packingType("packingType");
 
 namespace gribjump {
 
@@ -42,21 +42,21 @@ InfoFactory& InfoFactory::instance() {
 }
 
 std::unique_ptr<JumpInfo> InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
-    
-    metkit::grib::GribHandle gh(h, msgOffset); // Note: eccodes will read message into memory
+
+    metkit::grib::GribHandle gh(h, msgOffset);  // Note: eccodes will read message into memory
 
     InfoBuilderBase* builder = get(packingType(gh));
 
-    ASSERT(builder); // Unrecognised packingTypes use the "unsupported" builder
+    ASSERT(builder);  // Unrecognised packingTypes use the "unsupported" builder
 
     return builder->make(h, gh, msgOffset);
 }
 
 std::unique_ptr<JumpInfo> InfoFactory::build(const eckit::message::Message& msg) {
-    
+
     InfoBuilderBase* builder = get(msg.getString("packingType"));
 
-    ASSERT(builder); // Unrecognised packingTypes use the "unsupported" builder
+    ASSERT(builder);  // Unrecognised packingTypes use the "unsupported" builder
 
     return builder->make(msg);
 }

@@ -9,11 +9,11 @@
  */
 
 /// @author Christopher Bradley
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
-
 #pragma once
 
-namespace gribjump{
+namespace gribjump {
 
 // Helper class to extend eckit::URI
 class URIHelper {
@@ -24,16 +24,14 @@ public:
         eckit::Offset offset;
         try {
             offset = std::stoll(fragment);
-        } catch (std::invalid_argument& e) {
+        }
+        catch (std::invalid_argument& e) {
             throw eckit::BadValue("Invalid offset: '" + fragment + "' in URI: " + uri.asString(), Here());
         }
         return offset;
     }
 
-    static bool isRemote(const eckit::URI& uri) {
-        return uri.scheme() == "fdb";
-    }
-
+    static bool isRemote(const eckit::URI& uri) { return uri.scheme() == "fdb"; }
 };
 
-} // namespace gribjump
+}  // namespace gribjump

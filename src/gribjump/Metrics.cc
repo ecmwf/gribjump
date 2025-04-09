@@ -10,8 +10,8 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/runtime/Main.h"
 #include "gribjump/Metrics.h"
+#include "eckit/runtime/Main.h"
 
 namespace {
 std::string iso(time_t t) {
@@ -19,7 +19,7 @@ std::string iso(time_t t) {
     ::strftime(buf, sizeof(buf), "%FT%TZ", gmtime(&t));
     return std::string(buf);
 }
-} // namespace
+}  // namespace
 
 namespace gribjump {
 
@@ -85,8 +85,7 @@ void MetricsManager::report() {
 
 
 // --------------------------------------------------------------------------------------------------------------------------------
-ContextManager::ContextManager() {
-}
+ContextManager::ContextManager() {}
 
 ContextManager& ContextManager::instance() {
     static ContextManager instance;
@@ -103,4 +102,4 @@ LogContext& ContextManager::context() {
     return context_;
 }
 
-} // namespace gribjump
+}  // namespace gribjump

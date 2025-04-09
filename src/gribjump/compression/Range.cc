@@ -12,17 +12,15 @@
 #include <algorithm>
 #include <cassert>
 
-namespace gribjump::mc{
+namespace gribjump::mc {
 
-std::pair<size_t, size_t> begin_end(const Block& range)
-{
+std::pair<size_t, size_t> begin_end(const Block& range) {
     const auto [offset, size] = range;
     return {offset, offset + size};
 }
 
 
-Block operator+(const Block& r1, const Block& r2)
-{
+Block operator+(const Block& r1, const Block& r2) {
     auto [b1, e1] = begin_end(r1);
     auto [b2, e2] = begin_end(r2);
     assert(!((b1 > e2) && (b2 > e1)));
@@ -30,17 +28,15 @@ Block operator+(const Block& r1, const Block& r2)
 }
 
 
-std::ostream& operator<<(std::ostream& os, const Block& range)
-{
+std::ostream& operator<<(std::ostream& os, const Block& range) {
     auto [rb, re] = begin_end(range);
     os << "[" << rb << ", " << re << "]";
     return os;
 }
 
 
-std::ostream& operator<<(std::ostream& os, const BlockBucket& range)
-{
-    os << range.first <<  std::endl;
+std::ostream& operator<<(std::ostream& os, const BlockBucket& range) {
+    os << range.first << std::endl;
     for (const auto& r : range.second) {
         os << "\t" << r << std::endl;
     }
@@ -55,24 +51,25 @@ BlockBuckets& operator<<(BlockBuckets& buckets, const Block& r) {
     const auto [sub_start, sub_end] = begin_end(sub_range);
 
     // Find the position where the range might be inserted
-    auto it = std::lower_bound(buckets.begin(), buckets.end(), sub_range,
-        [](const BlockBucket& bucket, const Block& range) {
+    auto it =
+        std::lower_bound(buckets.begin(), buckets.end(), sub_range, [](const BlockBucket& bucket, const Block& range) {
             const auto [bucket_start, bucket_end] = begin_end(bucket.first);
             return bucket_end < range.first;
         });
 
-    Block merged_range = sub_range;
+    Block merged_range         = sub_range;
     SubBlocks merged_subranges = {sub_range};
 
     // Merge with any overlapping buckets before the insertion point
     while (it != buckets.begin()) {
-        auto prev_it = std::prev(it);
+        auto prev_it                      = std::prev(it);
         const auto [prev_start, prev_end] = begin_end(prev_it->first);
 
-        if (prev_end < sub_start) break; // No overlap
+        if (prev_end < sub_start)
+            break;  // No overlap
 
         // Expand the merged range
-        merged_range.first = std::min(merged_range.first, prev_start);
+        merged_range.first  = std::min(merged_range.first, prev_start);
         merged_range.second = (std::max(prev_end, sub_end) - merged_range.first);
 
         merged_subranges.insert(merged_subranges.end(), prev_it->second.begin(), prev_it->second.end());
@@ -84,10 +81,11 @@ BlockBuckets& operator<<(BlockBuckets& buckets, const Block& r) {
     while (it != buckets.end()) {
         const auto [next_start, next_end] = begin_end(it->first);
 
-        if (next_start > sub_end) break; // No overlap
+        if (next_start > sub_end)
+            break;  // No overlap
 
         // Expand the merged range
-        merged_range.first = std::min(merged_range.first, next_start);
+        merged_range.first  = std::min(merged_range.first, next_start);
         merged_range.second = (std::max(next_end, sub_end) - merged_range.first);
 
         merged_subranges.insert(merged_subranges.end(), it->second.begin(), it->second.end());
@@ -100,12 +98,10 @@ BlockBuckets& operator<<(BlockBuckets& buckets, const Block& r) {
     return buckets;
 }
 
-} // namespace gribjump::mc
+}  // namespace gribjump::mc
 
-std::size_t std::hash<gribjump::mc::Block>::operator() (const gribjump::mc::Block& range) const
-{
+std::size_t std::hash<gribjump::mc::Block>::operator()(const gribjump::mc::Block& range) const {
     static_assert(sizeof(std::size_t) == sizeof(std::uint64_t), "std::size_t must be 64 bits");
     const auto [offset, size] = range;
     return offset ^ (size << 32);
 }
-

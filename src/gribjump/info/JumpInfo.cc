@@ -13,15 +13,15 @@
 
 #include <sstream>
 
-#include "eckit/io/DataHandle.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/DataHandle.h"
 
 #include "metkit/codes/GribAccessor.h"
 
-#include "gribjump/info/JumpInfo.h"
-#include "gribjump/info/CcsdsInfo.h"
-#include "gribjump/info/SimpleInfo.h"
 #include "gribjump/GribJumpException.h"
+#include "gribjump/info/CcsdsInfo.h"
+#include "gribjump/info/JumpInfo.h"
+#include "gribjump/info/SimpleInfo.h"
 
 namespace gribjump {
 
@@ -29,37 +29,36 @@ namespace gribjump {
 
 using metkit::grib::GribAccessor;
 namespace grib {
-static GribAccessor<long>          editionNumber("editionNumber");
-static GribAccessor<long>          bitmapPresent("bitmapPresent");
-static GribAccessor<long>          binaryScaleFactor("binaryScaleFactor");
-static GribAccessor<long>          decimalScaleFactor("decimalScaleFactor");
+static GribAccessor<long> editionNumber("editionNumber");
+static GribAccessor<long> bitmapPresent("bitmapPresent");
+static GribAccessor<long> binaryScaleFactor("binaryScaleFactor");
+static GribAccessor<long> decimalScaleFactor("decimalScaleFactor");
 static GribAccessor<unsigned long> bitsPerValue("bitsPerValue");
-static GribAccessor<double>        referenceValue("referenceValue");
+static GribAccessor<double> referenceValue("referenceValue");
 static GribAccessor<unsigned long> offsetBeforeData("offsetBeforeData");
 static GribAccessor<unsigned long> offsetAfterData("offsetAfterData");
 static GribAccessor<unsigned long> offsetBeforeBitmap("offsetBeforeBitmap");
 static GribAccessor<unsigned long> numberOfValues("numberOfValues");
 static GribAccessor<unsigned long> numberOfDataPoints("numberOfDataPoints");
-static GribAccessor<long>          sphericalHarmonics("sphericalHarmonics", true);
+static GribAccessor<long> sphericalHarmonics("sphericalHarmonics", true);
 static GribAccessor<unsigned long> totalLength("totalLength");
 static GribAccessor<unsigned long> offsetBSection6("offsetBSection6");
-static GribAccessor<std::string>   md5GridSection("md5GridSection");
-static metkit::grib::GribAccessor<std::string>   packingType("packingType");
+static GribAccessor<std::string> md5GridSection("md5GridSection");
+static metkit::grib::GribAccessor<std::string> packingType("packingType");
 
-} // namespace grib
+}  // namespace grib
 // --------------------------------------------------------------------------------------------
 
-JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset): 
-    version_(currentVersion_) {
+JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset) : version_(currentVersion_) {
 
-    editionNumber_      = grib::editionNumber(h);
-    packingType_        = grib::packingType(h);
+    editionNumber_ = grib::editionNumber(h);
+    packingType_   = grib::packingType(h);
     if (editionNumber_ != 1 && editionNumber_ != 2) {
         std::stringstream ss;
         ss << "Unsupported GRIB edition number: " << editionNumber_;
         throw GribJumpException(ss.str(), Here());
     }
-    
+
     binaryScaleFactor_  = grib::binaryScaleFactor(h);
     decimalScaleFactor_ = grib::decimalScaleFactor(h);
     bitsPerValue_       = grib::bitsPerValue(h);
@@ -73,35 +72,35 @@ JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startO
     md5GridSection_     = grib::md5GridSection(h);
 
     long bitmapPresent_ = grib::bitmapPresent(h);
-    
+
     if (bitmapPresent_) {
         constexpr size_t offsetToBitmap = 6;
-        offsetBeforeBitmap_ = editionNumber_ == 1? grib::offsetBeforeBitmap(h) : grib::offsetBSection6(h) + offsetToBitmap;
+        offsetBeforeBitmap_ =
+            editionNumber_ == 1 ? grib::offsetBeforeBitmap(h) : grib::offsetBSection6(h) + offsetToBitmap;
     }
     else {
         offsetBeforeBitmap_ = 0;
     }
-
 }
 
-JumpInfo::JumpInfo(const eckit::message::Message& msg):
-    version_(currentVersion_) {
+JumpInfo::JumpInfo(const eckit::message::Message& msg) : version_(currentVersion_) {
 
-    editionNumber_      = msg.getLong("editionNumber");
-    packingType_        = msg.getString("packingType");
+    editionNumber_ = msg.getLong("editionNumber");
+    packingType_   = msg.getString("packingType");
     if (editionNumber_ != 1 && editionNumber_ != 2) {
         std::stringstream ss;
         ss << "Unsupported GRIB edition number: " << editionNumber_;
         throw GribJumpException(ss.str(), Here());
     }
-    
+
     binaryScaleFactor_  = msg.getLong("binaryScaleFactor");
     decimalScaleFactor_ = msg.getLong("decimalScaleFactor");
     referenceValue_     = msg.getDouble("referenceValue");
     md5GridSection_     = msg.getString("md5GridSection");
 
     // XXX: would use getSize, but it seems to not work correctly? Always returns 1 or 0.
-    // Also, the gribaccessor above secretly uses get_long for the unsigned_longs, rather than size as I would have expected.
+    // Also, the gribaccessor above secretly uses get_long for the unsigned_longs, rather than size as I would have
+    // expected.
 
     bitsPerValue_       = msg.getLong("bitsPerValue");
     offsetBeforeData_   = msg.getLong("offsetBeforeData");
@@ -111,10 +110,11 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
     totalLength_        = msg.getLong("totalLength");
 
     long bitmapPresent_ = msg.getLong("bitmapPresent");
-    
+
     if (bitmapPresent_) {
         constexpr size_t offsetToBitmap = 6;
-        offsetBeforeBitmap_ = editionNumber_ == 1? msg.getLong("offsetBeforeBitmap") : msg.getLong("offsetBSection6") + offsetToBitmap;
+        offsetBeforeBitmap_ =
+            editionNumber_ == 1 ? msg.getLong("offsetBeforeBitmap") : msg.getLong("offsetBSection6") + offsetToBitmap;
     }
     else {
         offsetBeforeBitmap_ = 0;
@@ -123,11 +123,12 @@ JumpInfo::JumpInfo(const eckit::message::Message& msg):
     // A bit gross, but the keyword is optional.
     // XXX: I suspect we don't actually need "sphericalHarmonics", if packingType=spectral_... is a reliable indicator.
     // Find out.
-    try{
+    try {
         sphericalHarmonics_ = msg.getLong("sphericalHarmonics");
     }
-    catch(const eckit::Exception& e) {
-        eckit::Log::warning() << "JumpInfo caught (and ignored by setting sphericalHarmonics_=0): " << e.what() << std::endl;
+    catch (const eckit::Exception& e) {
+        eckit::Log::warning() << "JumpInfo caught (and ignored by setting sphericalHarmonics_=0): " << e.what()
+                              << std::endl;
         sphericalHarmonics_ = 0;
     }
 }
@@ -194,23 +195,16 @@ void JumpInfo::print(std::ostream& s) const {
 }
 
 bool JumpInfo::equals(const JumpInfo& rhs) const {
-    return version_ == rhs.version() &&
-           referenceValue() == rhs.referenceValue() &&
-           binaryScaleFactor() == rhs.binaryScaleFactor() &&
-           decimalScaleFactor() == rhs.decimalScaleFactor() &&
-           editionNumber() == rhs.editionNumber() &&
-           bitsPerValue() == rhs.bitsPerValue() &&
-           offsetBeforeData() == rhs.offsetBeforeData() &&
-           offsetAfterData() == rhs.offsetAfterData() &&
-           offsetBeforeBitmap() == rhs.offsetBeforeBitmap() &&
-           numberOfValues() == rhs.numberOfValues() &&
-           numberOfDataPoints() == rhs.numberOfDataPoints() &&
-           totalLength() == rhs.totalLength() &&
-           sphericalHarmonics() == rhs.sphericalHarmonics() &&
-           md5GridSection() == rhs.md5GridSection() &&
+    return version_ == rhs.version() && referenceValue() == rhs.referenceValue() &&
+           binaryScaleFactor() == rhs.binaryScaleFactor() && decimalScaleFactor() == rhs.decimalScaleFactor() &&
+           editionNumber() == rhs.editionNumber() && bitsPerValue() == rhs.bitsPerValue() &&
+           offsetBeforeData() == rhs.offsetBeforeData() && offsetAfterData() == rhs.offsetAfterData() &&
+           offsetBeforeBitmap() == rhs.offsetBeforeBitmap() && numberOfValues() == rhs.numberOfValues() &&
+           numberOfDataPoints() == rhs.numberOfDataPoints() && totalLength() == rhs.totalLength() &&
+           sphericalHarmonics() == rhs.sphericalHarmonics() && md5GridSection() == rhs.md5GridSection() &&
            packingType() == rhs.packingType();
 }
 
 // --------------------------------------------------------------------------------------------
 
-} // namespace gribjump
+}  // namespace gribjump
