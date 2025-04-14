@@ -12,7 +12,7 @@ import os
 import pathlib
 import shutil
 
-import numpy
+import numpy as np
 import pytest
 import yaml
 
@@ -22,16 +22,16 @@ from pygribjump import GribJump, ExtractionRequest, ExtractionResult
 import pyfdb
 
 synthetic_data = [
-    0., numpy.nan, numpy.nan, 3., 4., numpy.nan, numpy.nan, numpy.nan, 8., 9., 
-    10., numpy.nan, numpy.nan, numpy.nan, numpy.nan, 15., 16., 17., 18., numpy.nan, 
-    numpy.nan, numpy.nan, numpy.nan, numpy.nan, 24., 25., 26., 27., 28., numpy.nan, 
-    numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, 35., 36., 37., 38., 39., 
-    40., numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, 48., 49., 
-    50., 51., 52., 53., 54., numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, 
-    numpy.nan, numpy.nan, numpy.nan, 63., 64., 65., 66., 67., 68., 69., 
-    70., numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, 
-    80., 81., 82., 83., 84., 85., 86., 87., 88., numpy.nan, 
-    numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, numpy.nan, 99.
+    0., np.nan, np.nan, 3., 4., np.nan, np.nan, np.nan, 8., 9., 
+    10., np.nan, np.nan, np.nan, np.nan, 15., 16., 17., 18., np.nan, 
+    np.nan, np.nan, np.nan, np.nan, 24., 25., 26., 27., 28., np.nan, 
+    np.nan, np.nan, np.nan, np.nan, np.nan, 35., 36., 37., 38., 39., 
+    40., np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 48., 49., 
+    50., 51., 52., 53., 54., np.nan, np.nan, np.nan, np.nan, np.nan, 
+    np.nan, np.nan, np.nan, 63., 64., 65., 66., 67., 68., 69., 
+    70., np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 
+    80., 81., 82., 83., 84., 85., 86., 87., 88., np.nan, 
+    np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 99.
 ]
 
 def compare_synthetic_data(values, expected):
@@ -40,7 +40,7 @@ def compare_synthetic_data(values, expected):
     """
     assert len(values) == len(expected)
     for i in range(len(values)):
-        assert numpy.array_equal(values[i], expected[i], equal_nan=True)
+        assert np.array_equal(values[i], expected[i], equal_nan=True)
 
 def validate_masks(result : ExtractionResult):
     """
@@ -56,12 +56,12 @@ def validate_masks(result : ExtractionResult):
 
         for j, val in enumerate(vals):
             if boolmask[i][j] == False:
-                assert numpy.isnan(val)
+                assert np.isnan(val)
             else:
-                assert not numpy.isnan(val)
+                assert not np.isnan(val)
 
 @pytest.fixture(scope="function")
-def read_only_fdb_setup(data_path, tmp_path) -> pathlib.Path:
+def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> pathlib.Path:
     """
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
@@ -133,7 +133,7 @@ def test_extract_dump_legacy(read_only_fdb_setup) -> None:
 
     expected = synthetic_data[0:6]
     actual = gribjump.extract(polyrequest).dump_legacy() # old api output
-    assert numpy.array_equal(expected, actual[0][0][0][0], equal_nan=True)
+    assert np.array_equal(expected, actual[0][0][0][0], equal_nan=True)
 
 
 def test_extract_iter(read_only_fdb_setup) -> None:
@@ -165,7 +165,6 @@ def test_extract_iter(read_only_fdb_setup) -> None:
         req = basereq.copy()
         req["step"] = str(step)
         reqstrs.append(req)
-    
 
     # list of tuples api:
     polyrequest = [(a, b) for a, b in zip(reqstrs, ranges)]
@@ -193,6 +192,42 @@ def test_extract_iter(read_only_fdb_setup) -> None:
         validate_masks(result)
 
     assert i == 3
+
+def test_extract_from_mask(read_only_fdb_setup) -> None:
+
+    gribjump = GribJump()
+
+    req =  {
+        "domain": "g",
+        "levtype": "sfc",
+        "date": "20230508",
+        "time": "1200",
+        "step": "1",
+        "param": "151130",
+        "class": "od",
+        "type": "fc",
+        "stream": "oper",
+        "expver": "0001",
+        "step": "0"
+    }
+    
+    mask = np.where(np.isnan(synthetic_data), 0, 1)
+    expected_values_flat = np.array(synthetic_data)[mask == 1] # flat values
+    expected_values = np.split(expected_values_flat, [1, 3, 6, 10, 15, 21, 28, 36, 45]) # reshaped
+
+    request = ExtractionRequest.from_mask(req, mask)
+
+    it = gribjump.extract([request])
+    i = -1
+    for i, result in enumerate(it):
+        compare_synthetic_data(result.values, expected_values)
+        compare_synthetic_data(result.values_flat, expected_values_flat)
+        validate_masks(result)
+
+        for vals in result.values:
+            for val in vals:
+                assert not np.isnan(val)
+    assert i == 0
 
 def test_axes(read_only_fdb_setup) -> None:
     gribjump = GribJump()
