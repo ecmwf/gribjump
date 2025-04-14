@@ -70,7 +70,13 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
     }
 
     for (const auto& k : keys) {
-        ss << separator << k << "=" << key.get(k);
+        const std::string& value = key.get(k);
+
+        if (value.empty()) {
+            continue;
+        }
+
+        ss << separator << k << "=" << value;
         separator = ",";
     }
     return ss.str();
