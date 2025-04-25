@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include "eckit/io/cluster/ClusterNode.h"
 #include "eckit/net/NetService.h"
 #include "eckit/thread/ThreadControler.h"
+#include "gribjump/LogRouter.h"
 #include "gribjump/remote/GribJumpService.h"
 #include "gribjump/remote/WorkQueue.h"
 
@@ -28,6 +28,10 @@ public:
 
     GribJumpServer(int port) : svc_(new GribJumpService(port)), tcsvc_(svc_) {
         eckit::Log::info() << "Starting GribJumpServer on port " << port << std::endl;
+
+        LogRouter::instance().set("timer", "info");
+        LogRouter::instance().set("progress", "info");
+
         WorkQueue::instance();  // start the work queue
         tcsvc_.start();
     }
