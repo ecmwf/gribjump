@@ -28,7 +28,10 @@ public:
     static LogRouter& instance();
 
     void configure(const eckit::Configuration& config);
+
     void set(const std::string& alias, const std::string& channel);
+    void setDefaultChannel(const std::string& channel);
+
     eckit::Channel& get(const std::string& name);
 
 private:

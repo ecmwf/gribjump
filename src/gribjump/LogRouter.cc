@@ -17,6 +17,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 
+#include <algorithm>
+
 namespace gribjump {
 
 LogRouter& LogRouter::instance() {
@@ -24,16 +26,16 @@ LogRouter& LogRouter::instance() {
     return instance;
 }
 
-LogRouter::LogRouter() : defaultChannel_(&eckit::Log::info) {
-    set("timer", "debug");
-    set("progress", "debug");
+LogRouter::LogRouter() {
+    setDefaultChannel("debug");
 }
 
 LogRouter::ChannelGetter LogRouter::standardChannel(const std::string& name) {
-    std::map<std::string, ChannelGetter> channelMap = {
+    static const std::map<std::string, ChannelGetter> channelMap = {
         {"debug", []() -> eckit::Channel& { return eckit::Log::debug<LibGribJump>(); }},
         {"info", []() -> eckit::Channel& { return eckit::Log::info(); }},
         {"error", []() -> eckit::Channel& { return eckit::Log::error(); }},
+        {"default", [this]() -> eckit::Channel& { return defaultChannel_(); }},
     };
 
     auto it = channelMap.find(name);
@@ -50,13 +52,20 @@ void LogRouter::configure(const eckit::Configuration& config) {
         eckit::LocalConfiguration loggingConfig = config.getSubConfiguration("logging");
         std::vector<std::string> keys           = loggingConfig.keys();
         for (const auto& key : keys) {
-            set(key, loggingConfig.getString(key));
+            std::string lowerValue = loggingConfig.getString(key);
+            std::transform(lowerValue.begin(), lowerValue.end(), lowerValue.begin(), ::tolower);
+            set(key, lowerValue);
         }
     }
 }
 
 void LogRouter::set(const std::string& alias, const std::string& channel) {
     channels_[alias] = standardChannel(channel);
+}
+
+void LogRouter::setDefaultChannel(const std::string& channel) {
+    ASSERT(channel != "default");
+    defaultChannel_ = standardChannel(channel);
 }
 
 eckit::Channel& LogRouter::get(const std::string& name) {
