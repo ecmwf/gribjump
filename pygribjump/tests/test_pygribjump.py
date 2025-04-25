@@ -229,6 +229,38 @@ def test_extract_from_mask(read_only_fdb_setup) -> None:
                 assert not np.isnan(val)
     assert i == 0
 
+def test_extract_from_indicies() -> None:
+
+    points = [10, 20, 30, 40, 50]
+    ranges= [(10, 11), (20, 21), (30, 31), (40, 41), (50, 51)]
+
+    r =  {
+        "domain": "g",
+        "levtype": "sfc",
+        "date": "20230508",
+        "time": "1200",
+        "step": "1",
+        "param": "151130",
+        "class": "od",
+        "type": "fc",
+        "stream": "oper",
+        "expver": "0001",
+        "step": "0"
+    }
+    
+    req1 = ExtractionRequest.from_indicies(r, points)
+    req2 = ExtractionRequest(r, ranges)
+
+    assert req1.shape == req2.shape
+
+    gribjump = GribJump()
+    result1 = next(iter(gribjump.extract([req1])))
+    result2 = next(iter(gribjump.extract([req2])))
+
+    compare_synthetic_data(result1.values_flat, [synthetic_data[i] for i in points])
+    compare_synthetic_data(result2.values_flat, [synthetic_data[i] for i in points])
+
+
 def test_axes(read_only_fdb_setup) -> None:
     gribjump = GribJump()
     req = {

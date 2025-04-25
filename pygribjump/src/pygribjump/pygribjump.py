@@ -167,6 +167,14 @@ class ExtractionRequest:
 
         return cls(req, ranges, gridHash)
 
+    @classmethod
+    def from_indicies(cls, req: str, points: np.ndarray, gridHash: str = None):
+        """
+        Create a request from a list of points, rather than a list of ranges
+        """
+        ranges = [(p, p+1) for p in points]
+        return cls(req, ranges, gridHash)
+
     @property
     def shape(self):
         return self.__shape
