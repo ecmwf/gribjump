@@ -365,6 +365,14 @@ class GribJump:
         extraction_requests = [ExtractionRequest.from_indicies(request, points, gridHash) for request in requests]
         return self.extract(extraction_requests, ctx)
     
+    def extract_from_ranges(self, requests : list[dict[str, str]], ranges : list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionIterator:
+
+        if type(requests) is not list:
+            raise ValueError("Requests should be a list of dictionaries")
+        
+        extraction_requests = [ExtractionRequest(request, ranges, gridHash) for request in requests]
+        return self.extract(extraction_requests, ctx)
+    
     def _unpack_polyrequest(self, polyrequest) -> list[ExtractionRequest]:
         requests = []
         for item in polyrequest:

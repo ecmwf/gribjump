@@ -251,7 +251,7 @@ def test_extract_from_indicies() -> None:
 
     gribjump = GribJump()
     result1 = next(iter(gribjump.extract_from_indicies([r], points)))
-    result2 = next(iter(gribjump.extract([ExtractionRequest(r, ranges)])))
+    result2 = next(iter(gribjump.extract_from_ranges([r], ranges)))
 
     compare_synthetic_data(result1.values_flat, [synthetic_data[i] for i in points])
     compare_synthetic_data(result2.values_flat, [synthetic_data[i] for i in points])
