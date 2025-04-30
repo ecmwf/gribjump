@@ -215,9 +215,8 @@ def test_extract_from_mask(read_only_fdb_setup) -> None:
     expected_values_flat = np.array(synthetic_data)[mask == 1] # flat values
     expected_values = np.split(expected_values_flat, [1, 3, 6, 10, 15, 21, 28, 36, 45]) # reshaped
 
-    request = ExtractionRequest.from_mask(req, mask)
+    it = gribjump.extract_from_mask([req], mask)
 
-    it = gribjump.extract([request])
     i = -1
     for i, result in enumerate(it):
         compare_synthetic_data(result.values, expected_values)
@@ -248,14 +247,11 @@ def test_extract_from_indicies() -> None:
         "step": "0"
     }
     
-    req1 = ExtractionRequest.from_indicies(r, points)
-    req2 = ExtractionRequest(r, ranges)
-
-    assert req1.shape == req2.shape
+    # Extract with ranges and points, check if the values are the same
 
     gribjump = GribJump()
-    result1 = next(iter(gribjump.extract([req1])))
-    result2 = next(iter(gribjump.extract([req2])))
+    result1 = next(iter(gribjump.extract_from_indicies([r], points)))
+    result2 = next(iter(gribjump.extract([ExtractionRequest(r, ranges)])))
 
     compare_synthetic_data(result1.values_flat, [synthetic_data[i] for i in points])
     compare_synthetic_data(result2.values_flat, [synthetic_data[i] for i in points])

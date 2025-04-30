@@ -126,7 +126,7 @@ class ExtractionRequest:
     ranges : [(lo, hi), (lo, hi), ...]
         The ranges to extract.
     """
-    def __init__(self, req, ranges, gridHash=None):
+    def __init__(self, req: dict[str, str], ranges: list[tuple[int, int]], gridHash: str = None):
         self.__shape = []
         reqstr = dic_to_request(req)
         request = ffi.new('gribjump_extraction_request_t**')
@@ -145,7 +145,7 @@ class ExtractionRequest:
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
     @classmethod
-    def from_mask(cls, req: str, mask: np.ndarray, gridHash: str = None):
+    def from_mask(cls, req: dict[str, str], mask: np.ndarray, gridHash: str = None):
         """
         Create a request from a boolean mask.
         The mask is a 1D array of booleans, where True indicates the value should be extracted.
@@ -168,7 +168,7 @@ class ExtractionRequest:
         return cls(req, ranges, gridHash)
 
     @classmethod
-    def from_indicies(cls, req: str, points: np.ndarray, gridHash: str = None):
+    def from_indicies(cls, req: dict[str, str], points: np.ndarray, gridHash: str = None):
         """
         Create a request from a list of points, rather than a list of ranges
         """
@@ -253,7 +253,7 @@ class ExtractionSingleIterator (ExtractionIterator):
         # @todo: Have pymetkit handle the request manipulation
         reqstr = "retrieve," + multivalued_dic_to_request(request)
         c_reqstr = ffi.new("char[]", reqstr.encode())
-        c_hash = ffi.new("char[]", gridHash.encode())
+        c_hash = ffi.NULL if gridHash is None else ffi.new("char[]", gridHash.encode())
         
         c_ranges = ffi.new('size_t[]', len(ranges)*2)
         c_ranges_size = len(ranges)*2
@@ -330,8 +330,8 @@ class GribJump:
         logctx=str(ctx) if ctx else "pygribjump_extract"
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
-    
-    def extract_single(self, request : dict[str, str | list], ranges : list[tuple[int, int]], gridHash : str="", ctx=None) -> ExtractionSingleIterator:
+
+    def extract_single(self, request : dict[str, str | list], ranges : list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionSingleIterator:
         """
         Extract a single request with arbitrary cardinality.
         Parameters
@@ -348,6 +348,23 @@ class GribJump:
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
+    # Convenience functions for extracting from masks and indicies
+    def extract_from_mask(self, requests : list[dict[str, str]], masks : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+        
+        if type(requests) is not list:
+            raise ValueError("Requests should be a list of dictionaries")
+
+        extraction_requests = [ExtractionRequest.from_mask(r, masks, gridHash) for r in requests]
+        return self.extract(extraction_requests, ctx)
+
+    def extract_from_indicies(self, requests : list[dict[str, str]], points : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+        
+        if type(requests) is not list:
+            raise ValueError("Requests should be a list of dictionaries")
+        
+        extraction_requests = [ExtractionRequest.from_indicies(request, points, gridHash) for request in requests]
+        return self.extract(extraction_requests, ctx)
+    
     def _unpack_polyrequest(self, polyrequest) -> list[ExtractionRequest]:
         requests = []
         for item in polyrequest:
