@@ -11,17 +11,14 @@
 /// @author Christopher Bradley
 
 #include "eckit/config/Resource.h"
-#include "eckit/log/Plural.h"
 #include "eckit/utils/StringTools.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "gribjump/LogRouter.h"
 #include "metkit/mars/MarsParser.h"
 
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Forwarder.h"
-#include "gribjump/jumper/JumperFactory.h"
-#include "gribjump/remote/WorkQueue.h"
 
 
 namespace gribjump {
@@ -155,7 +152,7 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap) {
 
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
-    eckit::Timer timer("Engine::extract");
+    eckit::Timer timer("Engine::extract", LogRouter::instance().get("timer"));
 
     ExItemMap keyToExtractionItem;
     metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
