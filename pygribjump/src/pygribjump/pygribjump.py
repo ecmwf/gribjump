@@ -154,7 +154,7 @@ class ExtractionRequest:
         m = np.asarray(mask, dtype=bool).ravel()
 
         if not m.any():
-            return cls(req, [], gridHash)
+            raise ValueError("Mask must contain at least one True value")
 
         padded = np.concatenate(([False], m, [False]))
         d      = np.diff(padded.astype(int))

@@ -228,6 +228,45 @@ def test_extract_from_mask(read_only_fdb_setup) -> None:
                 assert not np.isnan(val)
     assert i == 0
 
+def test_extract_from_mask_edge_cases(read_only_fdb_setup) -> None:
+
+    gribjump = GribJump()
+
+    req =  {
+        "domain": "g",
+        "levtype": "sfc",
+        "date": "20230508",
+        "time": "1200",
+        "step": "1",
+        "param": "151130",
+        "class": "od",
+        "type": "fc",
+        "stream": "oper",
+        "expver": "0001",
+        "step": "0"
+    }
+    masks = [
+        np.zeros((len(synthetic_data),), dtype=np.int8), # All 0 is considered an error inside the library
+        np.ones((len(synthetic_data),), dtype=np.int8),  # All 1
+        np.zeros((len(synthetic_data),), dtype=np.int8), # 0000...01
+        np.ones((len(synthetic_data),), dtype=np.int8),  # 1111...10
+    ]
+    masks[-2][-1] = 1
+    masks[-1][-1] = 0
+
+    for i, mask in enumerate(masks):
+        if i == 0:
+            with pytest.raises(ValueError):
+                gribjump.extract_from_mask([req], mask)
+            continue
+
+        expected_values_flat = np.array(synthetic_data)[mask == 1] # flat values
+        it = gribjump.extract_from_mask([req], mask)
+        j = -1
+        for j, result in enumerate(it):
+            compare_synthetic_data(result.values_flat, expected_values_flat)
+        assert j == 0
+            
 def test_extract_from_indices() -> None:
 
     points = [10, 20, 30, 40, 50]
