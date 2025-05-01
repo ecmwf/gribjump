@@ -228,7 +228,7 @@ def test_extract_from_mask(read_only_fdb_setup) -> None:
                 assert not np.isnan(val)
     assert i == 0
 
-def test_extract_from_indicies() -> None:
+def test_extract_from_indices() -> None:
 
     points = [10, 20, 30, 40, 50]
     ranges= [(10, 11), (20, 21), (30, 31), (40, 41), (50, 51)]
@@ -250,7 +250,7 @@ def test_extract_from_indicies() -> None:
     # Extract with ranges and points, check if the values are the same
 
     gribjump = GribJump()
-    result1 = next(iter(gribjump.extract_from_indicies([r], points)))
+    result1 = next(iter(gribjump.extract_from_indices([r], points)))
     result2 = next(iter(gribjump.extract_from_ranges([r], ranges)))
 
     compare_synthetic_data(result1.values_flat, [synthetic_data[i] for i in points])

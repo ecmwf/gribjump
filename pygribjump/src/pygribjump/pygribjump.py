@@ -151,24 +151,21 @@ class ExtractionRequest:
         The mask is a 1D array of booleans, where True indicates the value should be extracted.
         """
 
-        # Convert the mask to a list of ranges
-        ranges = []
-        start = None
-        for i in range(len(mask)):
-            if mask[i] == True:
-                if start is None:
-                    start = i
-            else:
-                if start is not None:
-                    ranges.append((start, i))
-                    start = None
-        if start is not None:
-            ranges.append((start, len(mask)))
+        m = np.asarray(mask, dtype=bool).ravel()
+
+        if not m.any():
+            return cls(req, [], gridHash)
+
+        padded = np.concatenate(([False], m, [False]))
+        d      = np.diff(padded.astype(int))
+        starts = np.where(d ==  1)[0]
+        ends   = np.where(d == -1)[0]
+        ranges = list(zip(starts, ends))
 
         return cls(req, ranges, gridHash)
 
     @classmethod
-    def from_indicies(cls, req: dict[str, str], points: np.ndarray, gridHash: str = None):
+    def from_indices(cls, req: dict[str, str], points: np.ndarray, gridHash: str = None):
         """
         Create a request from a list of points, rather than a list of ranges
         """
@@ -348,7 +345,7 @@ class GribJump:
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
-    # Convenience functions for extracting from masks and indicies
+    # Convenience functions for extracting from masks and indices
     def extract_from_mask(self, requests : list[dict[str, str]], masks : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
         
         if type(requests) is not list:
@@ -357,12 +354,12 @@ class GribJump:
         extraction_requests = [ExtractionRequest.from_mask(r, masks, gridHash) for r in requests]
         return self.extract(extraction_requests, ctx)
 
-    def extract_from_indicies(self, requests : list[dict[str, str]], points : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+    def extract_from_indices(self, requests : list[dict[str, str]], points : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
         
         if type(requests) is not list:
             raise ValueError("Requests should be a list of dictionaries")
         
-        extraction_requests = [ExtractionRequest.from_indicies(request, points, gridHash) for request in requests]
+        extraction_requests = [ExtractionRequest.from_indices(request, points, gridHash) for request in requests]
         return self.extract(extraction_requests, ctx)
     
     def extract_from_ranges(self, requests : list[dict[str, str]], ranges : list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionIterator:
