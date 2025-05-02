@@ -167,7 +167,7 @@ class ExtractionRequest:
     @classmethod
     def from_indices(cls, req: dict[str, str], points: np.ndarray, gridHash: str = None):
         """
-        Create a request from a list of points, rather than a list of ranges
+        Create a request from a 1D list of indices.
         """
         ranges = [(p, p+1) for p in points]
         return cls(req, ranges, gridHash)
@@ -346,25 +346,34 @@ class GribJump:
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
     # Convenience functions for extracting from masks and indices
-    def extract_from_mask(self, requests : list[dict[str, str]], masks : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
-        
-        if type(requests) is not list:
+    def extract_from_mask(self, requests : list[dict[str, str]], mask : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+        """
+        Extract values from a list of requests, with the region to be extracted defined by a 1D bitmask.
+        The mask is a 1D array of booleans, where True indicates the value should be extracted.
+        """
+        if not isinstance(requests, list):
             raise ValueError("Requests should be a list of dictionaries")
 
-        extraction_requests = [ExtractionRequest.from_mask(r, masks, gridHash) for r in requests]
+        extraction_requests = [ExtractionRequest.from_mask(r, mask, gridHash) for r in requests]
         return self.extract(extraction_requests, ctx)
 
-    def extract_from_indices(self, requests : list[dict[str, str]], points : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
-        
-        if type(requests) is not list:
+    def extract_from_indices(self, requests : list[dict[str, str]], indices : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+        """
+        Extract values from a list of requests, with the region to be extracted defined by a 1D list of indices.
+        Each of the indicies corresponds to a single point to be extracted.
+        """
+        if not isinstance(requests, list):
             raise ValueError("Requests should be a list of dictionaries")
         
-        extraction_requests = [ExtractionRequest.from_indices(request, points, gridHash) for request in requests]
+        extraction_requests = [ExtractionRequest.from_indices(request, indices, gridHash) for request in requests]
         return self.extract(extraction_requests, ctx)
     
     def extract_from_ranges(self, requests : list[dict[str, str]], ranges : list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionIterator:
-
-        if type(requests) is not list:
+        """
+        Extract values from a list of requests, with the region to be extracted defined by a list of ranges.
+        Each range is a tuple representing the half-open interval [start, end)
+        """
+        if not isinstance(requests, list):
             raise ValueError("Requests should be a list of dictionaries")
         
         extraction_requests = [ExtractionRequest(request, ranges, gridHash) for request in requests]
