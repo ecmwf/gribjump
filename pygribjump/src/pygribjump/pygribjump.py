@@ -69,7 +69,7 @@ class PatchedLib:
             warnings.warn(f"GribJump library version {versionstr} does not match pygribjump version {__version__}")
         
         if version.parse(versionstr) < version.parse(__min_lib_version__):
-            raise RuntimeError(f"Pymetkit version {__version__} requires GribJump library version {__min_lib_version__} or later. Found {versionstr}")
+            raise RuntimeError(f"Pygribjump version {__version__} requires GribJump library version {__min_lib_version__} or later. Found GribJump library {versionstr}")
 
     def __read_header(self, hdr_path : str):
         with open(hdr_path, 'r') as f:
