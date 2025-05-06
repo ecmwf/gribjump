@@ -21,6 +21,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/runtime/Tool.h"
+#include "gribjump/Metrics.h"
 
 namespace eckit {
 namespace option {
@@ -37,7 +38,7 @@ class GribJumpTool : public eckit::Tool {
 
 protected:  // methods
 
-    GribJumpTool(int argc, char** argv);
+    GribJumpTool(int argc, char** argv, const std::string& toolname);
     ~GribJumpTool() override {}
 
     void run() override;
@@ -45,10 +46,6 @@ protected:  // methods
 public:  // methods
 
     virtual void usage(const std::string& tool) const;
-
-protected:  // members
-
-    std::vector<eckit::option::Option*> options_;
 
 protected:  // methods
 
@@ -61,6 +58,16 @@ private:  // methods
 
     virtual int numberOfPositionalArguments() const { return -1; }
     virtual int minimumPositionalArguments() const { return -1; }
+
+
+protected:  // members
+
+    std::vector<eckit::option::Option*> options_;
+
+private: // members
+
+    LogContext ctx_;
+
 };
 
 //----------------------------------------------------------------------------------------------------------------------

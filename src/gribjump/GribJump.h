@@ -19,13 +19,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "eckit/io/DataHandle.h"
-
 #include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
-#include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/api/ExtractionIterator.h"
 
@@ -44,25 +40,25 @@ public:
 
     ~GribJump();
 
-    size_t scan(const std::vector<eckit::PathName>& paths, const LogContext& ctx = LogContext("none"));
+    size_t scan(const std::vector<eckit::PathName>& paths, const LogContext& ctx = LogContext());
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false,
-                const LogContext& ctx = LogContext("none"));
+                const LogContext& ctx = LogContext());
 
 
     // Extract from a vector of requests
-    ExtractionIterator extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx = LogContext("none"));
+    ExtractionIterator extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx = LogContext());
 
     // Extract from all fields matching a mars request (which will be expanded into a vector of ExtractionRequests)
     ExtractionIterator extract(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges,
-                               const std::string& gridHash, const LogContext& ctx = LogContext("none"));
+                               const std::string& gridHash, const LogContext& ctx = LogContext());
 
     // Extract from a specific file, with grib messages starting at the given offsets
     ExtractionIterator extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
                                const std::vector<std::vector<Range>>& ranges,
-                               const LogContext& ctx = LogContext("none"));
+                               const LogContext& ctx = LogContext());
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
-                                                                const LogContext& ctx = LogContext("none"));
+                                                                const LogContext& ctx = LogContext());
 
     void stats();
 

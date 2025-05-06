@@ -19,9 +19,19 @@ namespace gribjump {
 
 static GribJumpTool* instance_ = nullptr;
 
-GribJumpTool::GribJumpTool(int argc, char** argv) : eckit::Tool(argc, argv, "GRIBJUMP_HOME") {
+GribJumpTool::GribJumpTool(int argc, char** argv, const std::string& toolname) : eckit::Tool(argc, argv, "GRIBJUMP_HOME") {
     ASSERT(instance_ == nullptr);
     instance_ = this;
+
+    std::stringstream ss;
+    eckit::JSON j{ss};
+    j.startObject();
+    j << "origin" << toolname;
+    j << "description" << "Command line tool";
+    j.endObject();
+    
+    LogContext ctx_(ss.str());
+    
 }
 
 static void usage(const std::string& tool) {

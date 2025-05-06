@@ -31,7 +31,7 @@ class GribJumpExtract : public GribJumpTool {
 
 public:
 
-    GribJumpExtract(int argc, char** argv) : GribJumpTool(argc, argv) {
+    GribJumpExtract(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-extract") {
         options_.push_back(new eckit::option::SimpleOption<bool>("print", "Prints the results"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }

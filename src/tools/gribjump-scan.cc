@@ -36,7 +36,7 @@ class Scan : public GribJumpTool {
 
 public:
 
-    Scan(int argc, char** argv) : GribJumpTool(argc, argv) {
+    Scan(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-scan") {
         options_.push_back(new eckit::option::SimpleOption<std::string>(
             "file", "Reads the mars requests from a file, rather than from the command line"));
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));

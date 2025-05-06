@@ -324,7 +324,7 @@ class GribJump:
         else:
             raise ValueError("Polyrequest should be a list of tuples or ExtractionRequest objects")
 
-        logctx=str(ctx) if ctx else "pygribjump_extract"
+        logctx=str(ctx) if ctx else "{\"origin\":\"pygribjump.extract\"}"
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
 
@@ -341,7 +341,7 @@ class GribJump:
             The hash of the request.
         """
         
-        logctx=str(ctx) if ctx else "pygribjump_extract_single"
+        logctx=str(ctx) if ctx else "{\"origin\":\"pygribjump.extract_single\"}"
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
@@ -394,7 +394,7 @@ class GribJump:
 
 
     def axes(self, req : dict[str, str], level : int = 3, ctx : str = None) -> dict[str, list[str]]:
-        logctx=str(ctx) if ctx else "pygribjump_axes"
+        logctx=str(ctx) if ctx else "{\"origin\":\"pygribjump.axes\"}"
         ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         
         requeststr = dic_to_request(req)

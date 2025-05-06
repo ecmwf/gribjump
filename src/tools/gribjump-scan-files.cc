@@ -28,7 +28,7 @@ class ScanFiles : public GribJumpTool {  // dont use fdb tool
 
 public:
 
-    ScanFiles(int argc, char** argv) : GribJumpTool(argc, argv) {
+    ScanFiles(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-scan-files") {
         options_.push_back(new eckit::option::SimpleOption<bool>(
             "overwrite", "If true, overwrite existing .gribjump files instead of skipping. Default false."));
         options_.push_back(new eckit::option::SimpleOption<bool>(

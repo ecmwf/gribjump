@@ -23,7 +23,7 @@ class Info : public GribJumpTool {
 
 public:
 
-    Info(int argc, char** argv) : GribJumpTool(argc, argv) {
+    Info(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-info") {
         options_.push_back(new eckit::option::SimpleOption<bool>(
             "all", "Print all information (default behaviour if no options are set)"));
         options_.push_back(new eckit::option::SimpleOption<bool>("sha1", "Print the git sha1"));

@@ -38,7 +38,7 @@ class CompareEccodes : public GribJumpTool {
 
 public:
 
-    CompareEccodes(int argc, char** argv) : GribJumpTool(argc, argv) {
+    CompareEccodes(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-validate") {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
 };
