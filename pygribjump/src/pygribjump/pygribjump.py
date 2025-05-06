@@ -126,7 +126,7 @@ class ExtractionRequest:
     ranges : [(lo, hi), (lo, hi), ...]
         The ranges to extract.
     """
-    def __init__(self, req, ranges, gridHash=None):
+    def __init__(self, req: dict[str, str], ranges: list[tuple[int, int]], gridHash: str = None):
         self.__shape = []
         reqstr = dic_to_request(req)
         request = ffi.new('gribjump_extraction_request_t**')
@@ -143,6 +143,34 @@ class ExtractionRequest:
 
         lib.gribjump_new_request(request, c_reqstr, c_ranges, c_ranges_size, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
+
+    @classmethod
+    def from_mask(cls, req: dict[str, str], mask: np.ndarray, gridHash: str = None):
+        """
+        Create a request from a boolean mask.
+        The mask is a 1D array of booleans, where True indicates the value should be extracted.
+        """
+
+        m = np.asarray(mask, dtype=bool).ravel()
+
+        if not m.any():
+            raise ValueError("Mask must contain at least one True value")
+
+        padded = np.concatenate(([False], m, [False]))
+        d      = np.diff(padded.astype(int))
+        starts = np.where(d ==  1)[0]
+        ends   = np.where(d == -1)[0]
+        ranges = list(zip(starts, ends))
+
+        return cls(req, ranges, gridHash)
+
+    @classmethod
+    def from_indices(cls, req: dict[str, str], points: np.ndarray, gridHash: str = None):
+        """
+        Create a request from a 1D list of indices.
+        """
+        ranges = [(p, p+1) for p in points]
+        return cls(req, ranges, gridHash)
 
     @property
     def shape(self):
@@ -222,7 +250,7 @@ class ExtractionSingleIterator (ExtractionIterator):
         # @todo: Have pymetkit handle the request manipulation
         reqstr = "retrieve," + multivalued_dic_to_request(request)
         c_reqstr = ffi.new("char[]", reqstr.encode())
-        c_hash = ffi.new("char[]", gridHash.encode())
+        c_hash = ffi.NULL if gridHash is None else ffi.new("char[]", gridHash.encode())
         
         c_ranges = ffi.new('size_t[]', len(ranges)*2)
         c_ranges_size = len(ranges)*2
@@ -299,8 +327,8 @@ class GribJump:
         logctx=str(ctx) if ctx else "pygribjump_extract"
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
-    
-    def extract_single(self, request : dict[str, str | list], ranges : list[tuple[int, int]], gridHash : str="", ctx=None) -> ExtractionSingleIterator:
+
+    def extract_single(self, request : dict[str, str | list], ranges : list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionSingleIterator:
         """
         Extract a single request with arbitrary cardinality.
         Parameters
@@ -317,6 +345,40 @@ class GribJump:
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
+    # Convenience functions for extracting from masks and indices
+    def extract_from_mask(self, requests : list[dict[str, str]], mask : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+        """
+        Extract values from a list of requests, with the region to be extracted defined by a 1D bitmask.
+        The mask is a 1D array of booleans, where True indicates the value should be extracted.
+        """
+        if not isinstance(requests, list):
+            raise ValueError("Requests should be a list of dictionaries")
+
+        extraction_requests = [ExtractionRequest.from_mask(r, mask, gridHash) for r in requests]
+        return self.extract(extraction_requests, ctx)
+
+    def extract_from_indices(self, requests : list[dict[str, str]], indices : np.ndarray, gridHash: str = None, ctx=None) -> ExtractionIterator:
+        """
+        Extract values from a list of requests, with the region to be extracted defined by a 1D list of indices.
+        Each of the indicies corresponds to a single point to be extracted.
+        """
+        if not isinstance(requests, list):
+            raise ValueError("Requests should be a list of dictionaries")
+        
+        extraction_requests = [ExtractionRequest.from_indices(request, indices, gridHash) for request in requests]
+        return self.extract(extraction_requests, ctx)
+    
+    def extract_from_ranges(self, requests : list[dict[str, str]], ranges : list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionIterator:
+        """
+        Extract values from a list of requests, with the region to be extracted defined by a list of ranges.
+        Each range is a tuple representing the half-open interval [start, end)
+        """
+        if not isinstance(requests, list):
+            raise ValueError("Requests should be a list of dictionaries")
+        
+        extraction_requests = [ExtractionRequest(request, ranges, gridHash) for request in requests]
+        return self.extract(extraction_requests, ctx)
+    
     def _unpack_polyrequest(self, polyrequest) -> list[ExtractionRequest]:
         requests = []
         for item in polyrequest:
@@ -379,22 +441,45 @@ class ExtractionResult:
 
         self.__shape = shape # required to unpack the result (need dimensions of ranges)
         self.__result = ffi.gc(result_in, lib.gribjump_delete_result) # Takes ownership of the result
-        self.__values = None
-        self.__mask = None
+        
+        # Pointers to a buffer which owns the data, and will be gc'd by cffi
+        self.__values_cdata = None
+        self.__mask_cdata = None
+
+        # Views of the data
+        self.__view_values = None
+        self.__view_masks = None
+
+        self.__view_values_flat = None
+        self.__view_masks_flat = None
 
     @property
     def values(self) -> list[np.ndarray]:
         # Note: This is a view of the data, so must not outlive the result object.
-        if self.__values is None:
-            self.__values = self._view_values()
-        return self.__values
+        if (self.__view_values is None):
+            self.__view_values = self._view_values()
+        return self.__view_values
 
     @property
     def masks(self) -> list[np.ndarray]:
         # Note: This is a view of the data, so must not outlive the result object.
-        if self.__mask is None:
-            self.__mask = self._view_masks()
-        return self.__mask
+        if (self.__view_masks is None):
+            self.__view_masks = self._view_masks()
+        return self.__view_masks
+    
+    @property
+    def values_flat(self) -> np.ndarray:
+        # Note: This is a view of the data, so must not outlive the result object.
+        if (self.__view_values_flat is None):
+            self.__view_values_flat = self._view_values_flat()
+        return self.__view_values_flat
+    
+    @property
+    def masks_flat(self) -> np.ndarray:
+        # Note: This is a view of the data, so must not outlive the result object.
+        if (self.__view_masks_flat is None):
+            self.__view_masks_flat = self._view_masks_flat()
+        return self.__view_masks_flat
 
     def compute_bool_masks(self) -> list[np.ndarray]:
         """
@@ -424,11 +509,10 @@ class ExtractionResult:
     def copy_masks(self) -> list[np.ndarray]:
         return [m.copy() for m in self.masks]
 
-    def _view_values(self) -> list[np.ndarray]:
-        """
-        Return the values as a list of numpy arrays.
-        This is a view of the data, so must not outlive the result object.
-        """
+    def _load_values(self):
+        if self.__values_cdata is not None:
+            return
+        
         nvalues = sum(self.__shape)
         self.__values_cdata = ffi.new("double[]", nvalues)
         values_ptr = ffi.new("double*[1]")
@@ -436,18 +520,33 @@ class ExtractionResult:
 
         lib.gribjump_result_values(self.__result, values_ptr, nvalues)
 
+    def _view_values_flat(self) -> np.ndarray:
+        """
+        Return the values as a single flat numpy array.
+        This is a view of the data, so must not outlive the result object.
+        """
+        self._load_values()
+
         # Create a view of the data
-        view = np.frombuffer(ffi.buffer(self.__values_cdata, nvalues * ffi.sizeof('double')), dtype=np.float64)
+        nvalues = sum(self.__shape)
+        return np.frombuffer(ffi.buffer(self.__values_cdata, nvalues * ffi.sizeof('double')), dtype=np.float64)
+
+    def _view_values(self) -> list[np.ndarray]:
+        """
+        Return the values as a list of numpy arrays.
+        This is a view of the data, so must not outlive the result object.
+        """
+
+        view = self._view_values_flat()
 
         # Split into a list of views, one for each range
         indices = list(accumulate(self.__shape))[:-1]
         return np.split(view, indices)
 
-    def _view_masks(self) -> list[np.ndarray]:
-        """
-        Return the mask as a list of numpy arrays.
-        This is a view of the data, so must not outlive the result object.
-        """
+    def _load_masks(self):
+        if self.__mask_cdata is not None:
+            return
+
         # Bit mask is returned as an array of uint64
         mask_shape = [(size + 63) // 64 for size in self.__shape]
         nvalues = sum(mask_shape)
@@ -457,7 +556,17 @@ class ExtractionResult:
 
         lib.gribjump_result_mask(self.__result, mask_ptr, nvalues)
 
+    def _view_masks(self) -> list[np.ndarray]:
+        """
+        Return the mask as a list of numpy arrays.
+        This is a view of the data, so must not outlive the result object.
+        """
+        self._load_masks()
+
         # Create a view of the data
+        mask_shape = [(size + 63) // 64 for size in self.__shape]
+        nvalues = sum(mask_shape)
+
         view = np.frombuffer(ffi.buffer(self.__mask_cdata, nvalues * ffi.sizeof('unsigned long long')), dtype=np.uint64)
 
         # Split into a list of views, one for each range
