@@ -58,6 +58,12 @@ private:
         return s;
     }
 
+
+    friend std::ostream& operator<<(std::ostream& os, const LogContext& o) {
+        os << o.context_;
+        return os;
+    }
+
 private:
 
     std::string context_;

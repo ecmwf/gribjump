@@ -21,6 +21,7 @@ from ._version import __version__, __min_lib_version__
 from packaging import version
 from typing import Callable, Any, overload
 from itertools import accumulate
+import json
 
 ffi = cffi.FFI()
 CData=ffi.CData
@@ -306,6 +307,10 @@ class GribJump:
         ]
 
         """
+        if ctx is None:
+            ctx = {
+                "origin": "pygribjump.extract",
+            }
         
         # must be a list
         if not isinstance(polyrequest, list):
@@ -324,7 +329,7 @@ class GribJump:
         else:
             raise ValueError("Polyrequest should be a list of tuples or ExtractionRequest objects")
 
-        logctx=str(ctx) if ctx else "{\"origin\":\"pygribjump.extract\"}"
+        logctx=json.dumps(ctx)
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
 
@@ -341,7 +346,12 @@ class GribJump:
             The hash of the request.
         """
         
-        logctx=str(ctx) if ctx else "{\"origin\":\"pygribjump.extract_single\"}"
+        if ctx is None:
+            ctx = {
+                "origin": "pygribjump.extract_single",
+            }
+
+        logctx=json.dumps(ctx)
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
@@ -394,7 +404,12 @@ class GribJump:
 
 
     def axes(self, req : dict[str, str], level : int = 3, ctx : str = None) -> dict[str, list[str]]:
-        logctx=str(ctx) if ctx else "{\"origin\":\"pygribjump.axes\"}"
+        if ctx is None:
+            ctx = {
+                "origin": "pygribjump.axes",
+            }
+
+        logctx=json.dumps(ctx)
         ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         
         requeststr = dic_to_request(req)
