@@ -100,7 +100,7 @@ void Scan::execute(const eckit::option::CmdArgs& args) {
         }
     }
     GribJump gj;
-    size_t nfields = gj.scan(requests, byfiles);
+    size_t nfields = gj.scan(requests, byfiles, ctx_);
     eckit::Log::info() << "Scanned " << nfields << " field(s)" << std::endl;
 }
 

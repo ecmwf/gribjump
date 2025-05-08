@@ -22,6 +22,8 @@ from packaging import version
 from typing import Callable, Any, overload
 from itertools import accumulate
 import json
+from getpass import getuser
+from socket import gethostname
 
 ffi = cffi.FFI()
 CData=ffi.CData
@@ -307,10 +309,7 @@ class GribJump:
         ]
 
         """
-        if ctx is None:
-            ctx = {
-                "origin": "pygribjump.extract",
-            }
+        ctx = merge_default_context(ctx, "pygribjump_extract")
         
         # must be a list
         if not isinstance(polyrequest, list):
@@ -345,11 +344,8 @@ class GribJump:
         hash : str
             The hash of the request.
         """
-        
-        if ctx is None:
-            ctx = {
-                "origin": "pygribjump.extract_single",
-            }
+
+        ctx = merge_default_context(ctx, "pygribjump_extract_single")
 
         logctx=json.dumps(ctx)
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
@@ -404,11 +400,8 @@ class GribJump:
 
 
     def axes(self, req : dict[str, str], level : int = 3, ctx : str = None) -> dict[str, list[str]]:
-        if ctx is None:
-            ctx = {
-                "origin": "pygribjump.axes",
-            }
 
+        ctx = merge_default_context(ctx, "pygribjump_axes")
         logctx=json.dumps(ctx)
         ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         
@@ -626,6 +619,41 @@ def version() -> str:
     return __version__
 
 def library_version() -> str:
-    tmp_str = ffi.new('char**')
-    lib.gribjump_version_c(tmp_str)
-    return ffi.string(tmp_str[0]).decode('utf-8')
+    return ffi.string(lib.gribjump_version()).decode("utf-8")
+
+def default_context(action: str) -> dict[str, str]:
+    """
+    Return the default context for the library.
+    This is a dictionary with the following keys
+    """
+
+    def try_get(function: Callable[[], str], default: str) -> str:
+        try:
+            return function()
+        except Exception as e:
+            return default
+        
+    return {
+        "source": "pygribjump",
+        "action": action,
+        "pygribjump_version": __version__,
+        "gribjump_version": library_version(),
+        "user": try_get(getuser, "unknown"),
+        "hostname": try_get(gethostname, "unknown"),
+    }
+
+def merge_default_context(ctx : dict[str, str], action : str) -> dict[str, str]:
+    """
+    Insert the default context into the user provided context.
+    """
+    if ctx is None:
+        return default_context(action)
+    
+    # Merge the two dictionaries
+    defaults = default_context(action)
+    out_ctx = ctx.copy()
+    for k, v in defaults.items():
+        if k not in ctx:
+            out_ctx[k] = v
+
+    return out_ctx

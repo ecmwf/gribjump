@@ -106,7 +106,7 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs& args) {
 
     // Extract values
     GribJump gj;
-    ExtractionIterator it = gj.extract(polyRequest);
+    ExtractionIterator it = gj.extract(polyRequest, ctx_);
 
     // Print extracted values
     if (!printout)

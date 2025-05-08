@@ -45,7 +45,7 @@ void checkContext(const eckit::Value& v, const std::string& origin) {
 
     // ensure ctx can be parsed as json
     std::string ctx = v["context"];
-    auto val = eckit::JSONParser::decodeString(ctx);
+    auto val        = eckit::JSONParser::decodeString(ctx);
 
     EXPECT_EQUAL(val["origin"], origin);
     EXPECT_EQUAL(val["description"], "test test test");
@@ -84,7 +84,7 @@ CASE("Remote protocol: extract") {
     j << "origin" << "test_extract";
     j << "description" << "test test test";
     j.endObject();
-    
+
     LogContext ctx(ss.str());
 
     std::vector<std::unique_ptr<ExtractionResult>> output = gribjump.extract(exRequests, ctx).dumpVector();
@@ -120,7 +120,7 @@ CASE("Remote protocol: scan") {
     GribJump gribjump;
 
     // Deliberately don't set context, should be {} by default.
-    
+
     size_t nfields = gribjump.scan(requests, false);
     EXPECT_EQUAL(nfields, 3);
 }
@@ -149,7 +149,7 @@ CASE("Parse the metrics file") {
         // Check common keys
         for (const auto& key : commonKeys) {
             EXPECT(v.contains(key));
-        }   
+        }
     }
     EXPECT_EQUAL(values.size(), 3);
 
@@ -167,7 +167,6 @@ CASE("Parse the metrics file") {
     v = values[2];
     EXPECT_EQUAL(v["action"], "scan");
     EXPECT_EQUAL(v["context"], "{}");
-
 }
 #endif
 }  // namespace test

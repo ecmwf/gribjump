@@ -54,8 +54,7 @@ public:
 
     // Extract from a specific file, with grib messages starting at the given offsets
     ExtractionIterator extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
-                               const std::vector<std::vector<Range>>& ranges,
-                               const LogContext& ctx = LogContext());
+                               const std::vector<std::vector<Range>>& ranges, const LogContext& ctx = LogContext());
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
                                                                 const LogContext& ctx = LogContext());

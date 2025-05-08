@@ -63,11 +63,7 @@ private:  // methods
 protected:  // members
 
     std::vector<eckit::option::Option*> options_;
-
-private: // members
-
     LogContext ctx_;
-
 };
 
 //----------------------------------------------------------------------------------------------------------------------

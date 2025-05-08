@@ -15,9 +15,9 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/Timer.h"
+#include "eckit/parser/JSONParser.h"
 #include "eckit/runtime/Metrics.h"
 #include "eckit/serialisation/Stream.h"
-#include "eckit/parser/JSONParser.h"
 
 namespace gribjump {
 
@@ -33,7 +33,6 @@ public:
         catch (eckit::Exception& e) {
             throw eckit::BadValue("Could not parse context string as json. Context: " + context_);
         }
-
     }
 
     explicit LogContext(eckit::Stream& s) { s >> context_; }
@@ -49,9 +48,7 @@ private:
         return s;
     }
 
-    void json(eckit::JSON& s) const { 
-        s << context_; 
-    }
+    void json(eckit::JSON& s) const { s << context_; }
 
     friend eckit::JSON& operator<<(eckit::JSON& s, const LogContext& o) {
         o.json(s);
@@ -93,7 +90,6 @@ private:  // members
 
     LogContext context_;
     time_t created_;
-    time_t prevTime_;
 
     eckit::Timer timer_;
 };

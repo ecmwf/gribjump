@@ -105,7 +105,7 @@ void ScanFiles::execute(const eckit::option::CmdArgs& args) {
         return;
 
     GribJump gj;
-    gj.scan(files_scan);  // take merge/overwrite into account?
+    gj.scan(files_scan, ctx_);  // take merge/overwrite into account?
 }
 
 }  // namespace gribjump::tool

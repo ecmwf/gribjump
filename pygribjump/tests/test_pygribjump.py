@@ -34,6 +34,11 @@ synthetic_data = [
     np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 99.
 ]
 
+# for completeness
+context = {
+    "source" : "pytest",
+}
+
 def compare_synthetic_data(values, expected):
     """
     Compare the synthetic data with the expected data.
@@ -132,7 +137,7 @@ def test_extract_dump_legacy(read_only_fdb_setup) -> None:
     polyrequest = [(a, b) for a, b in zip(reqstrs, ranges)]
 
     expected = synthetic_data[0:6]
-    actual = gribjump.extract(polyrequest).dump_legacy() # old api output
+    actual = gribjump.extract(polyrequest, ctx=context).dump_legacy() # old api output
     assert np.array_equal(expected, actual[0][0][0][0], equal_nan=True)
 
 
@@ -169,7 +174,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
     # list of tuples api:
     polyrequest = [(a, b) for a, b in zip(reqstrs, ranges)]
 
-    for i, result in enumerate(gribjump.extract(polyrequest)):
+    for i, result in enumerate(gribjump.extract(polyrequest, ctx=context)):
         compare_synthetic_data(result.values, [synthetic_data[r[0]:r[1]] for r in (ranges[i])])
         validate_masks(result)
     assert i == len(ranges) - 1
@@ -177,7 +182,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
     # list of ExtractionRequest api:
     polyrequest=[ExtractionRequest(reqstrs[i], ranges[i]) for i in range(len(ranges))]
 
-    for i, result in enumerate(gribjump.extract(polyrequest)):
+    for i, result in enumerate(gribjump.extract(polyrequest, ctx=context)):
         compare_synthetic_data(result.values, [synthetic_data[r[0]:r[1]] for r in (ranges[i])])
         validate_masks(result)
     assert i == len(ranges) - 1
@@ -187,7 +192,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
     request["step"] = ['0', '1', '2', '3']
 
     expected = [synthetic_data[r[0]:r[1]] for r in (ranges[0])]
-    for i, result in enumerate(gribjump.extract_single(request, ranges[0])):
+    for i, result in enumerate(gribjump.extract_single(request, ranges[0], ctx=context)):
         compare_synthetic_data(result.values, expected)
         validate_masks(result)
 
@@ -215,7 +220,7 @@ def test_extract_from_mask(read_only_fdb_setup) -> None:
     expected_values_flat = np.array(synthetic_data)[mask == 1] # flat values
     expected_values = np.split(expected_values_flat, [1, 3, 6, 10, 15, 21, 28, 36, 45]) # reshaped
 
-    it = gribjump.extract_from_mask([req], mask)
+    it = gribjump.extract_from_mask([req], mask, ctx=context)
 
     i = -1
     for i, result in enumerate(it):
@@ -257,11 +262,11 @@ def test_extract_from_mask_edge_cases(read_only_fdb_setup) -> None:
     for i, mask in enumerate(masks):
         if i == 0:
             with pytest.raises(ValueError):
-                gribjump.extract_from_mask([req], mask)
+                gribjump.extract_from_mask([req], mask, ctx=context)
             continue
 
         expected_values_flat = np.array(synthetic_data)[mask == 1] # flat values
-        it = gribjump.extract_from_mask([req], mask)
+        it = gribjump.extract_from_mask([req], mask, ctx=context)
         j = -1
         for j, result in enumerate(it):
             compare_synthetic_data(result.values_flat, expected_values_flat)
@@ -289,8 +294,8 @@ def test_extract_from_indices() -> None:
     # Extract with ranges and points, check if the values are the same
 
     gribjump = GribJump()
-    result1 = next(iter(gribjump.extract_from_indices([r], points)))
-    result2 = next(iter(gribjump.extract_from_ranges([r], ranges)))
+    result1 = next(iter(gribjump.extract_from_indices([r], points, ctx=context)))
+    result2 = next(iter(gribjump.extract_from_ranges([r], ranges, ctx=context)))
 
     compare_synthetic_data(result1.values_flat, [synthetic_data[i] for i in points])
     compare_synthetic_data(result2.values_flat, [synthetic_data[i] for i in points])
@@ -301,9 +306,9 @@ def test_axes(read_only_fdb_setup) -> None:
     req = {
         "date": "20230508",
     }
-    ax1 = gribjump.axes(req, level=1) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'stream': ['oper'], 'time': ['1200']}
-    ax2 = gribjump.axes(req, level=2) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'levtype': ['sfc'], 'stream': ['oper'], 'time': ['1200'], 'type': ['fc']}
-    ax3 = gribjump.axes(req, level=3) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'levelist': [''], 'levtype': ['sfc'], 'param': ['151130'], 'step': ['1'], 'stream': ['oper'], 'time': ['1200'], 'type': ['fc']}
+    ax1 = gribjump.axes(req, level=1, ctx=context) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'stream': ['oper'], 'time': ['1200']}
+    ax2 = gribjump.axes(req, level=2, ctx=context) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'levtype': ['sfc'], 'stream': ['oper'], 'time': ['1200'], 'type': ['fc']}
+    ax3 = gribjump.axes(req, level=3, ctx=context) # {'class': ['od'], 'date': ['20230508'], 'domain': ['g'], 'expver': ['0001'], 'levelist': [''], 'levtype': ['sfc'], 'param': ['151130'], 'step': ['1'], 'stream': ['oper'], 'time': ['1200'], 'type': ['fc']}
 
     assert len(ax1.keys()) == 6
     assert len(ax2.keys()) == 8
