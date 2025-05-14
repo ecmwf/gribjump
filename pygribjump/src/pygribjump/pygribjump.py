@@ -21,6 +21,9 @@ from ._version import __version__, __min_lib_version__
 from packaging import version
 from typing import Callable, Any, overload
 from itertools import accumulate
+import json
+from getpass import getuser
+from socket import gethostname
 
 ffi = cffi.FFI()
 CData=ffi.CData
@@ -69,7 +72,7 @@ class PatchedLib:
             warnings.warn(f"GribJump library version {versionstr} does not match pygribjump version {__version__}")
         
         if version.parse(versionstr) < version.parse(__min_lib_version__):
-            raise RuntimeError(f"Pymetkit version {__version__} requires GribJump library version {__min_lib_version__} or later. Found {versionstr}")
+            raise RuntimeError(f"Pygribjump version {__version__} requires GribJump library version {__min_lib_version__} or later. Found GribJump library {versionstr}")
 
     def __read_header(self, hdr_path : str):
         with open(hdr_path, 'r') as f:
@@ -306,6 +309,7 @@ class GribJump:
         ]
 
         """
+        ctx = merge_default_context(ctx, "pygribjump_extract")
         
         # must be a list
         if not isinstance(polyrequest, list):
@@ -324,7 +328,7 @@ class GribJump:
         else:
             raise ValueError("Polyrequest should be a list of tuples or ExtractionRequest objects")
 
-        logctx=str(ctx) if ctx else "pygribjump_extract"
+        logctx=json.dumps(ctx)
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
 
@@ -340,8 +344,10 @@ class GribJump:
         hash : str
             The hash of the request.
         """
-        
-        logctx=str(ctx) if ctx else "pygribjump_extract_single"
+
+        ctx = merge_default_context(ctx, "pygribjump_extract_single")
+
+        logctx=json.dumps(ctx)
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionSingleIterator(self.ctype, request, ranges, gridHash, logctx_c)
 
@@ -394,7 +400,9 @@ class GribJump:
 
 
     def axes(self, req : dict[str, str], level : int = 3, ctx : str = None) -> dict[str, list[str]]:
-        logctx=str(ctx) if ctx else "pygribjump_axes"
+
+        ctx = merge_default_context(ctx, "pygribjump_axes")
+        logctx=json.dumps(ctx)
         ctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         
         requeststr = dic_to_request(req)
@@ -611,6 +619,41 @@ def version() -> str:
     return __version__
 
 def library_version() -> str:
-    tmp_str = ffi.new('char**')
-    lib.gribjump_version_c(tmp_str)
-    return ffi.string(tmp_str[0]).decode('utf-8')
+    return ffi.string(lib.gribjump_version()).decode("utf-8")
+
+def default_context(action: str) -> dict[str, str]:
+    """
+    Return the default context for the library.
+    This is a dictionary with the following keys
+    """
+
+    def try_get(function: Callable[[], str], default: str) -> str:
+        try:
+            return function()
+        except Exception as e:
+            return default
+        
+    return {
+        "source": "pygribjump",
+        "action": action,
+        "pygribjump_version": __version__,
+        "gribjump_version": library_version(),
+        "user": try_get(getuser, "unknown"),
+        "hostname": try_get(gethostname, "unknown"),
+    }
+
+def merge_default_context(ctx : dict[str, str], action : str) -> dict[str, str]:
+    """
+    Insert the default context into the user provided context.
+    """
+    if ctx is None:
+        return default_context(action)
+    
+    # Merge the two dictionaries
+    defaults = default_context(action)
+    out_ctx = ctx.copy()
+    for k, v in defaults.items():
+        if k not in ctx:
+            out_ctx[k] = v
+
+    return out_ctx

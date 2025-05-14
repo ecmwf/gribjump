@@ -11,7 +11,9 @@
 /// @author Christopher Bradley
 
 #include "gribjump/Metrics.h"
+#include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
+#include "gribjump/LibGribJump.h"
 
 namespace {
 std::string iso(time_t t) {
@@ -96,6 +98,7 @@ ContextManager::~ContextManager() {}
 
 void ContextManager::set(const LogContext& context) {
     context_ = context;
+    LOG_DEBUG_LIB(LibGribJump) << "Context set to: " << context_ << std::endl;
 }
 
 LogContext& ContextManager::context() {

@@ -23,7 +23,7 @@ class DumpInfo : public GribJumpTool {
 
 public:
 
-    DumpInfo(int argc, char** argv) : GribJumpTool(argc, argv) {}
+    DumpInfo(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-dump-info") {}
 
 private:
 

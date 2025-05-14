@@ -11,6 +11,9 @@
 #include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/LibGribJump.h"
 
+#include <pwd.h>
+#include <unistd.h>
+
 using eckit::Log;
 
 namespace gribjump {
@@ -19,9 +22,32 @@ namespace gribjump {
 
 static GribJumpTool* instance_ = nullptr;
 
-GribJumpTool::GribJumpTool(int argc, char** argv) : eckit::Tool(argc, argv, "GRIBJUMP_HOME") {
+namespace {
+
+std::string get_username() {
+    struct passwd* pw = getpwuid(getuid());
+    return pw ? pw->pw_name : "unknown";
+}
+
+}  // namespace
+
+GribJumpTool::GribJumpTool(int argc, char** argv, const std::string& toolname) :
+    eckit::Tool(argc, argv, "GRIBJUMP_HOME") {
     ASSERT(instance_ == nullptr);
     instance_ = this;
+
+
+    std::stringstream ss;
+    eckit::JSON j{ss};
+    j.startObject();
+    j << "source" << "gribjump-tool";
+    j << "type" << toolname;
+    j << "gribjump_version" << LibGribJump::instance().version();
+    j << "hostname" << eckit::Main::hostname();
+    j << "user" << get_username();
+    j.endObject();
+
+    ctx_ = LogContext{ss.str()};
 }
 
 static void usage(const std::string& tool) {
