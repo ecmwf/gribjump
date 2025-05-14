@@ -265,6 +265,7 @@ class ExtractionSingleIterator (ExtractionIterator):
         iterator = ffi.new('gribjump_extractioniterator_t**')
         lib.gribjump_extract_single(gribjump, c_reqstr, c_ranges, c_ranges_size, c_hash, ctx, iterator)
         self.__iterator = ffi.gc(iterator[0], lib.gribjump_extractioniterator_delete)
+
     
     def __iter__(self):
         """
@@ -448,6 +449,7 @@ class ExtractionResult:
     def __init__(self, result_in : CData, shape : list[int]):
 
         self.__shape = shape # required to unpack the result (need dimensions of ranges)
+        self.__mask_shape = [(size + 63) // 64 for size in self.__shape]
         self.__result = ffi.gc(result_in, lib.gribjump_delete_result) # Takes ownership of the result
         
         # Pointers to a buffer which owns the data, and will be gc'd by cffi
@@ -556,29 +558,34 @@ class ExtractionResult:
             return
 
         # Bit mask is returned as an array of uint64
-        mask_shape = [(size + 63) // 64 for size in self.__shape]
-        nvalues = sum(mask_shape)
+        nvalues = sum(self.__mask_shape)
         self.__mask_cdata = ffi.new('unsigned long long[]', nvalues)
         mask_ptr = ffi.new('unsigned long long*[1]')
         mask_ptr[0] = self.__mask_cdata
 
         lib.gribjump_result_mask(self.__result, mask_ptr, nvalues)
 
-    def _view_masks(self) -> list[np.ndarray]:
+    def _view_masks_flat(self) -> np.ndarray:
         """
-        Return the mask as a list of numpy arrays.
+        Return the mask as a single flat numpy array.
         This is a view of the data, so must not outlive the result object.
         """
         self._load_masks()
 
         # Create a view of the data
-        mask_shape = [(size + 63) // 64 for size in self.__shape]
-        nvalues = sum(mask_shape)
+        nvalues = sum(self.__mask_shape)
+        return np.frombuffer(ffi.buffer(self.__mask_cdata, nvalues * ffi.sizeof('unsigned long long')), dtype=np.uint64)
 
-        view = np.frombuffer(ffi.buffer(self.__mask_cdata, nvalues * ffi.sizeof('unsigned long long')), dtype=np.uint64)
+
+    def _view_masks(self) -> list[np.ndarray]:
+        """
+        Return the mask as a list of numpy arrays.
+        This is a view of the data, so must not outlive the result object.
+        """
+        view = self._view_masks_flat()
 
         # Split into a list of views, one for each range
-        indices = list(accumulate(mask_shape))[:-1]
+        indices = list(accumulate(self.__mask_shape))[:-1]
         return np.split(view, indices)
         
 # utils
