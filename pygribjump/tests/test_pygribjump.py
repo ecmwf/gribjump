@@ -65,6 +65,9 @@ def validate_masks(result : ExtractionResult):
             else:
                 assert not np.isnan(val)
 
+    # Check that the flattened mask's values are as expected
+    assert np.array_equal(np.concatenate(result.masks), result.masks_flat, equal_nan=True)
+
 @pytest.fixture(scope="function")
 def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> pathlib.Path:
     """
