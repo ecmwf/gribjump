@@ -265,7 +265,6 @@ class ExtractionSingleIterator (ExtractionIterator):
         iterator = ffi.new('gribjump_extractioniterator_t**')
         lib.gribjump_extract_single(gribjump, c_reqstr, c_ranges, c_ranges_size, c_hash, ctx, iterator)
         self.__iterator = ffi.gc(iterator[0], lib.gribjump_extractioniterator_delete)
-
     
     def __iter__(self):
         """
