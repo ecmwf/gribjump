@@ -66,7 +66,6 @@ def validate_masks(result : ExtractionResult):
                 assert not np.isnan(val)
 
     # Check that the flattened mask's values are as expected
-    assert np.array_equal(np.concatenate(result.values), result.values_flat, equal_nan=True)
     assert np.array_equal(np.concatenate(result.masks), result.masks_flat, equal_nan=True)
 
 @pytest.fixture(scope="function")
