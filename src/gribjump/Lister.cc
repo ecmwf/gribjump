@@ -49,7 +49,7 @@ std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequ
 
         fdb5::ListElement elem;
         while (listIter.next(elem)) {
-            uris.push_back(elem.location().uri());
+            uris.push_back(elem.location().fullUri());
         }
     }
 

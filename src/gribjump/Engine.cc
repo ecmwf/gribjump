@@ -14,6 +14,8 @@
 #include "eckit/utils/StringTools.h"
 
 #include "gribjump/LogRouter.h"
+#include "gribjump/tools/ToolUtils.h"
+#include "info/JumpInfo.h"
 #include "metkit/mars/MarsParser.h"
 
 #include "gribjump/Engine.h"

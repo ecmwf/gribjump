@@ -53,6 +53,10 @@ public:
     long sphericalHarmonics() const { return sphericalHarmonics_; } /* deprecate? can we just check the packing type? */
     std::string md5GridSection() const { return md5GridSection_; }
     std::string packingType() const { return packingType_; }
+    
+    void insertGridSpec() {
+        NOTIMP;
+    }
 
 protected:
 

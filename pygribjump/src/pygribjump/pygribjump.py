@@ -580,6 +580,50 @@ class ExtractionResult:
         # Split into a list of views, one for each range
         indices = list(accumulate(mask_shape))[:-1]
         return np.split(view, indices)
+    
+class IndexEntry:
+    """
+    A class taking ownership of a GribJump index entry.
+    This is a single entry in the index, and contains the information about the request.
+    """
+
+    def __init__(self):
+
+        # Stuff not in the jumpinfo, but still useful
+        self.meta = {
+            "index_file" : "filename.gribjump",
+            "field_location" : "filename:offset",
+            "key" : "some json object representing either the fdb key or the mars request" 
+        }
+
+        # Serialise the internal data structure as json. There's no need to expose the C structure.
+        # More extensible this way too.
+        self.jumpinfo = {
+            "version" : "value_here",
+            "referenceValue" : "value_here",
+            "binaryScaleFactor" : "value_here",
+            "decimalScaleFactor" : "value_here",
+            "editionNumber" : "value_here",
+            "bitsPerValue" : "value_here",
+            "offsetBeforeData" : "value_here",
+            "offsetAfterData" : "value_here",
+            "offsetBeforeBitmap" : "value_here",
+            "numberOfValues" : "value_here",
+            "numberOfDataPoints" : "value_here",
+            "totalLength" : "value_here",
+            "sphericalHarmonics" : "value_here",
+            "md5GridSection" : "value_here",
+            "packingType" : "value_here",
+            
+            # etc...
+
+            "grid_spec" : {
+                # etc...
+            }
+        }
+
+    def grid_spec(self):
+        return self.jumpinfo["grid_spec"]
         
 # utils
 def rangestr_to_list(rangestr : str) -> list[tuple[int, int]]:

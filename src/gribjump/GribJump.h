@@ -19,6 +19,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "api/ExtractionIterator.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/ExtractionData.h"
@@ -44,7 +45,6 @@ public:
     size_t scan(std::vector<metkit::mars::MarsRequest> requests, bool byfiles = false,
                 const LogContext& ctx = LogContext());
 
-
     // Extract from a vector of requests
     ExtractionIterator extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx = LogContext());
 
@@ -59,7 +59,11 @@ public:
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
                                                                 const LogContext& ctx = LogContext());
 
+    IndexIterator getIndex(const metkit::mars::MarsRequest& request, bool injectGridSpec = false,
+                           const LogContext& ctx = LogContext());
+
     void stats();
+
 
 private:
 

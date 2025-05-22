@@ -46,6 +46,8 @@ public:
 
     TaskReport scheduleExtractionTasks(filemap_t& filemap);
 
+    IndexIterator getIndex(const metkit::mars::MarsRequest& request, bool injectGridSpec) {NOTIMP;}
+
 private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);

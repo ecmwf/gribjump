@@ -36,6 +36,8 @@ namespace gribjump {
 ///@todo: Why is this *here*? and not in Engine
 using ResultsMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
+using IndexIterator = std::vector<JumpInfo>; // tmp... and wrong
+
 class GribJumpBase : public eckit::NonCopyable {
 public:
 
@@ -55,6 +57,8 @@ public:
                                                                    const std::vector<std::vector<Range>>& ranges) = 0;
 
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) = 0;
+
+    virtual IndexIterator getIndex(const metkit::mars::MarsRequest& request, bool injectGridSpec) = 0;
 
     virtual void stats();
 

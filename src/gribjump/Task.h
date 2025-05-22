@@ -182,6 +182,26 @@ protected:
     bool ignoreGrid_ = false;
 };
 
+// ReadIndexFileTask::ReadIndexFileTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+//     IndexItem& items, bool injectGridSpec = false) :
+// Task(taskgroup, id), fname_(fname), items_(items) {}
+
+class ReadIndexFileTask : public Task {
+public:
+
+    ReadIndexFileTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname, std::vector<IndexItem*>& items,
+                      bool injectGridSpec = false);
+
+    void executeImpl() override;
+
+    virtual void info() const override;
+
+private:
+
+    eckit::PathName fname_;
+    std::vector<IndexItem*>& items_;
+    bool injectGridSpec_ = false;
+};
 //----------------------------------------------------------------------------------------------------------------------
 
 // InefficientFileExtractionTask extracts from the file, but by reading entire messages into memory first.

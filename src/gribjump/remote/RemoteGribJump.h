@@ -53,6 +53,10 @@ public:  // methods
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
+    IndexIterator getIndex(const metkit::mars::MarsRequest& request, bool injectGridSpec) override {
+        NOTIMP;
+    }
+
 private:  // methods
 
     bool receiveErrors(eckit::Stream& stream, bool raise = true);

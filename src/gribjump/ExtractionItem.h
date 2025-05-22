@@ -13,8 +13,10 @@
 #pragma once
 
 #include <bitset>
+#include <memory>
 #include "eckit/filesystem/URI.h"
 #include "gribjump/ExtractionData.h"
+#include "info/JumpInfo.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/ExtractionData.h"
@@ -33,6 +35,7 @@ public:
     // Prefer this constructor, which takes an ExtractionRequest directly
     ExtractionItem(std::unique_ptr<ExtractionRequest> request) :
         request_(std::move(request)), result_{std::make_unique<ExtractionResult>()} {}
+
     // Because sometimes we dont use marsrequests.
     ExtractionItem(const Ranges& ranges) :
         request_{std::make_unique<ExtractionRequest>("", ranges)}, result_{std::make_unique<ExtractionResult>()} {}
@@ -99,5 +102,21 @@ private:
 };
 
 // ------------------------------------------------------------------
+
+/// @todo: this is a bit of a hack...
+// Should probably make ExtractionItem a subclass of some more abstract Item class
+class IndexItem : public ExtractionItem {
+public:
+
+    IndexItem(std::unique_ptr<ExtractionRequest> request) : ExtractionItem(std::move(request)) {}
+
+    ~IndexItem() {}
+
+    void info(std::shared_ptr<JumpInfo> i) { info_ = std::move(i); }
+
+private:
+
+    std::shared_ptr<JumpInfo> info_;
+};
 
 }  // namespace gribjump

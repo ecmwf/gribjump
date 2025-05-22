@@ -232,8 +232,8 @@ void FileExtractionTask::extract() {
                                   ", JumpInfo contains: " + info.md5GridSection());
         }
 
-        std::unique_ptr<Jumper> jumper(
-            JumperFactory::instance().build(info));  // todo, dont build a new jumper for each info.
+        /// @todo, dont build a new jumper for each info.
+        std::unique_ptr<Jumper> jumper(JumperFactory::instance().build(info));
         jumper->extract(fh, offsets[i], info, *extractionItem);
     }
 }
@@ -350,6 +350,44 @@ void FileScanTask::scan() {
 void FileScanTask::info() const {
     eckit::Log::status() << "Scan " << offsets_.size() << " offsets in " << fname_ << std::endl;
 }
+
+
+//----------------------------------------------------------------------------------------------------------------------
+
+ReadIndexFileTask::ReadIndexFileTask(TaskGroup& taskgroup, const size_t id, const eckit::PathName& fname,
+                                     std::vector<IndexItem*>& items, bool injectGridSpec) :
+    Task(taskgroup, id), fname_(fname), items_(items), injectGridSpec_(injectGridSpec) {}
+    
+
+void ReadIndexFileTask::executeImpl() {
+
+    std::sort(items_.begin(), items_.end(),
+              [](const IndexItem* a, const IndexItem* b) { return a->offset() < b->offset(); });
+
+    std::vector<eckit::Offset> offsets;
+
+    for (auto& item : items_) {
+        offsets.push_back(item->offset());
+    }
+
+    std::vector<std::shared_ptr<JumpInfo>> infos = InfoCache::instance().get(fname_, offsets);
+
+    for (size_t i = 0; i < items_.size(); i++) {
+        IndexItem* item      = items_[i];
+        JumpInfo& info = *infos[i];
+
+        if (injectGridSpec_) {
+            info.insertGridSpec();
+        }
+
+        // item->info(std::make_shared<JumpInfo>(info));
+    }
+}
+
+void ReadIndexFileTask::info() const {
+    eckit::Log::status() << "Reading " << items_.size() << "JumpInfo entries corresponding to" << fname_ << std::endl;
+}
+
 
 //----------------------------------------------------------------------------------------------------------------------
 

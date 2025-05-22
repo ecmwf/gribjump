@@ -111,6 +111,17 @@ std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std:
     return out;
 }
 
+IndexIterator GribJump::getIndex(const metkit::mars::MarsRequest& request, bool injectGridSpec, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
+
+    if (request.empty()) {
+        throw eckit::UserError("Request string must not be empty", Here());
+    }
+
+    return impl_->getIndex(request, injectGridSpec);
+}
+
+
 void GribJump::stats() {
     impl_->stats();
 }

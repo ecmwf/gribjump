@@ -112,6 +112,10 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     return Engine().axes(request, level);
 }
 
+IndexIterator LocalGribJump::getIndex(const metkit::mars::MarsRequest& request, bool injectGridSpec) {
+    return Engine().getIndex(request, injectGridSpec);
+}
+
 static GribJumpBuilder<LocalGribJump> builder("local");
 
 }  // namespace gribjump
