@@ -130,6 +130,9 @@ class ExtractionRequest:
         The ranges to extract.
     """
     def __init__(self, req: dict[str, str], ranges: list[tuple[int, int]], gridHash: str = None):
+        if not ranges:
+            raise ValueError(f"Must provide at least one range but found {ranges=}")
+
         self.__shape = []
         self.__ranges = None # Lazily evaluated
         reqstr = dic_to_request(req)

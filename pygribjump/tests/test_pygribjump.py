@@ -318,12 +318,11 @@ def test_axes(read_only_fdb_setup) -> None:
     assert len(ax3.keys()) == 11
 
 @pytest.mark.parametrize("ranges,indices", [
-    ([], []),
     ([(1,2)], [1]),
     ([(1,2), (1,3)], [1, 1, 2]), # Should fail during retrieval, kept for documentation
     ([(0, 5), (11, 12), (12, 13)], [0, 1, 2, 3, 4, 11, 12])
 ])
-def test_extraction_request_indices(ranges, indices):
+def test_extraction_request(ranges, indices):
     request = ExtractionRequest({"a": "b"}, ranges)
 
     arr_expected_indices = np.array(indices, dtype=int)
@@ -332,7 +331,10 @@ def test_extraction_request_indices(ranges, indices):
     assert request.ranges == ranges
     np.testing.assert_array_equal(arr_observed_indices, arr_expected_indices)
 
-def test_extraction_request_errors_for_invalid_range():
+def test_extraction_request_errors_for_invalid_ranges():
+    with pytest.raises(ValueError, match='at least one'):
+        ExtractionRequest({"a": "b"}, [])
+
     with pytest.raises(ValueError, match='invalid range'):
         ExtractionRequest({"a": "b"}, [(2, 2)])
 
