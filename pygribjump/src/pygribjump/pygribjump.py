@@ -134,7 +134,7 @@ class ExtractionRequest:
             raise ValueError(f"Must provide at least one range but found {ranges=}")
 
         self.__shape = []
-        self.__ranges = None # Lazily evaluated
+        self.__ranges = ranges.copy()
         reqstr = dic_to_request(req)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
@@ -150,7 +150,6 @@ class ExtractionRequest:
             c_ranges[i*2+1] = r[1]
             self.__shape.append(r[1] - r[0])
 
-        self.__c_ranges = c_ranges
         lib.gribjump_new_request(request, c_reqstr, c_ranges, c_ranges_size, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
@@ -196,8 +195,6 @@ class ExtractionRequest:
         """
         Return the ranges as a list of tuples.
         """
-        if self.__ranges is None:
-            self.__ranges = [(self.__c_ranges[i], self.__c_ranges[i+1]) for i in range(0, len(self.__c_ranges), 2)]
         return self.__ranges
 
     def indices(self) -> np.ndarray:
