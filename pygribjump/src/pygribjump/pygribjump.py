@@ -130,7 +130,11 @@ class ExtractionRequest:
         The ranges to extract.
     """
     def __init__(self, req: dict[str, str], ranges: list[tuple[int, int]], gridHash: str = None):
+        if not ranges:
+            raise ValueError(f"Must provide at least one range but found {ranges=}")
+
         self.__shape = []
+        self.__ranges = ranges.copy()
         reqstr = dic_to_request(req)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
@@ -140,12 +144,15 @@ class ExtractionRequest:
         c_ranges = ffi.new('size_t[]', len(ranges)*2)
         c_ranges_size = len(ranges)*2
         for i, r in enumerate(ranges):
+            if not r[0] < r[1]:
+                raise ValueError(f"Found invalid range {r}: Expected lo < hi for ranges [lo, hi).")
             c_ranges[i*2] = r[0]
             c_ranges[i*2+1] = r[1]
             self.__shape.append(r[1] - r[0])
 
         lib.gribjump_new_request(request, c_reqstr, c_ranges, c_ranges_size, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
+
 
     @classmethod
     def from_mask(cls, req: dict[str, str], mask: np.ndarray, gridHash: str = None):
@@ -182,6 +189,21 @@ class ExtractionRequest:
     @property
     def ctype(self):
         return self.__request
+
+    @property
+    def ranges(self) -> list[tuple[int, int]]:
+        """
+        Return the ranges as a list of tuples.
+        """
+        return self.__ranges
+
+    def indices(self) -> np.ndarray:
+        """
+        Return a 1d array with the indices of the values that would be retrieved.
+        """
+        total = sum(self.__shape)
+        idx_iter = (idx for (low, high) in self.ranges for idx in range(low, high))
+        return np.fromiter(idx_iter, int, count=total)
 
 
 class ExtractionIterator:
