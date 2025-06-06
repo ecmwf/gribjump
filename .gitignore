@@ -13,3 +13,4 @@ CMakeCache.txt
 *.bak
 .vim
 *.egg-info
+dist/
