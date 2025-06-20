@@ -445,7 +445,7 @@ class GribJump:
             else:
                 raise ValueError(
                     "Polyrequest should be a list of tuples of length 2 or 3")
-            requests.append(ExtractionRequest(reqstr, [ranges], hash))
+            requests.append(ExtractionRequest(reqstr, list(ranges), hash))
         return requests
 
     def axes(self, req: dict[str, str], level: int = 3, ctx: str = None) -> dict[str, list[str]]:
