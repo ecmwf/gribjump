@@ -15,8 +15,9 @@ def gribjump_env() -> None:
 @pytest.fixture
 def data_path(request) -> pathlib.Path:
     """
-    Provides path to test data at '<src-root>/pygribjump/tests/data'
+    Provides path to test data at '<src-root>/python/pygribjump/tests/data'
     """
-    path = request.config.rootpath / "pygribjump" / "tests" / "data"
+    # path = request.config.rootpath / "python" / "pygribjump" / "tests" / "data"
+    path = pathlib.Path(__file__).parent / "data"
     assert path.exists()
     return path
