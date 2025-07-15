@@ -16,6 +16,7 @@
 #include <map>
 
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/serialisation/Stream.h"
 
@@ -43,7 +44,9 @@ public:
     /// @param offsets list of offsets to at which GribInfo should be extracted
     size_t scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
 
-    size_t scan(const eckit::PathName& path);  // < scan all fields in a file
+    // if merge is true, we only generate jumpinfos for offsets that are not already in the cache file
+    // if merge is false, we generate an entirely new cache file
+    size_t scan(const eckit::PathName& path, bool merge = true);  // < scan all fields in a file
 
 
     /// Inserts a JumpInfo entry
@@ -146,6 +149,14 @@ private:  // Methods are only intended to be called from InfoCache
     void unlock() { mutex_.unlock(); }
 
     const infomap_t& map() const { return map_; }
+
+    eckit::OffsetList offsets() const {
+        eckit::OffsetList offsets;
+        for (const auto& entry : map_) {
+            offsets.push_back(entry.first);
+        }
+        return offsets;
+    }
 
 private:
 

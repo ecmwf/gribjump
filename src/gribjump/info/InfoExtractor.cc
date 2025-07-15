@@ -31,22 +31,10 @@ InfoExtractor::InfoExtractor() {}
 
 InfoExtractor::~InfoExtractor() {}
 
-std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> InfoExtractor::extract(const eckit::PathName& path) {
+std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> InfoExtractor::extract(
+    const eckit::PathName& path) const {
 
-    grib_context* c = nullptr;
-    int n           = 0;
-    off_t* offsets_c;
-    int err = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets_c, &n, 1);
-    ASSERT(!err);
-
-    // convert to eckit offsets
-    std::vector<eckit::Offset> eckit_offsets;
-    eckit_offsets.reserve(n);
-    for (int i = 0; i < n; i++) {
-        eckit_offsets.push_back(offsets_c[i]);
-    }
-
-    free(offsets_c);
+    eckit::OffsetList eckit_offsets = offsets(path);
 
     std::vector<std::unique_ptr<JumpInfo>> infos = extract(path, eckit_offsets);
 
@@ -60,7 +48,7 @@ std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> InfoExtractor::
 }
 
 std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path,
-                                                              const std::vector<eckit::Offset>& offsets) {
+                                                              const std::vector<eckit::Offset>& offsets) const {
 
     eckit::FileHandle fh(path);
     std::vector<std::unique_ptr<JumpInfo>> infos;
@@ -78,7 +66,7 @@ std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathN
     return infos;
 }
 
-std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset) {
+std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset) const {
 
     eckit::FileHandle fh(path);
 
@@ -92,8 +80,26 @@ std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, co
     return info;
 }
 
-std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::message::Message& msg) {
+std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::message::Message& msg) const {
     return InfoFactory::instance().build(msg);
+}
+
+eckit::OffsetList InfoExtractor::offsets(const eckit::PathName& path) const {
+    grib_context* c = nullptr;
+    int n           = 0;
+    off_t* offsets_c;
+    int err = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets_c, &n, 1);
+    ASSERT(!err);
+
+    // convert to eckit offsets
+    eckit::OffsetList eckit_offsets;
+    eckit_offsets.reserve(n);
+    for (int i = 0; i < n; i++) {
+        eckit_offsets.push_back(offsets_c[i]);
+    }
+
+    free(offsets_c);
+    return eckit_offsets;
 }
 
 }  // namespace gribjump

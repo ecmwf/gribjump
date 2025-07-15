@@ -31,12 +31,16 @@ public:
     ~InfoExtractor();
 
 
-    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> extract(const eckit::PathName& path);
-    std::vector<std::unique_ptr<JumpInfo>> extract(const eckit::PathName& path,
-                                                   const std::vector<eckit::Offset>& offsets);
-    std::unique_ptr<JumpInfo> extract(const eckit::PathName& path, const eckit::Offset& offset);
+    std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> extract(const eckit::PathName& path) const;
 
-    std::unique_ptr<JumpInfo> extract(const eckit::message::Message& msg);
+    std::vector<std::unique_ptr<JumpInfo>> extract(const eckit::PathName& path,
+                                                   const std::vector<eckit::Offset>& offsets) const;
+
+    std::unique_ptr<JumpInfo> extract(const eckit::PathName& path, const eckit::Offset& offset) const;
+
+    std::unique_ptr<JumpInfo> extract(const eckit::message::Message& msg) const;
+
+    eckit::OffsetList offsets(const eckit::PathName& path) const;
 };
 
 }  // namespace gribjump
