@@ -16,11 +16,11 @@
 #include "eckit/log/Plural.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
-#include "eckit/thread/AutoLock.h"
 
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/LibGribJump.h"
+#include "gribjump/LogRouter.h"
 #include "gribjump/Task.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
@@ -79,8 +79,8 @@ void TaskGroup::notify(size_t taskid) {
     // Logging progress
     if (waiting_) {
         if (nComplete_ == logcounter_) {
-            eckit::Log::info() << "Gribjump Progress: " << nComplete_ << " of " << tasks_.size() << " tasks complete"
-                               << std::endl;
+            LogRouter::instance().get("progress")
+                << "Gribjump Progress: " << nComplete_ << " of " << tasks_.size() << " tasks complete" << std::endl;
             logcounter_ += logincrement_;
         }
     }

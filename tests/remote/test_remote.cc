@@ -9,27 +9,23 @@
  */
 
 #include <chrono>
-#include <cmath>
 #include <fstream>
+#include <sstream>
 #include <thread>
 
 #include "eckit/filesystem/LocalPathName.h"
-#include "eckit/filesystem/TmpDir.h"
+#include "eckit/log/JSON.h"
 #include "eckit/parser/JSONParser.h"
 #include "eckit/testing/Test.h"
 
-#include "gribjump/FDBPlugin.h"
+#include "eckit/value/Value.h"
 #include "gribjump/GribJump.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/gribjump_config.h"
-#include "gribjump/info/InfoCache.h"
-#include "gribjump/info/InfoExtractor.h"
-#include "gribjump/info/JumpInfo.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "metkit/mars/MarsExpension.h"
-#include "metkit/mars/MarsParser.h"
 
 using namespace eckit::testing;
 
@@ -42,9 +38,19 @@ static eckit::PathName metricsFile = "test_metrics";
 
 //-----------------------------------------------------------------------------
 // Note: the environment for this test is configured by an external script. See tests/remote/test_server.sh.in
-
 // Fairly limited set of tests designed to add some coverage to the client-server comms.
 // Just tests we have a successful round-trip.
+
+void checkContext(const eckit::Value& v, const std::string& origin) {
+
+    // ensure ctx can be parsed as json
+    std::string ctx = v["context"];
+    auto val        = eckit::JSONParser::decodeString(ctx);
+
+    EXPECT_EQUAL(val["origin"], origin);
+    EXPECT_EQUAL(val["description"], "test test test");
+}
+
 CASE("Remote protocol: extract") {
 
     // --- Extract
@@ -70,7 +76,17 @@ CASE("Remote protocol: extract") {
     }
 
     GribJump gribjump;
-    LogContext ctx("test_extract");
+
+    // Create context from json
+    std::stringstream ss;
+    eckit::JSON j{ss};
+    j.startObject();
+    j << "origin" << "test_extract";
+    j << "description" << "test test test";
+    j.endObject();
+
+    LogContext ctx(ss.str());
+
     std::vector<std::unique_ptr<ExtractionResult>> output = gribjump.extract(exRequests, ctx).dumpVector();
 
     EXPECT_EQUAL(output.size(), 2);
@@ -83,7 +99,10 @@ CASE("Remote protocol: extract") {
 CASE("Remote protocol: axes") {
 
     GribJump gribjump;
-    LogContext ctx("test_axes");
+
+    // create context from string
+    LogContext ctx("{\"origin\": \"test_axes\", \"description\":\"test test test\"}");
+
     std::map<std::string, std::unordered_set<std::string>> axes = gribjump.axes("class=rd,expver=xxxx", 3, ctx);
 
     EXPECT(axes.find("step") != axes.end());
@@ -99,8 +118,10 @@ CASE("Remote protocol: scan") {
     }
 
     GribJump gribjump;
-    LogContext ctx("test_scan");
-    size_t nfields = gribjump.scan(requests, false, ctx);
+
+    // Deliberately don't set context, should be {} by default.
+
+    size_t nfields = gribjump.scan(requests, false);
     EXPECT_EQUAL(nfields, 3);
 }
 
@@ -131,20 +152,21 @@ CASE("Parse the metrics file") {
         }
     }
     EXPECT_EQUAL(values.size(), 3);
+
     // Check extract
     eckit::Value v = values[0];
     EXPECT_EQUAL(v["action"], "extract");
-    EXPECT_EQUAL(v["context"], "test_extract");
+    checkContext(v, "test_extract");
 
     // Check axes
     v = values[1];
     EXPECT_EQUAL(v["action"], "axes");
-    EXPECT_EQUAL(v["context"], "test_axes");
+    checkContext(v, "test_axes");
 
     // Check scan
     v = values[2];
     EXPECT_EQUAL(v["action"], "scan");
-    EXPECT_EQUAL(v["context"], "test_scan");
+    EXPECT_EQUAL(v["context"], "{}");
 }
 #endif
 }  // namespace test

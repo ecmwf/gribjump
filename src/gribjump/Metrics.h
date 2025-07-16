@@ -12,18 +12,28 @@
 
 #pragma once
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/log/JSON.h"
-#include "eckit/log/TimeStamp.h"
 #include "eckit/log/Timer.h"
+#include "eckit/parser/JSONParser.h"
 #include "eckit/runtime/Metrics.h"
 #include "eckit/serialisation/Stream.h"
 
 namespace gribjump {
 
+// This should be a dumb object, that must be representable as a json
 class LogContext {
 public:
 
-    LogContext(std::string s = "none") : context_(s) {}
+    LogContext(std::string s = "{}") : context_(s) {
+        // ensure we can parse the context as a json.
+        try {
+            auto val = eckit::JSONParser::decodeString(context_);
+        }
+        catch (eckit::Exception& e) {
+            throw eckit::BadValue("Could not parse context string as json. Context: " + context_);
+        }
+    }
 
     explicit LogContext(eckit::Stream& s) { s >> context_; }
 
@@ -43,6 +53,12 @@ private:
     friend eckit::JSON& operator<<(eckit::JSON& s, const LogContext& o) {
         o.json(s);
         return s;
+    }
+
+
+    friend std::ostream& operator<<(std::ostream& os, const LogContext& o) {
+        os << o.context_;
+        return os;
     }
 
 private:
@@ -74,7 +90,6 @@ private:  // members
 
     LogContext context_;
     time_t created_;
-    time_t prevTime_;
 
     eckit::Timer timer_;
 };

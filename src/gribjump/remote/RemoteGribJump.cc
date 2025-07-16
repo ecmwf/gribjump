@@ -16,6 +16,7 @@
 #include "eckit/log/Timer.h"
 
 #include "gribjump/GribJumpFactory.h"
+#include "gribjump/LogRouter.h"
 #include "gribjump/remote/RemoteGribJump.h"
 
 namespace gribjump {
@@ -42,7 +43,7 @@ void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestTyp
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
-    eckit::Timer timer("RemoteGribJump::scan()");
+    eckit::Timer timer("RemoteGribJump::scan()", LogRouter::instance().get("timer"));
 
     // connect to server
     eckit::net::TCPClient client;
@@ -76,7 +77,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
 // Forward scan request to another server
 size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map) {
     ///@todo we could probably do the connection logic in the ctor
-    eckit::Timer timer("RemoteGribJump::scan()");
+    eckit::Timer timer("RemoteGribJump::scan()", LogRouter::instance().get("timer"));
     eckit::net::TCPClient client;
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     timer.report("Connection established");
@@ -103,7 +104,7 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
 }
 
 std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<ExtractionRequest>& requests) {
-    eckit::Timer timer("RemoteGribJump::extract()");
+    eckit::Timer timer("RemoteGribJump::extract()", LogRouter::instance().get("timer"));
     std::vector<std::unique_ptr<ExtractionResult>> result;
 
     // connect to server
@@ -142,7 +143,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 // Forward extraction request to another server
 void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 
-    eckit::Timer timer("RemoteGribJump::forwardExtract()");
+    eckit::Timer timer("RemoteGribJump::forwardExtract()", LogRouter::instance().get("timer"));
 
     ///@todo we could probably do the connection logic in the ctor
     eckit::net::TCPClient client;
@@ -191,7 +192,7 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 }
 
 std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(const std::string& request, int level) {
-    eckit::Timer timer("RemoteGribJump::axes()");
+    eckit::Timer timer("RemoteGribJump::axes()", LogRouter::instance().get("timer"));
     std::map<std::string, std::unordered_set<std::string>> result;
 
     // connect to server

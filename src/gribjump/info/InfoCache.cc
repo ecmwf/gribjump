@@ -216,7 +216,7 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::
     // this will be executed in parallel so we dont lock main mutex_ here
     // we will rely on each method to lock mutex when needed
 
-    LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " at " << eckit::Plural(offsets.size(), "offsets")
+    LOG_DEBUG_LIB(LibGribJump) << "Scanning " << fdbpath << " at " << eckit::Plural(offsets.size(), "offset")
                                << std::endl;
 
     std::shared_ptr<IndexFile> filecache = getIndexFile(fdbpath);
@@ -243,28 +243,28 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::
 
     InfoExtractor extractor;
     std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(fdbpath, newOffsets);
-    // std::vector<std::shared_ptr<JumpInfo>> infos;
-    // infos.reserve(uinfos.size());
-    // std::move(uinfos.begin(), uinfos.end(), std::back_inserter(infos));
-    // filecache->insert(infos);
+
     for (size_t i = 0; i < infos.size(); i++) {
         filecache->insert(newOffsets[i], std::move(infos[i]));
     }
-
     filecache->write();
 
     return infos.size();
 }
 
-/// @todo maybe merge this with the above method
-size_t InfoCache::scan(const eckit::PathName& fdbpath) {
+size_t InfoCache::scan(const eckit::PathName& fdbpath, bool mergeExisting) {
+
+    InfoExtractor extractor;
+
+    if (mergeExisting) {
+        return scan(fdbpath, extractor.offsets(fdbpath));
+    }
 
     LOG_DEBUG_LIB(LibGribJump) << "Scanning whole file " << fdbpath << std::endl;
 
     std::shared_ptr<IndexFile> filecache = getIndexFile(fdbpath);
     filecache->reload();
 
-    InfoExtractor extractor;
     std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> infos = extractor.extract(fdbpath);
     for (size_t i = 0; i < infos.size(); i++) {
         filecache->insert(infos[i].first, std::move(infos[i].second));

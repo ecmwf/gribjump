@@ -38,7 +38,7 @@ class CompareEccodes : public GribJumpTool {
 
 public:
 
-    CompareEccodes(int argc, char** argv) : GribJumpTool(argc, argv) {
+    CompareEccodes(int argc, char** argv) : GribJumpTool(argc, argv, "gribjump-validate") {
         options_.push_back(new eckit::option::SimpleOption<bool>("raw", "Uses the raw request, without expansion"));
     }
 };
@@ -93,7 +93,7 @@ void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
     // Extract the data using gribjump
 
     GribJump gj;
-    std::vector<std::unique_ptr<ExtractionResult>> results = gj.extract(polyRequest).dumpVector();
+    std::vector<std::unique_ptr<ExtractionResult>> results = gj.extract(polyRequest, ctx_).dumpVector();
 
     ASSERT(results.size() == requests.size());
 

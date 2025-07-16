@@ -13,6 +13,7 @@
 #include "gribjump/Config.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
+#include "gribjump/LogRouter.h"
 
 namespace gribjump {
 
@@ -38,7 +39,9 @@ namespace gribjump {
 Config::Config() {}
 
 Config::Config(const eckit::PathName path) :
-    eckit::LocalConfiguration(eckit::YAMLConfiguration(path)), serverMap_{loadServerMap()}, path_{path} {}
+    eckit::LocalConfiguration(eckit::YAMLConfiguration(path)), serverMap_{loadServerMap()}, path_{path} {
+    LogRouter::instance().configure(*this);
+}
 
 Config::ServerMap Config::loadServerMap() const {
     // e.g. yaml
