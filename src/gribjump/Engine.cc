@@ -116,16 +116,16 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
 }
 
 
-// bool Engine::buildRequestURIsMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
-//     for (auto& r : requests) {
-//         const std::string& s = r.str_path();
+bool Engine::buildRequestURIsMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
+    for (auto& r : requests) {
+        const std::string& s = r.requestString();
 
-//         auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));
-//         keyToExtractionItem.emplace(s, std::move(extractionItem));  // 1-to-1-map
-//     }
+        auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));
+        keyToExtractionItem.emplace(s, std::move(extractionItem));  // 1-to-1-map
+    }
 
-//     true
-// }
+    return true;
+}
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
