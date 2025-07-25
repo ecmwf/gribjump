@@ -75,6 +75,8 @@ public:  // methods
     ExtractionRequest();
     ExtractionRequest(const std::string&, const std::vector<Range>&, std::string gridHash = "");
     explicit ExtractionRequest(eckit::Stream& s);
+    ExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+                      const std::vector<Range>& ranges, const std::string& gridHash = "");
 
     const std::vector<Range>& ranges() const { return ranges_; }
     const std::string& requestString() const { return request_; }

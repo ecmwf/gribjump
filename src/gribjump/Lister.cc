@@ -87,7 +87,7 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
-    // std::cout << "HAVE BEEN HERE??" << std::endl;
+    std::cout << "HAVE BEEN HERE?? inside the lister" << std::endl;
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
 
@@ -107,7 +107,8 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
             continue;
 
         // Set the URI in the ExtractionItem
-        eckit::URI uri                 = elem.location().fullUri();
+        eckit::URI uri = elem.location().fullUri();
+        std::cout << "WHAT IS THE URI??" << uri << std::endl;
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
@@ -145,16 +146,60 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     if (true) {
         LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
         for (const auto& file : filemap) {
+            std::cout << "  file=" << file.first << ", Offsets=[" << std::endl;
             LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
             for (const auto& extractionItem : file.second) {
+                std::cout << extractionItem->offset() << ",";
                 LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
             }
+            std::cout << "]" << std::endl;
             LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
         }
     }
 
     return filemap;
 }
+
+// filemap_t FDBLister::fileMapfromPaths(const metkit::mars::MarsRequest& unionRequest,
+//                                       const ExItemMap& reqToExtractionItem) {
+//     filemap_t filemap;
+//     std::cout << "HAVE BEEN HERE?? inside the lister" << std::endl;
+
+//     // TODO STILL
+//     size_t fdb_count = 0;
+//     size_t count     = 0;
+//     fdb5::ListElement elem;
+//     while (listIter.next(elem)) {
+//         fdb_count++;
+
+//         std::string key = fdbkeyToStr(elem.combinedKey());
+
+//         // If key not in map, not related to the request
+//         if (reqToExtractionItem.find(key) == reqToExtractionItem.end())
+//             continue;
+
+//         // Set the URI in the ExtractionItem
+//         eckit::URI uri                 = elem.location().fullUri();
+//         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
+//         extractionItem->URI(uri);
+
+//         // Add to filemap
+//         eckit::PathName fname = uri.path();
+//         auto it               = filemap.find(fname);
+//         if (it == filemap.end()) {
+//             std::vector<ExtractionItem*> extractionItems;
+//             extractionItems.push_back(extractionItem);
+//             filemap.emplace(fname, extractionItems);
+//         }
+//         else {
+//             it->second.push_back(extractionItem);
+//         }
+
+//         count++;
+//     }
+
+//     return filemap;
+// }
 
 std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(
     const std::vector<metkit::mars::MarsRequest>& requests) {

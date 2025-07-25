@@ -115,6 +115,18 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     return unionRequests[0];
 }
 
+
+// bool Engine::buildRequestURIsMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
+//     for (auto& r : requests) {
+//         const std::string& s = r.str_path();
+
+//         auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));
+//         keyToExtractionItem.emplace(s, std::move(extractionItem));  // 1-to-1-map
+//     }
+
+//     true
+// }
+
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
     filemap_t filemap = FDBLister::instance().fileMap(unionrequest, keyToExtractionItem);
@@ -152,7 +164,7 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap) {
 
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
-    // std::cout << "HAVE BEEN HERE??" << std::endl;
+    std::cout << "HAVE BEEN HERE??" << std::endl;
 
     eckit::Timer timer("Engine::extract", LogRouter::instance().get("timer"));
 
@@ -176,6 +188,33 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
     return {std::move(results), std::move(report)};
 }
+
+
+// TaskOutcome<ResultsMap> Engine::extract_from_paths(ExtractionRequests& requests) {
+
+//     eckit::Timer timer("Engine::extract", LogRouter::instance().get("timer"));
+
+//     ExItemMap keyToExtractionItem;  // Will collect path str uris -> extraction items
+//     bool unionreq = buildRequestURIsMap(requests, keyToExtractionItem);
+
+//     // Build file map
+//     // Will then go from the str uris to collect the path uris and offsets from the requests inside
+//     keyToExtractinItem filemap_t filemap = buildFileMap(unionreq, keyToExtractionItem);
+//     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
+//     timer.reset("Gribjump Engine: Built file map");
+
+//     // Schedule tasks
+//     TaskReport report = scheduleExtractionTasks(filemap);
+//     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+//     timer.reset("Gribjump Engine: All tasks finished");
+
+//     // Collect results
+//     ResultsMap results = collectResults(keyToExtractionItem);
+//     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
+//     timer.reset("Gribjump Engine: Repackaged results");
+
+//     return {std::move(results), std::move(report)};
+// }
 
 ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
 

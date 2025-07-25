@@ -51,6 +51,7 @@ private:
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
+    // bool buildRequestURIsMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
 };

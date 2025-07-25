@@ -179,6 +179,15 @@ ExtractionRequest::ExtractionRequest(const std::string& request, const std::vect
                                      std::string gridHash) :
     ranges_(ranges), request_(request), gridHash_(gridHash) {}
 
+ExtractionRequest::ExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+                                     const std::vector<Range>& ranges, const std::string& gridHash) :
+    ranges_(ranges), gridHash_(gridHash) {
+
+    std::ostringstream oss;
+    oss << "uri=" << scheme << "://" << filename << "#offset=" << offset;
+    request_ = oss.str();
+}
+
 ExtractionRequest::ExtractionRequest() {}
 
 ExtractionRequest::ExtractionRequest(eckit::Stream& s) {
