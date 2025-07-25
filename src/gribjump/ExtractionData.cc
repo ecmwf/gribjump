@@ -184,7 +184,8 @@ ExtractionRequest::ExtractionRequest(const std::string& filename, const std::str
     ranges_(ranges), gridHash_(gridHash) {
 
     std::ostringstream oss;
-    oss << "uri=" << scheme << "://" << filename << "#offset=" << offset;
+    // oss << "uri=" << scheme << "://" << filename << "#offset=" << offset;
+    oss << scheme << ":" << filename << "#" << offset;
     request_ = oss.str();
 }
 

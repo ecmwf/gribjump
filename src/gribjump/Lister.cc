@@ -166,6 +166,10 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
         // key is a std::string, assumed to represent a URI string
         eckit::URI uri(key);
 
+        std::cout << "WHAT IS THE URI??" << uri << std::endl;
+        std::cout << "WHAT IS THE URI??" << uri.scheme() << std::endl;
+        std::cout << "WHAT IS THE URI??" << uri.path() << std::endl;
+
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
@@ -179,6 +183,20 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
         }
         else {
             it->second.push_back(extractionItem);
+        }
+    }
+
+    if (true) {
+        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+        for (const auto& file : filemap) {
+            std::cout << "  file=" << file.first << ", Offsets=[" << std::endl;
+            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+            for (const auto& extractionItem : file.second) {
+                std::cout << extractionItem->offset() << ",";
+                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+            }
+            std::cout << "]" << std::endl;
+            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
         }
     }
 
