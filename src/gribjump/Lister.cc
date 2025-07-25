@@ -17,6 +17,8 @@
 #include "gribjump/Lister.h"
 #include "gribjump/URIHelper.h"
 
+#include <iostream>
+
 namespace gribjump {
 
 //  ------------------------------------------------------------------
@@ -85,6 +87,7 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
+    // std::cout << "HAVE BEEN HERE??" << std::endl;
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
 
@@ -138,7 +141,8 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         }
     }
 
-    if (LibGribJump::instance().debug()) {
+    // if (LibGribJump::instance().debug()) {
+    if (true) {
         LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
         for (const auto& file : filemap) {
             LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
@@ -183,6 +187,9 @@ std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequ
         auto listIter = fdb.list(fdbreq, true);
         fdb5::ListElement elem;
         while (listIter.next(elem)) {
+            // LOG_DEBUG_LIB(LibGribJump) << "URIS are: " << std::endl;
+            // LOG_DEBUG_LIB(LibGribJump) << elem.location().fullUri() << std::endl;
+            // std::cout << "HAVE BEEN HERE??" << std::endl;
             uris.push_back(elem.location().fullUri());
         }
     }

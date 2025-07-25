@@ -152,6 +152,8 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap) {
 
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
+    // std::cout << "HAVE BEEN HERE??" << std::endl;
+
     eckit::Timer timer("Engine::extract", LogRouter::instance().get("timer"));
 
     ExItemMap keyToExtractionItem;
