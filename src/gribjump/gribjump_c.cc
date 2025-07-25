@@ -159,6 +159,26 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
     });
 }
 
+gribjump_error_t gribjump_new_request_from_path(gribjump_extraction_request_t** request, const char* filename,
+                                                const char* scheme, size_t offset, const size_t* range_arr,
+                                                size_t range_arr_size, const char* gridhash) {
+    return tryCatch([=] {
+        ASSERT(request);
+        ASSERT(filename);
+        ASSERT(scheme);
+        ASSERT(offset);
+        ASSERT(range_arr);
+        ASSERT(range_arr_size % 2 == 0);
+        std::vector<Range> ranges;
+        for (size_t i = 0; i < range_arr_size; i += 2) {
+            ranges.push_back(std::make_pair(range_arr[i], range_arr[i + 1]));
+        }
+
+        std::string gridhash_str = gridhash ? std::string(gridhash) : "";
+        *request                 = new gribjump_extraction_request_t(filename, scheme, offset, ranges, gridhash_str);
+    });
+}
+
 gribjump_error_t gribjump_delete_request(gribjump_extraction_request_t* request) {
     return tryCatch([=] {
         ASSERT(request);
@@ -223,6 +243,23 @@ gribjump_error_t gribjump_extract(gribjump_handle_t* handle, gribjump_extraction
             logctx = LogContext(ctx);
 
         *iterator = new gribjump_extractioniterator_t(handle->extract(reqs, logctx));
+    });
+}
+
+gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
+                                             unsigned long nrequests, const char* ctx,
+                                             gribjump_extractioniterator_t** iterator) {
+    return tryCatch([=] {
+        std::vector<ExtractionRequest> reqs;
+        for (size_t i = 0; i < nrequests; i++) {
+            reqs.push_back(*requests[i]);
+        }
+
+        LogContext logctx;
+        if (ctx)
+            logctx = LogContext(ctx);
+
+        *iterator = new gribjump_extractioniterator_t(handle->extract_from_paths(reqs, logctx));
     });
 }
 

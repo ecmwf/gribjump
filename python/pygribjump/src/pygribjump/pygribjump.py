@@ -168,6 +168,43 @@ class ExtractionRequest:
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
     @classmethod
+    def from_path(cls, path: str, scheme: str, offset: int,
+                  ranges: list[tuple[int, int]], gridHash: str = None):
+        """
+        Create a request from a file path, scheme and offset.
+        """
+
+        if not ranges:
+            raise ValueError(
+                f"Must provide at least one range but found {ranges=}")
+
+        self = cls.__new__(cls)
+        self.__shape = []
+        self.__ranges = ranges.copy()
+
+        # Prepare arguments for C call
+        c_path = ffi.new("char[]", path.encode())
+        c_scheme = ffi.new("char[]", scheme.encode())
+        c_offset = offset
+        c_hash = ffi.NULL if gridHash is None else ffi.new(
+            "char[]", gridHash.encode())
+
+        # Flatten ranges
+        c_ranges = ffi.new("size_t[]", len(ranges) * 2)
+        for i, (lo, hi) in enumerate(ranges):
+            if not lo < hi:
+                raise ValueError(f"Invalid range {lo, hi}: expected lo < hi.")
+            c_ranges[i * 2] = lo
+            c_ranges[i * 2 + 1] = hi
+            self.__shape.append(hi - lo)
+
+        request = ffi.new("gribjump_extraction_request_t**")
+        lib.gribjump_new_request_from_path(
+            request, c_path, c_scheme, c_offset, c_ranges, len(ranges) * 2, c_hash)
+        self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
+        return self
+
+    @classmethod
     def from_mask(cls, req: dict[str, str], mask: np.ndarray, gridHash: str = None):
         """
         Create a request from a boolean mask.

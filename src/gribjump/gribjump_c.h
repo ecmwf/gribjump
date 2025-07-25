@@ -49,12 +49,20 @@ gribjump_error_t gribjump_delete_handle(gribjump_handle_t* gj);
 gribjump_error_t gribjump_extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
                                   unsigned long nrequests, const char* ctx, gribjump_extractioniterator_t** iterator);
 
+gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
+                                             unsigned long nrequests, const char* ctx,
+                                             gribjump_extractioniterator_t** iterator);
+
 gribjump_error_t gribjump_extract_single(gribjump_handle_t* handle, const char* request, const size_t* range_arr,
                                          size_t range_arr_size, const char* gridhash, const char* ctx,
                                          gribjump_extractioniterator_t** iterator);
 
 gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const size_t* ranges,
                                       size_t n_ranges, const char* gridhash);
+
+gribjump_error_t gribjump_new_request_from_path(gribjump_extraction_request_t** request, const char* filename,
+                                                const char* scheme, size_t offset, const size_t* ranges,
+                                                size_t n_ranges, const char* gridhash);
 
 gribjump_error_t gribjump_delete_request(gribjump_extraction_request_t* request);
 
