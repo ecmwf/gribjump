@@ -160,46 +160,30 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     return filemap;
 }
 
-// filemap_t FDBLister::fileMapfromPaths(const metkit::mars::MarsRequest& unionRequest,
-//                                       const ExItemMap& reqToExtractionItem) {
-//     filemap_t filemap;
-//     std::cout << "HAVE BEEN HERE?? inside the lister" << std::endl;
+filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
+    filemap_t filemap;
+    for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
+        // key is a std::string, assumed to represent a URI string
+        eckit::URI uri(key);
 
-//     // TODO STILL
-//     size_t fdb_count = 0;
-//     size_t count     = 0;
-//     fdb5::ListElement elem;
-//     while (listIter.next(elem)) {
-//         fdb_count++;
+        ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
+        extractionItem->URI(uri);
 
-//         std::string key = fdbkeyToStr(elem.combinedKey());
+        // Add to filemap
+        eckit::PathName fname = uri.path();
+        auto it               = filemap.find(fname);
+        if (it == filemap.end()) {
+            std::vector<ExtractionItem*> extractionItems;
+            extractionItems.push_back(extractionItem);
+            filemap.emplace(fname, extractionItems);
+        }
+        else {
+            it->second.push_back(extractionItem);
+        }
+    }
 
-//         // If key not in map, not related to the request
-//         if (reqToExtractionItem.find(key) == reqToExtractionItem.end())
-//             continue;
-
-//         // Set the URI in the ExtractionItem
-//         eckit::URI uri                 = elem.location().fullUri();
-//         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
-//         extractionItem->URI(uri);
-
-//         // Add to filemap
-//         eckit::PathName fname = uri.path();
-//         auto it               = filemap.find(fname);
-//         if (it == filemap.end()) {
-//             std::vector<ExtractionItem*> extractionItems;
-//             extractionItems.push_back(extractionItem);
-//             filemap.emplace(fname, extractionItems);
-//         }
-//         else {
-//             it->second.push_back(extractionItem);
-//         }
-
-//         count++;
-//     }
-
-//     return filemap;
-// }
+    return filemap;
+}
 
 std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(
     const std::vector<metkit::mars::MarsRequest>& requests) {

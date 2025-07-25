@@ -57,6 +57,8 @@ public:
     filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest,
                       const ExItemMap& reqToXRR);  // Used during extraction
 
+    filemap_t fileMapfromPaths(const ExItemMap& reqToExtractionItem);
+
     std::map<eckit::PathName, eckit::OffsetList> filesOffsets(
         const std::vector<metkit::mars::MarsRequest>& requests);  // Used during scan
     std::map<eckit::PathName, eckit::OffsetList> filesOffsets(const std::vector<eckit::URI>& uris);
