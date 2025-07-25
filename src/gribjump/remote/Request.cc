@@ -132,6 +132,65 @@ void ExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+ExtractFromPathsRequest::ExtractFromPathsRequest(eckit::Stream& stream) : Request(stream) {
+    MetricsManager::instance().set("action", "extract_from_paths");
+
+    // Receive the requests
+    // Temp, repackage the requests from old format into format the engine expects
+
+    size_t nRequests;
+    client_ >> nRequests;
+
+    for (size_t i = 0; i < nRequests; i++) {
+        ExtractionRequest req(client_);
+        requests_.push_back(req);
+    }
+
+    MetricsManager::instance().set("count_requests", nRequests);
+}
+
+void ExtractFromPathsRequest::execute() {
+
+    auto [results, report] = engine_.extract_from_paths(requests_);
+    results_               = std::move(results);
+    report_                = std::move(report);
+
+    if (LibGribJump::instance().debug()) {
+        for (auto& pair : results_) {
+            LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
+            pair.second->debug_print();
+            LOG_DEBUG_LIB(LibGribJump) << std::endl;
+        }
+    }
+}
+
+void ExtractFromPathsRequest::replyToClient() {
+
+    // Send the results, again repackage.
+
+    size_t nRequests = requests_.size();
+    LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
+
+    for (size_t i = 0; i < nRequests; i++) {
+        LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
+
+        auto it = results_.find(requests_[i].requestString());
+        ASSERT(it != results_.end());
+        size_t nfields = 1;  // @todo: remove this (bump protocol version)
+        client_ << nfields;
+        client_ << *(it->second->result());
+    }
+
+    LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+}
+
+void ExtractFromPathsRequest::info() const {
+    eckit::Log::status() << "New ExtractRequest: nRequests=" << requests_.size() << std::endl;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+
 ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
     MetricsManager::instance().set("action", "forwarded-extract");
 

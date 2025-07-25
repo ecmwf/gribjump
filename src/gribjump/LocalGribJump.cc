@@ -108,6 +108,27 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(Extraction
     return extractionResults;
 }
 
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract_from_paths(ExtractionRequests& requests) {
+
+    auto [results, report] = Engine().extract_from_paths(requests);
+    report.raiseErrors();
+
+    ASSERT(results.size() == requests.size());
+
+    // Map -> Vector
+    std::vector<std::unique_ptr<ExtractionResult>> extractionResults;
+    extractionResults.reserve(requests.size());
+    for (auto& req : requests) {
+        auto it = results.find(req.requestString());
+        ASSERT(it != results.end());
+        auto res = it->second->result();
+        ASSERT(res);
+        extractionResults.push_back(std::move(res));
+    }
+
+    return extractionResults;
+}
+
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {
     return Engine().axes(request, level);
 }

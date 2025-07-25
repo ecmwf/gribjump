@@ -100,6 +100,28 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+class ExtractFromPathsRequest : public Request {
+public:
+
+    ExtractFromPathsRequest(eckit::Stream& stream);
+
+    ~ExtractFromPathsRequest() = default;
+
+    void execute() override;
+
+    void replyToClient() override;
+
+    void info() const override;
+
+private:
+
+    std::vector<ExtractionRequest> requests_;
+
+    ResultsMap results_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 class ForwardedExtractRequest : public Request {
 public:
 

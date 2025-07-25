@@ -21,6 +21,7 @@ namespace gribjump {
 
 enum class RequestType : uint16_t {
     EXTRACT = 0,
+    EXTRACT_FROM_PATHS,
     AXES,
     SCAN,
     FORWARD_EXTRACT,
@@ -42,6 +43,8 @@ public:  // methods
     size_t forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map);
 
     std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>& polyRequest) override;
+
+    std::vector<std::unique_ptr<ExtractionResult>> extract_from_paths(ExtractionRequests& requests) override;
 
     std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
                                                            const std::vector<eckit::Offset>& offsets,
