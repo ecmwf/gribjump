@@ -198,7 +198,7 @@ class ExtractionRequest:
             c_ranges[i * 2 + 1] = hi
             self.__shape.append(hi - lo)
 
-        request = ffi.new("gribjump_extraction_request_t**")
+        request = ffi.new("gribjump_path_extraction_request_t**")
         lib.gribjump_new_request_from_path(
             request, c_path, c_scheme, c_offset, c_ranges, len(ranges) * 2, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_path_request)
@@ -326,7 +326,7 @@ class ExtractionIteratorFromPath(ExtractionIterator):
         self.__shapes = [r.shape for r in requests]
         iterator = ffi.new('gribjump_extractioniterator_t**')
         c_requests = ffi.new(
-            'gribjump_extraction_request_t*[]', [r.ctype for r in requests])
+            'gribjump_path_extraction_request_t*[]', [r.ctype for r in requests])
 
         lib.gribjump_extract_from_paths(gribjump, c_requests,
                                         len(requests), ctx, iterator)
