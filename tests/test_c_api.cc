@@ -101,7 +101,7 @@ CASE("Extract") {
 
     std::string scheme = "file";
 
-    gribjump_extraction_request_t* requests_from_paths_c[3];
+    gribjump_path_extraction_request_t* requests_from_paths_c[3];
 
     std::vector<size_t> offsets = {0, 226, 452};
 

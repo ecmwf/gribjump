@@ -95,14 +95,14 @@ private:  // members
     std::string gridHash_;
 };
 
-class PathExtractionRequest {
+class PathExtractionRequest : public ExtractionRequest {
 public:
 
     PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
                           const std::vector<Range>& ranges, const std::string& gridHash = "");
     const std::string path() const { return path_; }
     const std::string scheme() const { return scheme_; }
-    const size_t offset() const { return offset_; }
+    size_t offset() const { return offset_; }
 
 private:
 

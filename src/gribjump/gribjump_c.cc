@@ -78,6 +78,12 @@ struct gribjump_extraction_request_t : public ExtractionRequest {
     gribjump_extraction_request_t(const ExtractionRequest& request) : ExtractionRequest(request) {}
 };
 
+struct gribjump_path_extraction_request_t : public PathExtractionRequest {
+    using PathExtractionRequest::PathExtractionRequest;
+
+    gribjump_path_extraction_request_t(const PathExtractionRequest& request) : PathExtractionRequest(request) {}
+};
+
 // Wrapper around ExtractionIterator
 struct gribjump_extractioniterator_t : public ExtractionIterator {
     using ExtractionIterator::ExtractionIterator;
@@ -159,14 +165,13 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
     });
 }
 
-gribjump_error_t gribjump_new_request_from_path(gribjump_extraction_request_t** request, const char* filename,
+gribjump_error_t gribjump_new_request_from_path(gribjump_path_extraction_request_t** request, const char* filename,
                                                 const char* scheme, size_t offset, const size_t* range_arr,
                                                 size_t range_arr_size, const char* gridhash) {
     return tryCatch([=] {
         ASSERT(request);
         ASSERT(filename);
         ASSERT(scheme);
-        // ASSERT(offset);
         ASSERT(range_arr);
         ASSERT(range_arr_size % 2 == 0);
         std::vector<Range> ranges;
@@ -175,11 +180,18 @@ gribjump_error_t gribjump_new_request_from_path(gribjump_extraction_request_t** 
         }
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
-        *request                 = new gribjump_extraction_request_t(filename, scheme, offset, ranges, gridhash_str);
+        *request = new gribjump_path_extraction_request_t(filename, scheme, offset, ranges, gridhash_str);
     });
 }
 
 gribjump_error_t gribjump_delete_request(gribjump_extraction_request_t* request) {
+    return tryCatch([=] {
+        ASSERT(request);
+        delete request;
+    });
+}
+
+gribjump_error_t gribjump_delete_path_request(gribjump_path_extraction_request_t* request) {
     return tryCatch([=] {
         ASSERT(request);
         delete request;
@@ -246,7 +258,7 @@ gribjump_error_t gribjump_extract(gribjump_handle_t* handle, gribjump_extraction
     });
 }
 
-gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
+gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump_path_extraction_request_t** requests,
                                              unsigned long nrequests, const char* ctx,
                                              gribjump_extractioniterator_t** iterator) {
     return tryCatch([=] {

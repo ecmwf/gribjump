@@ -21,6 +21,9 @@ typedef struct gribjump_extraction_result_t gribjump_extraction_result_t;
 struct gribjump_extraction_request_t;
 typedef struct gribjump_extraction_request_t gribjump_extraction_request_t;
 
+struct gribjump_path_extraction_request_t;
+typedef struct gribjump_path_extraction_request_t gribjump_path_extraction_request_t;
+
 struct gribjump_extractioniterator_t;
 typedef struct gribjump_extractioniterator_t gribjump_extractioniterator_t;
 
@@ -33,7 +36,7 @@ gribjump_error_t gribjump_delete_handle(gribjump_handle_t* gj);
 gribjump_error_t gribjump_extract(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
                                   unsigned long nrequests, const char* ctx, gribjump_extractioniterator_t** iterator);
 
-gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump_extraction_request_t** requests,
+gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump_path_extraction_request_t** requests,
                                              unsigned long nrequests, const char* ctx,
                                              gribjump_extractioniterator_t** iterator);
 
@@ -44,11 +47,13 @@ gribjump_error_t gribjump_extract_single(gribjump_handle_t* handle, const char* 
 gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, const char* reqstr, const size_t* ranges,
                                       size_t n_ranges, const char* gridhash);
 
-gribjump_error_t gribjump_new_request_from_path(gribjump_extraction_request_t** request, const char* filename,
+gribjump_error_t gribjump_new_request_from_path(gribjump_path_extraction_request_t** request, const char* filename,
                                                 const char* scheme, size_t offset, const size_t* ranges,
                                                 size_t n_ranges, const char* gridhash);
 
 gribjump_error_t gribjump_delete_request(gribjump_extraction_request_t* request);
+
+gribjump_error_t gribjump_delete_path_request(gribjump_path_extraction_request_t* request);
 
 gribjump_error_t gribjump_new_result(gribjump_extraction_result_t** result);
 

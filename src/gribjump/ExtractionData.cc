@@ -226,7 +226,7 @@ PathExtractionRequest::PathExtractionRequest(const std::string& filename, const 
 
     std::ostringstream oss;
     oss << scheme << ":" << filename << "#" << offset;
-    request_ = oss.str();
+    requestString(oss.str());
 }
 
 }  // namespace gribjump

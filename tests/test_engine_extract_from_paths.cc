@@ -127,7 +127,7 @@ CASE("Engine: Basic extraction") {
     Engine engine;
     ExtractionRequests exRequests;
     for (size_t i = 0; i < filenames.size(); i++) {
-        exRequests.push_back(ExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
+        exRequests.push_back(PathExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
     }
 
     auto [results, report] = engine.extract_from_paths(exRequests);
