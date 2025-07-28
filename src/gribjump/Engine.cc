@@ -106,12 +106,12 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
         }
         i++;
     }
+    std::cout << "WHAT'S THE RESULT STRING OF MARS: " << result << std::endl;
 
     std::istringstream istream(result);
     metkit::mars::MarsParser parser(istream);
     std::vector<metkit::mars::MarsParsedRequest> unionRequests = parser.parse();
     ASSERT(unionRequests.size() == 1);
-
     return unionRequests[0];
 }
 
