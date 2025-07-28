@@ -87,7 +87,6 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
-    std::cout << "HAVE BEEN HERE?? inside the lister" << std::endl;
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
 
@@ -107,9 +106,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
             continue;
 
         // Set the URI in the ExtractionItem
-        eckit::URI uri = elem.location().fullUri();
-        std::cout << "WHAT IS THE URI??" << uri << std::endl;
-        eckit::Log::warning() << "WHAT IS THE URI??" << uri << std::endl;
+        eckit::URI uri                 = elem.location().fullUri();
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
@@ -143,17 +140,13 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         }
     }
 
-    // if (LibGribJump::instance().debug()) {
-    if (true) {
+    if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
         for (const auto& file : filemap) {
-            std::cout << "  file=" << file.first << ", Offsets=[" << std::endl;
             LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
             for (const auto& extractionItem : file.second) {
-                std::cout << extractionItem->offset() << ",";
                 LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
             }
-            std::cout << "]" << std::endl;
             LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
         }
     }
@@ -167,10 +160,6 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
         // key is a std::string, assumed to represent a URI string
         eckit::URI uri(key);
 
-        std::cout << "WHAT IS THE URI??" << uri << std::endl;
-        std::cout << "WHAT IS THE URI??" << uri.scheme() << std::endl;
-        std::cout << "WHAT IS THE URI??" << uri.path() << std::endl;
-
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
@@ -178,8 +167,6 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
         eckit::PathName fname = uri.path();
         auto it               = filemap.find(fname);
         if (it == filemap.end()) {
-            std::cout << "ADDED NEW ITEM TO FILEMAP" << std::endl;
-            std::cout << fname << std::endl;
             std::vector<ExtractionItem*> extractionItems;
             extractionItems.push_back(extractionItem);
             filemap.emplace(fname, extractionItems);
@@ -189,16 +176,13 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
         }
     }
 
-    if (true) {
+    if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
         for (const auto& file : filemap) {
-            std::cout << "  file=" << file.first << ", Offsets=[" << std::endl;
             LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
             for (const auto& extractionItem : file.second) {
-                std::cout << extractionItem->offset() << ",";
                 LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
             }
-            std::cout << "]" << std::endl;
             LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
         }
     }
@@ -237,9 +221,6 @@ std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequ
         auto listIter = fdb.list(fdbreq, true);
         fdb5::ListElement elem;
         while (listIter.next(elem)) {
-            // LOG_DEBUG_LIB(LibGribJump) << "URIS are: " << std::endl;
-            // LOG_DEBUG_LIB(LibGribJump) << elem.location().fullUri() << std::endl;
-            // std::cout << "HAVE BEEN HERE??" << std::endl;
             uris.push_back(elem.location().fullUri());
         }
     }

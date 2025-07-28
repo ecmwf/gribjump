@@ -106,7 +106,6 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
         }
         i++;
     }
-    std::cout << "WHAT'S THE RESULT STRING OF MARS: " << result << std::endl;
 
     std::istringstream istream(result);
     metkit::mars::MarsParser parser(istream);
@@ -170,8 +169,6 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap) {
 
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
-    std::cout << "HAVE BEEN HERE??" << std::endl;
-
     eckit::Timer timer("Engine::extract", LogRouter::instance().get("timer"));
 
     ExItemMap keyToExtractionItem;
@@ -203,29 +200,21 @@ TaskOutcome<ResultsMap> Engine::extract_from_paths(ExtractionRequests& requests)
     ExItemMap keyToExtractionItem;  // Will collect path str uris -> extraction items
     bool unionreq = buildRequestURIsMap(requests, keyToExtractionItem);
 
-    std::cout << "BUILT THE URIS MAP" << std::endl;
-
     // Build file map
     // Will then go from the str uris to collect the path uris and offsets from the requests inside
     filemap_t filemap = buildFileMapfromPaths(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
-    std::cout << "BUILT THE MAP FROM PATHS" << std::endl;
-
     // Schedule tasks
     TaskReport report = scheduleExtractionTasks(filemap);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
-    std::cout << "SCHEDULED TASKS" << std::endl;
-
     // Collect results
     ResultsMap results = collectResults(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
     timer.reset("Gribjump Engine: Repackaged results");
-
-    std::cout << "COLLECTED RESULTS" << std::endl;
 
     return {std::move(results), std::move(report)};
 }

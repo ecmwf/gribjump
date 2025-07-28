@@ -20,8 +20,6 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
-// #include "fdb5/api/FDB.h"
-
 #include "metkit/codes/GribHandle.h"
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
@@ -122,10 +120,6 @@ CASE("Engine: Basic extraction") {
 
     std::vector<size_t> offsets = {0, 226, 452};
 
-
-    // ExtractionRequest::ExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
-    //                                      const std::vector<Range>& ranges, const std::string& gridHash)
-
     std::vector<std::vector<Interval>> allIntervals = {{std::make_pair(0, 5), std::make_pair(20, 30)},
                                                        {std::make_pair(0, 5), std::make_pair(20, 30)},
                                                        {std::make_pair(0, 5), std::make_pair(20, 30)}};
@@ -135,14 +129,8 @@ CASE("Engine: Basic extraction") {
     for (size_t i = 0; i < filenames.size(); i++) {
         exRequests.push_back(ExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
     }
-    // We expect a throw due to missing data
-    // EXPECT_THROWS_AS(engine.extract(exRequests), DataNotFoundException);
-
-    // // drop the final request
-    // exRequests.pop_back();
 
     auto [results, report] = engine.extract_from_paths(exRequests);
-    std::cout << "FINISHED EXTRACTION" << std::endl;
     EXPECT_NO_THROW(report.raiseErrors());
 
     // print contents of map
@@ -156,14 +144,8 @@ CASE("Engine: Basic extraction") {
     for (size_t i = 0; i < 3; i++) {
         metkit::mars::MarsRequest req   = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
         std::vector<Interval> intervals = allIntervals[i];
-        for (const auto& [key, resultPtr] : results) {
-            std::cout << "Key: " << key << "\n";
-        }
-        std::cout << "requests[i]: " << requests[i] << std::endl;
-        std::cout << "requests[i]: " << exRequests[i].requestString() << std::endl;
-        // auto& ex              = results[requests[i]];
-        auto& ex              = results[exRequests[i].requestString()];
-        auto comparisonValues = eccodesExtract(req, intervals);
+        auto& ex                        = results[exRequests[i].requestString()];
+        auto comparisonValues           = eccodesExtract(req, intervals);
         ASSERT(comparisonValues.size() == 1);  // @todo: drop a dimension in the eccodesExtract functions
         size_t j = 0;
         for (size_t k = 0; k < comparisonValues[j].size(); k++) {

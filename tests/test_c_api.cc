@@ -15,11 +15,8 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
-// #include "fdb5/api/FDB.h"
 #include "gribjump/ExtractionData.h"
-// #include "gribjump/Lister.cc"
 #include "gribjump/gribjump_c.h"
-// #include "metkit/mars/MarsParser.h"
 #include "path_tools.cc"
 
 using namespace eckit::testing;
@@ -39,41 +36,6 @@ void EXPECT_STR_EQUAL(const char* a, const char* b) {
         throw TestException("Expected: " + std::string(a) + " == " + std::string(b), Here());
 }
 
-// std::string get_path_name_from_mars_req(std::string mars_str, fdb5::FDB& fdb) {
-//     std::istringstream istream(mars_str);
-//     metkit::mars::MarsParser parser(istream);
-//     std::vector<metkit::mars::MarsParsedRequest> unionRequests = parser.parse();
-//     fdb5::FDBToolRequest fdbreq(unionRequests[0]);
-
-//     // std::cout << "WHAT's THE mars req HERE AT TOP" << std::endl;
-//     // std::cout << unionRequests[0] << std::endl;
-
-//     // fdb5::FDB fdb;
-//     auto listIter = fdb.list(fdbreq, true);
-
-//     std::cout << "fdb_req" << fdbreq << std::endl;
-//     // std::cout << "what's the fdb iter" << listIter << std::endl;
-
-//     fdb5::ListElement elem;
-//     // std::cout << "AND HERE??" << listIter.next(elem) << std::endl;
-//     std::vector<eckit::URI> uris = {};
-//     while (listIter.next(elem)) {
-//         std::cout << "EVER HERE??" << std::endl;
-//         std::string key = fdbkeyToStr(elem.combinedKey());
-
-//         // If key not in map, not related to the request
-//         // if (reqToExtractionItem.find(key) == reqToExtractionItem.end())
-//         //     continue;
-
-//         // Set the URI in the ExtractionItem
-//         eckit::URI uri = elem.location().fullUri();
-//         std::cout << "WHAT's THE URI HERE AT TOP" << uri << std::endl;
-//         uris.push_back(uri);
-//     }
-//     // return uris[0].path();
-//     return uris.at(0).path();
-// }
-
 // Recreate the extract test from the C++ API
 CASE("Extract") {
 
@@ -83,10 +45,6 @@ CASE("Extract") {
 
     eckit::TmpDir tmpdir(cwd.c_str());
     tmpdir.mkdir();
-
-    std::cout << "WHAT's THE TEMP DIR?" << std::endl;
-
-    std::cout << tmpdir << std::endl;
 
     const std::string config_str(R"XX(
         ---
@@ -106,41 +64,6 @@ CASE("Extract") {
     std::string gridHash = "33c7d6025995e1b4913811e77d38ec50";
     fdb.archive(*path.fileHandle());
     fdb.flush();
-
-    // std::string mars_str =
-    //     "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1/2/"
-    //     "3,stream=oper,time=1200,"
-    //     "type=fc";
-    std::string mars_str = "retrieve,class=rd,domain=g,expver=xxxx,levtype=sfc,stream=oper,type=fc";
-    // std::istringstream istream(mars_str);
-    // metkit::mars::MarsParser parser(istream);
-    // std::vector<metkit::mars::MarsParsedRequest> unionRequests = parser.parse();
-    // fdb5::FDBToolRequest fdbreq(unionRequests[0]);
-
-    // // std::cout << "WHAT's THE mars req HERE AT TOP" << std::endl;
-    // // std::cout << unionRequests[0] << std::endl;
-
-    // // fdb5::FDB fdb;
-    // auto listIter = fdb.list(fdbreq, true);
-
-    // std::cout << "fdb_req" << fdbreq << std::endl;
-    // // std::cout << "what's the fdb iter" << listIter << std::endl;
-
-    // fdb5::ListElement elem;
-    // std::cout << "AND HERE??" << listIter.next(elem) << std::endl;
-    // while (listIter.next(elem)) {
-    //     std::cout << "EVER HERE??" << std::endl;
-    //     std::string key = fdbkeyToStr(elem.combinedKey());
-
-    //     // If key not in map, not related to the request
-    //     // if (reqToExtractionItem.find(key) == reqToExtractionItem.end())
-    //     //     continue;
-
-    //     // Set the URI in the ExtractionItem
-    //     eckit::URI uri = elem.location().fullUri();
-    //     std::cout << "WHAT's THE URI HERE AT TOP" << uri << std::endl;
-    // }
-    // std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
 
     // ---------------------------------------------------
     std::vector<std::string> requests = {
@@ -175,8 +98,11 @@ CASE("Extract") {
         std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
         paths.push_back(path_str);
     }
+
     std::string scheme = "file";
+
     gribjump_extraction_request_t* requests_from_paths_c[3];
+
     std::vector<size_t> offsets = {0, 226, 452};
 
     for (size_t i = 0; i < paths.size(); i++) {
