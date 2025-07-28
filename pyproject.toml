@@ -8,7 +8,7 @@ testpaths = [
 # pyproject.toml
 
 [build-system]
-requires = ["setuptools>=65", "setuptools-scm"]
+requires = ["setuptools>=77.0.3", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -27,7 +27,6 @@ dependencies = [
     "cffi~=1.17",
     "numpy~=1.26",
     "pytest~=8.3",
-    "setuptools~=75.1",
     "findlibs~=0.1.1",
     "packaging>=20.0",
 ]
