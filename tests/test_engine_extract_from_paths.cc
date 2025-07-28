@@ -20,7 +20,7 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
-#include "fdb5/api/FDB.h"
+// #include "fdb5/api/FDB.h"
 
 #include "metkit/codes/GribHandle.h"
 #include "metkit/mars/MarsExpension.h"
@@ -34,6 +34,7 @@
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "path_tools.cc"
 
 using namespace eckit::testing;
 
@@ -109,7 +110,13 @@ CASE("Engine: Basic extraction") {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
     };
 
+    fdb5::FDB fdb;
     std::vector<std::string> filenames = {};
+    for (size_t i = 0; i < requests.size(); i++) {
+        std::string mars_str = "retrieve," + requests[i];
+        std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
+        filenames.push_back(path_str);
+    }
 
     std::string scheme = "file";
 
