@@ -162,6 +162,9 @@ CASE("Extract") {
     for (size_t i = 0; i < requests.size(); i++) {
         test_success(gribjump_delete_request(requests_c[i]));
     }
+    for (size_t i = 0; i < paths.size(); i++) {
+        test_success(gribjump_delete_path_request(requests_from_paths_c[i]));
+    }
 
     // ---------------------------------------
     // Same request but with extract_single

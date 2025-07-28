@@ -201,7 +201,7 @@ class ExtractionRequest:
         request = ffi.new("gribjump_extraction_request_t**")
         lib.gribjump_new_request_from_path(
             request, c_path, c_scheme, c_offset, c_ranges, len(ranges) * 2, c_hash)
-        self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
+        self.__request = ffi.gc(request[0], lib.gribjump_delete_path_request)
         return self
 
     @classmethod
