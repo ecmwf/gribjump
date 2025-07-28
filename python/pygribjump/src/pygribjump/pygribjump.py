@@ -321,6 +321,19 @@ class ExtractionIterator:
         return [result.copy_values() for result in self]
 
 
+class ExtractionIteratorFromPath(ExtractionIterator):
+    def __init__(self, gribjump: CData, requests: list[ExtractionRequest], ctx: CData):
+        self.__shapes = [r.shape for r in requests]
+        iterator = ffi.new('gribjump_extractioniterator_t**')
+        c_requests = ffi.new(
+            'gribjump_extraction_request_t*[]', [r.ctype for r in requests])
+
+        lib.gribjump_extract_from_paths(gribjump, c_requests,
+                                        len(requests), ctx, iterator)
+        self.__iterator = ffi.gc(
+            iterator[0], lib.gribjump_extractioniterator_delete)
+
+
 # Extraction iterator produced by a single request of arbitrary cardinality.
 class ExtractionSingleIterator (ExtractionIterator):
 
@@ -415,6 +428,45 @@ class GribJump:
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
 
+    def extract_from_paths(self, polyrequest: list[tuple[str, list[tuple[int, int]]]], ctx=None) -> ExtractionIterator:
+        """
+        Extract a list of requests.
+        Note: if a list of requests is passed, they must all have cardinality 1.
+        If a single request is passed, it may have any cardinality.
+        Parameters
+        ----------
+        polyrequest : [
+            (req1_str, [(lo, hi), (lo, hi), ...])
+            (req2_str, [(lo, hi), (lo, hi), ...])
+            ...
+        ]
+
+        """
+        ctx = merge_default_context(ctx, "pygribjump_extract")
+
+        # must be a list
+        if not isinstance(polyrequest, list):
+            raise ValueError(
+                "Polyrequest should be a list of tuples or ExtractionRequest objects")
+
+        if len(polyrequest) == 0:
+            raise ValueError("Polyrequest should not be empty")
+
+        # check type of first element to see if we must unpack
+        if isinstance(polyrequest[0], tuple):
+            requests = self._unpack_polyrequest_w_paths(polyrequest)
+
+        elif isinstance(polyrequest[0], ExtractionRequest):
+            requests = polyrequest
+
+        else:
+            raise ValueError(
+                "Polyrequest should be a list of tuples or ExtractionRequest objects")
+
+        logctx = json.dumps(ctx)
+        logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
+        return ExtractionIteratorFromPath(self.ctype, requests, logctx_c)
+
     def extract_single(self, request: dict[str, str | list], ranges: list[tuple[int, int]], gridHash: str = None, ctx=None) -> ExtractionSingleIterator:
         """
         Extract a single request with arbitrary cardinality.
@@ -483,6 +535,21 @@ class GribJump:
                 raise ValueError(
                     "Polyrequest should be a list of tuples of length 2 or 3")
             requests.append(ExtractionRequest(reqstr, list(ranges), hash))
+        return requests
+
+    def _unpack_polyrequest_w_paths(self, polyrequest) -> list[ExtractionRequest]:
+        requests = []
+        for item in polyrequest:
+            if len(item) == 4:
+                path, scheme, offset, ranges = item
+                hash = None
+            elif len(item) == 5:
+                path, scheme, offset, ranges, hash = item
+            else:
+                raise ValueError(
+                    "Polyrequest should be a list of tuples of length 4 or 5")
+            requests.append(ExtractionRequest.from_path(
+                path, scheme, offset, list(ranges), hash))
         return requests
 
     def axes(self, req: dict[str, str], level: int = 3, ctx: str = None) -> dict[str, list[str]]:
