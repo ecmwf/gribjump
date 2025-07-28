@@ -178,6 +178,8 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
         eckit::PathName fname = uri.path();
         auto it               = filemap.find(fname);
         if (it == filemap.end()) {
+            std::cout << "ADDED NEW ITEM TO FILEMAP" << std::endl;
+            std::cout << fname << std::endl;
             std::vector<ExtractionItem*> extractionItems;
             extractionItems.push_back(extractionItem);
             filemap.emplace(fname, extractionItems);

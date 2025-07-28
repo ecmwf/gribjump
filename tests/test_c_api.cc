@@ -91,12 +91,14 @@ CASE("Extract") {
             gribjump_new_request(&requests_c[i], requests[i].c_str(), range_arr, range_arr_size, gridHash.c_str()));
     }
 
+    std::vector<std::string> paths = {};
+    std::string scheme             = "file";
     gribjump_extraction_request_t* requests_from_paths_c[3];
-    size_t offset = 0;
+    std::vector<size_t> offsets = {0, 226, 452};
 
     for (size_t i = 0; i < requests.size(); i++) {
-        test_success(gribjump_new_request_from_path(&requests_from_paths_c[i], requests[i].c_str(), "file", offset,
-                                                    range_arr, range_arr_size, gridHash.c_str()));
+        test_success(gribjump_new_request_from_path(&requests_from_paths_c[i], paths[i].c_str(), scheme.c_str(),
+                                                    offsets[i], range_arr, range_arr_size, gridHash.c_str()));
     }
 
 
@@ -106,6 +108,11 @@ CASE("Extract") {
     // call extract
     gribjump_extractioniterator_t* iterator{};
     test_success(gribjump_extract(handle, requests_c, requests.size(), nullptr, &iterator));
+
+    // call extract_from_paths
+    gribjump_extractioniterator_t* iterator_from_paths{};
+    test_success(
+        gribjump_extract_from_paths(handle, requests_from_paths_c, paths.size(), nullptr, &iterator_from_paths));
 
     // check iterator
     gribjump_iterator_status_t status;
