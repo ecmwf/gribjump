@@ -166,7 +166,7 @@ gribjump_error_t gribjump_new_request_from_path(gribjump_extraction_request_t** 
         ASSERT(request);
         ASSERT(filename);
         ASSERT(scheme);
-        ASSERT(offset);
+        // ASSERT(offset);
         ASSERT(range_arr);
         ASSERT(range_arr_size % 2 == 0);
         std::vector<Range> ranges;

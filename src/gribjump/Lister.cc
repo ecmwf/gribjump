@@ -109,6 +109,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         // Set the URI in the ExtractionItem
         eckit::URI uri = elem.location().fullUri();
         std::cout << "WHAT IS THE URI??" << uri << std::endl;
+        eckit::Log::warning() << "WHAT IS THE URI??" << uri << std::endl;
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 

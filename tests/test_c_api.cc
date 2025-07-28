@@ -91,6 +91,15 @@ CASE("Extract") {
             gribjump_new_request(&requests_c[i], requests[i].c_str(), range_arr, range_arr_size, gridHash.c_str()));
     }
 
+    gribjump_extraction_request_t* requests_from_paths_c[3];
+    size_t offset = 0;
+
+    for (size_t i = 0; i < requests.size(); i++) {
+        test_success(gribjump_new_request_from_path(&requests_from_paths_c[i], requests[i].c_str(), "file", offset,
+                                                    range_arr, range_arr_size, gridHash.c_str()));
+    }
+
+
     gribjump_handle_t* handle{};
     test_success(gribjump_new_handle(&handle));
 
