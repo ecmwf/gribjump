@@ -75,8 +75,6 @@ public:  // methods
     ExtractionRequest();
     ExtractionRequest(const std::string&, const std::vector<Range>&, std::string gridHash = "");
     explicit ExtractionRequest(eckit::Stream& s);
-    ExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
-                      const std::vector<Range>& ranges, const std::string& gridHash = "");
 
     const std::vector<Range>& ranges() const { return ranges_; }
     const std::string& requestString() const { return request_; }
@@ -95,6 +93,22 @@ private:  // members
     std::vector<Range> ranges_;
     std::string request_;
     std::string gridHash_;
+};
+
+class PathExtractionRequest {
+public:
+
+    PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+                          const std::vector<Range>& ranges, const std::string& gridHash = "");
+    const std::string path() const { return path_; }
+    const std::string scheme() const { return scheme_; }
+    const size_t offset() const { return offset_; }
+
+private:
+
+    std::string path_;
+    std::string scheme_;
+    size_t offset_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------

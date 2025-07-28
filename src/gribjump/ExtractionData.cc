@@ -179,14 +179,14 @@ ExtractionRequest::ExtractionRequest(const std::string& request, const std::vect
                                      std::string gridHash) :
     ranges_(ranges), request_(request), gridHash_(gridHash) {}
 
-ExtractionRequest::ExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
-                                     const std::vector<Range>& ranges, const std::string& gridHash) :
-    ranges_(ranges), gridHash_(gridHash) {
+// ExtractionRequest::ExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+//                                      const std::vector<Range>& ranges, const std::string& gridHash) :
+//     ranges_(ranges), gridHash_(gridHash) {
 
-    std::ostringstream oss;
-    oss << scheme << ":" << filename << "#" << offset;
-    request_ = oss.str();
-}
+//     std::ostringstream oss;
+//     oss << scheme << ":" << filename << "#" << offset;
+//     request_ = oss.str();
+// }
 
 ExtractionRequest::ExtractionRequest() {}
 
@@ -218,6 +218,15 @@ void ExtractionRequest::print(std::ostream& s) const {
 std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {
     o.print(s);
     return s;
+}
+
+PathExtractionRequest::PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+                                             const std::vector<Range>& ranges, const std::string& gridHash) :
+    ExtractionRequest("", ranges, gridHash), path_(filename), scheme_(scheme), offset_(offset) {
+
+    std::ostringstream oss;
+    oss << scheme << ":" << filename << "#" << offset;
+    request_ = oss.str();
 }
 
 }  // namespace gribjump
