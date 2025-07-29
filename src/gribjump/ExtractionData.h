@@ -98,16 +98,26 @@ private:  // members
 class PathExtractionRequest : public ExtractionRequest {
 public:
 
-    PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+    PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset, std::string& host, int port,
                           const std::vector<Range>& ranges, const std::string& gridHash = "");
     const std::string path() const { return path_; }
     const std::string scheme() const { return scheme_; }
     size_t offset() const { return offset_; }
 
+    std::string host() const {
+        return host_;
+    }
+
+    int port() const {
+        return port_;
+    }
+
 private:
 
     std::string path_;
     std::string scheme_;
+    std::string host_;
+    int port_;
     size_t offset_;
 };
 

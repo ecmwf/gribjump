@@ -220,9 +220,9 @@ std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {
     return s;
 }
 
-PathExtractionRequest::PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+PathExtractionRequest::PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset, std::string& host, int port,
                                              const std::vector<Range>& ranges, const std::string& gridHash) :
-    ExtractionRequest("", ranges, gridHash), path_(filename), scheme_(scheme), offset_(offset) {
+    ExtractionRequest("", ranges, gridHash), path_(filename), scheme_(scheme), host_(host), offset_(offset), port_(port) {
 
     std::ostringstream oss;
     oss << scheme << ":" << filename << "#" << offset;

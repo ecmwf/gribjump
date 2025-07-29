@@ -141,40 +141,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 }
 
 std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<PathExtractionRequest>& requests) {
-    eckit::Timer timer("RemoteGribJump::extract()", LogRouter::instance().get("timer"));
-    std::vector<std::unique_ptr<ExtractionResult>> result;
-
-    // connect to server
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
-    timer.report("Connection established");
-
-    sendHeader(stream, RequestType::EXTRACT_FROM_PATHS);
-
-    size_t nRequests = requests.size();
-    stream << nRequests;
-    for (auto& req : requests) {
-        stream << req;
-    }
-
-    std::stringstream ss;
-    ss << "Sent " << nRequests << " requests";
-    timer.report(ss.str());
-
-    // receive response
-
-    bool error = receiveErrors(stream);
-
-    for (size_t i = 0; i < nRequests; i++) {
-        std::vector<std::unique_ptr<ExtractionResult>> response;
-        size_t nfields;
-        stream >> nfields;
-        ASSERT(nfields == 1);  // temporary. Note will have to update remote protocol if we wish to not send this. Not
-                               // really a problem though.
-        result.push_back(std::make_unique<ExtractionResult>(stream));
-    }
-    timer.report("All data recieved");
-    return result;
+    NOTIMP;
 }
 
 // Forward extraction request to another server

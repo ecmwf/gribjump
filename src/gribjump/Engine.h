@@ -46,7 +46,7 @@ public:
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3);
 
-    TaskReport scheduleExtractionTasks(filemap_t& filemap);
+    TaskReport scheduleExtractionTasks(filemap_t& filemap,  bool forward=false);
 
 private:
 
@@ -54,7 +54,7 @@ private:
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
-    bool buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
+    void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
 };
