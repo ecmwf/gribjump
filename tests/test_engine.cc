@@ -172,14 +172,10 @@ CASE("Engine: Basic extraction") {
 
     std::vector<size_t> offsets = {0, 226, 452};
 
-    std::cout << "PROBLEM CONSTRUCTING PATHEXTRACTIONREQUESTS??" << std::endl;
-
     std::vector<PathExtractionRequest> exPathRequests;
     for (size_t i = 0; i < filenames.size(); i++) {
         exPathRequests.push_back(PathExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
     }
-
-    std::cout << "MADE IT HERE??" << std::endl;
 
     auto [results_path, report_path] = engine.extract(exPathRequests);
     EXPECT_NO_THROW(report_path.raiseErrors());
