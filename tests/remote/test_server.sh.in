@@ -45,5 +45,5 @@ echo $! > $pidfile
 sleep 1
 
 # --- Run the client test
-env GRIBJUMP_CONFIG_FILE=$fdbconfig $clientconfig $test
+env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$clientconfig $test
 exit $?
