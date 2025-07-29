@@ -158,13 +158,11 @@ filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
     for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
         // key is a std::string, assumed to represent a URI string
-        eckit::URI uri(key);
 
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
-        extractionItem->URI(uri);
 
         // Add to filemap
-        eckit::PathName fname = uri.path();
+        eckit::PathName fname = extractionItem->URI().path();
         auto it               = filemap.find(fname);
         if (it == filemap.end()) {
             std::vector<ExtractionItem*> extractionItems;
