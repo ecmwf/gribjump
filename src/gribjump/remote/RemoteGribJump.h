@@ -21,7 +21,6 @@ namespace gribjump {
 
 enum class RequestType : uint16_t {
     EXTRACT = 0,
-    EXTRACT_FROM_PATHS,
     AXES,
     SCAN,
     FORWARD_EXTRACT,

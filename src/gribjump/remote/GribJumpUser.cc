@@ -80,9 +80,6 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
         case RequestType::EXTRACT:
             processRequest<ExtractRequest>(s);
             break;
-        case RequestType::EXTRACT_FROM_PATHS:
-            processRequest<ExtractFromPathsRequest>(s);
-            break;
         case RequestType::AXES:
             processRequest<AxesRequest>(s);
             break;
