@@ -168,7 +168,7 @@ class ExtractionRequest:
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
     @classmethod
-    def from_path(cls, path: str, scheme: str, offset: int,
+    def from_path(cls, path: str, scheme: str, offset: int, host: str, port: int,
                   ranges: list[tuple[int, int]], gridHash: str = None):
         """
         Create a request from a file path, scheme and offset.
@@ -186,6 +186,8 @@ class ExtractionRequest:
         c_path = ffi.new("char[]", path.encode())
         c_scheme = ffi.new("char[]", scheme.encode())
         c_offset = offset
+        c_host = ffi.new("char[]", host.encode())
+        c_port = port
         c_hash = ffi.NULL if gridHash is None else ffi.new(
             "char[]", gridHash.encode())
 
@@ -200,7 +202,7 @@ class ExtractionRequest:
 
         request = ffi.new("gribjump_path_extraction_request_t**")
         lib.gribjump_new_request_from_path(
-            request, c_path, c_scheme, c_offset, c_ranges, len(ranges) * 2, c_hash)
+            request, c_path, c_scheme, c_offset, c_host, c_port, c_ranges, len(ranges) * 2, c_hash)
         self.__request = ffi.gc(request[0], lib.gribjump_delete_path_request)
         return self
 
@@ -540,16 +542,16 @@ class GribJump:
     def _unpack_polyrequest_w_paths(self, polyrequest) -> list[ExtractionRequest]:
         requests = []
         for item in polyrequest:
-            if len(item) == 4:
-                path, scheme, offset, ranges = item
+            if len(item) == 6:
+                path, scheme, offset, host, port, ranges = item
                 hash = None
-            elif len(item) == 5:
-                path, scheme, offset, ranges, hash = item
+            elif len(item) == 7:
+                path, scheme, offset, host, port, ranges, hash = item
             else:
                 raise ValueError(
                     "Polyrequest should be a list of tuples of length 4 or 5")
             requests.append(ExtractionRequest.from_path(
-                path, scheme, offset, list(ranges), hash))
+                path, scheme, offset, host, port, list(ranges), hash))
         return requests
 
     def axes(self, req: dict[str, str], level: int = 3, ctx: str = None) -> dict[str, list[str]]:

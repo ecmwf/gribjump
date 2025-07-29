@@ -11,9 +11,6 @@ fdbwrite="$<TARGET_FILE:fdb-write>"
 gjserver="$<TARGET_FILE:gribjump-server>"
 test="$<TARGET_FILE:gribjump_test_remote_exe>"
 
-forwardtest="$<TARGET_FILE:gribjump_test_forward_exe>"
-forwardclient="$srcdir/forwarding_client.yaml"
-
 serverconfig=$srcdir/server.yaml
 clientconfig=$srcdir/client.yaml
 fdbconfig=$bindir/fdb_config.yaml
@@ -48,8 +45,5 @@ echo $! > $pidfile
 sleep 1
 
 # --- Run the client test
-env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$clientconfig $test
-
-env FDB5_CONFIG_FILE=$forwardclient GRIBJUMP_CONFIG_FILE=$clientconfig $forwardtest
-
+env GRIBJUMP_CONFIG_FILE=$fdbconfig $clientconfig $test
 exit $?

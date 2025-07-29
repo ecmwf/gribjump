@@ -174,7 +174,8 @@ CASE("Engine: Basic extraction") {
 
     std::vector<PathExtractionRequest> exPathRequests;
     for (size_t i = 0; i < filenames.size(); i++) {
-        exPathRequests.push_back(PathExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
+        exPathRequests.push_back(
+            PathExtractionRequest(filenames[i], scheme, offsets[i], "", 0, allIntervals[i], gridHash));
     }
 
     auto [results_path, report_path] = engine.extract(exPathRequests);

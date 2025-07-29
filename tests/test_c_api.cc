@@ -107,7 +107,7 @@ CASE("Extract") {
 
     for (size_t i = 0; i < paths.size(); i++) {
         test_success(gribjump_new_request_from_path(&requests_from_paths_c[i], paths[i].c_str(), scheme.c_str(),
-                                                    offsets[i], range_arr, range_arr_size, gridHash.c_str()));
+                                                    offsets[i], "", 0, range_arr, range_arr_size, gridHash.c_str()));
     }
 
     gribjump_handle_t* handle{};

@@ -166,12 +166,13 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
 }
 
 gribjump_error_t gribjump_new_request_from_path(gribjump_path_extraction_request_t** request, const char* filename,
-                                                const char* scheme, size_t offset, const size_t* range_arr,
-                                                size_t range_arr_size, const char* gridhash) {
+                                                const char* scheme, size_t offset, const char* host, int port,
+                                                const size_t* range_arr, size_t range_arr_size, const char* gridhash) {
     return tryCatch([=] {
         ASSERT(request);
         ASSERT(filename);
         ASSERT(scheme);
+        ASSERT(host);
         ASSERT(range_arr);
         ASSERT(range_arr_size % 2 == 0);
         std::vector<Range> ranges;
@@ -180,7 +181,7 @@ gribjump_error_t gribjump_new_request_from_path(gribjump_path_extraction_request
         }
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
-        *request = new gribjump_path_extraction_request_t(filename, scheme, offset, ranges, gridhash_str);
+        *request = new gribjump_path_extraction_request_t(filename, scheme, offset, host, port, ranges, gridhash_str);
     });
 }
 
