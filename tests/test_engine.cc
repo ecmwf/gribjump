@@ -20,8 +20,6 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
-#include "fdb5/api/FDB.h"
-
 #include "metkit/codes/GribHandle.h"
 #include "metkit/mars/MarsExpension.h"
 #include "metkit/mars/MarsParser.h"
@@ -34,6 +32,7 @@
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "path_tools.cc"
 
 using namespace eckit::testing;
 
@@ -160,6 +159,59 @@ CASE("Engine: Basic extraction") {
     }
     // only count the 3 intervals with data
     EXPECT(count == 45);
+
+
+    fdb5::FDB fdb;
+    std::vector<std::string> filenames = {};
+    for (size_t i = 0; i < requests.size(); i++) {
+        std::string mars_str = "retrieve," + requests[i];
+        std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
+        filenames.push_back(path_str);
+    }
+
+    std::string scheme = "file";
+
+    std::vector<size_t> offsets = {0, 226, 452};
+
+    ExtractionRequests exPathRequests;
+    for (size_t i = 0; i < filenames.size(); i++) {
+        exPathRequests.push_back(PathExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
+    }
+
+    auto [results_path, report_path] = engine.extract_from_paths(exPathRequests);
+    EXPECT_NO_THROW(report_path.raiseErrors());
+
+    // print contents of map
+    for (auto& [req, ex] : results_path) {
+        LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
+        ex->debug_print();
+    }
+
+    // Check correct values
+    size_t count_path = 0;
+    for (size_t i = 0; i < 3; i++) {
+        metkit::mars::MarsRequest req   = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
+        std::vector<Interval> intervals = allIntervals[i];
+        auto& ex                        = results[exPathRequests[i].requestString()];
+        auto comparisonValues           = eccodesExtract(req, intervals);
+        ASSERT(comparisonValues.size() == 1);  // @todo: drop a dimension in the eccodesExtract functions
+        size_t j = 0;
+        for (size_t k = 0; k < comparisonValues[j].size(); k++) {
+            for (size_t l = 0; l < comparisonValues[j][k].size(); l++) {
+                count_path++;
+                double v = ex->values()[k][l];
+                if (std::isnan(v)) {
+                    EXPECT(comparisonValues[j][k][l] == 9999);
+                    continue;
+                }
+
+                EXPECT(comparisonValues[j][k][l] == v);
+            }
+        }
+    }
+    // only count the 3 intervals with data
+    EXPECT(count_path == 45);
+
 
 #if 0
     // --- Extract (test 2)
