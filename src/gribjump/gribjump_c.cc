@@ -271,7 +271,8 @@ gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump
         if (ctx)
             logctx = LogContext(ctx);
 
-        *iterator = new gribjump_extractioniterator_t(handle->extract_from_paths(reqs, logctx));
+        // *iterator = new gribjump_extractioniterator_t(handle->extract_from_paths(reqs, logctx));
+        *iterator = new gribjump_extractioniterator_t(handle->extract(reqs, logctx));
     });
 }
 

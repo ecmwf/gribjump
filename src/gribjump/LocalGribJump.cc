@@ -103,7 +103,18 @@ std::vector<std::unique_ptr<ExtractionResult>> collect_results(ExtractionRequest
     return extractionResults;
 }
 
-std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
+// std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
+
+//     auto [results, report] = Engine().extract(requests);
+//     report.raiseErrors();
+
+//     std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
+
+//     return extractionResults;
+// }
+
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(
+    std::vector<std::shared_ptr<ExtractionRequest>>& requests) {
 
     auto [results, report] = Engine().extract(requests);
     report.raiseErrors();
@@ -113,15 +124,15 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(Extraction
     return extractionResults;
 }
 
-std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract_from_paths(ExtractionRequests& requests) {
+// std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract_from_paths(ExtractionRequests& requests) {
 
-    auto [results, report] = Engine().extract_from_paths(requests);
-    report.raiseErrors();
+//     auto [results, report] = Engine().extract_from_paths(requests);
+//     report.raiseErrors();
 
-    std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
+//     std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
 
-    return extractionResults;
-}
+//     return extractionResults;
+// }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {
     return Engine().axes(request, level);
