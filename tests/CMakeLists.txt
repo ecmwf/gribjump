@@ -101,16 +101,6 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
-    TARGET "gribjump_test_engine_extract_from_paths"
-    SOURCES "test_engine_extract_from_paths.cc"
-    INCLUDES "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT "${gribjump_env}"
-    TEST_DEPENDS gribjump_test_data_files
-    NO_AS_NEEDED
-    LIBS gribjump
-)
-
-ecbuild_add_test(
     TARGET "gribjump_test_cache"
     SOURCES "test_cache.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
