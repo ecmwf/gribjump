@@ -36,7 +36,8 @@ public:
     ~Engine();
 
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
-    TaskOutcome<ResultsMap> extract_from_paths(ExtractionRequests& requests);
+    // TaskOutcome<ResultsMap> extract_from_paths(ExtractionRequests& requests);
+    TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
     // byfiles: scan entire file, not just fields matching request
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false);
@@ -53,7 +54,7 @@ private:
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
-    bool buildRequestURIsMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
+    bool buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
 };

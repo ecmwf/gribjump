@@ -151,7 +151,8 @@ ExtractFromPathsRequest::ExtractFromPathsRequest(eckit::Stream& stream) : Reques
 
 void ExtractFromPathsRequest::execute() {
 
-    auto [results, report] = engine_.extract_from_paths(requests_);
+    // auto [results, report] = engine_.extract_from_paths(requests_);
+    auto [results, report] = engine_.extract(requests_);
     results_               = std::move(results);
     report_                = std::move(report);
 

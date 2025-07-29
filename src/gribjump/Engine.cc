@@ -115,7 +115,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
 }
 
 
-bool Engine::buildRequestURIsMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
+bool Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem) {
     for (auto& r : requests) {
         const std::string& s = r.requestString();
 
@@ -193,7 +193,7 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 }
 
 
-TaskOutcome<ResultsMap> Engine::extract_from_paths(ExtractionRequests& requests) {
+TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
 
     eckit::Timer timer("Engine::extract", LogRouter::instance().get("timer"));
 

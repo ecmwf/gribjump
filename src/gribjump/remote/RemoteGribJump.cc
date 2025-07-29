@@ -140,8 +140,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     return result;
 }
 
-std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract_from_paths(
-    std::vector<ExtractionRequest>& requests) {
+std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<PathExtractionRequest>& requests) {
     eckit::Timer timer("RemoteGribJump::extract()", LogRouter::instance().get("timer"));
     std::vector<std::unique_ptr<ExtractionResult>> result;
 

@@ -50,7 +50,7 @@ public:
 
     virtual std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>&) = 0;
 
-    virtual std::vector<std::unique_ptr<ExtractionResult>> extract_from_paths(ExtractionRequests& requests) = 0;
+    virtual std::vector<std::unique_ptr<ExtractionResult>> extract(PathExtractionRequests& requests) = 0;
 
     virtual std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
                                                                    const std::vector<eckit::Offset>& offsets,

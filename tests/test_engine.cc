@@ -160,10 +160,9 @@ CASE("Engine: Basic extraction") {
     // only count the 3 intervals with data
     EXPECT(count == 45);
 
-
     fdb5::FDB fdb;
     std::vector<std::string> filenames = {};
-    for (size_t i = 0; i < requests.size(); i++) {
+    for (size_t i = 0; i < requests.size() - 1; i++) {
         std::string mars_str = "retrieve," + requests[i];
         std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
         filenames.push_back(path_str);
@@ -173,12 +172,12 @@ CASE("Engine: Basic extraction") {
 
     std::vector<size_t> offsets = {0, 226, 452};
 
-    ExtractionRequests exPathRequests;
+    std::vector<PathExtractionRequest> exPathRequests;
     for (size_t i = 0; i < filenames.size(); i++) {
         exPathRequests.push_back(PathExtractionRequest(filenames[i], scheme, offsets[i], allIntervals[i], gridHash));
     }
 
-    auto [results_path, report_path] = engine.extract_from_paths(exPathRequests);
+    auto [results_path, report_path] = engine.extract(exPathRequests);
     EXPECT_NO_THROW(report_path.raiseErrors());
 
     // print contents of map
@@ -192,7 +191,7 @@ CASE("Engine: Basic extraction") {
     for (size_t i = 0; i < 3; i++) {
         metkit::mars::MarsRequest req   = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
         std::vector<Interval> intervals = allIntervals[i];
-        auto& ex                        = results[exPathRequests[i].requestString()];
+        auto& ex                        = results_path[exPathRequests[i].requestString()];
         auto comparisonValues           = eccodesExtract(req, intervals);
         ASSERT(comparisonValues.size() == 1);  // @todo: drop a dimension in the eccodesExtract functions
         size_t j = 0;

@@ -262,7 +262,7 @@ gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump
                                              unsigned long nrequests, const char* ctx,
                                              gribjump_extractioniterator_t** iterator) {
     return tryCatch([=] {
-        std::vector<ExtractionRequest> reqs;
+        std::vector<PathExtractionRequest> reqs;
         for (size_t i = 0; i < nrequests; i++) {
             reqs.push_back(*requests[i]);
         }
@@ -271,7 +271,7 @@ gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump
         if (ctx)
             logctx = LogContext(ctx);
 
-        *iterator = new gribjump_extractioniterator_t(handle->extract_from_paths(reqs, logctx));
+        *iterator = new gribjump_extractioniterator_t(handle->extract(reqs, logctx));
     });
 }
 

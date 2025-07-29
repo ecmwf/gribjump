@@ -48,8 +48,7 @@ public:
     // Extract from a vector of requests
     ExtractionIterator extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx = LogContext());
 
-    ExtractionIterator extract_from_paths(std::vector<ExtractionRequest>& requests,
-                                          const LogContext& ctx = LogContext());
+    ExtractionIterator extract(std::vector<PathExtractionRequest>& requests, const LogContext& ctx = LogContext());
 
     // Extract from all fields matching a mars request (which will be expanded into a vector of ExtractionRequests)
     ExtractionIterator extract(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges,

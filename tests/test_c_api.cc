@@ -110,7 +110,6 @@ CASE("Extract") {
                                                     offsets[i], range_arr, range_arr_size, gridHash.c_str()));
     }
 
-
     gribjump_handle_t* handle{};
     test_success(gribjump_new_handle(&handle));
 

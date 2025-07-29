@@ -67,13 +67,13 @@ ExtractionIterator GribJump::extract(std::vector<ExtractionRequest>& requests, c
     return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
 }
 
-ExtractionIterator GribJump::extract_from_paths(std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
+ExtractionIterator GribJump::extract(std::vector<PathExtractionRequest>& requests, const LogContext& ctx) {
     ContextManager::instance().set(ctx);
 
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
     }
-    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract_from_paths(requests))};
+    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
 }
 
 ExtractionIterator GribJump::extract(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges,
