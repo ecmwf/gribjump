@@ -34,11 +34,9 @@ public:
 
     size_t scan(const std::vector<MarsRequest>& requests, bool byfiles) override;
 
-    // std::vector<std::unique_ptr<ExtractionResult>> extract(ExtractionRequests& requests) override;
-    std::vector<std::unique_ptr<ExtractionResult>> extract(
-        std::vector<std::shared_ptr<ExtractionRequest>>& requests) override;
+    std::vector<std::unique_ptr<ExtractionResult>> extract(ExtractionRequests& requests) override;
 
-    // std::vector<std::unique_ptr<ExtractionResult>> extract_from_paths(ExtractionRequests& requests) override;
+    std::vector<std::unique_ptr<ExtractionResult>> extract(PathExtractionRequests& requests) override;
 
     std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
                                                            const std::vector<eckit::Offset>& offsets,

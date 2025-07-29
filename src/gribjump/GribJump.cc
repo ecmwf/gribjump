@@ -58,15 +58,7 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 ///        Perhaps we can do this check deeper in the code, when it is explicitly required.
 /// @note: Future note: we may switch VectorSource to a queue or something similar for better streaming support, but
 /// ideally the API should not change.
-// ExtractionIterator GribJump::extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
-//     ContextManager::instance().set(ctx);
-
-//     if (requests.empty()) {
-//         throw eckit::UserError("Requests must not be empty", Here());
-//     }
-//     return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
-// }
-ExtractionIterator GribJump::extract(std::vector<std::shared_ptr<ExtractionRequest>>& requests, const LogContext& ctx) {
+ExtractionIterator GribJump::extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
     ContextManager::instance().set(ctx);
 
     if (requests.empty()) {
@@ -75,14 +67,14 @@ ExtractionIterator GribJump::extract(std::vector<std::shared_ptr<ExtractionReque
     return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
 }
 
-// ExtractionIterator GribJump::extract_from_paths(std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
-//     ContextManager::instance().set(ctx);
+ExtractionIterator GribJump::extract(std::vector<PathExtractionRequest>& requests, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
 
-//     if (requests.empty()) {
-//         throw eckit::UserError("Requests must not be empty", Here());
-//     }
-//     return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract_from_paths(requests))};
-// }
+    if (requests.empty()) {
+        throw eckit::UserError("Requests must not be empty", Here());
+    }
+    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
+}
 
 ExtractionIterator GribJump::extract(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges,
                                      const std::string& gridHash, const LogContext& ctx) {

@@ -44,7 +44,7 @@ public:  // methods
 
     std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>& polyRequest) override;
 
-    std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<PathExtractionRequest>& requests);
+    std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<PathExtractionRequest>& requests) override;
 
     // std::vector<std::unique_ptr<ExtractionResult>> extract_from_paths(ExtractionRequests& requests) override;
 
