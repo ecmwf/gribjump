@@ -110,6 +110,9 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
+        std::cout << "ARE INSIDE THE C++ filemap" << std::endl;
+        std::cout << uri << std::endl;
+
         // Add to filemap
         eckit::PathName fname = uri.path();
         auto it               = filemap.find(fname);

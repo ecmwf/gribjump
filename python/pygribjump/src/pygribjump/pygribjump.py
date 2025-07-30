@@ -335,6 +335,17 @@ class ExtractionIteratorFromPath(ExtractionIterator):
         self.__iterator = ffi.gc(
             iterator[0], lib.gribjump_extractioniterator_delete)
 
+    def __iter__(self):
+        """
+        Iterate over the results of the extraction.
+        """
+        result_c = ffi.new('gribjump_extraction_result_t**')
+        i = 0
+        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
+            # Takes ownership of the result
+            yield ExtractionResult(result_c[0], self.__shapes[i])
+            i += 1
+
 
 # Extraction iterator produced by a single request of arbitrary cardinality.
 class ExtractionSingleIterator (ExtractionIterator):
@@ -549,7 +560,7 @@ class GribJump:
                 path, scheme, offset, host, port, ranges, hash = item
             else:
                 raise ValueError(
-                    "Polyrequest should be a list of tuples of length 4 or 5")
+                    "Polyrequest should be a list of tuples of length 6 or 7")
             requests.append(ExtractionRequest.from_path(
                 path, scheme, offset, host, port, list(ranges), hash))
         return requests
