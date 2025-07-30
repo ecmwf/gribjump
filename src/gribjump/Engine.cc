@@ -184,7 +184,7 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     timer.reset("Gribjump Engine: Built file map");
 
     // Schedule tasks
-    bool forward = LibGribJump::instance().config().getBool("forwardExtraction", false);
+    bool forward      = LibGribJump::instance().config().getBool("forwardExtraction", false);
     TaskReport report = scheduleExtractionTasks(filemap, forward);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
@@ -210,9 +210,14 @@ TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
     filemap_t filemap = buildFileMapfromPaths(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
-    
+
     // Schedule tasks
-    TaskReport report = scheduleExtractionTasks(filemap);
+    // TODO: If there is no host and port, set forward to false, otherwise to true
+    bool forward = true;
+    if (requests[0].host() == "" and requests[0].port() == 0) {
+        forward = false;
+    }
+    TaskReport report = scheduleExtractionTasks(filemap, forward);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 

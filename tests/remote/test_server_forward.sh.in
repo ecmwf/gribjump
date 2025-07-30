@@ -9,9 +9,11 @@ srcdir="@CMAKE_CURRENT_SOURCE_DIR@"
 bindir="@CMAKE_CURRENT_BINARY_DIR@"
 fdbwrite="$<TARGET_FILE:fdb-write>"
 gjserver="$<TARGET_FILE:gribjump-server>"
-test="$<TARGET_FILE:gribjump_test_remote_exe>"
+test="$<TARGET_FILE:gribjump_test_remote_forward_exe>"
 
 serverconfig=$srcdir/server.yaml
+forward_client=$srcdir/forwarding_client.yaml
+
 clientconfig=$srcdir/client.yaml
 fdbconfig=$bindir/fdb_config.yaml
 fdbrootdir=$bindir/fdb_root
@@ -45,6 +47,6 @@ echo $! > $pidfile
 sleep 1
 
 # --- Run the client test
-env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$clientconfig $test
+env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$forward_client $test
 
 exit $?
