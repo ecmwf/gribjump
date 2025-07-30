@@ -17,8 +17,6 @@
 #include "gribjump/Lister.h"
 #include "gribjump/URIHelper.h"
 
-#include <iostream>
-
 namespace gribjump {
 
 //  ------------------------------------------------------------------
@@ -109,9 +107,6 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         eckit::URI uri                 = elem.location().fullUri();
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
-
-        std::cout << "ARE INSIDE THE C++ filemap" << std::endl;
-        std::cout << uri << std::endl;
 
         // Add to filemap
         eckit::PathName fname = uri.path();

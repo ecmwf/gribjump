@@ -211,8 +211,7 @@ TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
-    // Schedule tasks
-    // TODO: If there is no host and port, set forward to false, otherwise to true
+    // Schedule tasks: if there is no host and port, set forward to false, otherwise set to true
     bool forward = true;
     if (requests[0].host() == "" and requests[0].port() == 0) {
         forward = false;

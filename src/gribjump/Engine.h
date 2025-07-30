@@ -36,7 +36,6 @@ public:
     ~Engine();
 
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
-    // TaskOutcome<ResultsMap> extract_from_paths(ExtractionRequests& requests);
     TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
     // byfiles: scan entire file, not just fields matching request
@@ -46,7 +45,7 @@ public:
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3);
 
-    TaskReport scheduleExtractionTasks(filemap_t& filemap,  bool forward=false);
+    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false);
 
 private:
 

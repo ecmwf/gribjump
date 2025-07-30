@@ -147,8 +147,6 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 // Forward extraction request to another server
 void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 
-    std::cout << "MAKE SURE WE FORWARDED THE EXTRACTION" << std::endl;
-
     eckit::Timer timer("RemoteGribJump::forwardExtract()", LogRouter::instance().get("timer"));
 
     ///@todo we could probably do the connection logic in the ctor

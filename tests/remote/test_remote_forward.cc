@@ -51,8 +51,6 @@ CASE("Remote protocol: Forwarding with paths") {
         {std::make_pair(0, 5), std::make_pair(20, 30)},
     };
 
-    std::cout << "STARTED HERE?" << std::endl;
-
     fdb5::FDB fdb;
     std::vector<std::string> filenames = {};
     for (size_t i = 0; i < requests.size(); i++) {
@@ -65,13 +63,9 @@ CASE("Remote protocol: Forwarding with paths") {
 
     std::vector<size_t> offsets = {0, 226};
 
-    // std::string host = "localhost";
     std::string host = "dummy_host";
 
-    // int port = 57777;
     int port = 1234;
-
-    std::cout << "ARE HERE?" << std::endl;
 
     std::vector<PathExtractionRequest> exRequests;
     for (size_t i = 0; i < requests.size(); i++) {
@@ -79,7 +73,6 @@ CASE("Remote protocol: Forwarding with paths") {
             PathExtractionRequest(filenames[i], scheme, offsets[i], host, port, allIntervals[i], gridHash));
     }
 
-    std::cout << "AND NOW HERE?" << std::endl;
 
     GribJump gribjump;
 
@@ -93,11 +86,7 @@ CASE("Remote protocol: Forwarding with paths") {
 
     LogContext ctx(ss.str());
 
-    std::cout << "CREATED CONTEXT?" << std::endl;
-
     std::vector<std::unique_ptr<ExtractionResult>> output = gribjump.extract(exRequests, ctx).dumpVector();
-
-    std::cout << "EXTRACTED?" << std::endl;
 
     EXPECT_EQUAL(output.size(), 2);
     for (size_t i = 0; i < output.size(); i++) {
