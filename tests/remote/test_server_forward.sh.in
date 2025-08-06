@@ -11,7 +11,7 @@ fdbwrite="$<TARGET_FILE:fdb-write>"
 gjserver="$<TARGET_FILE:gribjump-server>"
 test="$<TARGET_FILE:gribjump_test_remote_forward_exe>"
 
-serverconfig=$srcdir/server.yaml
+serverconfig=$srcdir/server_forward.yaml
 forward_client=$srcdir/forwarding_client.yaml
 
 clientconfig=$srcdir/client.yaml
@@ -42,7 +42,7 @@ env FDB5_CONFIG_FILE=$fdbconfig $fdbwrite $fdbdata
 
 # --- Start the server in the background.
 trap cleanup EXIT # Ensure cleanup is called when the script exits
-env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$serverconfig GRIBJUMP_SERVER_PORT=57777 DHS_METRICS_FILE=$metricsfile $gjserver &
+env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$serverconfig GRIBJUMP_SERVER_PORT=57778 DHS_METRICS_FILE=$metricsfile $gjserver &
 echo $! > $pidfile
 sleep 1
 
