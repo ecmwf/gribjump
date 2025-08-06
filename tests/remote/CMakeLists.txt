@@ -25,11 +25,3 @@ ecbuild_add_test(
     TEST_DEPENDS gribjump_test_data_files gribjump_test_remote_exe gribjump_test_remote_forward_exe
     LABELS    remote
 )
-
-# ecbuild_add_test(
-#     TARGET    gribjump_test_remote_forward
-#     TYPE      SCRIPT
-#     COMMAND   gribjump_test_server.sh
-#     TEST_DEPENDS gribjump_test_data_files gribjump_test_remote_forward_exe
-#     LABELS    remote
-# )
