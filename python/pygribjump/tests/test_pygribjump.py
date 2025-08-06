@@ -15,8 +15,6 @@ import shutil
 import numpy as np
 import pytest
 import yaml
-import re
-import subprocess
 
 # Do not reorder the imports otherwise this will trigger an assertion in eckits
 # library registration handling.
