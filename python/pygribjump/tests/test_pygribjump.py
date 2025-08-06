@@ -20,7 +20,7 @@ import subprocess
 
 # Do not reorder the imports otherwise this will trigger an assertion in eckits
 # library registration handling.
-from pygribjump import GribJump, ExtractionRequest, ExtractionResult
+from pygribjump import GribJump, ExtractionRequest, ExtractionResult, PathExtractionRequest
 import pyfdb
 
 synthetic_data = [
@@ -267,7 +267,7 @@ def test_extract_from_paths(read_only_fdb_setup) -> None:
     scheme = "file"
     offsets = [660]
 
-    polyrequest = [(filenames[i], scheme, offsets[i], host, port, ranges[i])
+    polyrequest = [PathExtractionRequest(filenames[i], scheme, offsets[i], host, port, ranges[i])
                    for i in range(len(offsets))]
 
     for i, result in enumerate(gribjump.extract_from_paths(polyrequest, ctx=context)):

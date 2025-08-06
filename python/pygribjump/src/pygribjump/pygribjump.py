@@ -168,45 +168,6 @@ class ExtractionRequest:
         self.__request = ffi.gc(request[0], lib.gribjump_delete_request)
 
     @classmethod
-    def from_path(cls, path: str, scheme: str, offset: int, host: str, port: int,
-                  ranges: list[tuple[int, int]], gridHash: str = None):
-        """
-        Create a request from a file path, scheme and offset.
-        """
-
-        if not ranges:
-            raise ValueError(
-                f"Must provide at least one range but found {ranges=}")
-
-        self = cls.__new__(cls)
-        self.__shape = []
-        self.__ranges = ranges.copy()
-
-        # Prepare arguments for C call
-        c_path = ffi.new("char[]", path.encode())
-        c_scheme = ffi.new("char[]", scheme.encode())
-        c_offset = offset
-        c_host = ffi.new("char[]", host.encode())
-        c_port = port
-        c_hash = ffi.NULL if gridHash is None else ffi.new(
-            "char[]", gridHash.encode())
-
-        # Flatten ranges
-        c_ranges = ffi.new("size_t[]", len(ranges) * 2)
-        for i, (lo, hi) in enumerate(ranges):
-            if not lo < hi:
-                raise ValueError(f"Invalid range {lo, hi}: expected lo < hi.")
-            c_ranges[i * 2] = lo
-            c_ranges[i * 2 + 1] = hi
-            self.__shape.append(hi - lo)
-
-        request = ffi.new("gribjump_path_extraction_request_t**")
-        lib.gribjump_new_request_from_path(
-            request, c_path, c_scheme, c_offset, c_host, c_port, c_ranges, len(ranges) * 2, c_hash)
-        self.__request = ffi.gc(request[0], lib.gribjump_delete_path_request)
-        return self
-
-    @classmethod
     def from_mask(cls, req: dict[str, str], mask: np.ndarray, gridHash: str = None):
         """
         Create a request from a boolean mask.
@@ -259,6 +220,59 @@ class ExtractionRequest:
         return np.fromiter(idx_iter, int, count=total)
 
 
+class PathExtractionRequest:
+    def __init__(self, path: str, scheme: str, offset: int, host: str, port: int,
+                 ranges: list[tuple[int, int]], gridHash: str = None):
+        """
+        Create a request from a file path, scheme and offset.
+        """
+
+        if not ranges:
+            raise ValueError(
+                f"Must provide at least one range but found {ranges=}")
+
+        self.__shape = []
+        self.__ranges = ranges.copy()
+
+        # Prepare arguments for C call
+        c_path = ffi.new("char[]", path.encode())
+        c_scheme = ffi.new("char[]", scheme.encode())
+        c_offset = offset
+        c_host = ffi.new("char[]", host.encode())
+        c_port = port
+        c_hash = ffi.NULL if gridHash is None else ffi.new(
+            "char[]", gridHash.encode())
+
+        # Flatten ranges
+        c_ranges = ffi.new("size_t[]", len(ranges) * 2)
+        for i, (lo, hi) in enumerate(ranges):
+            if not lo < hi:
+                raise ValueError(f"Invalid range {lo, hi}: expected lo < hi.")
+            c_ranges[i * 2] = lo
+            c_ranges[i * 2 + 1] = hi
+            self.__shape.append(hi - lo)
+
+        request = ffi.new("gribjump_path_extraction_request_t**")
+        lib.gribjump_new_request_from_path(
+            request, c_path, c_scheme, c_offset, c_host, c_port, c_ranges, len(ranges) * 2, c_hash)
+        self.__request = ffi.gc(request[0], lib.gribjump_delete_path_request)
+
+    @property
+    def shape(self):
+        return self.__shape
+
+    @property
+    def ctype(self):
+        return self.__request
+
+    @property
+    def ranges(self) -> list[tuple[int, int]]:
+        """
+        Return the ranges as a list of tuples.
+        """
+        return self.__ranges
+
+
 class ExtractionIterator:
     """
     A class taking owernship of a GribJump extraction iterator.
@@ -272,14 +286,14 @@ class ExtractionIterator:
     """
 
     def __init__(self, gribjump: CData, requests: list[ExtractionRequest], ctx: CData):
-        self.__shapes = [r.shape for r in requests]
+        self._shapes = [r.shape for r in requests]
         iterator = ffi.new('gribjump_extractioniterator_t**')
         c_requests = ffi.new(
             'gribjump_extraction_request_t*[]', [r.ctype for r in requests])
 
         lib.gribjump_extract(gribjump, c_requests,
                              len(requests), ctx, iterator)
-        self.__iterator = ffi.gc(
+        self._iterator = ffi.gc(
             iterator[0], lib.gribjump_extractioniterator_delete)
 
     def __iter__(self):
@@ -288,9 +302,9 @@ class ExtractionIterator:
         """
         result_c = ffi.new('gribjump_extraction_result_t**')
         i = 0
-        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
+        while lib.gribjump_extractioniterator_next(self._iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
             # Takes ownership of the result
-            yield ExtractionResult(result_c[0], self.__shapes[i])
+            yield ExtractionResult(result_c[0], self._shapes[i])
             i += 1
 
     def dump_legacy(self):
@@ -325,26 +339,15 @@ class ExtractionIterator:
 
 class ExtractionIteratorFromPath(ExtractionIterator):
     def __init__(self, gribjump: CData, requests: list[ExtractionRequest], ctx: CData):
-        self.__shapes = [r.shape for r in requests]
+        self._shapes = [r.shape for r in requests]
         iterator = ffi.new('gribjump_extractioniterator_t**')
         c_requests = ffi.new(
             'gribjump_path_extraction_request_t*[]', [r.ctype for r in requests])
 
         lib.gribjump_extract_from_paths(gribjump, c_requests,
                                         len(requests), ctx, iterator)
-        self.__iterator = ffi.gc(
+        self._iterator = ffi.gc(
             iterator[0], lib.gribjump_extractioniterator_delete)
-
-    def __iter__(self):
-        """
-        Iterate over the results of the extraction.
-        """
-        result_c = ffi.new('gribjump_extraction_result_t**')
-        i = 0
-        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
-            # Takes ownership of the result
-            yield ExtractionResult(result_c[0], self.__shapes[i])
-            i += 1
 
 
 # Extraction iterator produced by a single request of arbitrary cardinality.
@@ -369,7 +372,7 @@ class ExtractionSingleIterator (ExtractionIterator):
         iterator = ffi.new('gribjump_extractioniterator_t**')
         lib.gribjump_extract_single(
             gribjump, c_reqstr, c_ranges, c_ranges_size, c_hash, ctx, iterator)
-        self.__iterator = ffi.gc(
+        self._iterator = ffi.gc(
             iterator[0], lib.gribjump_extractioniterator_delete)
 
     def __iter__(self):
@@ -378,7 +381,7 @@ class ExtractionSingleIterator (ExtractionIterator):
         """
         result_c = ffi.new('gribjump_extraction_result_t**')
         i = 0
-        while lib.gribjump_extractioniterator_next(self.__iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
+        while lib.gribjump_extractioniterator_next(self._iterator, result_c) == lib.GRIBJUMP_ITERATOR_SUCCESS:
             yield ExtractionResult(result_c[0], self.__shape)
             i += 1
 
@@ -441,41 +444,8 @@ class GribJump:
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIterator(self.ctype, requests, logctx_c)
 
-    def extract_from_paths(self, polyrequest: list[tuple[str, list[tuple[int, int]]]], ctx=None) -> ExtractionIterator:
-        """
-        Extract a list of requests.
-        Note: if a list of requests is passed, they must all have cardinality 1.
-        If a single request is passed, it may have any cardinality.
-        Parameters
-        ----------
-        polyrequest : [
-            (req1_str, [(lo, hi), (lo, hi), ...])
-            (req2_str, [(lo, hi), (lo, hi), ...])
-            ...
-        ]
-
-        """
+    def extract_from_paths(self, requests: list[PathExtractionRequest], ctx=None) -> ExtractionIterator:
         ctx = merge_default_context(ctx, "pygribjump_extract")
-
-        # must be a list
-        if not isinstance(polyrequest, list):
-            raise ValueError(
-                "Polyrequest should be a list of tuples or ExtractionRequest objects")
-
-        if len(polyrequest) == 0:
-            raise ValueError("Polyrequest should not be empty")
-
-        # check type of first element to see if we must unpack
-        if isinstance(polyrequest[0], tuple):
-            requests = self._unpack_polyrequest_w_paths(polyrequest)
-
-        elif isinstance(polyrequest[0], ExtractionRequest):
-            requests = polyrequest
-
-        else:
-            raise ValueError(
-                "Polyrequest should be a list of tuples or ExtractionRequest objects")
-
         logctx = json.dumps(ctx)
         logctx_c = ffi.new('const char[]', logctx.encode('ascii'))
         return ExtractionIteratorFromPath(self.ctype, requests, logctx_c)
@@ -548,21 +518,6 @@ class GribJump:
                 raise ValueError(
                     "Polyrequest should be a list of tuples of length 2 or 3")
             requests.append(ExtractionRequest(reqstr, list(ranges), hash))
-        return requests
-
-    def _unpack_polyrequest_w_paths(self, polyrequest) -> list[ExtractionRequest]:
-        requests = []
-        for item in polyrequest:
-            if len(item) == 6:
-                path, scheme, offset, host, port, ranges = item
-                hash = None
-            elif len(item) == 7:
-                path, scheme, offset, host, port, ranges, hash = item
-            else:
-                raise ValueError(
-                    "Polyrequest should be a list of tuples of length 6 or 7")
-            requests.append(ExtractionRequest.from_path(
-                path, scheme, offset, host, port, list(ranges), hash))
         return requests
 
     def axes(self, req: dict[str, str], level: int = 3, ctx: str = None) -> dict[str, list[str]]:
