@@ -122,7 +122,7 @@ def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> path
         fdb.archive(grib_file.read_bytes(), key=request)
     fdb.flush()
 
-    return tmp_path
+    return tmp_path, config_path
 
 
 def test_extract_dump_legacy(read_only_fdb_setup) -> None:
@@ -215,6 +215,7 @@ def test_extract_iter(read_only_fdb_setup) -> None:
 
 
 def test_extract_from_paths(read_only_fdb_setup) -> None:
+    tmp_path, config_path = read_only_fdb_setup
     gribjump = GribJump()
 
     basereq = {
@@ -255,7 +256,8 @@ def test_extract_from_paths(read_only_fdb_setup) -> None:
         "step=1"
     ]
 
-    output = subprocess.check_output(cmd, text=True)
+    output = subprocess.check_output(
+        cmd, text=True, env={**os.environ, "FDB5_CONFIG_FILE": str(config_path)})
 
     match = re.search(r'name=([^]]+)', output)
     if match:
