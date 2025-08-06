@@ -122,7 +122,7 @@ def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> path
         fdb.archive(grib_file.read_bytes(), key=request)
     fdb.flush()
 
-    return tmp_path, config_path
+    return tmp_path
 
 
 def test_extract_dump_legacy(read_only_fdb_setup) -> None:
@@ -215,7 +215,6 @@ def test_extract_iter(read_only_fdb_setup) -> None:
 
 
 def test_extract_from_paths(read_only_fdb_setup) -> None:
-    tmp_path, config_path = read_only_fdb_setup
     gribjump = GribJump()
 
     basereq = {
@@ -244,30 +243,19 @@ def test_extract_from_paths(read_only_fdb_setup) -> None:
     host = ""
     port = 0
 
+    fdb = pyfdb.FDB()
+    result = fdb.list({
+        "class": "od", "type": "fc", "stream": "oper",
+        "param": "151130", "date": "20230508", "time": "1200", "step": "1"
+    })
+
     filenames = []
-    cmd = [
-        "fdb", "dump",
-        "class=od",
-        "type=fc",
-        "stream=oper",
-        "param=151130",
-        "date=20230508",
-        "time=1200",
-        "step=1"
-    ]
-
-    output = subprocess.check_output(
-        cmd, text=True, env={**os.environ, "FDB5_CONFIG_FILE": str(config_path)})
-
-    match = re.search(r'name=([^]]+)', output)
-    if match:
-        path = match.group(1)
-        filenames.append(path)
-    else:
-        print("No FDB path found")
+    offsets = []
+    for r in result:
+        filenames.append(r["path"])
+        offsets.append(r["offset"])
 
     scheme = "file"
-    offsets = [660]
 
     polyrequest = [PathExtractionRequest(filenames[i], scheme, offsets[i], host, port, ranges[i])
                    for i in range(len(offsets))]
