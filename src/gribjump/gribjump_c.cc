@@ -264,6 +264,7 @@ gribjump_error_t gribjump_extract_from_paths(gribjump_handle_t* handle, gribjump
                                              gribjump_extractioniterator_t** iterator) {
     return tryCatch([=] {
         std::vector<PathExtractionRequest> reqs;
+        reqs.reserve(nrequests);
         for (size_t i = 0; i < nrequests; i++) {
             reqs.push_back(*requests[i]);
         }

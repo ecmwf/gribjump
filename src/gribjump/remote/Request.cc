@@ -130,9 +130,7 @@ void ExtractRequest::info() const {
     eckit::Log::status() << "New ExtractRequest: nRequests=" << requests_.size() << std::endl;
 }
 
-
 //----------------------------------------------------------------------------------------------------------------------
-
 
 ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
     MetricsManager::instance().set("action", "forwarded-extract");

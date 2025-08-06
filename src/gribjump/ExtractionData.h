@@ -101,11 +101,11 @@ public:
     PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
                           const std::string& host, int port, const std::vector<Range>& ranges,
                           const std::string& gridHash = "");
-    const std::string path() const { return path_; }
-    const std::string scheme() const { return scheme_; }
+    const std::string& path() const { return path_; }
+    const std::string& scheme() const { return scheme_; }
     size_t offset() const { return offset_; }
 
-    std::string host() const { return host_; }
+    const std::string& host() const { return host_; }
 
     int port() const { return port_; }
 

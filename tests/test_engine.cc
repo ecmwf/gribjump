@@ -181,12 +181,6 @@ CASE("Engine: Basic extraction") {
     auto [results_path, report_path] = engine.extract(exPathRequests);
     EXPECT_NO_THROW(report_path.raiseErrors());
 
-    // print contents of map
-    for (auto& [req, ex] : results_path) {
-        LOG_DEBUG_LIB(LibGribJump) << "Request: " << req << std::endl;
-        ex->debug_print();
-    }
-
     // Check correct values
     size_t count_path = 0;
     for (size_t i = 0; i < 3; i++) {
