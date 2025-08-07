@@ -232,7 +232,7 @@ class PathExtractionRequest:
                 f"Must provide at least one range but found {ranges=}")
 
         self.__shape = []
-        self.__ranges = ranges.copy()
+        self.__ranges = list(ranges).copy()
 
         # Prepare arguments for C call
         c_path = ffi.new("char[]", path.encode())
