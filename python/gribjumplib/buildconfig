@@ -12,7 +12,9 @@
 
 NAME="gribjump"
 
-CMAKE_PARAMS="-Deckit_ROOT=/tmp/gribjump/prereqs/eckitlib -Deccodes_ROOT=/tmp/gribjump/prereqs/eccodeslib -Dmetkit_ROOT=/tmp/gribjump/prereqs/metkitlib -Dfdb5_ROOT=/tmp/gribjump/prereqs/fdb5lib -DAEC_INCLUDE_DIR=/tmp/gribjump/prereqs/eccodeslib/include -DAEC_LIBRARY=/tmp/gribjump/prereqs/eccodeslib/lib64"
+if [ "$(uname)" != "Darwin" ] ; then LIB=lib64 ; else LIB=lib ; fi
+
+CMAKE_PARAMS="-Deckit_ROOT=/tmp/gribjump/prereqs/eckitlib -Deccodes_ROOT=/tmp/gribjump/prereqs/eccodeslib -Dmetkit_ROOT=/tmp/gribjump/prereqs/metkitlib -Dfdb5_ROOT=/tmp/gribjump/prereqs/fdb5lib -DAEC_INCLUDE_DIR=/tmp/gribjump/prereqs/eccodeslib/include -DAEC_LIBRARY=/tmp/gribjump/prereqs/eccodeslib/$LIB"
 
 PYPROJECT_DIR="python/gribjumplib"
 DEPENDENCIES='["eckitlib", "eccodeslib", "metkitlib", "fdb5lib"]'
