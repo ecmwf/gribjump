@@ -55,7 +55,7 @@ if [ "$eccodes_count" -eq 0 ]; then
     exit 0
 fi
 
-GRIBJUMP_SCAN_CORRUPTED=1 gribjump-scan-files $gribfile
+GRIBJUMP_SCAN_CORRUPTED=1 gribjump-scan-files $gribfile &> /dev/null
 
 # sanity check results
 if [ ! -f "$outfile" ]; then
@@ -71,5 +71,5 @@ if [ "$count_gribjump" -ne "$eccodes_count" ]; then
     exit 1
 fi
 
-echo "Successfully created gribjump index file: $outfile with $count_gribjump messages"
+echo "Created index file: $outfile with $count_gribjump entries"
 exit 0
