@@ -87,11 +87,7 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(const ecki
     return results;
 }
 
-std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
-
-    auto [results, report] = Engine().extract(requests);
-    report.raiseErrors();
-
+std::vector<std::unique_ptr<ExtractionResult>> collect_results(ExtractionRequests& requests, ResultsMap& results) {
     ASSERT(results.size() == requests.size());
 
     // Map -> Vector
@@ -104,6 +100,41 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(Extraction
         ASSERT(res);
         extractionResults.push_back(std::move(res));
     }
+    return extractionResults;
+}
+
+std::vector<std::unique_ptr<ExtractionResult>> collect_results(PathExtractionRequests& requests, ResultsMap& results) {
+    ASSERT(results.size() == requests.size());
+
+    // Map -> Vector
+    std::vector<std::unique_ptr<ExtractionResult>> extractionResults;
+    extractionResults.reserve(requests.size());
+    for (auto& req : requests) {
+        auto it = results.find(req.requestString());
+        ASSERT(it != results.end());
+        auto res = it->second->result();
+        ASSERT(res);
+        extractionResults.push_back(std::move(res));
+    }
+    return extractionResults;
+}
+
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
+
+    auto [results, report] = Engine().extract(requests);
+    report.raiseErrors();
+
+    std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
+
+    return extractionResults;
+}
+
+std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(PathExtractionRequests& requests) {
+
+    auto [results, report] = Engine().extract(requests);
+    report.raiseErrors();
+
+    std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
 
     return extractionResults;
 }

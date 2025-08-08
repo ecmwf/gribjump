@@ -15,9 +15,9 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
-#include "fdb5/api/FDB.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/gribjump_c.h"
+#include "path_tools.cc"
 
 using namespace eckit::testing;
 // Wrapper around the C function calls that will throw an exception if the function fails
@@ -91,6 +91,25 @@ CASE("Extract") {
             gribjump_new_request(&requests_c[i], requests[i].c_str(), range_arr, range_arr_size, gridHash.c_str()));
     }
 
+    std::vector<std::string> paths = {};
+
+    for (size_t i = 0; i < requests.size(); i++) {
+        std::string mars_str = "retrieve," + requests[i];
+        std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
+        paths.push_back(path_str);
+    }
+
+    std::string scheme = "file";
+
+    gribjump_path_extraction_request_t* requests_from_paths_c[3];
+
+    std::vector<size_t> offsets = {0, 226, 452};
+
+    for (size_t i = 0; i < paths.size(); i++) {
+        test_success(gribjump_new_request_from_path(&requests_from_paths_c[i], paths[i].c_str(), scheme.c_str(),
+                                                    offsets[i], "", 0, range_arr, range_arr_size, gridHash.c_str()));
+    }
+
     gribjump_handle_t* handle{};
     test_success(gribjump_new_handle(&handle));
 
@@ -98,12 +117,16 @@ CASE("Extract") {
     gribjump_extractioniterator_t* iterator{};
     test_success(gribjump_extract(handle, requests_c, requests.size(), nullptr, &iterator));
 
+    // call extract_from_paths
+    gribjump_extractioniterator_t* iterator_from_paths{};
+    test_success(
+        gribjump_extract_from_paths(handle, requests_from_paths_c, paths.size(), nullptr, &iterator_from_paths));
+
     // check iterator
     gribjump_iterator_status_t status;
     gribjump_extraction_result_t* result{};
     size_t count = 0;
     while ((status = gribjump_extractioniterator_next(iterator, &result)) == GRIBJUMP_ITERATOR_SUCCESS) {
-
         // Extract the values. Allocate the array
         double* values = new double[n_total_values];
         test_success(gribjump_result_values(result, &values, n_total_values));
@@ -138,6 +161,9 @@ CASE("Extract") {
     for (size_t i = 0; i < requests.size(); i++) {
         test_success(gribjump_delete_request(requests_c[i]));
     }
+    for (size_t i = 0; i < paths.size(); i++) {
+        test_success(gribjump_delete_path_request(requests_from_paths_c[i]));
+    }
 
     // ---------------------------------------
     // Same request but with extract_single
@@ -152,7 +178,6 @@ CASE("Extract") {
     // check iterator
     count = 0;
     while ((status = gribjump_extractioniterator_next(iterator_single, &result)) == GRIBJUMP_ITERATOR_SUCCESS) {
-
         // Extract the values. Allocate the array
         double* values = new double[n_total_values];
         test_success(gribjump_result_values(result, &values, n_total_values));

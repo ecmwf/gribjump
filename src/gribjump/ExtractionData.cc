@@ -211,4 +211,19 @@ std::ostream& operator<<(std::ostream& s, const ExtractionRequest& o) {
     return s;
 }
 
+PathExtractionRequest::PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,
+                                             const std::string& host, int port, const std::vector<Range>& ranges,
+                                             const std::string& gridHash) :
+    ExtractionRequest("", ranges, gridHash),
+    path_(filename),
+    scheme_(scheme),
+    offset_(offset),
+    host_(host),
+    port_(port) {
+
+    std::ostringstream oss;
+    oss << scheme << ":" << filename << "#" << offset;
+    requestString(oss.str());
+}
+
 }  // namespace gribjump

@@ -152,6 +152,40 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     return filemap;
 }
 
+filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
+    filemap_t filemap;
+    for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
+        // key is a std::string, assumed to represent a URI string
+
+        ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
+
+        // Add to filemap
+        eckit::PathName fname = extractionItem->URI().path();
+        auto it               = filemap.find(fname);
+        if (it == filemap.end()) {
+            std::vector<ExtractionItem*> extractionItems;
+            extractionItems.push_back(extractionItem);
+            filemap.emplace(fname, extractionItems);
+        }
+        else {
+            it->second.push_back(extractionItem);
+        }
+    }
+
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+        for (const auto& file : filemap) {
+            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+            for (const auto& extractionItem : file.second) {
+                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+            }
+            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
+        }
+    }
+
+    return filemap;
+}
+
 std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(
     const std::vector<metkit::mars::MarsRequest>& requests) {
     return filesOffsets(URIs(requests));

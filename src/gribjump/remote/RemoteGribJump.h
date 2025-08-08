@@ -43,6 +43,8 @@ public:  // methods
 
     std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>& polyRequest) override;
 
+    std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<PathExtractionRequest>& requests) override;
+
     std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
                                                            const std::vector<eckit::Offset>& offsets,
                                                            const std::vector<std::vector<Range>>& ranges) override {
