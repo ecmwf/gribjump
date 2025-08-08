@@ -16,6 +16,7 @@
 #include "gribjump/info/JumpInfo.h"
 
 #include "eccodes.h"
+#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
@@ -26,6 +27,59 @@
 #include <cstdlib>
 
 namespace gribjump {
+
+namespace {
+
+//@note: Only used when scanning corrupted files (where we cannot rely on eccodes)
+eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
+    const std::string pattern = "GRIB";
+    const size_t plen         = pattern.size();
+    const size_t BUFFER_SIZE  = 1024 * 1024;
+    const size_t OVERLAP      = plen - 1;
+
+    eckit::OffsetList offsets;
+    std::vector<char> buffer(BUFFER_SIZE + OVERLAP);
+    std::vector<char> carryover(OVERLAP, 0);
+    eckit::FileHandle file(filepath);
+    file.openForRead();
+
+    size_t filePos = 0;
+    while (true) {
+
+        std::memcpy(buffer.data(), carryover.data(), OVERLAP);
+        size_t bytesRead = file.read(buffer.data() + OVERLAP, BUFFER_SIZE);
+        if (bytesRead < 0) {
+            throw eckit::SeriousBug("Error reading file: " + filepath);
+        }
+        if (bytesRead == 0) {
+            break;  // EOF
+        }
+
+        // Search for GRIB in the current buffer
+        for (size_t i = 0; i <= bytesRead + OVERLAP - plen; ++i) {
+            if (std::memcmp(&buffer[i], pattern.data(), plen) == 0) {
+                offsets.push_back(filePos + i - OVERLAP);
+            }
+        }
+
+        filePos += bytesRead;
+        if (bytesRead >= OVERLAP) {
+            std::memcpy(carryover.data(), &buffer[bytesRead], OVERLAP);
+        }
+        else {
+            break;
+        }
+    }
+
+    // Remove the last offset, which we assume is an incomplete GRIB message
+    if (!offsets.empty()) {
+        offsets.pop_back();
+    }
+
+    return offsets;
+}
+}  // namespace
+
 
 InfoExtractor::InfoExtractor() {}
 
@@ -85,10 +139,20 @@ std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::message::Message& 
 }
 
 eckit::OffsetList InfoExtractor::offsets(const eckit::PathName& path) const {
-    grib_context* c = nullptr;
-    int n           = 0;
-    off_t* offsets_c;
-    int err = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets_c, &n, 1);
+    grib_context* c  = nullptr;
+    int n            = 0;
+    off_t* offsets_c = nullptr;
+    int err          = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets_c, &n, 1);
+
+    bool scan_corrupted = eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", false);
+
+    if (err && scan_corrupted) {
+        eckit::Log::warning() << "Error extracting offsets from " << path
+                              << ". Attempting workaround for corrupted files." << std::endl;
+        free(offsets_c);
+        return findGRIBOffsets(path);
+    }
+
     ASSERT(!err);
 
     // convert to eckit offsets

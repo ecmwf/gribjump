@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# -- Description ----------------------------------------------------------
+# This script tests gribjump's jumpinfo generation and interaction with fdb. It writes to four fdbs:
+#   1. FDB archive, no gribjump plugin and no gribjump index.
+#   2. FDB archive, no gribjump plugin, but a gribjump-scan (with a mars request) is run afterwards to generate gribjump index.
+#   3. FDB archive, with gribjump plugin to automatically generate the gribjump index.
+#   4. FDB archive, with gribjump-scan-files to generate gribjump index from a list of files.
+#   5. grib2fdb with gribjump plugin enabled.
+# Then, we perform the same extraction on all fdbs and check for consistency.
+# The test data contains several grib messages with different packing types, some supported some not.
+
+# -- Environment --------------------------------------------------------------
+set -ex
+
+gjscanfiles="$<TARGET_FILE:gribjump-scan-files>"
+gjdump="$<TARGET_FILE:gribjump-dump-info>"
+
+srcdir=@CMAKE_CURRENT_SOURCE_DIR@
+bindir=@CMAKE_CURRENT_BINARY_DIR@
+
+
+# -- Setup ---------------------------------------------------------------
+
+# Data from nexus
+# This file contains 1 complete message followed by 1 incomplete message (starts with GRIB but does not end with 7777)
+# datafile="$bindir/corrupted.grib" # LOCAL FOR NOW
+datafile="$srcdir/corrupted.grib" # LOCAL FOR NOW
+
+# expect to fail by default
+set +e
+$gjscanfiles $datafile
+if [ $? -eq 0 ]; then
+    echo "Expected scan failure for corrupted data, but succeeded..."
+    exit 1
+fi
+echo "Failed as expected for corrupted data"
+set -e
+
+GRIBJUMP_SCAN_CORRUPTED=1 $gjscanfiles $datafile
+
+# expect corrupted.grib.gribjump to be created
+if [ ! -f "$datafile.gribjump" ]; then
+    echo "Failed to create gribjump index file: $datafile.gribjump"
+    exit 1
+fi
+
+count=$($gjdump $datafile.gribjump | grep -c "Info")
+
+# expect count to be 1
+if [ "$count" -ne 1 ]; then
+    echo "Failed to find 1 grib message in $datafile.gribjump, found $count"
+    exit 1
+fi
+
+rm -f "$datafile.gribjump"
+
+echo "Test finished"
