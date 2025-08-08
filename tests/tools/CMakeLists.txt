@@ -1,7 +1,7 @@
 list( APPEND gribjump_test_tools_data
 supported.grib
 unsupported.grib
-# corrupted.grib # TODO put on nexus
+corrupted.grib
 )
 
 # TODO: Make this check md5sum. Removing NOCHECK seems to not pull the data at all...

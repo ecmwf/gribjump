@@ -23,8 +23,7 @@ bindir=@CMAKE_CURRENT_BINARY_DIR@
 
 # Data from nexus
 # This file contains 1 complete message followed by 1 incomplete message (starts with GRIB but does not end with 7777)
-# datafile="$bindir/corrupted.grib" # LOCAL FOR NOW
-datafile="$srcdir/corrupted.grib" # LOCAL FOR NOW
+datafile="$bindir/corrupted.grib"
 
 # expect to fail by default
 set +e
