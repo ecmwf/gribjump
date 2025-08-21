@@ -140,6 +140,10 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     return result;
 }
 
+std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<PathExtractionRequest>& requests) {
+    NOTIMP;
+}
+
 // Forward extraction request to another server
 void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 

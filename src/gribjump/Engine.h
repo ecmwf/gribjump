@@ -36,6 +36,7 @@ public:
     ~Engine();
 
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
+    TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
     // byfiles: scan entire file, not just fields matching request
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false);
@@ -44,13 +45,15 @@ public:
 
     std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3);
 
-    TaskReport scheduleExtractionTasks(filemap_t& filemap);
+    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false);
 
 private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
+    filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
+    void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
 };
