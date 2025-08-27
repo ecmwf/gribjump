@@ -8,7 +8,7 @@ In a RemoteFDB deployment there are at least two FDB servers:
 - A single Catalogue Server, hosting the FDB index.
 - One or more FDB Store Servers, responsible for storing the actual data.
 
-When GribJump is used with RemoteFDB, the GribJump Index files (`.gribjump`) are stored beside the `.data` files on the FDB stores. This page details the configuration and usage of GribJump in a RemoteFDB environment.
+When GribJump is used with RemoteFDB, the GribJump Index files (``.gribjump``) are stored beside the ``.data`` files on the FDB stores. This page details the configuration and usage of GribJump in a RemoteFDB environment.
 
 Generating the Index
 --------------------
@@ -54,9 +54,9 @@ Example GribJump server configuration::
       gribjump: 'store_host2:9001'
     threads: 2
 
-The `forwardExtraction` flag configures the client to forward extraction requests to the appropriate GribJump server based on the `servermap` configuration.
-The `servermap` configuration maps each FDB Store Server to its corresponding GribJump Server.
-The `threads` parameter specifies how many tasks GribJump will perform in parallel. When forwarding extraction requests, this corresponds to the number of GribJump servers that will be contacted in parallel.
+The ``forwardExtraction`` flag configures the client to forward extraction requests to the appropriate GribJump server based on the ``servermap`` configuration.
+The ``servermap`` configuration maps each FDB Store Server to its corresponding GribJump Server.
+The ``threads`` parameter specifies how many tasks GribJump will perform in parallel. When forwarding extraction requests, this corresponds to the number of GribJump servers that will be contacted in parallel.
 
 A simple GribJump server config file might look like::
 

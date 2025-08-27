@@ -1,7 +1,7 @@
 GribJump Index Files (.gribjump)
 ================================
 
-The GribJump Index files are binary files containing metadata used by GribJump for efficient data extraction from GRIB files. The contents can be inspected using the `gribjump-dump-info` tool::
+The GribJump Index files are binary files containing metadata used by GribJump for efficient data extraction from GRIB files. The contents can be inspected using the ``gribjump-dump-info`` tool::
 
   $: gribjump-dump-info mydata.gribjump
   IndexFile[mydata.gribjump (70 entries)]:
@@ -12,16 +12,16 @@ The GribJump Index files are binary files containing metadata used by GribJump f
 
 There is one pair <Offset, GribJumpInfo> for each message in the GRIB file. Here is a breakdown of the dumped information:
 
-- `Offset`: The byte offset in the GRIB file where the corresponding GRIB message begins.
-- `CcsdsInfo`: Indicates that the field is packed using CCSDS compression. `SimpleInfo` would indicate simple packing.
-- `version`: The serialisation version of the .gribjump index. Currently only version 1 exists.
-- `editionNumber`: The edition of the GRIB format (1 or 2).
-- `referenceValue`, `binaryScaleFactor`, `decimalScaleFactor`, `bitsPerValue`, are all parameters used to decode the GRIB field values.
-- `offsetBeforeData`, `offsetAfterData`, `offsetBeforeBitmap`: byte offsets within the GRIB message (relative to the start of the message) indicating the data and bitmap locations.
-- `numberOfValues`: The total number of values encoded in the GRIB message.
-- `numberOfDataPoints`: The total number of data points in the GRIB message. This will equal `numberOfValues` if there is no bitmap.
-- `totalLength`: The total length of the GRIB message in bytes.
-- `sphericalHarmonics`: Indicates if the field is represented using spherical harmonics.
-- `md5GridSection`: The MD5 checksum of the grid section of the GRIB message, calculated by eccodes. Can be optionally used to verify that the grid matches expectations.
-- `packingType`: The packing type used for the GRIB message (e.g., `grid_ccsds`, `grid_simple`).
-- `ccsdsFlags`, `ccsdsBlockSize`, `ccsdsRsi`, `ccsdsOffsets.size`: Various parameters used for CCSDS packing.
+- ``Offset``: The byte offset in the GRIB file where the corresponding GRIB message begins.
+- ``CcsdsInfo``: Indicates that the field is packed using CCSDS compression. ``SimpleInfo`` would indicate simple packing.
+- ``version``: The serialisation version of the .gribjump index. Currently only version 1 exists.
+- ``editionNumber``: The edition of the GRIB format (1 or 2).
+- ``referenceValue``, ``binaryScaleFactor``, ``decimalScaleFactor``, ``bitsPerValue``, are all parameters used to decode the GRIB field values.
+- ``offsetBeforeData``, ``offsetAfterData``, ``offsetBeforeBitmap``: byte offsets within the GRIB message (relative to the start of the message) indicating the data and bitmap locations.
+- ``numberOfValues``: The total number of values encoded in the GRIB message.
+- ``numberOfDataPoints``: The total number of data points in the GRIB message. This will equal ``numberOfValues`` if there is no bitmap.
+- ``totalLength``: The total length of the GRIB message in bytes.
+- ``sphericalHarmonics``: Indicates if the field is represented using spherical harmonics.
+- ``md5GridSection``: The MD5 checksum of the grid section of the GRIB message, calculated by eccodes. Can be optionally used to verify that the grid matches expectations.
+- ``packingType``: The packing type used for the GRIB message (e.g., ``grid_ccsds``, ``grid_simple``).
+- ``ccsdsFlags``, ``ccsdsBlockSize``, ``ccsdsRsi``, ``ccsdsOffsets.size``: Various parameters used for CCSDS packing.
