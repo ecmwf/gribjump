@@ -8,6 +8,7 @@ More detailed documentation is a work in progress. In the mean time, please refe
 - gribjump_with_remotefdb_: Instructions for using GribJump with RemoteFDB deployments.
 - setup_gribjump_on_fdb_: Guide for setting up GribJump on FDB.
 
+See the ``examples/`` directory for example usage.
 
 .. _list_of_configuration_options: list_of_configuration_options.rst
 .. _gribjump_index: gribjump_index.rst

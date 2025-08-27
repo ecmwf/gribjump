@@ -11,6 +11,7 @@ The following options can be added to the ``GRIBJUMP_CONFIG_FILE``:
 - ``server`` : Configuration options used only by the ``gribjump-server``:
     - ``server.port``: Port the server listens on for incoming requests.
 - ``threads``: Number of worker threads for carring out extraction tasks. Default is 1.
+- ``ignoreGridHash``: If ``true``, GribJump will not verify against a user-provided grid hash of GRIB files before extracting data. Default is ``false``.
 - ``cache``: Configuration options for the GribJump Index:
     - ``cache.enable``: Whether to look at the GribJump Index at all. Default is ``true``.
     - ``cache.shadowfdb``: If ``true``, the index files will be stored in the same directory as data files. Default is ``true``.
