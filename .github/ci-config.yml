@@ -1,7 +1,12 @@
-cmake_options: -DENABLE_FDB_BUILD_TOOLS=ON
+cmake_options: -DENABLE_FDB_BUILD_TOOLS=ON -DCMAKE_PREFIX_PATH=${CXX-DEPS_DIR} -Dlibaec_ROOT=${CXX-DEPS_DIR}
+dependency_cmake_options: |
+  ecmwf/eccodes: "-DCMAKE_PREFIX_PATH=${CXX-DEPS_DIR} -Dlibaec_ROOT=${CXX-DEPS_DIR}"
+  ecmwf/eckit: "-DCMAKE_PREFIX_PATH=${CXX-DEPS_DIR} -Dlibaec_ROOT=${CXX-DEPS_DIR}"
+  ecmwf/metkit: "-DCMAKE_PREFIX_PATH=${CXX-DEPS_DIR}"
+  ecmwf/fdb: "-DCMAKE_PREFIX_PATH=${CXX-DEPS_DIR}"
 dependencies: |
   ecmwf/ecbuild
-  MathisRosenhauer/libaec@refs/tags/v1.1.3
+  Ozaq/cxx-deps@vendoring
   ecmwf/eccodes
   ecmwf/eckit@develop
   ecmwf/metkit
