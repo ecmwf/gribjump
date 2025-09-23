@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ########################################################################################################################
 ### dependencies and options
+option(USE_CXX_DEPENDENCIES "Use dependencies from cxx-dependencies repo" OFF)
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 ecbuild_find_package( NAME eckit VERSION 1.28.3 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )
@@ -26,7 +27,6 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
 
-  # Can be removed once we rely on next eckit version
   unset(AEC_INCLUDE_DIRS CACHE)
   unset(AEC_LIBRARIES CACHE)
   ecbuild_find_package( NAME libaec VERSION 1.1.1 REQUIRED )
