@@ -130,14 +130,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     FDBPlugin.cc
     FDBPlugin.h
-    )
+)
 
-    set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )
-
-endif()
-
-if (GRIBJUMP_HAVE_DHSKIT)
-list( APPEND SERVER_LIBS dhskit )
 endif()
 
 ecbuild_add_library(
@@ -160,7 +154,9 @@ ecbuild_add_library(
         metkit
         eckit
         eckit_option
-        ${SERVER_LIBS}
+        $<${HAVE_GRIBJUMP_LOCAL_EXTRACT}:libaec::aec>
+        $<${HAVE_GRIBJUMP_LOCAL_EXTRACT}:fdb5>
+        $<${GRIBJUMP_HAVE_DHSKIT}:dhskit>
 )
 
 ############################################################################################
