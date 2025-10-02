@@ -6,7 +6,7 @@ dependency_cmake_options: |
   ecmwf/fdb: "-DCMAKE_PREFIX_PATH=${CXX-DEPS_DIR}"
 dependencies: |
   ecmwf/ecbuild
-  Ozaq/cxx-deps@vendoring
+  ecmwf/cxx-dependencies@master
   ecmwf/eccodes
   ecmwf/eckit@develop
   ecmwf/metkit

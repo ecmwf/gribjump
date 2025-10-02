@@ -1,6 +1,6 @@
 dependencies: |
   ecmwf/ecbuild
-  Ozaq/cxx-deps@vendoring
+  ecmwf/cxx-dependencies@master
   ecmwf/eccodes
   ecmwf/eckit@develop
   ecmwf/metkit
