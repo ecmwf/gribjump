@@ -1,6 +1,6 @@
 cmake_options: -DENABLE_FDB_BUILD_TOOLS=ON 
 dependencies: |
-  ecmwf/cxx-dependencies
+  ecmwf/cxx-dependencies@master
   ecmwf/ecbuild
   ecmwf/eccodes
   ecmwf/eckit@develop
