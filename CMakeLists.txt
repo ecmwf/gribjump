@@ -11,7 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 ########################################################################################################################
 ### dependencies and options
-option(USE_CXX_DEPENDENCIES "Use dependencies from cxx-dependencies repo" OFF)
+option(ENABLE_INSTALL_BUNDLED_DEPENDENCIES "Install bundled dependencies" OFF)
 set( PERSISTENT_NAMESPACE "eckit" CACHE INTERNAL "" ) # needed for generating .b files for persistent support
 ecbuild_find_package( NAME eckit VERSION 1.28.3 REQUIRED )
 ecbuild_find_package( NAME metkit VERSION 1.11.22 REQUIRED )

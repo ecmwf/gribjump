@@ -159,6 +159,10 @@ ecbuild_add_library(
         $<${GRIBJUMP_HAVE_DHSKIT}:dhskit>
 )
 
+if(ENABLE_INSTALL_BUNDLED_DEPENDENCIES)
+    ecbuild_install_dependency_with_soversion(libaec::aec)
+endif()
+
 ############################################################################################
 # Plugin
 # Must happen atomically, and only after the library has been built.
