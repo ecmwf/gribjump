@@ -97,7 +97,7 @@ private:
 class TaskGroup {
 public:
 
-    TaskGroup() = default;
+    TaskGroup(): ctx_{ContextManager::instance().context()} {}
 
     /// Notify that a task has been completed
     void notify(size_t taskid);
@@ -137,6 +137,8 @@ public:
 
     void info() const;
 
+    const LogContext& context() const {return ctx_;}
+
 private:
 
     void enqueueTask(Task* task);
@@ -157,6 +159,8 @@ private:
 
     std::vector<std::shared_ptr<Task>> tasks_;
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
+
+    const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
 };
 
 //----------------------------------------------------------------------------------------------------------------------

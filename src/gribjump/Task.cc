@@ -251,6 +251,8 @@ ForwardExtractionTask::ForwardExtractionTask(TaskGroup& taskgroup, const size_t 
 
 void ForwardExtractionTask::executeImpl() {
 
+    ContextManager::instance().set(taskGroup_.context());
+
     RemoteGribJump remoteGribJump(endpoint_);
     remoteGribJump.forwardExtract(filemap_);
 }
@@ -266,6 +268,8 @@ ForwardScanTask::ForwardScanTask(TaskGroup& taskgroup, const size_t id, eckit::n
     Task(taskgroup, id), endpoint_(endpoint), scanmap_(scanmap), nfields_(nfields) {}
 
 void ForwardScanTask::executeImpl() {
+
+    ContextManager::instance().set(taskGroup_.context());
 
     RemoteGribJump remoteGribJump(endpoint_);
     nfields_ += remoteGribJump.forwardScan(scanmap_);
