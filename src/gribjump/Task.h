@@ -97,7 +97,7 @@ private:
 class TaskGroup {
 public:
 
-    TaskGroup(): ctx_{ContextManager::instance().context()} {}
+    TaskGroup() : ctx_{ContextManager::instance().context()} {}
 
     /// Notify that a task has been completed
     void notify(size_t taskid);
@@ -137,7 +137,7 @@ public:
 
     void info() const;
 
-    const LogContext& context() const {return ctx_;}
+    const LogContext& context() const { return ctx_; }
 
 private:
 
