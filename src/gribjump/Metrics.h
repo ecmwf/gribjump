@@ -37,6 +37,10 @@ public:
 
     explicit LogContext(eckit::Stream& s) { s >> context_; }
 
+    void json(eckit::JSON& s) const { 
+        s << eckit::JSONParser::decodeString(context_);
+    }
+
     ~LogContext() {}
 
 private:
@@ -47,8 +51,6 @@ private:
         o.encode(s);
         return s;
     }
-
-    void json(eckit::JSON& s) const { s << context_; }
 
     friend eckit::JSON& operator<<(eckit::JSON& s, const LogContext& o) {
         o.json(s);
