@@ -29,7 +29,7 @@ namespace gribjump {
 
 Request::Request(eckit::Stream& stream) : client_(stream) {
     id_ = requestid();
-    MetricsManager::instance().set("request_id", id_);
+    MetricsManager::instance().set("gribjump_request_id", id_);
 }
 
 void Request::reportErrors() {
@@ -54,7 +54,7 @@ ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
         requests_.emplace_back(metkit::mars::MarsRequest(client_));
     }
 
-    MetricsManager::instance().set("count_requests", numRequests);
+    MetricsManager::instance().set("count_scan_requests", numRequests);
 }
 
 void ScanRequest::execute() {
@@ -88,7 +88,7 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
         requests_.push_back(req);
     }
 
-    MetricsManager::instance().set("count_requests", nRequests);
+    MetricsManager::instance().set("count_extraction_requests", nRequests);
 }
 
 void ExtractRequest::execute() {
@@ -156,7 +156,7 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Reques
         }
         count += nItems;
     }
-    MetricsManager::instance().set("count_requests", count);
+    MetricsManager::instance().set("count_extraction_requests", count);
 
     ASSERT(count > 0);  // We should not be talking to this server if we have no requests.
 }

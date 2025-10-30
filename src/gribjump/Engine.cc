@@ -292,7 +292,6 @@ TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 }
 
 std::map<std::string, std::unordered_set<std::string>> Engine::axes(const std::string& request, int level) {
-    MetricsManager::instance().set("request", request);
     return FDBLister::instance().axes(request, level);
 }
 

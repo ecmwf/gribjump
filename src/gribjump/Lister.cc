@@ -15,6 +15,7 @@
 
 #include "gribjump/GribJumpException.h"
 #include "gribjump/Lister.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/URIHelper.h"
 
 namespace gribjump {
@@ -85,6 +86,8 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
+
+    MetricsManager::instance().addRequest(unionRequest);
 
     fdb5::FDBToolRequest fdbreq(unionRequest);
 
@@ -228,7 +231,10 @@ std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const std
         fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
     ASSERT(requests.size() == 1);  // i.e. assume string is a single request.
 
-    return axes(requests.front(), level);
+    const fdb5::FDBToolRequest& r = requests.front();
+    MetricsManager::instance().addRequest(r.request());
+
+    return axes(r, level);
 }
 
 std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {
