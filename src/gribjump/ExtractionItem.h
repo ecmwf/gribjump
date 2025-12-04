@@ -26,7 +26,7 @@ namespace gribjump {
 // An object for grouping request, uri and result information together.
 /// @todo: Recently reworked. Code which uses this object could be refactored to have less moving of vectors to and from
 /// this object.
-class ExtractionItem : public eckit::NonCopyable {
+class ExtractionItem {
 
 public:
 
@@ -36,6 +36,11 @@ public:
     // Because sometimes we dont use marsrequests.
     ExtractionItem(const Ranges& ranges) :
         request_{std::make_unique<ExtractionRequest>("", ranges)}, result_{std::make_unique<ExtractionResult>()} {}
+
+    ExtractionItem(const ExtractionItem&)            = delete;
+    ExtractionItem& operator=(const ExtractionItem&) = delete;
+    ExtractionItem(ExtractionItem&&)                 = default;
+    ExtractionItem& operator=(ExtractionItem&&)      = default;
 
     ~ExtractionItem() {};
 
