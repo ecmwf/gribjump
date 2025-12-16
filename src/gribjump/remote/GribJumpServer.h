@@ -23,7 +23,7 @@ namespace gribjump {
 //-------------------------------------------------------------------------------------------------
 // Maybe we don't need this class at all.  We can just use GribJumpService directly.
 
-class GribJumpServer : private eckit::NonCopyable {
+class GribJumpServer {
 public:
 
     GribJumpServer(int port) : svc_(new GribJumpService(port)), tcsvc_(svc_) {
@@ -36,6 +36,12 @@ public:
         WorkQueue::instance();  // start the work queue
         tcsvc_.start();
     }
+
+    GribJumpServer(const GribJumpServer&)            = delete;
+    GribJumpServer& operator=(const GribJumpServer&) = delete;
+    GribJumpServer(GribJumpServer&&)                 = delete;
+    GribJumpServer& operator=(GribJumpServer&&)      = delete;
+
     ~GribJumpServer() {}
 
 private:  // methods
