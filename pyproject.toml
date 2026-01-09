@@ -26,13 +26,13 @@ urls = { "Home" = "https://github.com/ecmwf/gribjump" }
 dependencies = [
     "cffi~=1.17",
     "numpy>=1.26",
-    "pytest~=8.3",
-    "findlibs~=0.1.1",
+    "findlibs>=0.1.1",
     "packaging>=20.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "pytest>=8.3",
     "pyyaml",
     "pyfdb",
 ]
