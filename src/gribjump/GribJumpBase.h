@@ -16,7 +16,6 @@
 #include <unordered_set>
 
 #include "eckit/filesystem/URI.h"
-#include "eckit/memory/NonCopyable.h"
 
 #include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
@@ -36,11 +35,16 @@ namespace gribjump {
 ///@todo: Why is this *here*? and not in Engine
 using ResultsMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
-class GribJumpBase : public eckit::NonCopyable {
+class GribJumpBase {
 public:
 
     GribJumpBase(const Config& config);
     GribJumpBase();
+
+    GribJumpBase(const GribJumpBase&)            = delete;
+    GribJumpBase& operator=(const GribJumpBase&) = delete;
+    GribJumpBase(GribJumpBase&&)                 = delete;
+    GribJumpBase& operator=(GribJumpBase&&)      = delete;
 
     virtual ~GribJumpBase();
 
@@ -49,6 +53,8 @@ public:
     virtual size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) = 0;
 
     virtual std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>&) = 0;
+
+    virtual std::vector<std::unique_ptr<ExtractionResult>> extract(PathExtractionRequests& requests) = 0;
 
     virtual std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
                                                                    const std::vector<eckit::Offset>& offsets,

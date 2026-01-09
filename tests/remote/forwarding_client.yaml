@@ -1,0 +1,5 @@
+---
+type: local
+servermap:
+  - fdb: 'dummy_host:1234'
+    gribjump: 'localhost:57777'

@@ -15,6 +15,7 @@
 
 #include "gribjump/GribJumpException.h"
 #include "gribjump/Lister.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/URIHelper.h"
 
 namespace gribjump {
@@ -86,6 +87,8 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
 
+    MetricsManager::instance().addRequest(unionRequest);
+
     fdb5::FDBToolRequest fdbreq(unionRequest);
 
     fdb5::FDB fdb;
@@ -152,6 +155,40 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     return filemap;
 }
 
+filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
+    filemap_t filemap;
+    for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
+        // key is a std::string, assumed to represent a URI string
+
+        ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
+
+        // Add to filemap
+        eckit::PathName fname = extractionItem->URI().path();
+        auto it               = filemap.find(fname);
+        if (it == filemap.end()) {
+            std::vector<ExtractionItem*> extractionItems;
+            extractionItems.push_back(extractionItem);
+            filemap.emplace(fname, extractionItems);
+        }
+        else {
+            it->second.push_back(extractionItem);
+        }
+    }
+
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+        for (const auto& file : filemap) {
+            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+            for (const auto& extractionItem : file.second) {
+                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+            }
+            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
+        }
+    }
+
+    return filemap;
+}
+
 std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(
     const std::vector<metkit::mars::MarsRequest>& requests) {
     return filesOffsets(URIs(requests));
@@ -194,7 +231,10 @@ std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const std
         fdb5::FDBToolRequest::requestsFromString(request, std::vector<std::string>(), true);
     ASSERT(requests.size() == 1);  // i.e. assume string is a single request.
 
-    return axes(requests.front(), level);
+    const fdb5::FDBToolRequest& r = requests.front();
+    MetricsManager::instance().addRequest(r.request());
+
+    return axes(r, level);
 }
 
 std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const fdb5::FDBToolRequest& request, int level) {

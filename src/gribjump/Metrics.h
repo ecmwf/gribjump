@@ -18,6 +18,7 @@
 #include "eckit/parser/JSONParser.h"
 #include "eckit/runtime/Metrics.h"
 #include "eckit/serialisation/Stream.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 
@@ -37,6 +38,8 @@ public:
 
     explicit LogContext(eckit::Stream& s) { s >> context_; }
 
+    void json(eckit::JSON& s) const { s << eckit::JSONParser::decodeString(context_); }
+
     ~LogContext() {}
 
 private:
@@ -47,8 +50,6 @@ private:
         o.encode(s);
         return s;
     }
-
-    void json(eckit::JSON& s) const { s << context_; }
 
     friend eckit::JSON& operator<<(eckit::JSON& s, const LogContext& o) {
         o.json(s);
@@ -78,19 +79,18 @@ public:  // methods
 
     void add(const std::string& name, const eckit::Value& value);
 
+    void addRequest(const metkit::mars::MarsRequest& request);
+
     void addContext(const LogContext& context) { context_ = context; }
 
     void report();
-
-public:  // members
-
-    eckit::ValueMap values_;
 
 private:  // members
 
     LogContext context_;
     time_t created_;
-
+    eckit::ValueMap values_;
+    std::vector<metkit::mars::MarsRequest> fdbRequests_;
     eckit::Timer timer_;
 };
 
@@ -103,7 +103,9 @@ public:  // methods
     static MetricsManager& instance();
 
     void set(const std::string& name, const eckit::Value& value);
-    // void setContext(const LogContext& context);
+
+    void addRequest(const metkit::mars::MarsRequest& request);
+
     void report();
 
 private:

@@ -7,7 +7,7 @@ import pygribjump as pygj
 
 gj = pygj.GribJump()
 
-reqstrs = [
+reqs = [
     {"class": "od", "type": "fc", "stream": "oper", "expver": "0001", "levtype": "sfc", "param": "151130", "date": "20230710", "time": "1200", "step": "1", "domain": "g"},
     {"class": "od", "type": "fc", "stream": "oper", "expver": "0001", "levtype": "sfc", "param": "151130", "date": "20230710", "time": "1200", "step": "2", "domain": "g"},
     {"class": "od", "type": "fc", "stream": "oper", "expver": "0001", "levtype": "sfc", "param": "151130", "date": "20230710", "time": "1200", "step": "3/4", "domain": "g"},
@@ -22,7 +22,7 @@ ranges = [
 ]
 
 polyrequest = [
-    (reqstrs[i], ranges[i]) for i in range(len(reqstrs))
+    (reqs[i], ranges[i]) for i in range(len(reqs))
 ]
 
 res = gj.extract(polyrequest)
@@ -32,7 +32,7 @@ print("--------------------")
 print("EXTRACT OUTPUT:")
 print("--------------------")
 for i in range(len(res)):
-    print(f"Request {i} - {reqstrs[i]}")
+    print(f"Request {i} - {reqs[i]}")
     if len(res[i]) == 0:
         print("**No data**")
     for j in range(len(res[i])):

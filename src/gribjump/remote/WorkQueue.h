@@ -24,10 +24,15 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class WorkQueue : private eckit::NonCopyable {
+class WorkQueue {
 public:
 
     static WorkQueue& instance();  // singleton
+
+    WorkQueue(const WorkQueue&)            = delete;
+    WorkQueue& operator=(const WorkQueue&) = delete;
+    WorkQueue(WorkQueue&&)                 = delete;
+    WorkQueue& operator=(WorkQueue&&)      = delete;
 
     ~WorkQueue();
 

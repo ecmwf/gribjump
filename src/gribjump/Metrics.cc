@@ -14,6 +14,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 #include "gribjump/LibGribJump.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace {
 std::string iso(time_t t) {
@@ -38,6 +39,10 @@ void Metrics::add(const std::string& name, const eckit::Value& value) {
     values_[name] = value;
 }
 
+void Metrics::addRequest(const metkit::mars::MarsRequest& request) {
+    fdbRequests_.push_back(request);
+}
+
 void Metrics::report() {
 
     time_t now = std::time(nullptr);
@@ -50,10 +55,17 @@ void Metrics::report() {
     j << "start_time" << iso(created_);
     j << "end_time" << iso(now);
     j << "run_time" << timer_.elapsed();
-
     for (const auto& [name, value] : values_) {
         j << name << value;
     }
+
+    j << "mars_requests";
+    j.startList();
+    for (auto& request : fdbRequests_) {
+        request.json(j);
+    }
+    j.endList();
+
     j << "context" << ContextManager::instance().context();
     j.endObject();
 
@@ -74,6 +86,10 @@ MetricsManager::~MetricsManager() {}
 
 void MetricsManager::set(const std::string& name, const eckit::Value& value) {
     metrics().add(name, value);
+}
+
+void MetricsManager::addRequest(const metkit::mars::MarsRequest& request) {
+    metrics().addRequest(request);
 }
 
 Metrics& MetricsManager::metrics() {
