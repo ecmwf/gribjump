@@ -18,14 +18,14 @@
 #include "eckit/serialisation/Streamable.h"
 #include "eckit/types/FixedString.h"
 
-#include "metkit/codes/GribHandle.h"
+#include "metkit/codes/api/CodesAPI.h"
 
 namespace gribjump {
 class JumpInfo : public eckit::Streamable {
 
 public:
 
-    JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
+    JumpInfo(const metkit::codes::CodesHandle& h, const eckit::Offset startOffset);
     JumpInfo(const eckit::message::Message& msg);
     JumpInfo(eckit::Stream&);
 

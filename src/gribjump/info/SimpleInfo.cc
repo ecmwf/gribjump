@@ -15,7 +15,7 @@
 
 namespace gribjump {
 
-SimpleInfo::SimpleInfo(eckit::DataHandle& h, const metkit::grib::GribHandle& gh, const eckit::Offset startOffset) :
+SimpleInfo::SimpleInfo(eckit::DataHandle& h, const metkit::codes::CodesHandle& gh, const eckit::Offset startOffset) :
     JumpInfo(gh, startOffset) {}
 
 SimpleInfo::SimpleInfo(const eckit::message::Message& msg) : JumpInfo(msg) {}
