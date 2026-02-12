@@ -15,9 +15,9 @@
 
 namespace gribjump {
 
-UnsupportedInfo::UnsupportedInfo(eckit::DataHandle& h, const metkit::grib::GribHandle& gh,
+UnsupportedInfo::UnsupportedInfo(eckit::DataHandle& h, const metkit::codes::CodesHandle& ch,
                                  const eckit::Offset startOffset) :
-    JumpInfo(gh, startOffset) {}
+    JumpInfo(ch, startOffset) {}
 
 UnsupportedInfo::UnsupportedInfo(const eckit::message::Message& msg) : JumpInfo(msg) {}
 

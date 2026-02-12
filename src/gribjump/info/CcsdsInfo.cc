@@ -12,8 +12,6 @@
 
 #include "eckit/io/DataHandle.h"
 
-#include "metkit/codes/GribAccessor.h"
-
 #include "gribjump/compression/compressors/Ccsds.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/info/InfoFactory.h"
@@ -22,21 +20,12 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-using namespace metkit::grib;
-namespace grib {
-static GribAccessor<unsigned long> ccsdsFlags("ccsdsFlags", true);
-static GribAccessor<unsigned long> ccsdsBlockSize("ccsdsBlockSize", true);
-static GribAccessor<unsigned long> ccsdsRsi("ccsdsRsi", true);
-}  // namespace grib
-
-//----------------------------------------------------------------------------------------------------------------------
-
-CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset) :
+CcsdsInfo::CcsdsInfo(eckit::DataHandle& handle, const metkit::codes::CodesHandle& h, const eckit::Offset startOffset) :
     JumpInfo(h, startOffset) {
 
-    ccsdsFlags_     = grib::ccsdsFlags(h);
-    ccsdsBlockSize_ = grib::ccsdsBlockSize(h);
-    ccsdsRsi_       = grib::ccsdsRsi(h);
+    ccsdsFlags_     = h.has("ccsdsFlags") ? h.getLong("ccsdsFlags") : 0;
+    ccsdsBlockSize_ = h.has("ccsdsBlockSize") ? h.getLong("ccsdsBlockSize") : 0;
+    ccsdsRsi_       = h.has("ccsdsRsi") ? h.getLong("ccsdsRsi") : 0;
 
     // Special case: constant field (no data section)
     if (bitsPerValue_ == 0 || offsetAfterData_ == offsetBeforeData_) {
