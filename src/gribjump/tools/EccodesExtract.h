@@ -12,8 +12,11 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/ExtractionData.h"
+#include "gribjump/Types.h"
 #include "metkit/mars/MarsRequest.h"
+
+
+/// Functions for performing extraction using eccodes directly, for testing and benchmarking purposes.
 
 namespace gribjump {
 
