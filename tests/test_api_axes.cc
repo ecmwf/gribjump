@@ -22,7 +22,7 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/tools/EccodesExtract.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 
 

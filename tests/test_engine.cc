@@ -20,7 +20,7 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 
 #include "gribjump/Engine.h"

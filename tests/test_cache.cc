@@ -19,7 +19,7 @@
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/info/JumpInfo.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 
