@@ -15,7 +15,7 @@
 #include "eckit/utils/StringTools.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/tools/ToolUtils.h"
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 
 namespace gribjump {
 
@@ -63,12 +63,11 @@ public:
 
 std::vector<metkit::mars::MarsRequest> flattenRequest(const metkit::mars::MarsRequest& request) {
 
-    metkit::mars::MarsExpension expansion(false);
-    metkit::mars::DummyContext ctx;
+    metkit::mars::MarsExpansion expansion(false);
     std::vector<metkit::mars::MarsRequest> flattenedRequests;
 
     CollectFlattenedRequests cb(flattenedRequests);
-    expansion.flatten(ctx, request, cb);
+    expansion.flatten(request, cb);
 
     if (LibGribJump::instance().debug()) {
         LOG_DEBUG_LIB(LibGribJump) << "Base request: " << request << std::endl;

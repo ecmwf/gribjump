@@ -11,7 +11,7 @@
 
 #include <fstream>
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -69,7 +69,7 @@ void CompareEccodes::execute(const eckit::option::CmdArgs& args) {
     }
     else {
         bool inherit = false;
-        metkit::mars::MarsExpension expand(inherit);
+        metkit::mars::MarsExpansion expand(inherit);
         requests = expand.expand(parsedRequests);
     }
 

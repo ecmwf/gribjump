@@ -23,7 +23,7 @@
 
 #include "fdb5/api/FDB.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 

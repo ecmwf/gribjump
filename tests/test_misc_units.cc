@@ -16,7 +16,7 @@
 #include "gribjump/info/LRUCache.h"
 
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 
