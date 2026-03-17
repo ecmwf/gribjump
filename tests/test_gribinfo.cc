@@ -11,8 +11,6 @@
 #include <cmath>
 #include <fstream>
 
-#include "eccodes.h"
-
 #include "eckit/io/AutoCloser.h"
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/testing/Test.h"
@@ -23,8 +21,8 @@
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
-#include "metkit/codes/CodesContent.h"
-#include "metkit/codes/GribHandle.h"
+#include "metkit/codes/CodesDataContent.h"
+#include "metkit/codes/api/CodesAPI.h"
 
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
@@ -34,6 +32,7 @@
 #include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/jumper/SimpleJumper.h"
 #include "gribjump/tools/EccodesExtract.h"
+#include "metkit/codes/api/CodesTypes.h"
 
 using namespace eckit::testing;
 
@@ -109,11 +108,9 @@ CASE("test_build_from_message") {
 
         // Make the message.
         eckit::AutoStdFile f(path);
-        int err         = 0;
-        codes_handle* h = codes_handle_new_from_file(nullptr, f, PRODUCT_GRIB, &err);
-        EXPECT(err == 0);
-        metkit::codes::CodesContent* content = new metkit::codes::CodesContent(h, true);
-        eckit::message::Message msg(content);
+
+        auto h = metkit::codes::codesHandleFromFile(path, metkit::codes::Product::GRIB);
+        eckit::message::Message msg(new metkit::codes::CodesDataContent(std::move(h), true));
 
         std::unique_ptr<JumpInfo> infoFromMessage(InfoFactory::instance().build(msg));
 

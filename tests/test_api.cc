@@ -24,7 +24,7 @@
 #include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/tools/EccodesExtract.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 
 
@@ -179,7 +179,7 @@ CASE("test_gribjump_api_extract") {
         "3,stream=oper,time=1200,type=fc\n");
     metkit::mars::MarsParser parser(ss);
     auto parsedRequests = parser.parse();
-    metkit::mars::MarsExpension expand(/* inherit */ false);
+    metkit::mars::MarsExpansion expand(/* inherit */ false);
     metkit::mars::MarsRequest req = expand.expand(parsedRequests)[0];
 
     std::vector<Interval> ranges = {std::make_pair(0, 5), std::make_pair(20, 30)};  // 15 values

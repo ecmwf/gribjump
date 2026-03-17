@@ -20,7 +20,7 @@ class UnsupportedInfo : public JumpInfo {
 
 public:
 
-    UnsupportedInfo(eckit::DataHandle& handle, const metkit::grib::GribHandle& h, const eckit::Offset startOffset);
+    UnsupportedInfo(eckit::DataHandle& handle, const metkit::codes::CodesHandle& h, const eckit::Offset startOffset);
     UnsupportedInfo(const eckit::message::Message& msg);
     UnsupportedInfo(eckit::Stream& s);
 

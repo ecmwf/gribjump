@@ -17,7 +17,7 @@
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 
 using namespace gribjump;
@@ -300,7 +300,7 @@ gribjump_error_t gribjump_extract_single(gribjump_handle_t* handle, const char* 
         // Parse the mars request
         std::istringstream in(request);
         metkit::mars::MarsParser parser(in);
-        metkit::mars::MarsExpension expand(false, true);
+        metkit::mars::MarsExpansion expand(false, true);
         auto v = expand.expand(parser.parse());
         ASSERT(v.size() == 1);
         metkit::mars::MarsRequest req = v[0];

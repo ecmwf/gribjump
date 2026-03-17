@@ -47,7 +47,7 @@ eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
     while (true) {
 
         std::memcpy(buffer.data(), carryover.data(), OVERLAP);
-        size_t bytesRead = file.read(buffer.data() + OVERLAP, BUFFER_SIZE);
+        long bytesRead = file.read(buffer.data() + OVERLAP, BUFFER_SIZE);
         if (bytesRead < 0) {
             throw eckit::SeriousBug("Error reading file: " + filepath);
         }

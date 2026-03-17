@@ -16,8 +16,6 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
 
-#include "metkit/codes/GribAccessor.h"
-
 #include "gribjump/GribJumpException.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/info/JumpInfo.h"
@@ -27,56 +25,35 @@ namespace gribjump {
 
 // --------------------------------------------------------------------------------------------
 
-using metkit::grib::GribAccessor;
-namespace grib {
-static GribAccessor<long> editionNumber("editionNumber");
-static GribAccessor<long> bitmapPresent("bitmapPresent");
-static GribAccessor<long> binaryScaleFactor("binaryScaleFactor");
-static GribAccessor<long> decimalScaleFactor("decimalScaleFactor");
-static GribAccessor<unsigned long> bitsPerValue("bitsPerValue");
-static GribAccessor<double> referenceValue("referenceValue");
-static GribAccessor<unsigned long> offsetBeforeData("offsetBeforeData");
-static GribAccessor<unsigned long> offsetAfterData("offsetAfterData");
-static GribAccessor<unsigned long> offsetBeforeBitmap("offsetBeforeBitmap");
-static GribAccessor<unsigned long> numberOfValues("numberOfValues");
-static GribAccessor<unsigned long> numberOfDataPoints("numberOfDataPoints");
-static GribAccessor<long> sphericalHarmonics("sphericalHarmonics", true);
-static GribAccessor<unsigned long> totalLength("totalLength");
-static GribAccessor<unsigned long> offsetBSection6("offsetBSection6");
-static GribAccessor<std::string> md5GridSection("md5GridSection");
-static metkit::grib::GribAccessor<std::string> packingType("packingType");
+JumpInfo::JumpInfo(const metkit::codes::CodesHandle& h, const eckit::Offset startOffset) : version_(currentVersion_) {
 
-}  // namespace grib
-// --------------------------------------------------------------------------------------------
-
-JumpInfo::JumpInfo(const metkit::grib::GribHandle& h, const eckit::Offset startOffset) : version_(currentVersion_) {
-
-    editionNumber_ = grib::editionNumber(h);
-    packingType_   = grib::packingType(h);
+    editionNumber_ = h.getLong("editionNumber");
+    packingType_   = h.getString("packingType");
     if (editionNumber_ != 1 && editionNumber_ != 2) {
         std::stringstream ss;
         ss << "Unsupported GRIB edition number: " << editionNumber_;
         throw GribJumpException(ss.str(), Here());
     }
 
-    binaryScaleFactor_  = grib::binaryScaleFactor(h);
-    decimalScaleFactor_ = grib::decimalScaleFactor(h);
-    bitsPerValue_       = grib::bitsPerValue(h);
-    referenceValue_     = grib::referenceValue(h);
-    offsetBeforeData_   = grib::offsetBeforeData(h);
-    offsetAfterData_    = grib::offsetAfterData(h);
-    numberOfDataPoints_ = grib::numberOfDataPoints(h);
-    numberOfValues_     = grib::numberOfValues(h);
-    sphericalHarmonics_ = grib::sphericalHarmonics(h);
-    totalLength_        = grib::totalLength(h);
-    md5GridSection_     = grib::md5GridSection(h);
+    binaryScaleFactor_  = h.getLong("binaryScaleFactor");
+    decimalScaleFactor_ = h.getLong("decimalScaleFactor");
+    bitsPerValue_       = h.getLong("bitsPerValue");
+    referenceValue_     = h.getDouble("referenceValue");
+    offsetBeforeData_   = h.getLong("offsetBeforeData");
+    offsetAfterData_    = h.getLong("offsetAfterData");
+    numberOfDataPoints_ = h.getLong("numberOfDataPoints");
+    numberOfValues_     = h.getLong("numberOfValues");
+    sphericalHarmonics_ = h.has("sphericalHarmonics") ? h.getLong("sphericalHarmonics") : 0;
 
-    long bitmapPresent_ = grib::bitmapPresent(h);
+    totalLength_    = h.getLong("totalLength");
+    md5GridSection_ = h.getString("md5GridSection");
+
+    long bitmapPresent_ = h.getLong("bitmapPresent");
 
     if (bitmapPresent_) {
         constexpr size_t offsetToBitmap = 6;
         offsetBeforeBitmap_ =
-            editionNumber_ == 1 ? grib::offsetBeforeBitmap(h) : grib::offsetBSection6(h) + offsetToBitmap;
+            editionNumber_ == 1 ? h.getLong("offsetBeforeBitmap") : h.getLong("offsetBSection6") + offsetToBitmap;
     }
     else {
         offsetBeforeBitmap_ = 0;

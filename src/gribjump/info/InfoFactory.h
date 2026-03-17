@@ -11,8 +11,13 @@
 /// @author Christopher Bradley
 
 #pragma once
-#include <memory>
+
 #include "gribjump/info/JumpInfo.h"
+
+#include "metkit/codes/api/CodesAPI.h"
+
+#include <memory>
+#include <mutex>
 
 namespace gribjump {
 
@@ -24,7 +29,7 @@ public:
     InfoBuilderBase(const std::string& name);
     virtual ~InfoBuilderBase();
 
-    virtual std::unique_ptr<JumpInfo> make(eckit::DataHandle& handle, const metkit::grib::GribHandle& h,
+    virtual std::unique_ptr<JumpInfo> make(eckit::DataHandle& handle, const metkit::codes::CodesHandle& h,
                                            const eckit::Offset startOffset) const    = 0;
     virtual std::unique_ptr<JumpInfo> make(const eckit::message::Message& msg) const = 0;
 };
@@ -32,9 +37,9 @@ public:
 template <class T>
 class InfoBuilder : public InfoBuilderBase {
 
-    std::unique_ptr<JumpInfo> make(eckit::DataHandle& h, const metkit::grib::GribHandle& gh,
+    std::unique_ptr<JumpInfo> make(eckit::DataHandle& h, const metkit::codes::CodesHandle& ch,
                                    eckit::Offset startOffset) const override {
-        return std::make_unique<T>(h, gh, startOffset);
+        return std::make_unique<T>(h, ch, startOffset);
     }
 
     std::unique_ptr<JumpInfo> make(const eckit::message::Message& msg) const override {

@@ -13,7 +13,7 @@
 
 #include "eckit/testing/Test.h"
 
-#include "metkit/mars/MarsExpension.h"
+#include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -69,7 +69,7 @@ void GribJumpExtract::execute(const eckit::option::CmdArgs& args) {
             requests.push_back(r);
     }
     else {
-        metkit::mars::MarsExpension expand(/* inherit */ false);
+        metkit::mars::MarsExpansion expand(/* inherit */ false);
         requests = expand.expand(parsedRequests);
     }
 

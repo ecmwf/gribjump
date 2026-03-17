@@ -9,16 +9,13 @@
  */
 /// @author Christopher Bradley
 
-#include <fstream>
 #include <memory>
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/DataHandle.h"
-#include "eckit/utils/StringTools.h"
 
-#include "metkit/codes/GribHandle.h"
+#include "metkit/codes/api/CodesAPI.h"
 
-// #include "gribjump/FDBService.h"
 #include "gribjump/Lister.h"
 #include "gribjump/tools/EccodesExtract.h"
 
@@ -44,26 +41,6 @@ std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsR
     return results;
 }
 
-// Expects a request to have cardinality 1
-/// @todo: you wrote this but I dont think started to use it yet.
-std::vector<std::vector<double>> eccodesExtractSingle(metkit::mars::MarsRequest request, std::vector<Range> ranges) {
-    std::map<eckit::PathName, eckit::OffsetList> map = FDBLister::instance().filesOffsets({request});
-
-    // Should have exactly one pathname, and one element in the offset list.
-    if (map.size() != 1) {
-        throw eckit::UserError("Expected exactly one file for request: " + request.asString(), Here());
-    }
-
-    const eckit::PathName path      = map.begin()->first;
-    const eckit::OffsetList offsets = map.begin()->second;
-
-    if (offsets.size() != 1) {
-        throw eckit::UserError("Expected exactly one offset for request: " + request.asString(), Here());
-    }
-    std::vector<std::vector<double>> results = eccodesExtract(path, offsets, ranges)[0];
-    return results;
-}
-
 std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName path, eckit::OffsetList offsets,
                                                              std::vector<Range> ranges) {
 
@@ -75,10 +52,16 @@ std::vector<std::vector<std::vector<double>>> eccodesExtract(eckit::PathName pat
     for (int j = 0; j < offsets.size(); j++) {
 
         const eckit::Offset offset = offsets[j];
-        const metkit::grib::GribHandle handle(*dh, offset);
 
-        size_t count;
-        std::unique_ptr<double[]> data(handle.getDataValues(count));
+        dh->seek(offset);
+
+        // Note: eccodes will read message into memory
+        std::unique_ptr<metkit::codes::CodesHandle> handle = metkit::codes::codesHandleFromStream(
+            [&](uint8_t* buffer, int64_t len) -> int64_t { return dh->read(buffer, len); });
+
+        handle->set("missingValue", 9999);
+
+        auto data = handle->getDoubleArray("values");
 
         std::vector<std::vector<double>> ecvalues;
         for (const auto& range : ranges) {
@@ -100,17 +83,13 @@ std::vector<double> eccodesExtract(eckit::PathName path) {
     std::unique_ptr<eckit::DataHandle> dh(path.fileHandle());
     dh->openForRead();
 
-    const metkit::grib::GribHandle handle(*dh, 0);
+    // Note: eccodes will read message into memory
+    std::unique_ptr<metkit::codes::CodesHandle> handle = metkit::codes::codesHandleFromStream(
+        [&](uint8_t* buffer, int64_t len) -> int64_t { return dh->read(buffer, len); });
 
-    size_t count;
-    std::unique_ptr<double[]> data(handle.getDataValues(count));
+    handle->set("missingValue", 9999);
 
-    std::vector<double> ecvalues;
-    for (size_t k = 0; k < count; k++) {
-        ecvalues.push_back(data[k]);
-    }
-
-    return ecvalues;
+    return handle->getDoubleArray("values");
 }
 
 }  // namespace gribjump
