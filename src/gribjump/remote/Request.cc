@@ -11,9 +11,10 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#include "gribjump/remote/Request.h"
 #include <cstddef>
+
 #include "gribjump/Engine.h"
+#include "gribjump/remote/Request.h"
 
 namespace {
 static std::atomic<uint64_t> requestid_{0};

@@ -10,15 +10,17 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/gribjump_c.h"
 #include <functional>
 #include <sstream>
+
 #include "eckit/runtime/Main.h"
+#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsParser.h"
+
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
-#include "metkit/mars/MarsExpansion.h"
-#include "metkit/mars/MarsParser.h"
+#include "gribjump/gribjump_c.h"
 
 using namespace gribjump;
 

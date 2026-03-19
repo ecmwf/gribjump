@@ -10,12 +10,14 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/Forwarder.h"
 #include <atomic>
 #include <numeric>
 #include <unordered_map>
+
 #include "eckit/filesystem/URI.h"
+
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/Forwarder.h"
 #include "gribjump/LibGribJump.h"
 
 namespace gribjump {

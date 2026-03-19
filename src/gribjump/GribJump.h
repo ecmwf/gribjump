@@ -14,15 +14,17 @@
 #pragma once
 
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
+#include "eckit/filesystem/PathName.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/ExtractionData.h"
-#include "gribjump/GribJumpBase.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/api/ExtractionIterator.h"
 
 namespace gribjump {

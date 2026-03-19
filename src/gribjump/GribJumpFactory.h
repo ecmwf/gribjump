@@ -8,11 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-#include "gribjump/GribJump.h"
-
 #pragma once
 
+#include <string>
+
+#include "gribjump/Config.h"
+
 namespace gribjump {
+
+class GribJumpBase;
 
 class GribJumpFactory {
     virtual GribJumpBase* make(const Config& config) const = 0;

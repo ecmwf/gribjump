@@ -8,9 +8,10 @@
  * does it submit to any jurisdiction.
  */
 
-#include "Range.h"
 #include <algorithm>
 #include <cassert>
+
+#include "Range.h"
 
 namespace gribjump::mc {
 

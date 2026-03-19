@@ -11,7 +11,6 @@
 /// @author Tiago Quintino
 
 #include "gribjump/GribJumpBase.h"
-#include "GribJumpBase.h"
 #include "gribjump/LibGribJump.h"
 
 namespace gribjump {
