@@ -13,7 +13,7 @@
 
 
 #include "gribjump/remote/WorkItem.h"
-#include "gribjump/Task.h"
+#include "gribjump/core/Task.h"
 #include "gribjump/remote/Request.h"
 
 

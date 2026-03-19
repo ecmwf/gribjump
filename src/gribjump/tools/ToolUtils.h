@@ -12,7 +12,7 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/ExtractionData.h"
+#include "gribjump/api/ExtractionData.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {

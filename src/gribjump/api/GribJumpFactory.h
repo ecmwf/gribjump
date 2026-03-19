@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include "gribjump/Config.h"
+#include "gribjump/config/Config.h"
 
 namespace gribjump {
 

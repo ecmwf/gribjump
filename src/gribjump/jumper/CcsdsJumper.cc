@@ -11,8 +11,8 @@
 /// @author Christopher Bradley
 
 #include "gribjump/jumper/CcsdsJumper.h"
-#include "gribjump/GribJumpDataAccessor.h"
-#include "gribjump/Types.h"
+#include "gribjump/core/GribJumpDataAccessor.h"
+#include "gribjump/api/Types.h"
 #include "gribjump/compression/compressors/Ccsds.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/jumper/JumperFactory.h"

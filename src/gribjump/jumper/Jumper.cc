@@ -14,7 +14,7 @@
 #include "eckit/io/DataHandle.h"
 
 #include <memory>
-#include "gribjump/ExtractionItem.h"
+#include "gribjump/api/ExtractionItem.h"
 #include "gribjump/jumper/Jumper.h"
 
 namespace gribjump {

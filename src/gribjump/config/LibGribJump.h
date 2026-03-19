@@ -21,7 +21,7 @@
 #include "eckit/system/Library.h"
 #include "eckit/system/Plugin.h"
 
-#include "gribjump/Config.h"
+#include "gribjump/config/Config.h"
 
 
 namespace gribjump {

@@ -13,12 +13,12 @@
 #include "eckit/config/Resource.h"
 #include "eckit/utils/StringTools.h"
 
-#include "gribjump/LogRouter.h"
+#include "gribjump/config/LogRouter.h"
 #include "metkit/mars/MarsParser.h"
 
-#include "gribjump/Engine.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/Forwarder.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/core/Forwarder.h"
 
 
 namespace gribjump {

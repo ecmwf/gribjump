@@ -27,13 +27,13 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/GribJump.h"
-#include "gribjump/GribJumpFactory.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/LocalGribJump.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/api/GribJumpFactory.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/core/LocalGribJump.h"
 
-#include "gribjump/Engine.h"
+#include "gribjump/core/Engine.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/jumper/JumperFactory.h"
 

@@ -10,8 +10,8 @@
 
 /// @author Tiago Quintino
 
-#include "gribjump/GribJumpBase.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/api/GribJumpBase.h"
+#include "gribjump/config/LibGribJump.h"
 
 namespace gribjump {
 

@@ -15,8 +15,8 @@
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
-#include "gribjump/ExtractionData.h"
-#include "gribjump/gribjump_c.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/gribjump_c.h"
 #include "path_tools.cc"
 
 using namespace eckit::testing;

@@ -15,4 +15,4 @@ CMakeCache.txt
 *.egg-info
 dist/
 
-docs/examples/walkthrough_files/etc/fdb/root
+docs/examples/walkthrough_files/etc/fdb/root.cache/

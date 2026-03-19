@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "gribjump/Types.h"
+#include "gribjump/api/Types.h"
 #include "gribjump/jumper/Jumper.h"
 
 namespace gribjump {

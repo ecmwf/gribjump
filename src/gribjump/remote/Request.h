@@ -17,10 +17,10 @@
 #include <mutex>
 #include "eckit/serialisation/Stream.h"
 
-#include "gribjump/Engine.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/GribJump.h"
-#include "gribjump/Metrics.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/config/Metrics.h"
 #include "gribjump/remote/WorkQueue.h"
 
 namespace gribjump {

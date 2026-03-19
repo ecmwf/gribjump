@@ -13,10 +13,10 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 
-#include "gribjump/GribJumpException.h"
-#include "gribjump/Lister.h"
-#include "gribjump/Metrics.h"
-#include "gribjump/URIHelper.h"
+#include "gribjump/api/GribJumpException.h"
+#include "gribjump/core/Lister.h"
+#include "gribjump/config/Metrics.h"
+#include "gribjump/core/URIHelper.h"
 
 namespace gribjump {
 

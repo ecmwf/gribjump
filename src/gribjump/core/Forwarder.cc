@@ -16,9 +16,9 @@
 
 #include "eckit/filesystem/URI.h"
 
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/Forwarder.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/core/Forwarder.h"
+#include "gribjump/config/LibGribJump.h"
 
 namespace gribjump {
 

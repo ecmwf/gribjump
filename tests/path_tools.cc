@@ -1,5 +1,5 @@
 #include "fdb5/api/FDB.h"
-#include "gribjump/Lister.cc"
+#include "gribjump/core/Lister.cc"
 #include "metkit/mars/MarsParser.h"
 
 std::string get_path_name_from_mars_req(std::string mars_str, fdb5::FDB& fdb) {

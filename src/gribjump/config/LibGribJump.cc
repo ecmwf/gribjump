@@ -10,7 +10,7 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 
 #include "eckit/config/LibEcKit.h"
 #include "eckit/config/Resource.h"

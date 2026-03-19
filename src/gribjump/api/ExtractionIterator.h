@@ -14,7 +14,7 @@
 
 #include <memory>
 #include <vector>
-#include "gribjump/ExtractionData.h"
+#include "gribjump/api/ExtractionData.h"
 
 namespace gribjump {
 

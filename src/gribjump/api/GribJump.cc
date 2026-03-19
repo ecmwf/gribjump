@@ -13,12 +13,12 @@
 
 #include "eckit/log/Timer.h"
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/GribJump.h"
-#include "gribjump/GribJumpBase.h"
-#include "gribjump/GribJumpFactory.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/Types.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/api/GribJumpBase.h"
+#include "gribjump/api/GribJumpFactory.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/api/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/tools/ToolUtils.h"
 #include "metkit/mars/MarsRequest.h"

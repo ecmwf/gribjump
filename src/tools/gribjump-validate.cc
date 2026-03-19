@@ -17,7 +17,8 @@
 
 #include "fdb5/api/FDB.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/tools/ToolUtils.h"

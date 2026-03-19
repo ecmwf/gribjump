@@ -9,7 +9,7 @@
  */
 
 #include "gribjump/tools/GribJumpTool.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 
 #include <pwd.h>
 #include <unistd.h>

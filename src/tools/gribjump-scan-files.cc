@@ -11,7 +11,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "fdb5/api/FDB.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
 
 /// @author Christopher Bradley

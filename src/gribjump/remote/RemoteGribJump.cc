@@ -15,8 +15,8 @@
 #include "eckit/log/Plural.h"
 #include "eckit/log/Timer.h"
 
-#include "gribjump/GribJumpFactory.h"
-#include "gribjump/LogRouter.h"
+#include "gribjump/api/GribJumpFactory.h"
+#include "gribjump/config/LogRouter.h"
 #include "gribjump/remote/RemoteGribJump.h"
 
 namespace gribjump {

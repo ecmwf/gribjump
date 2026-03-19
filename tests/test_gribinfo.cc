@@ -24,9 +24,9 @@
 #include "metkit/codes/CodesDataContent.h"
 #include "metkit/codes/api/CodesAPI.h"
 
-#include "gribjump/Engine.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/jumper/JumperFactory.h"

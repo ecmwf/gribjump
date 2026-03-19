@@ -13,7 +13,7 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/utils/StringTools.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/tools/ToolUtils.h"
 #include "metkit/mars/MarsExpansion.h"
 

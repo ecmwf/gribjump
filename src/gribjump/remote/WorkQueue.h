@@ -16,8 +16,8 @@
 
 #include "eckit/container/Queue.h"
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/Task.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/core/Task.h"
 #include "gribjump/remote/WorkItem.h"
 
 namespace gribjump {

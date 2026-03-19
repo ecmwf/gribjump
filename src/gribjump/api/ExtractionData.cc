@@ -10,7 +10,7 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/ExtractionData.h"
+#include "gribjump/api/ExtractionData.h"
 #include "eckit/io/Buffer.h"
 #include "eckit/value/Value.h"
 

@@ -23,10 +23,10 @@
 #include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 
-#include "gribjump/Engine.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/GribJumpException.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJumpException.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/tools/EccodesExtract.h"
 

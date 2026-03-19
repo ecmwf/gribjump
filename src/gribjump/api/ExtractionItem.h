@@ -14,13 +14,13 @@
 
 #include <bitset>
 #include "eckit/filesystem/URI.h"
-#include "gribjump/ExtractionData.h"
+#include "gribjump/api/ExtractionData.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/Types.h"
-#include "gribjump/URIHelper.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/core/URIHelper.h"
 namespace gribjump {
 
 // An object for grouping request, uri and result information together.

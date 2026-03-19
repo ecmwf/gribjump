@@ -17,13 +17,13 @@
 
 #include "eckit/filesystem/URI.h"
 
-#include "gribjump/Config.h"
-#include "gribjump/ExtractionData.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/Metrics.h"
-#include "gribjump/Stats.h"
-#include "gribjump/Types.h"
+#include "gribjump/config/Config.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/config/Metrics.h"
+#include "gribjump/config/Stats.h"
+#include "gribjump/api/Types.h"
 
 namespace fdb5 {
 class Key;

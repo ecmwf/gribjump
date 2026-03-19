@@ -17,7 +17,7 @@
 #include <vector>
 
 #include "eckit/serialisation/Stream.h"
-#include "gribjump/Types.h"
+#include "gribjump/api/Types.h"
 
 namespace gribjump {
 

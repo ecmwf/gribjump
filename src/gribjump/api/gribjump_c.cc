@@ -17,10 +17,10 @@
 #include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/GribJump.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
-#include "gribjump/gribjump_c.h"
+#include "gribjump/api/gribjump_c.h"
 
 using namespace gribjump;
 

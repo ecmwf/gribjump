@@ -10,9 +10,9 @@
 
 /// @author Christopher Bradley
 #include "eckit/net/Endpoint.h"
-#include "gribjump/Engine.h"
-#include "gribjump/Task.h"
-#include "gribjump/Types.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/core/Task.h"
+#include "gribjump/api/Types.h"
 
 #pragma once
 

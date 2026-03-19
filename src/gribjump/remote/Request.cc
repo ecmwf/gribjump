@@ -13,7 +13,7 @@
 
 #include <cstddef>
 
-#include "gribjump/Engine.h"
+#include "gribjump/core/Engine.h"
 #include "gribjump/remote/Request.h"
 
 namespace {

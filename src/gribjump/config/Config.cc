@@ -10,10 +10,10 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/Config.h"
+#include "gribjump/config/Config.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/LogRouter.h"
+#include "gribjump/config/LogRouter.h"
 
 namespace gribjump {
 

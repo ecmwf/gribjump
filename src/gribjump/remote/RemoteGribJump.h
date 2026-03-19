@@ -14,8 +14,8 @@
 
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
-#include "gribjump/ExtractionData.h"
-#include "gribjump/GribJumpBase.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/GribJumpBase.h"
 
 namespace gribjump {
 

@@ -16,7 +16,7 @@
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/tools/ToolUtils.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/jumper/JumperFactory.h"

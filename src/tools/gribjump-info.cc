@@ -9,7 +9,7 @@
  */
 /// @author Christopher Bradley
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/tools/GribJumpTool.h"
 

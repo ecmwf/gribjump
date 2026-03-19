@@ -12,8 +12,8 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/thread/AutoLock.h"
 
-#include "gribjump/GribJumpFactory.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/api/GribJumpFactory.h"
+#include "gribjump/config/LibGribJump.h"
 
 
 namespace gribjump {

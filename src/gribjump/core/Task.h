@@ -15,8 +15,8 @@
 #include <mutex>
 #include "eckit/serialisation/Stream.h"
 
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/GribJump.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJump.h"
 
 namespace gribjump {
 

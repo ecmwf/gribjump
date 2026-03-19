@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/ExtractionItem.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionItem.h"
 #include "gribjump/compression/NumericCompressor.h"
 #include "gribjump/info/JumpInfo.h"
 

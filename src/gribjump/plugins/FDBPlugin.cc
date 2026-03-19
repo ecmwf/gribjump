@@ -16,8 +16,8 @@
 
 #include "fdb5/LibFdb5.h"
 
-#include "gribjump/FDBPlugin.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/plugins/FDBPlugin.h"
+#include "gribjump/config/LibGribJump.h"
 
 using namespace fdb5;
 

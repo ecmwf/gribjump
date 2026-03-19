@@ -14,12 +14,12 @@
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/Request.h"
 
-#include "gribjump/Engine.h"
+#include "gribjump/core/Engine.h"
 
 namespace gribjump {
 

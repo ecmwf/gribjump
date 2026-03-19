@@ -12,7 +12,7 @@
 #pragma once
 
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/Types.h"
+#include "gribjump/api/Types.h"
 #include "metkit/mars/MarsRequest.h"
 
 

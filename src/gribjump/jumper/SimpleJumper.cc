@@ -11,7 +11,7 @@
 /// @author Christopher Bradley
 
 #include "gribjump/jumper/SimpleJumper.h"
-#include "gribjump/GribJumpDataAccessor.h"
+#include "gribjump/core/GribJumpDataAccessor.h"
 #include "gribjump/compression/compressors/Simple.h"
 #include "gribjump/info/SimpleInfo.h"
 #include "gribjump/jumper/JumperFactory.h"

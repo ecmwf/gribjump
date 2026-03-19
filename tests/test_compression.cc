@@ -15,7 +15,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/testing/Test.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/info/InfoExtractor.h"
 
 using namespace eckit::testing;

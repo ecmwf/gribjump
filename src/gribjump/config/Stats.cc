@@ -10,7 +10,7 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/Stats.h"
+#include "gribjump/config/Stats.h"
 
 #include <cmath>
 #include <cstring>

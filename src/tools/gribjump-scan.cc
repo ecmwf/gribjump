@@ -17,7 +17,7 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
 
 /// @author Tiago Quintino

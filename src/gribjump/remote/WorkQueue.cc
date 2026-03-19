@@ -14,7 +14,7 @@
 #include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 
 
 namespace gribjump {

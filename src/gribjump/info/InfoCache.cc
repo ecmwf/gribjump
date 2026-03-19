@@ -20,8 +20,8 @@
 #include "eckit/log/Plural.h"
 #include "eckit/log/TimeStamp.h"
 
-#include "gribjump/GribJumpException.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/api/GribJumpException.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/info/InfoFactory.h"

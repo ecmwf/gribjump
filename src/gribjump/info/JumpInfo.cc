@@ -16,7 +16,7 @@
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"
 
-#include "gribjump/GribJumpException.h"
+#include "gribjump/api/GribJumpException.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/SimpleInfo.h"

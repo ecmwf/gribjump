@@ -10,10 +10,10 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/Metrics.h"
+#include "gribjump/config/Metrics.h"
 #include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace {

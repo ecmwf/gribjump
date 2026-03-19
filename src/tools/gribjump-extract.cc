@@ -17,7 +17,7 @@
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/tools/ToolUtils.h"
 

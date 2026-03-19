@@ -21,7 +21,7 @@
 #include "eckit/option/CmdArgs.h"
 #include "eckit/option/SimpleOption.h"
 #include "eckit/runtime/Tool.h"
-#include "gribjump/Metrics.h"
+#include "gribjump/config/Metrics.h"
 
 namespace eckit {
 namespace option {

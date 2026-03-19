@@ -21,7 +21,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/ExtractionItem.h"
+#include "gribjump/api/ExtractionItem.h"
 
 namespace gribjump {
 

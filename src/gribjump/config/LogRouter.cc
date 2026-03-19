@@ -10,8 +10,8 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/LogRouter.h"
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LogRouter.h"
+#include "gribjump/config/LibGribJump.h"
 
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"

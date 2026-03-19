@@ -13,7 +13,7 @@
 /// @author Christopher Bradley
 
 #include <stdio.h>
-#include "gribjump/gribjump_c.h"
+#include "gribjump/api/gribjump_c.h"
 
 int main(int argc, char** argv) {
 

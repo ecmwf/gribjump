@@ -13,8 +13,8 @@
 
 #pragma once
 
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/GribJumpBase.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJumpBase.h"
 #include "gribjump/info/InfoAggregator.h"
 
 namespace gribjump {

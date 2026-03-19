@@ -13,7 +13,7 @@
 
 #include "fdb5/database/FieldLocation.h"
 
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/InfoAggregator.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"

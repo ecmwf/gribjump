@@ -17,7 +17,7 @@
 #include "eckit/net/NetUser.h"
 #include "eckit/serialisation/Stream.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -23,8 +23,8 @@
 #include "eckit/filesystem/PathName.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/Metrics.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/config/Metrics.h"
 #include "gribjump/api/ExtractionIterator.h"
 
 namespace gribjump {

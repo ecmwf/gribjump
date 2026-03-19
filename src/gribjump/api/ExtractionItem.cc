@@ -10,7 +10,7 @@
 
 /// @author Christopher Bradley
 
-#include "gribjump/ExtractionItem.h"
+#include "gribjump/api/ExtractionItem.h"
 
 namespace gribjump {
 

@@ -19,9 +19,9 @@
 
 #include "fdb5/api/FDB.h"
 
-#include "gribjump/LibGribJump.h"
-#include "gribjump/LogRouter.h"
-#include "gribjump/Task.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/config/LogRouter.h"
+#include "gribjump/core/Task.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"

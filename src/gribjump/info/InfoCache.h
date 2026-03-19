@@ -20,7 +20,7 @@
 #include "eckit/serialisation/FileStream.h"
 #include "eckit/serialisation/Stream.h"
 
-#include "gribjump/LibGribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/LRUCache.h"
 

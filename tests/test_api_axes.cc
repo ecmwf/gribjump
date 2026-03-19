@@ -19,7 +19,7 @@
 
 #include "fdb5/api/FDB.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "metkit/mars/MarsExpansion.h"
