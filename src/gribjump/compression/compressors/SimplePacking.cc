@@ -10,6 +10,8 @@
 
 #include "gribjump/compression/compressors/SimplePacking.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/log/CodeLocation.h"
 #include "gribjump/compression/NumericCompressor.h"
 
 namespace {

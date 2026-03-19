@@ -13,9 +13,24 @@
 
 #pragma once
 
-#include "gribjump/api/ExtractionItem.h"
+#include <stddef.h>
+#include <functional>
+#include <map>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+#include "eckit/filesystem/PathName.h"
+#include "gribjump/api/ExtractionData.h"
 #include "gribjump/api/GribJumpBase.h"
-#include "gribjump/info/InfoAggregator.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/config/Config.h"
+#include "metkit/mars/MarsRequest.h"
+
+namespace eckit {
+class Offset;
+}
 
 namespace gribjump {
 

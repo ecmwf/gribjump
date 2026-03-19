@@ -10,7 +10,15 @@
 
 /// @author Christopher Bradley
 
+#include <utility>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/CodeLocation.h"
+
 #include "gribjump/jumper/JumperFactory.h"
+
+namespace gribjump {
+class Jumper;
+}
 
 namespace gribjump {
 

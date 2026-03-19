@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 #include "gribjump/api/ExtractionData.h"

@@ -12,8 +12,11 @@
 
 #pragma once
 
+#include <string>
 #include <unordered_map>
+
 #include "eckit/config/LocalConfiguration.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/net/Endpoint.h"
 
 namespace gribjump {

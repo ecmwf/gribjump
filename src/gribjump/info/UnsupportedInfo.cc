@@ -11,6 +11,9 @@
 /// @author Christopher Bradley
 
 #include "gribjump/info/UnsupportedInfo.h"
+
+#include <ostream>
+
 #include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {

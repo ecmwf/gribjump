@@ -12,13 +12,17 @@
 
 #pragma once
 
-#include "eckit/filesystem/PathName.h"
-#include "eckit/message/Message.h"
-#include "gribjump/info/JumpInfo.h"
-
 #include <memory>
 #include <utility>
 #include <vector>
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Offset.h"
+#include "gribjump/info/JumpInfo.h"
+
+namespace eckit::message {
+class Message;
+}
 
 
 namespace gribjump {

@@ -12,9 +12,11 @@
 
 #include "gribjump/config/Stats.h"
 
+#include <algorithm>
 #include <cmath>
-#include <cstring>
 #include <iomanip>
+#include <ostream>
+#include "eckit/log/Timer.h"
 
 namespace gribjump {
 

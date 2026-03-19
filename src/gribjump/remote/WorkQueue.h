@@ -13,12 +13,15 @@
 #pragma once
 
 #include <thread>
+#include <vector>
 
 #include "eckit/container/Queue.h"
 
-#include "gribjump/api/ExtractionData.h"
-#include "gribjump/core/Task.h"
 #include "gribjump/remote/WorkItem.h"
+
+namespace gribjump {
+class Task;
+}
 
 namespace gribjump {
 

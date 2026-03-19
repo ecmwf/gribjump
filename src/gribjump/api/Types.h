@@ -13,7 +13,12 @@
 #include <bitset>
 #include <map>
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
+
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Offset.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
@@ -37,6 +42,7 @@ using ExMask   = std::vector<std::vector<std::bitset<64>>>;
 
 using ExtractionItems = std::vector<ExtractionItem*>;  // Non-owning pointers
 using ExItemMap       = std::map<std::string, std::unique_ptr<ExtractionItem>>;
+using ResultsMap      = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
 // filemap holds non-owning pointers to ExtractionItems
 using filemap_t = std::map<std::string, ExtractionItems>;        // filename -> ExtractionItems

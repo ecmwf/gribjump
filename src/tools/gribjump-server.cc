@@ -10,13 +10,14 @@
 
 
 #include <unistd.h>
-#include <fstream>
 
+#include <string>
 #include "eckit/config/Resource.h"
 #include "eckit/net/Port.h"
 #include "eckit/runtime/Application.h"
 
-#include "gribjump/gribjump_config.h"
+#include "gribjump/config/Config.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/remote/GribJumpServer.h"
 
 #ifdef GRIBJUMP_HAVE_DHSKIT

@@ -16,11 +16,8 @@
 
 #include <mutex>
 #include <string>
-#include <vector>
 
-#include "eckit/system/Library.h"
 #include "eckit/system/Plugin.h"
-
 #include "gribjump/config/Config.h"
 
 

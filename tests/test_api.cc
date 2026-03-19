@@ -10,18 +10,33 @@
 
 
 #include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
-#include "eckit/io/DataHandle.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 
-#include "gribjump/api/GribJump.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/database/FieldLocation.h"
+#include "gribjump/api/ExtractionData.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/api/Types.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "metkit/mars/MarsExpansion.h"
@@ -137,9 +152,8 @@ CASE("test_gribjump_api_extract") {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
-
-    std::vector<std::vector<Interval>> allIntervals = {
-        {
+    // clang-format off
+    std::vector<std::vector<Interval>> allIntervals = {{
             // two distinct ranges
             std::make_pair(0, 5), std::make_pair(20, 30)  // 15 values
         },
@@ -149,9 +163,12 @@ CASE("test_gribjump_api_extract") {
         },
         {
             // two sets of adjacent ranges
-            std::make_pair(0, 1), std::make_pair(1, 2), std::make_pair(3, 4), std::make_pair(4, 5),  // 4 values
+            std::make_pair(0, 1),
+            std::make_pair(1, 2),
+            std::make_pair(3, 4),
+            std::make_pair(4, 5),  // 4 values
         }};
-
+    // clang-format on
     using PolyRequest = std::vector<ExtractionRequest>;
     PolyRequest polyRequest1;
     for (size_t i = 0; i < requests.size(); i++) {

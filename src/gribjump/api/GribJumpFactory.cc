@@ -8,12 +8,17 @@
  * does it submit to any jurisdiction.
  */
 
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/thread/AutoLock.h"
-
 #include "gribjump/api/GribJumpFactory.h"
-#include "gribjump/config/LibGribJump.h"
+
+#include <pthread.h>
+#include <map>
+#include <ostream>
+#include <utility>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "eckit/thread/AutoLock.h"
+#include "eckit/thread/Mutex.h"
 
 
 namespace gribjump {

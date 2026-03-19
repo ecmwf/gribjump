@@ -8,22 +8,32 @@
  * does it submit to any jurisdiction.
  */
 
+#include "gribjump/core/Task.h"
+
+#include <algorithm>
+#include <sstream>
+
 #include "eckit/config/Resource.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/AutoCloser.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/FileHandle.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
+#include "eckit/log/Channel.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
-#include "eckit/message/Message.h"
-#include "eckit/message/Reader.h"
-
+#include "eckit/serialisation/Stream.h"
 #include "fdb5/api/FDB.h"
-
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/config/Config.h"
 #include "gribjump/config/LibGribJump.h"
 #include "gribjump/config/LogRouter.h"
-#include "gribjump/core/Task.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
+#include "gribjump/info/JumpInfo.h"
+#include "gribjump/jumper/Jumper.h"
 #include "gribjump/jumper/JumperFactory.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/WorkQueue.h"

@@ -8,23 +8,22 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <cmath>
+#include <stdlib.h>
+#include <cstddef>
 #include <fstream>
+#include <iostream>
+#include <ostream>
+#include <string>
+#include <vector>
 
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
 
-#include "gribjump/plugins/FDBPlugin.h"
-#include "gribjump/api/GribJump.h"
 #include "gribjump/info/InfoCache.h"
-#include "gribjump/info/InfoExtractor.h"
-#include "gribjump/info/JumpInfo.h"
 
 #include "fdb5/api/FDB.h"
 
-#include "metkit/mars/MarsExpansion.h"
-#include "metkit/mars/MarsParser.h"
 using namespace eckit::testing;
 
 namespace gribjump {

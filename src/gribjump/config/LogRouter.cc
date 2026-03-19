@@ -11,13 +11,17 @@
 /// @author Christopher Bradley
 
 #include "gribjump/config/LogRouter.h"
-#include "gribjump/config/LibGribJump.h"
 
+#include <ctype.h>
+#include <algorithm>
+#include <utility>
+#include <vector>
+#include "eckit/config/Configuration.h"
 #include "eckit/config/LocalConfiguration.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
-
-#include <algorithm>
+#include "gribjump/config/LibGribJump.h"
 
 namespace gribjump {
 

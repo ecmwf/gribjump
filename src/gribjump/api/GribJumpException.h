@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <string>
 
 #include "eckit/exception/Exceptions.h"
 

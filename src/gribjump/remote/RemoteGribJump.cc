@@ -9,15 +9,26 @@
  */
 
 /// @author Christopher Bradley
-#include <algorithm>
 
+#include "gribjump/remote/RemoteGribJump.h"
+
+#include <algorithm>
+#include <sstream>
+#include <utility>
+#include "eckit/filesystem/URI.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 #include "eckit/log/Timer.h"
-
+#include "eckit/net/TCPClient.h"
+#include "eckit/net/TCPStream.h"
+#include "eckit/serialisation/Stream.h"
+#include "gribjump/api/ExtractionItem.h"
 #include "gribjump/api/GribJumpFactory.h"
 #include "gribjump/config/LogRouter.h"
-#include "gribjump/remote/RemoteGribJump.h"
+#include "gribjump/config/Metrics.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 

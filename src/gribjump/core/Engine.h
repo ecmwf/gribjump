@@ -12,13 +12,19 @@
 
 #pragma once
 
-#include "eckit/serialisation/Stream.h"
-#include "gribjump/api/ExtractionItem.h"
-#include "gribjump/core/Lister.h"
-#include "gribjump/config/Metrics.h"
-#include "gribjump/core/Task.h"
+#include <stddef.h>
+#include <map>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
 #include "gribjump/api/Types.h"
+#include "gribjump/core/Task.h"
 #include "metkit/mars/MarsRequest.h"
+
+namespace eckit {
+class PathName;
+}
 
 namespace gribjump {
 

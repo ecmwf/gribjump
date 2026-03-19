@@ -12,10 +12,18 @@
 /// @author Chris Bradley
 
 #include <cmath>
+#include <cstddef>
+#include <cstring>
+#include <limits>
+#include <map>
+#include <string>
+#include <unordered_set>
+#include <vector>
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/testing/Test.h"
-#include "gribjump/api/ExtractionData.h"
+#include "fdb5/api/FDB.h"
 #include "gribjump/api/gribjump_c.h"
 #include "path_tools.cc"
 

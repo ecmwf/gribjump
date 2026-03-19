@@ -11,31 +11,25 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#include <chrono>
-#include <set>
-
-#include "eckit/config/Resource.h"
-#include "eckit/container/Queue.h"
-#include "eckit/filesystem/PathName.h"
-#include "eckit/log/Log.h"
-#include "eckit/log/Timer.h"
-#include "eckit/net/TCPClient.h"
-#include "eckit/net/TCPStream.h"
-#include "eckit/serialisation/FileStream.h"
-#include "eckit/thread/AutoLock.h"
-
-#include "fdb5/api/FDB.h"
-#include "fdb5/api/helpers/FDBToolRequest.h"
-
-#include "gribjump/api/ExtractionData.h"
-#include "gribjump/api/GribJump.h"
-#include "gribjump/api/GribJumpFactory.h"
-#include "gribjump/config/LibGribJump.h"
 #include "gribjump/core/LocalGribJump.h"
 
+#include <chrono>
+#include <utility>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/FileHandle.h"
+#include "eckit/io/Offset.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJumpFactory.h"
 #include "gribjump/core/Engine.h"
+#include "gribjump/core/Task.h"
 #include "gribjump/info/InfoExtractor.h"
+#include "gribjump/info/JumpInfo.h"
+#include "gribjump/jumper/Jumper.h"
 #include "gribjump/jumper/JumperFactory.h"
+#include "metkit/mars/Parameter.h"
 
 namespace gribjump {
 

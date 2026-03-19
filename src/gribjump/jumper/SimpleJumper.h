@@ -12,8 +12,15 @@
 
 #pragma once
 
+#include <vector>
+#include "eckit/io/Offset.h"
 #include "gribjump/api/Types.h"
+#include "gribjump/info/JumpInfo.h"
 #include "gribjump/jumper/Jumper.h"
+
+namespace eckit {
+class DataHandle;
+}
 
 namespace gribjump {
 

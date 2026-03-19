@@ -9,12 +9,19 @@
  */
 
 /// @author Christopher Bradley
-#include "eckit/io/DataHandle.h"
 
-#include "fdb5/database/FieldLocation.h"
-
-#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/InfoAggregator.h"
+
+#include <ostream>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "fdb5/database/FieldLocation.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
 

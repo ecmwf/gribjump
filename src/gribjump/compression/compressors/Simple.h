@@ -10,7 +10,16 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <memory>
+#include <vector>
+
 #include "gribjump/compression/NumericCompressor.h"
+#include "gribjump/compression/Range.h"
+
+namespace gribjump::mc {
+class DataAccessor;
+}
 
 namespace gribjump::mc {
 
@@ -50,9 +59,6 @@ protected:
     long decimal_scale_factor_;
     long binary_scale_factor_;
 };
-
-template <typename ValueType>
-class SimpleDecompressor;
 
 template <typename ValueType>
 class SimpleDecompressor : public NumericDecompressor<ValueType>, public SimpleParams {

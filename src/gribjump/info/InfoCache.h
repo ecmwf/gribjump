@@ -13,20 +13,30 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <stdint.h>
+#include <iosfwd>
 #include <map>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Offset.h"
-#include "eckit/serialisation/FileStream.h"
-#include "eckit/serialisation/Stream.h"
-
-#include "gribjump/config/LibGribJump.h"
 #include "gribjump/info/JumpInfo.h"
 #include "gribjump/info/LRUCache.h"
+
+namespace eckit {
+class Stream;
+}
 
 namespace gribjump {
 
 class IndexFile;
+
 class InfoCache {
 
 private:  // types

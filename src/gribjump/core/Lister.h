@@ -12,16 +12,20 @@
 
 #pragma once
 
-#include <unordered_map>
+#include <map>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
 #include "eckit/filesystem/PathName.h"
-
-#include "fdb5/api/FDB.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
+#include "gribjump/api/Types.h"
 
-#include "metkit/mars/MarsRequest.h"
-
-#include "gribjump/api/ExtractionItem.h"
+namespace metkit::mars {
+class MarsRequest;
+}
 
 namespace gribjump {
 

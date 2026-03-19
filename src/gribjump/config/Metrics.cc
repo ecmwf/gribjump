@@ -11,6 +11,12 @@
 /// @author Christopher Bradley
 
 #include "gribjump/config/Metrics.h"
+
+#include <ctime>
+#include <map>
+#include <sstream>
+#include <utility>
+#include "eckit/log/Channel.h"
 #include "eckit/log/Log.h"
 #include "eckit/runtime/Main.h"
 #include "gribjump/config/LibGribJump.h"

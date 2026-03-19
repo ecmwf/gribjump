@@ -12,13 +12,25 @@
 
 #pragma once
 
+#include <stdint.h>
+#include <iosfwd>
+#include <string>
+
 #include "eckit/io/Length.h"
 #include "eckit/io/Offset.h"
-#include "eckit/message/Message.h"
+#include "eckit/message/Message.h"  // IWYU pragma: keep
+// Justification: Public API constructor takes eckit::message::Message and downstream users/tests rely on complete type.
+#include "eckit/serialisation/Reanimator.h"
 #include "eckit/serialisation/Streamable.h"
-#include "eckit/types/FixedString.h"
 
-#include "metkit/codes/api/CodesAPI.h"
+namespace eckit {
+class Stream;
+}
+namespace metkit {
+namespace codes {
+class CodesHandle;
+}
+}  // namespace metkit
 
 namespace gribjump {
 class JumpInfo : public eckit::Streamable {

@@ -10,13 +10,32 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/config/Resource.h"
-#include "eckit/log/Log.h"
-
-#include "gribjump/api/GribJumpException.h"
 #include "gribjump/core/Lister.h"
+
+#include <stddef.h>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <utility>
+
+#include "eckit/config/Resource.h"
+#include "eckit/container/DenseSet.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/ListElement.h"
+#include "fdb5/api/helpers/ListIterator.h"
+#include "fdb5/database/FieldLocation.h"
+#include "fdb5/database/IndexAxis.h"
+#include "fdb5/database/Key.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJumpException.h"
+#include "gribjump/config/Config.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/config/Metrics.h"
 #include "gribjump/core/URIHelper.h"
+#include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {
 

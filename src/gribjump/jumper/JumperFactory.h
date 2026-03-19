@@ -12,7 +12,14 @@
 
 #pragma once
 
-#include "gribjump/jumper/Jumper.h"
+#include <map>
+#include <mutex>
+#include <string>
+#include "gribjump/info/JumpInfo.h"
+
+namespace gribjump {
+class Jumper;
+}
 
 namespace gribjump {
 

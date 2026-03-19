@@ -10,16 +10,34 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/config/Resource.h"
-#include "eckit/utils/StringTools.h"
-
-#include "gribjump/config/LogRouter.h"
-#include "metkit/mars/MarsParser.h"
-
 #include "gribjump/core/Engine.h"
-#include "gribjump/api/ExtractionItem.h"
-#include "gribjump/core/Forwarder.h"
 
+#include <algorithm>
+#include <atomic>
+#include <initializer_list>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <utility>
+
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Timer.h"
+#include "eckit/utils/StringTools.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/config/Config.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/config/LogRouter.h"
+#include "gribjump/config/Metrics.h"
+#include "gribjump/core/Forwarder.h"
+#include "gribjump/core/Lister.h"
+#include "metkit/mars/MarsParsedRequest.h"
+#include "metkit/mars/MarsParser.h"
 
 namespace gribjump {
 

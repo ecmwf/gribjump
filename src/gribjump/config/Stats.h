@@ -12,7 +12,15 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <iosfwd>
+#include <string>
+
 #include "eckit/log/Statistics.h"
+
+namespace eckit {
+class Timer;
+}
 
 namespace gribjump {
 class Stats : public eckit::Statistics {

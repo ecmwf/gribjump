@@ -12,10 +12,35 @@
 
 #pragma once
 
-#include "eckit/net/TCPClient.h"
-#include "eckit/net/TCPStream.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <map>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Offset.h"
+#include "eckit/net/Endpoint.h"
 #include "gribjump/api/ExtractionData.h"
 #include "gribjump/api/GribJumpBase.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/config/Config.h"
+
+namespace eckit {
+class Stream;
+}
+namespace eckit {
+namespace net {
+class InstantTCPStream;
+}
+}  // namespace eckit
+namespace metkit {
+namespace mars {
+class MarsRequest;
+}
+}  // namespace metkit
 
 namespace gribjump {
 

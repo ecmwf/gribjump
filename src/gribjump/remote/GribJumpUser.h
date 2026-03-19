@@ -12,12 +12,22 @@
 
 #pragma once
 
-#include <memory>
+#include <iosfwd>
 
 #include "eckit/net/NetUser.h"
-#include "eckit/serialisation/Stream.h"
 
-#include "gribjump/api/GribJump.h"
+namespace eckit {
+class Stream;
+}
+namespace eckit {
+class Timer;
+}
+namespace eckit {
+namespace net {
+class TCPSocket;
+}
+}  // namespace eckit
+
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------

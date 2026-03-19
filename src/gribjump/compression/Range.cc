@@ -10,8 +10,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
+#include <iterator>
 
-#include "Range.h"
+#include "gribjump/compression/Range.h"
 
 namespace gribjump::mc {
 

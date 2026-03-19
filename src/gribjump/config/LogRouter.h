@@ -15,8 +15,11 @@
 #include <functional>
 #include <map>
 #include <string>
-#include "eckit/config/Configuration.h"
 #include "eckit/log/Channel.h"
+
+namespace eckit {
+class Configuration;
+}
 
 namespace gribjump {
 

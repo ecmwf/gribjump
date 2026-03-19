@@ -10,12 +10,11 @@
 
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
-#include <cstdint>
 #include <iostream>
-#include <list>
-#include <stdexcept>
-#include <tuple>
+#include <string_view>
+#include <utility>
 #include <vector>
 namespace gribjump::mc {
 using Block = std::pair<size_t, size_t>;

@@ -9,12 +9,18 @@
  */
 
 /// @author Christopher Bradley
-#include "eckit/net/Endpoint.h"
-#include "gribjump/core/Engine.h"
-#include "gribjump/core/Task.h"
-#include "gribjump/api/Types.h"
 
 #pragma once
+
+#include <stddef.h>
+#include <unordered_map>
+#include <vector>
+
+#include "eckit/filesystem/URI.h"
+#include "eckit/net/Endpoint.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/core/Task.h"
 
 // Class used by Engine to forward requests onto remote servers
 // Example: when the remoteFDB is in use, data is distributed across multiple stores and a catalogue

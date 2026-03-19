@@ -11,6 +11,9 @@
 /// @author Tiago Quintino
 
 #include "gribjump/api/GribJumpBase.h"
+
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
 #include "gribjump/config/LibGribJump.h"
 
 namespace gribjump {

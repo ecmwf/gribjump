@@ -14,7 +14,6 @@
 
 #include "gribjump/remote/WorkItem.h"
 #include "gribjump/core/Task.h"
-#include "gribjump/remote/Request.h"
 
 
 namespace gribjump {

@@ -11,8 +11,14 @@
 /// @author Christopher Bradley
 
 #include "gribjump/api/ExtractionData.h"
+
+#include <stdint.h>
+#include <sstream>
+#include <utility>
+
 #include "eckit/io/Buffer.h"
-#include "eckit/value/Value.h"
+#include "eckit/serialisation/Stream.h"
+#include "eckit/types/Types.h"
 
 namespace gribjump {
 
@@ -217,9 +223,9 @@ PathExtractionRequest::PathExtractionRequest(const std::string& filename, const 
     ExtractionRequest("", ranges, gridHash),
     path_(filename),
     scheme_(scheme),
-    offset_(offset),
     host_(host),
-    port_(port) {
+    port_(port),
+    offset_(offset) {
 
     std::ostringstream oss;
     oss << scheme << ":" << filename << "#" << offset;

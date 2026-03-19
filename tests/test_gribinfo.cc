@@ -8,25 +8,34 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <cmath>
-#include <fstream>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "eckit/filesystem/URI.h"
 #include "eckit/io/AutoCloser.h"
-#include "eckit/serialisation/MemoryStream.h"
+#include "eckit/io/Offset.h"
+#include "eckit/io/StdFile.h"
+#include "eckit/serialisation/Reanimator.h"
 #include "eckit/testing/Test.h"
 
-#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/serialisation/FileStream.h"
 
+#include "gribjump/api/Types.h"
+#include "gribjump/info/JumpInfo.h"
+#include "gribjump/jumper/Jumper.h"
 #include "metkit/codes/CodesDataContent.h"
 #include "metkit/codes/api/CodesAPI.h"
 
-#include "gribjump/core/Engine.h"
 #include "gribjump/api/ExtractionItem.h"
-#include "gribjump/config/LibGribJump.h"
+#include "gribjump/core/Engine.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/jumper/CcsdsJumper.h"
 #include "gribjump/jumper/JumperFactory.h"

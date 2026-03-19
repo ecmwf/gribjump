@@ -9,21 +9,20 @@
  */
 
 
-#include <cmath>
+#include <iostream>
+#include <map>
+#include <ostream>
+#include <string>
+#include <unordered_set>
 
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
-#include "eckit/io/DataHandle.h"
 #include "eckit/testing/Test.h"
 
 #include "fdb5/api/FDB.h"
 
 #include "gribjump/api/GribJump.h"
-#include "gribjump/tools/EccodesExtract.h"
-
-#include "metkit/mars/MarsExpansion.h"
-#include "metkit/mars/MarsParser.h"
 
 
 using namespace eckit::testing;

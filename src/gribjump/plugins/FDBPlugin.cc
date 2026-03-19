@@ -8,16 +8,29 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/message/Message.h"
-#include "eckit/message/Reader.h"
-
-#include "fdb5/LibFdb5.h"
-
 #include "gribjump/plugins/FDBPlugin.h"
+
+#include <stddef.h>
+#include <algorithm>
+#include <future>
+#include <sstream>
+#include <utility>
+#include "eckit/config/Resource.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/MemoryHandle.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+#include "eckit/utils/Tokenizer.h"
+#include "fdb5/LibFdb5.h"
+#include "fdb5/api/helpers/Callback.h"
+#include "fdb5/database/BaseKey.h"
+#include "fdb5/database/Key.h"
+#include "gribjump/config/Config.h"
 #include "gribjump/config/LibGribJump.h"
+
+namespace fdb5 {
+class FieldLocation;
+}
 
 using namespace fdb5;
 

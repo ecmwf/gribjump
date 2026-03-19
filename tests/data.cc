@@ -10,6 +10,10 @@
 
 #include <bitset>
 #include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <limits>
+#include <ostream>
 #include <string>
 #include <vector>
 

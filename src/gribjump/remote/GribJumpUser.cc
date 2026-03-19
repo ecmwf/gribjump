@@ -11,15 +11,29 @@
 /// @author Christopher Bradley
 /// @author Tiago Quintino
 
-#include "eckit/log/Timer.h"
-#include "eckit/system/ResourceUsage.h"
-
-#include "gribjump/config/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
+
+#include <stdint.h>
+#include <exception>
+#include <ostream>
+#include <string>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/log/Log.h"
+#include "eckit/log/Timer.h"
+#include "eckit/serialisation/Stream.h"
+#include "eckit/system/ResourceUsage.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/config/Metrics.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/Request.h"
 
-#include "gribjump/core/Engine.h"
+namespace eckit {
+namespace net {
+class TCPSocket;
+}
+}  // namespace eckit
 
 namespace gribjump {
 

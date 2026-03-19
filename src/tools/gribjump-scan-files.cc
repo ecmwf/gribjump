@@ -9,10 +9,18 @@
  */
 
 #include "eckit/exception/Exceptions.h"
-#include "fdb5/api/FDB.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 
 #include "gribjump/api/GribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
+
+#include <ostream>
+#include <string>
+#include <vector>
 
 /// @author Christopher Bradley
 

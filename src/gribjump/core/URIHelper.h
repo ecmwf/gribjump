@@ -9,9 +9,15 @@
  */
 
 /// @author Christopher Bradley
+
+#pragma once
+
+#include <stdexcept>
+#include <string>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
-#pragma once
+#include "eckit/io/Offset.h"
 
 namespace gribjump {
 

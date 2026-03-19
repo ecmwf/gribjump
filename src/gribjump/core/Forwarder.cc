@@ -10,15 +10,22 @@
 
 /// @author Christopher Bradley
 
-#include <atomic>
-#include <numeric>
-#include <unordered_map>
-
-#include "eckit/filesystem/URI.h"
-
-#include "gribjump/api/ExtractionItem.h"
 #include "gribjump/core/Forwarder.h"
+
+#include <atomic>
+#include <map>
+#include <string>
+#include <unordered_map>
+#include <utility>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/config/Config.h"
 #include "gribjump/config/LibGribJump.h"
+#include "gribjump/core/URIHelper.h"
 
 namespace gribjump {
 

@@ -14,5 +14,5 @@ CMakeCache.txt
 .vim
 *.egg-info
 dist/
-
+.cache
 docs/examples/walkthrough_files/etc/fdb/root.cache/

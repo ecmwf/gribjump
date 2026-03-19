@@ -11,6 +11,8 @@
 /// @author Christopher Bradley
 
 #include "gribjump/config/Config.h"
+
+#include <vector>
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/config/LogRouter.h"

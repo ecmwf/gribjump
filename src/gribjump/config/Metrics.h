@@ -12,12 +12,18 @@
 
 #pragma once
 
+#include <time.h>
+#include <iosfwd>
+#include <string>
+#include <vector>
+
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/JSON.h"
 #include "eckit/log/Timer.h"
 #include "eckit/parser/JSONParser.h"
-#include "eckit/runtime/Metrics.h"
 #include "eckit/serialisation/Stream.h"
+#include "eckit/value/Content.h"
+#include "eckit/value/Value.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {

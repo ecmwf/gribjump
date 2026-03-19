@@ -9,9 +9,25 @@
  */
 /// @author Christopher Bradley
 
-#include "gribjump/api/GribJump.h"
+#include <stddef.h>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
+
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/tools/GribJumpTool.h"
+
+namespace eckit {
+namespace option {
+class Option;
+}
+}  // namespace eckit
 
 namespace gribjump::tool {
 

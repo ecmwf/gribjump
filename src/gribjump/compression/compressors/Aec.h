@@ -11,8 +11,18 @@
 
 #pragma once
 
+#include <assert.h>
+#include <stddef.h>
+#include <algorithm>
+#include <memory>
 #include <optional>
+#include <type_traits>
+#include <vector>
+
+#include "gribjump/compression/DataAccessor.h"
 #include "gribjump/compression/NumericCompressor.h"
+#include "gribjump/compression/Range.h"
+
 namespace gribjump::mc {
 
 class AecParams {
@@ -59,9 +69,6 @@ protected:
     size_t bits_per_sample_;
     std::vector<size_t> offsets_;
 };
-
-template <typename ValueType>
-class AecDecompressor;
 
 template <typename ValueType>
 class AecDecompressor : public NumericDecompressor<ValueType>, public AecParams {

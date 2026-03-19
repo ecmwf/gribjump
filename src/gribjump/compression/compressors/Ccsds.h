@@ -10,10 +10,23 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <algorithm>
+#include <memory>
 #include <optional>
+#include <vector>
 
+#include "eckit/exception/Exceptions.h"
 #include "gribjump/compression/NumericCompressor.h"
+#include "gribjump/compression/Range.h"
 #include "gribjump/compression/compressors/Aec.h"
+
+namespace eckit {
+class Buffer;
+}
+namespace gribjump::mc {
+class DataAccessor;
+}
 
 namespace gribjump::mc {
 

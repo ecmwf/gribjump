@@ -11,10 +11,21 @@
 /// @author Christopher Bradley
 
 #include "gribjump/remote/WorkQueue.h"
+
+#include <stddef.h>
+#include <exception>
+#include <ostream>
+#include <string>
 #include "eckit/config/Resource.h"
+#include "eckit/log/Channel.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
+#include "gribjump/config/Config.h"
 #include "gribjump/config/LibGribJump.h"
+
+namespace gribjump {
+class Task;
+}
 
 
 namespace gribjump {

@@ -10,11 +10,21 @@
 
 #pragma once
 
+#include <map>
+#include <memory>
+#include <mutex>
 #include <optional>
+#include <string>
+#include <vector>
 #include "eckit/utils/Regex.h"
-
-#include "fdb5/api/FDB.h"
 #include "gribjump/info/InfoAggregator.h"
+
+namespace fdb5 {
+class CallbackRegistry;
+}
+namespace fdb5 {
+class Key;
+}
 
 namespace gribjump {
 

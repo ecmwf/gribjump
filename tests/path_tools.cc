@@ -1,5 +1,11 @@
+#include <sstream>
+#include <string>
+#include <vector>
+#include "eckit/filesystem/URI.h"
 #include "fdb5/api/FDB.h"
+#include "fdb5/api/helpers/ListElement.h"
 #include "gribjump/core/Lister.cc"
+#include "metkit/mars/MarsParsedRequest.h"
 #include "metkit/mars/MarsParser.h"
 
 std::string get_path_name_from_mars_req(std::string mars_str, fdb5::FDB& fdb) {

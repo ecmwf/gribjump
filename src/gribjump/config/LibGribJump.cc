@@ -12,14 +12,14 @@
 
 #include "gribjump/config/LibGribJump.h"
 
-#include "eckit/config/LibEcKit.h"
-#include "eckit/config/Resource.h"
-#include "eckit/config/YAMLConfiguration.h"
-#include "eckit/eckit_version.h"
-#include "eckit/exception/Exceptions.h"
-#include "eckit/log/Log.h"
+#include <algorithm>
+#include <cstdlib>
+#include <ostream>
 
-#include "gribjump/gribjump_config.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/log/Log.h"
+#include "eckit/system/Library.h"
+
 #include "gribjump/gribjump_version.h"
 
 namespace gribjump {

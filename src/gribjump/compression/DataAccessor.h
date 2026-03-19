@@ -10,15 +10,13 @@
 
 #pragma once
 
-
-#include <cassert>
-#include <fstream>
-#include <iomanip>
-
-#include "Range.h"
+#include <cstddef>
+#include <sstream>
+#include <string>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/Buffer.h"
+#include "gribjump/compression/Range.h"
 
 namespace gribjump::mc {
 

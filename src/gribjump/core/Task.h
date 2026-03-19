@@ -10,13 +10,25 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <atomic>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
-#include "eckit/serialisation/Stream.h"
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "gribjump/api/ExtractionItem.h"
-#include "gribjump/api/GribJump.h"
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
+#include "eckit/io/Offset.h"
+#include "eckit/net/Endpoint.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/config/Metrics.h"
+
+namespace eckit {
+class Stream;
+}
 
 namespace gribjump {
 

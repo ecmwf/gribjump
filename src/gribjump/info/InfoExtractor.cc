@@ -12,6 +12,11 @@
 
 #include "gribjump/info/InfoExtractor.h"
 
+#include <sys/types.h>
+#include <cstring>
+#include <ostream>
+#include <string>
+
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/info/JumpInfo.h"
 
@@ -21,10 +26,18 @@
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/Offset.h"
-#include "eckit/message/Message.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "grib_api.h"
 
 #include <cstddef>
 #include <cstdlib>
+
+namespace eckit {
+namespace message {
+class Message;
+}
+}  // namespace eckit
 
 namespace gribjump {
 
@@ -46,7 +59,7 @@ eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
     size_t filePos = 0;
     while (true) {
 
-        std::memcpy(buffer.data(), carryover.data(), OVERLAP);
+        memcpy(buffer.data(), carryover.data(), OVERLAP);
         long bytesRead = file.read(buffer.data() + OVERLAP, BUFFER_SIZE);
         if (bytesRead < 0) {
             throw eckit::SeriousBug("Error reading file: " + filepath);
@@ -57,14 +70,14 @@ eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
 
         // Search for GRIB in the current buffer
         for (size_t i = 0; i <= bytesRead + OVERLAP - plen; ++i) {
-            if (std::memcmp(&buffer[i], pattern.data(), plen) == 0) {
+            if (memcmp(&buffer[i], pattern.data(), plen) == 0) {
                 offsets.push_back(filePos + i - OVERLAP);
             }
         }
 
         filePos += bytesRead;
         if (bytesRead >= OVERLAP) {
-            std::memcpy(carryover.data(), &buffer[bytesRead], OVERLAP);
+            memcpy(carryover.data(), &buffer[bytesRead], OVERLAP);
         }
         else {
             break;
