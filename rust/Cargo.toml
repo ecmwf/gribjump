@@ -17,8 +17,8 @@ gribjump-sys = { path = "crates/gribjump-sys" }
 gribjump = { path = "crates/gribjump" }
 
 # FDB dependency
-fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", default-features = false }
-fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", default-features = false }
+fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings", default-features = false }
+fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings", default-features = false }
 
 # Foundation crates
 eckit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
