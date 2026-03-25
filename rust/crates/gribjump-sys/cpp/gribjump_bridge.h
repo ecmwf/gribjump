@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "rust/cxx.h"
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
+#include "rust/cxx.h"
 
 // Include eckit exception for the global trycatch handler
 #include "eckit/exception/Exceptions.h"
@@ -20,30 +20,40 @@
 // Order matters: catch specific exceptions before base classes
 namespace rust::behavior {
 template <typename Try, typename Fail>
-static void trycatch(Try &&func, Fail &&fail) noexcept try {
+static void trycatch(Try&& func, Fail&& fail) noexcept try {
     func();
-} catch (const eckit::SeriousBug& e) {
+}
+catch (const eckit::SeriousBug& e) {
     fail((std::string("ECKIT_SERIOUS_BUG: ") + e.what()).c_str());
-} catch (const eckit::UserError& e) {
+}
+catch (const eckit::UserError& e) {
     fail((std::string("ECKIT_USER_ERROR: ") + e.what()).c_str());
-} catch (const eckit::BadParameter& e) {
+}
+catch (const eckit::BadParameter& e) {
     fail((std::string("ECKIT_BAD_PARAMETER: ") + e.what()).c_str());
-} catch (const eckit::NotImplemented& e) {
+}
+catch (const eckit::NotImplemented& e) {
     fail((std::string("ECKIT_NOT_IMPLEMENTED: ") + e.what()).c_str());
-} catch (const eckit::OutOfRange& e) {
+}
+catch (const eckit::OutOfRange& e) {
     fail((std::string("ECKIT_OUT_OF_RANGE: ") + e.what()).c_str());
-} catch (const eckit::FileError& e) {
+}
+catch (const eckit::FileError& e) {
     fail((std::string("ECKIT_FILE_ERROR: ") + e.what()).c_str());
-} catch (const eckit::AssertionFailed& e) {
+}
+catch (const eckit::AssertionFailed& e) {
     fail((std::string("ECKIT_ASSERTION_FAILED: ") + e.what()).c_str());
-} catch (const eckit::Exception& e) {
+}
+catch (const eckit::Exception& e) {
     fail((std::string("ECKIT: ") + e.what()).c_str());
-} catch (const std::exception& e) {
+}
+catch (const std::exception& e) {
     fail(e.what());
-} catch (...) {
+}
+catch (...) {
     fail("unknown exception (non-std::exception type)");
 }
-}
+}  // namespace rust::behavior
 
 // Forward declarations of gribjump types
 namespace gribjump {
@@ -72,15 +82,16 @@ struct FileExtractionData;
 /// Wrapper around gribjump::GribJump that can be passed through cxx.
 class GribJumpHandle {
 public:
+
     GribJumpHandle();
     ~GribJumpHandle();
 
     // Non-copyable
-    GribJumpHandle(const GribJumpHandle&) = delete;
+    GribJumpHandle(const GribJumpHandle&)            = delete;
     GribJumpHandle& operator=(const GribJumpHandle&) = delete;
 
     // Movable
-    GribJumpHandle(GribJumpHandle&&) = default;
+    GribJumpHandle(GribJumpHandle&&)            = default;
     GribJumpHandle& operator=(GribJumpHandle&&) = default;
 
     /// Access the underlying GribJump instance.
@@ -88,21 +99,23 @@ public:
     const gribjump::GribJump& inner() const { return *impl_; }
 
 private:
+
     std::unique_ptr<gribjump::GribJump> impl_;
 };
 
 /// Wrapper around gribjump::ExtractionIterator.
 class ExtractionIteratorHandle {
 public:
+
     explicit ExtractionIteratorHandle(gribjump::ExtractionIterator&& it);
     ~ExtractionIteratorHandle();
 
     // Non-copyable
-    ExtractionIteratorHandle(const ExtractionIteratorHandle&) = delete;
+    ExtractionIteratorHandle(const ExtractionIteratorHandle&)            = delete;
     ExtractionIteratorHandle& operator=(const ExtractionIteratorHandle&) = delete;
 
     // Movable
-    ExtractionIteratorHandle(ExtractionIteratorHandle&&) = default;
+    ExtractionIteratorHandle(ExtractionIteratorHandle&&)            = default;
     ExtractionIteratorHandle& operator=(ExtractionIteratorHandle&&) = default;
 
     /// Check if there are more results.
@@ -112,6 +125,7 @@ public:
     std::unique_ptr<class ExtractionResultHandle> next();
 
 private:
+
     std::unique_ptr<gribjump::ExtractionIterator> impl_;
 };
 
@@ -120,15 +134,16 @@ private:
 /// Values are truly zero-copy; masks are converted lazily from bitset<64>.
 class ExtractionResultHandle {
 public:
+
     explicit ExtractionResultHandle(std::unique_ptr<gribjump::ExtractionResult> result);
     ~ExtractionResultHandle();
 
     // Non-copyable
-    ExtractionResultHandle(const ExtractionResultHandle&) = delete;
+    ExtractionResultHandle(const ExtractionResultHandle&)            = delete;
     ExtractionResultHandle& operator=(const ExtractionResultHandle&) = delete;
 
     // Movable
-    ExtractionResultHandle(ExtractionResultHandle&&) = default;
+    ExtractionResultHandle(ExtractionResultHandle&&)            = default;
     ExtractionResultHandle& operator=(ExtractionResultHandle&&) = default;
 
     /// Get the number of ranges in this result.
@@ -149,10 +164,11 @@ public:
     size_t masks_len(size_t range_idx) const;
 
 private:
+
     std::unique_ptr<gribjump::ExtractionResult> result_;
     // Cached masks converted from bitset<64> to uint64_t
     mutable std::vector<std::vector<uint64_t>> masks_cache_;
-    mutable bool masks_converted_ = false;
+    mutable bool masks_converted_         = false;
     mutable bool masks_conversion_failed_ = false;
 
     /// Convert masks from bitset<64> to uint64_t (lazy, cached).
@@ -182,51 +198,36 @@ std::unique_ptr<GribJumpHandle> new_gribjump();
 // ============================================================================
 
 /// Extract data using standard ExtractionRequests.
-std::unique_ptr<ExtractionIteratorHandle> extract(
-    GribJumpHandle& handle,
-    const rust::Vec<ExtractionRequestData>& requests);
+std::unique_ptr<ExtractionIteratorHandle> extract(GribJumpHandle& handle,
+                                                  const rust::Vec<ExtractionRequestData>& requests);
 
 /// Extract data using PathExtractionRequests.
-std::unique_ptr<ExtractionIteratorHandle> extract_from_paths(
-    GribJumpHandle& handle,
-    const rust::Vec<PathExtractionRequestData>& requests);
+std::unique_ptr<ExtractionIteratorHandle> extract_from_paths(GribJumpHandle& handle,
+                                                             const rust::Vec<PathExtractionRequestData>& requests);
 
 /// Extract from a MARS request (expands internally).
-std::unique_ptr<ExtractionIteratorHandle> extract_mars(
-    GribJumpHandle& handle,
-    rust::Str request,
-    const rust::Vec<Range>& ranges,
-    rust::Str grid_hash);
+std::unique_ptr<ExtractionIteratorHandle> extract_mars(GribJumpHandle& handle, rust::Str request,
+                                                       const rust::Vec<Range>& ranges, rust::Str grid_hash);
 
 /// Extract from a specific file with message offsets.
-std::unique_ptr<ExtractionIteratorHandle> extract_from_file(
-    GribJumpHandle& handle,
-    const FileExtractionData& data);
+std::unique_ptr<ExtractionIteratorHandle> extract_from_file(GribJumpHandle& handle, const FileExtractionData& data);
 
 // ============================================================================
 // Axes query functions
 // ============================================================================
 
 /// Query available axes for a given request.
-rust::Vec<AxisEntry> axes(
-    GribJumpHandle& handle,
-    rust::Str request,
-    int32_t level);
+rust::Vec<AxisEntry> axes(GribJumpHandle& handle, rust::Str request, int32_t level);
 
 // ============================================================================
 // Scanning functions
 // ============================================================================
 
 /// Scan GRIB files at the given paths.
-size_t scan_paths(
-    GribJumpHandle& handle,
-    const rust::Vec<rust::String>& paths);
+size_t scan_paths(GribJumpHandle& handle, const rust::Vec<rust::String>& paths);
 
 /// Scan using MARS requests.
-size_t scan_requests(
-    GribJumpHandle& handle,
-    const rust::Vec<rust::String>& requests,
-    bool by_files);
+size_t scan_requests(GribJumpHandle& handle, const rust::Vec<rust::String>& requests, bool by_files);
 
 // ============================================================================
 // Diagnostics functions

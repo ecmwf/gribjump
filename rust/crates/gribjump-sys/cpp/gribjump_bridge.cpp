@@ -5,15 +5,15 @@
 
 #include "gribjump_bridge.h"
 
+#include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/LibGribJump.h"
-#include "gribjump/ExtractionData.h"
 #include "gribjump/api/ExtractionIterator.h"
 
-#include "metkit/mars/MarsRequest.h"
-#include "eckit/filesystem/PathName.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/runtime/Main.h"
+#include "metkit/mars/MarsRequest.h"
 
 #include <stdexcept>
 
@@ -38,24 +38,17 @@ static std::vector<gribjump::Range> to_cpp_ranges(const rust::Vec<Range>& ranges
 
 /// Convert rust::Vec<ExtractionRequestData> to std::vector<gribjump::ExtractionRequest>
 /// Validates that grid_hash is not empty (prevents SeriousBug exception from gribjump)
-static std::vector<gribjump::ExtractionRequest> to_cpp_requests(
-    const rust::Vec<ExtractionRequestData>& requests
-) {
+static std::vector<gribjump::ExtractionRequest> to_cpp_requests(const rust::Vec<ExtractionRequestData>& requests) {
     std::vector<gribjump::ExtractionRequest> result;
     result.reserve(requests.size());
     for (size_t i = 0; i < requests.size(); ++i) {
         const auto& req = requests[i];
         // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
         if (req.grid_hash.empty()) {
-            throw std::runtime_error(
-                "ExtractionRequest[" + std::to_string(i) + "]: grid_hash is required but was empty"
-            );
+            throw std::runtime_error("ExtractionRequest[" + std::to_string(i) +
+                                     "]: grid_hash is required but was empty");
         }
-        result.emplace_back(
-            std::string(req.request_str),
-            to_cpp_ranges(req.ranges),
-            std::string(req.grid_hash)
-        );
+        result.emplace_back(std::string(req.request_str), to_cpp_ranges(req.ranges), std::string(req.grid_hash));
     }
     return result;
 }
@@ -63,27 +56,18 @@ static std::vector<gribjump::ExtractionRequest> to_cpp_requests(
 /// Convert rust::Vec<PathExtractionRequestData> to std::vector<gribjump::PathExtractionRequest>
 /// Validates that grid_hash is not empty (prevents SeriousBug exception from gribjump)
 static std::vector<gribjump::PathExtractionRequest> to_cpp_path_requests(
-    const rust::Vec<PathExtractionRequestData>& requests
-) {
+    const rust::Vec<PathExtractionRequestData>& requests) {
     std::vector<gribjump::PathExtractionRequest> result;
     result.reserve(requests.size());
     for (size_t i = 0; i < requests.size(); ++i) {
         const auto& req = requests[i];
         // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
         if (req.grid_hash.empty()) {
-            throw std::runtime_error(
-                "PathExtractionRequest[" + std::to_string(i) + "]: grid_hash is required but was empty"
-            );
+            throw std::runtime_error("PathExtractionRequest[" + std::to_string(i) +
+                                     "]: grid_hash is required but was empty");
         }
-        result.emplace_back(
-            std::string(req.filename),
-            std::string(req.scheme),
-            req.offset,
-            std::string(req.host),
-            req.port,
-            to_cpp_ranges(req.ranges),
-            std::string(req.grid_hash)
-        );
+        result.emplace_back(std::string(req.filename), std::string(req.scheme), req.offset, std::string(req.host),
+                            req.port, to_cpp_ranges(req.ranges), std::string(req.grid_hash));
     }
     return result;
 }
@@ -92,8 +76,7 @@ static std::vector<gribjump::PathExtractionRequest> to_cpp_path_requests(
 // GribJumpHandle implementation
 // ============================================================================
 
-GribJumpHandle::GribJumpHandle()
-    : impl_(std::make_unique<gribjump::GribJump>()) {}
+GribJumpHandle::GribJumpHandle() : impl_(std::make_unique<gribjump::GribJump>()) {}
 
 GribJumpHandle::~GribJumpHandle() = default;
 
@@ -101,8 +84,8 @@ GribJumpHandle::~GribJumpHandle() = default;
 // ExtractionIteratorHandle implementation
 // ============================================================================
 
-ExtractionIteratorHandle::ExtractionIteratorHandle(gribjump::ExtractionIterator&& it)
-    : impl_(std::make_unique<gribjump::ExtractionIterator>(std::move(it))) {}
+ExtractionIteratorHandle::ExtractionIteratorHandle(gribjump::ExtractionIterator&& it) :
+    impl_(std::make_unique<gribjump::ExtractionIterator>(std::move(it))) {}
 
 ExtractionIteratorHandle::~ExtractionIteratorHandle() = default;
 
@@ -121,9 +104,8 @@ std::unique_ptr<ExtractionResultHandle> ExtractionIteratorHandle::next() {
 // ExtractionResultHandle implementation (zero-copy)
 // ============================================================================
 
-ExtractionResultHandle::ExtractionResultHandle(
-    std::unique_ptr<gribjump::ExtractionResult> result
-) : result_(std::move(result)), masks_converted_(false) {}
+ExtractionResultHandle::ExtractionResultHandle(std::unique_ptr<gribjump::ExtractionResult> result) :
+    result_(std::move(result)), masks_converted_(false) {}
 
 ExtractionResultHandle::~ExtractionResultHandle() = default;
 
@@ -166,7 +148,8 @@ bool ExtractionResultHandle::try_convert_masks() const noexcept {
 
         masks_converted_ = true;
         return true;
-    } catch (...) {
+    }
+    catch (...) {
         // OOM or other allocation failure - mark as failed, don't retry
         masks_conversion_failed_ = true;
         masks_cache_.clear();  // Release any partial allocations
@@ -224,46 +207,35 @@ std::unique_ptr<GribJumpHandle> new_gribjump() {
 // Extraction functions
 // ============================================================================
 
-std::unique_ptr<ExtractionIteratorHandle> extract(
-    GribJumpHandle& handle,
-    const rust::Vec<ExtractionRequestData>& requests
-) {
+std::unique_ptr<ExtractionIteratorHandle> extract(GribJumpHandle& handle,
+                                                  const rust::Vec<ExtractionRequestData>& requests) {
     auto cpp_requests = to_cpp_requests(requests);
-    auto it = handle.inner().extract(cpp_requests);
+    auto it           = handle.inner().extract(cpp_requests);
     return std::make_unique<ExtractionIteratorHandle>(std::move(it));
 }
 
-std::unique_ptr<ExtractionIteratorHandle> extract_from_paths(
-    GribJumpHandle& handle,
-    const rust::Vec<PathExtractionRequestData>& requests
-) {
+std::unique_ptr<ExtractionIteratorHandle> extract_from_paths(GribJumpHandle& handle,
+                                                             const rust::Vec<PathExtractionRequestData>& requests) {
     auto cpp_requests = to_cpp_path_requests(requests);
-    auto it = handle.inner().extract(cpp_requests);
+    auto it           = handle.inner().extract(cpp_requests);
     return std::make_unique<ExtractionIteratorHandle>(std::move(it));
 }
 
-std::unique_ptr<ExtractionIteratorHandle> extract_mars(
-    GribJumpHandle& handle,
-    rust::Str request,
-    const rust::Vec<Range>& ranges,
-    rust::Str grid_hash
-) {
+std::unique_ptr<ExtractionIteratorHandle> extract_mars(GribJumpHandle& handle, rust::Str request,
+                                                       const rust::Vec<Range>& ranges, rust::Str grid_hash) {
     // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
     if (grid_hash.empty()) {
         throw std::runtime_error("extract_mars: grid_hash is required but was empty");
     }
     std::string request_str{request};
     auto mars_request = metkit::mars::MarsRequest::parse(request_str);
-    auto cpp_ranges = to_cpp_ranges(ranges);
+    auto cpp_ranges   = to_cpp_ranges(ranges);
     std::string hash{grid_hash};
     auto it = handle.inner().extract(mars_request, cpp_ranges, hash);
     return std::make_unique<ExtractionIteratorHandle>(std::move(it));
 }
 
-std::unique_ptr<ExtractionIteratorHandle> extract_from_file(
-    GribJumpHandle& handle,
-    const FileExtractionData& data
-) {
+std::unique_ptr<ExtractionIteratorHandle> extract_from_file(GribJumpHandle& handle, const FileExtractionData& data) {
     std::string path_str{data.path};
     eckit::PathName path{path_str};
 
@@ -280,9 +252,7 @@ std::unique_ptr<ExtractionIteratorHandle> extract_from_file(
 
     for (size_t i = 0; i < data.ranges_offsets.size(); ++i) {
         size_t start = data.ranges_offsets[i];
-        size_t end = (i + 1 < data.ranges_offsets.size())
-            ? data.ranges_offsets[i + 1]
-            : data.ranges.size();
+        size_t end   = (i + 1 < data.ranges_offsets.size()) ? data.ranges_offsets[i + 1] : data.ranges.size();
 
         std::vector<gribjump::Range> msg_ranges;
         msg_ranges.reserve(end - start);
@@ -300,11 +270,7 @@ std::unique_ptr<ExtractionIteratorHandle> extract_from_file(
 // Axes query functions
 // ============================================================================
 
-rust::Vec<AxisEntry> axes(
-    GribJumpHandle& handle,
-    rust::Str request,
-    int32_t level
-) {
+rust::Vec<AxisEntry> axes(GribJumpHandle& handle, rust::Str request, int32_t level) {
     std::string request_str(request);
     auto cpp_axes = handle.inner().axes(request_str, level);
 
@@ -328,10 +294,7 @@ rust::Vec<AxisEntry> axes(
 // Scanning functions
 // ============================================================================
 
-size_t scan_paths(
-    GribJumpHandle& handle,
-    const rust::Vec<rust::String>& paths
-) {
+size_t scan_paths(GribJumpHandle& handle, const rust::Vec<rust::String>& paths) {
     std::vector<eckit::PathName> cpp_paths;
     cpp_paths.reserve(paths.size());
     for (const auto& p : paths) {
@@ -340,11 +303,7 @@ size_t scan_paths(
     return handle.inner().scan(cpp_paths);
 }
 
-size_t scan_requests(
-    GribJumpHandle& handle,
-    const rust::Vec<rust::String>& requests,
-    bool by_files
-) {
+size_t scan_requests(GribJumpHandle& handle, const rust::Vec<rust::String>& requests, bool by_files) {
     std::vector<metkit::mars::MarsRequest> cpp_requests;
     cpp_requests.reserve(requests.size());
     for (const auto& r : requests) {

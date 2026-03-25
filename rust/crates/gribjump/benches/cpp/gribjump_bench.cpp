@@ -9,9 +9,9 @@
 // Extraction benchmarks require FDB setup via environment.
 
 #include <benchmark/benchmark.h>
+#include <eckit/runtime/Main.h>
 #include <gribjump/GribJump.h>
 #include <gribjump/LibGribJump.h>
-#include <eckit/runtime/Main.h>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
@@ -19,15 +19,15 @@
 // Initialize eckit Main singleton (required for gribjump)
 // This is done via static initialization before benchmarks run
 namespace {
-    struct EckitInitializer {
-        EckitInitializer() {
-            // Use a minimal argc/argv for eckit initialization
-            static const char* argv[] = {"gribjump_bench", nullptr};
-            eckit::Main::initialise(1, const_cast<char**>(argv));
-        }
-    };
-    static EckitInitializer eckit_init;
-}
+struct EckitInitializer {
+    EckitInitializer() {
+        // Use a minimal argc/argv for eckit initialization
+        static const char* argv[] = {"gribjump_bench", nullptr};
+        eckit::Main::initialise(1, const_cast<char**>(argv));
+    }
+};
+static EckitInitializer eckit_init;
+}  // namespace
 
 // Check if FDB is configured for extraction benchmarks
 static bool fdb_available() {
@@ -53,7 +53,7 @@ BENCHMARK(BM_Version)->Name("cpp/version");
 
 static void BM_RequestCreation(benchmark::State& state) {
     std::vector<gribjump::Range> ranges = {{0, 10}, {20, 30}};
-    std::string request = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200";
+    std::string request                 = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200";
 
     for (auto _ : state) {
         gribjump::ExtractionRequest req(request, ranges);
@@ -94,7 +94,8 @@ static void BM_Extract(benchmark::State& state) {
 
     gribjump::GribJump gj;
     std::vector<gribjump::Range> ranges = {{0, 5}};
-    std::string request = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
+    std::string request =
+        "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
     std::string gridhash = "33c7d6025995e1b4913811e77d38ec50";
 
     for (auto _ : state) {
@@ -115,7 +116,8 @@ static void BM_ExtractWithValues(benchmark::State& state) {
 
     gribjump::GribJump gj;
     std::vector<gribjump::Range> ranges = {{0, 5}};
-    std::string request = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
+    std::string request =
+        "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
     std::string gridhash = "33c7d6025995e1b4913811e77d38ec50";
 
     for (auto _ : state) {
@@ -144,7 +146,8 @@ static void BM_ExtractLarge(benchmark::State& state) {
     gribjump::GribJump gj;
     // Extract 100 values instead of 5
     std::vector<gribjump::Range> ranges = {{0, 100}};
-    std::string request = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
+    std::string request =
+        "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
     std::string gridhash = "33c7d6025995e1b4913811e77d38ec50";
 
     for (auto _ : state) {
