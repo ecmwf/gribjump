@@ -16,3 +16,7 @@ CMakeCache.txt
 dist/
 
 docs/examples/walkthrough_files/etc/fdb/root
+
+# Rust
+rust/target/
+rust/Cargo.lock

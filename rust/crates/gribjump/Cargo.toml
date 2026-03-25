@@ -1,0 +1,33 @@
+[package]
+name = "gribjump"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+description = "Safe Rust wrapper for ECMWF gribjump library"
+
+[features]
+default = ["vendored"]
+vendored = ["gribjump-sys/vendored"]
+system = ["gribjump-sys/system"]
+
+[dependencies]
+gribjump-sys.workspace = true
+parking_lot.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+fdb.workspace = true
+tempfile.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+
+[[bench]]
+name = "gribjump_bench"
+harness = false
+
+[package.metadata.docs.rs]
