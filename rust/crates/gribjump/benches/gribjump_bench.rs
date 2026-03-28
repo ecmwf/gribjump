@@ -130,6 +130,7 @@ fn bench_request_creation(c: &mut Criterion) {
             black_box(ExtractionRequest::new(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200",
                 ranges.clone(),
+                "gridhash",
             ))
         });
     });
@@ -153,6 +154,7 @@ fn bench_request_many_ranges(c: &mut Criterion) {
             black_box(ExtractionRequest::new(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200",
                 ranges.clone(),
+                "gridhash",
             ))
         });
     });
@@ -174,8 +176,8 @@ fn bench_extract(c: &mut Criterion) {
             let request = ExtractionRequest::new(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
                 ranges.clone(),
-            )
-            .with_grid_hash(gridhash);
+                gridhash,
+            );
 
             let results: Vec<_> = gj.extract(&[request]).expect("extraction failed").collect();
             black_box(results)
@@ -199,8 +201,8 @@ fn bench_extract_with_values(c: &mut Criterion) {
             let request = ExtractionRequest::new(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
                 ranges.clone(),
-            )
-            .with_grid_hash(gridhash);
+                gridhash,
+            );
 
             let mut total_values = 0usize;
             for result in gj.extract(&[request]).expect("extraction failed") {
@@ -229,8 +231,8 @@ fn bench_extract_large(c: &mut Criterion) {
             let request = ExtractionRequest::new(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
                 ranges.clone(),
-            )
-            .with_grid_hash(gridhash);
+                gridhash,
+            );
 
             let mut total_values = 0usize;
             for result in gj.extract(&[request]).expect("extraction failed") {
@@ -281,8 +283,8 @@ fn bench_result_processing(c: &mut Criterion) {
             let request = ExtractionRequest::new(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
                 ranges.clone(),
-            )
-            .with_grid_hash(gridhash);
+                gridhash,
+            );
 
             let mut sum = 0.0f64;
             for result in gj.extract(&[request]).expect("extraction failed") {

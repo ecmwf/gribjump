@@ -35,7 +35,7 @@ unsafe impl Send for HandleInner {}
 ///
 /// std::thread::spawn(move || {
 ///     let ranges = vec![Range::new(0, 100).unwrap()];
-///     let request = ExtractionRequest::new("class=od", ranges);
+///     let request = ExtractionRequest::new("class=od", ranges, "grid_hash");
 ///     let _ = gj2.extract(&[request]);
 /// });
 /// ```
@@ -122,7 +122,7 @@ impl GribJump {
     ///
     /// * `request` - MARS request string
     /// * `ranges` - Ranges to extract
-    /// * `grid_hash` - Optional grid hash for validation
+    /// * `grid_hash` - Grid hash for validation
     ///
     /// # Errors
     ///
@@ -131,16 +131,11 @@ impl GribJump {
         &self,
         request: &str,
         ranges: &[Range],
-        grid_hash: Option<&str>,
+        grid_hash: &str,
     ) -> Result<ExtractionIterator> {
         let cxx_ranges: Vec<_> = ranges.iter().copied().map(Range::to_cxx).collect();
         let mut guard = self.inner.lock();
-        let it = gribjump_sys::extract_mars(
-            guard.0.pin_mut(),
-            request,
-            &cxx_ranges,
-            grid_hash.unwrap_or(""),
-        )?;
+        let it = gribjump_sys::extract_mars(guard.0.pin_mut(), request, &cxx_ranges, grid_hash)?;
         drop(guard);
         Ok(ExtractionIterator::new(it))
     }

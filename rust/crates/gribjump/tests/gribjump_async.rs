@@ -92,7 +92,7 @@ async fn test_gribjump_concurrent_extract() {
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
             );
 
-            let request = ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH);
+            let request = ExtractionRequest::new(&request_str, ranges, GRID_HASH);
 
             // With thread-safe feature, extract takes &self and uses internal locking
             let results: Vec<_> = gj.extract(&[request]).expect("extract failed").collect();
@@ -176,7 +176,7 @@ async fn test_gribjump_spawn_blocking_pattern() {
         let request_str =
             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
 
-        let request = ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH);
+        let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
 
         let results: Vec<_> = gj_clone.extract(&[request]).expect("extract failed").collect();
 
@@ -227,7 +227,8 @@ async fn test_gribjump_mixed_concurrent_operations() {
         let request = ExtractionRequest::new(
             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
             ranges,
-        ).with_grid_hash(GRID_HASH);
+            GRID_HASH,
+        );
 
         let results: Vec<_> = gj1.extract(&[request]).expect("extract failed").collect();
         ("extract_1", results.len())
@@ -240,7 +241,8 @@ async fn test_gribjump_mixed_concurrent_operations() {
         let request = ExtractionRequest::new(
             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=2,param=151130",
             ranges,
-        ).with_grid_hash(GRID_HASH);
+            GRID_HASH,
+        );
 
         let results: Vec<_> = gj2.extract(&[request]).expect("extract failed").collect();
         ("extract_2", results.len())
@@ -297,7 +299,7 @@ async fn test_gribjump_high_concurrency() {
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
             );
 
-            let request = ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH);
+            let request = ExtractionRequest::new(&request_str, ranges, GRID_HASH);
 
             let results: Vec<_> = gj.extract(&[request]).expect("extract failed").collect();
             let values: usize = results

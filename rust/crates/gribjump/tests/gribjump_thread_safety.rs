@@ -230,7 +230,7 @@ fn test_concurrent_extractions() {
                     "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
                 );
                 let requests =
-                    vec![ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH)];
+                    vec![ExtractionRequest::new(&request_str, ranges, GRID_HASH)];
 
                 // Each thread does its own extraction - assert success
                 let results: Vec<_> = gj.extract(&requests).expect("extract failed").collect();
@@ -276,7 +276,7 @@ fn test_mixed_operations() {
                     "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
                 );
                 let requests =
-                    vec![ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH)];
+                    vec![ExtractionRequest::new(&request_str, ranges, GRID_HASH)];
                 let results: Vec<_> = gj.extract(&requests).expect("extract failed").collect();
                 assert!(!results.is_empty(), "expected results");
                 thread::yield_now();
@@ -300,7 +300,7 @@ fn test_iterator_send_to_thread() {
 
     let ranges = vec![Range::new(0, 10).expect("valid range")];
     let request_str = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
-    let requests = vec![ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH)];
+    let requests = vec![ExtractionRequest::new(request_str, ranges, GRID_HASH)];
 
     // Create iterator on main thread
     let iter = gj.extract(&requests).expect("extract failed");
@@ -325,7 +325,7 @@ fn test_no_deadlock_while_iterating() {
 
     let ranges = vec![Range::new(0, 10).expect("valid range")];
     let request_str = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
-    let requests = vec![ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH)];
+    let requests = vec![ExtractionRequest::new(request_str, ranges, GRID_HASH)];
 
     let iter = gj.extract(&requests).expect("extract failed");
 
@@ -367,7 +367,7 @@ fn test_stress_concurrent_access() {
                             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
                         );
                         let requests = vec![
-                            ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH)
+                            ExtractionRequest::new(&request_str, ranges, GRID_HASH)
                         ];
                         let results: Vec<_> =
                             gj.extract(&requests).expect("extract failed").collect();
@@ -401,10 +401,11 @@ fn test_concurrent_errors_no_crash() {
                     // grid_hash is provided to get past FFI validation, but the request
                     // will fail at the GribJump level due to invalid format
                     let ranges = vec![Range::new(0, 10).expect("valid range")];
-                    let requests = vec![
-                        ExtractionRequest::new(format!("INVALID_REQUEST_THREAD_{i}"), ranges)
-                            .with_grid_hash(GRID_HASH),
-                    ];
+                    let requests = vec![ExtractionRequest::new(
+                        format!("INVALID_REQUEST_THREAD_{i}"),
+                        ranges,
+                        GRID_HASH,
+                    )];
                     // Ignore the error - testing that concurrent errors don't crash
                     let _ = gj.extract(&requests);
                 }

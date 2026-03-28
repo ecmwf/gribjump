@@ -154,10 +154,12 @@ fn test_extraction_request_creation() {
     let request = ExtractionRequest::new(
         "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
         ranges,
+        GRID_HASH,
     );
 
     assert!(!request.request_str.is_empty());
     assert_eq!(request.ranges.len(), 2);
+    assert_eq!(request.grid_hash, GRID_HASH);
 }
 
 // TODO: test_gribjump_api_extract - requires proper test data with known numberOfValues
@@ -187,22 +189,14 @@ fn test_gribjump_api_extract_hash_validation() {
     ];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
 
-    // Test 1: Request without grid hash should fail (matching C++ EXPECT_THROWS)
-    let request_no_hash = ExtractionRequest::new(request_str, ranges.clone());
-    let result = gj.extract(&[request_no_hash]);
-    assert!(result.is_err(), "expected error without grid hash");
-    println!("Extract without hash: error (as expected)");
-
-    // Test 2: Request with wrong hash should fail
-    let request_wrong_hash =
-        ExtractionRequest::new(request_str, ranges.clone()).with_grid_hash("wronghash");
+    // Test 1: Request with wrong hash should fail
+    let request_wrong_hash = ExtractionRequest::new(request_str, ranges.clone(), "wronghash");
     let result = gj.extract(&[request_wrong_hash]);
     assert!(result.is_err(), "expected error with wrong hash");
     println!("Extract with wrong hash: error (as expected)");
 
-    // Test 3: Request with correct hash should succeed
-    let request_correct_hash =
-        ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH);
+    // Test 2: Request with correct hash should succeed
+    let request_correct_hash = ExtractionRequest::new(request_str, ranges, GRID_HASH);
     let result = gj.extract(&[request_correct_hash]);
     assert!(result.is_ok(), "expected success with correct hash");
 
@@ -341,7 +335,7 @@ fn test_gribjump_extract_from_paths() {
 
     let ranges = vec![Range::new(0, 5).expect("valid range")];
 
-    let request = PathExtractionRequest::new(&path_str, ranges);
+    let request = PathExtractionRequest::new(&path_str, ranges, GRID_HASH);
     let result = gj.extract_from_paths(&[request]);
 
     println!("extract_from_paths result: {:?}", result.is_ok());
@@ -361,17 +355,17 @@ fn test_gribjump_scan_requests() {
     // Scan by MARS request
     let requests = vec!["class=rd,expver=xxxx"];
     let result = gj.scan_requests(&requests, false);
-    println!("scan_requests result: {:?}", result);
+    println!("scan_requests result: {result:?}");
 
     // Also test with by_files=true
     let result2 = gj.scan_requests(&requests, true);
-    println!("scan_requests (by_files=true) result: {:?}", result2);
+    println!("scan_requests (by_files=true) result: {result2:?}");
 
     drop(gj);
     drop(tmpdir);
 }
 
-/// Test ExtractionResult helper methods
+/// Test `ExtractionResult` helper methods
 #[test]
 #[ignore = "requires GribJump libraries"]
 fn test_gribjump_extraction_result_methods() {
@@ -385,7 +379,7 @@ fn test_gribjump_extraction_result_methods() {
         Range::new(10, 15).expect("valid range"),
     ];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
-    let request = ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH);
+    let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
 
     let result = gj.extract(&[request]).expect("extract failed");
     let results: Vec<_> = result.collect();
@@ -435,11 +429,11 @@ fn test_gribjump_extraction_result_methods() {
 
             // Test iter_with_validity
             let with_validity: Vec<_> = range_view.iter_with_validity().take(3).collect();
-            println!("iter_with_validity (first 3): {:?}", with_validity);
+            println!("iter_with_validity (first 3): {with_validity:?}");
 
             // Test valid_values
             let valid: Vec<_> = range_view.valid_values().take(3).collect();
-            println!("valid_values (first 3): {:?}", valid);
+            println!("valid_values (first 3): {valid:?}");
         }
 
         // Test to_owned()
@@ -474,13 +468,13 @@ fn test_gribjump_extraction_result_methods() {
     println!("iter count: {iter_count}");
 
     // Test Debug implementation
-    println!("ExtractionResult Debug: {:?}", extraction_result);
+    println!("ExtractionResult Debug: {extraction_result:?}");
 
     drop(gj);
     drop(tmpdir);
 }
 
-/// Test GribJump clone
+/// Test `GribJump` clone
 #[test]
 #[ignore = "requires GribJump libraries"]
 fn test_gribjump_clone() {
@@ -496,7 +490,7 @@ fn test_gribjump_clone() {
     drop(gj2);
 }
 
-/// Test ExtractionIterator methods directly
+/// Test `ExtractionIterator` methods directly
 #[test]
 #[ignore = "requires GribJump libraries"]
 fn test_gribjump_iterator_methods() {
@@ -507,7 +501,7 @@ fn test_gribjump_iterator_methods() {
 
     let ranges = vec![Range::new(0, 5).expect("valid range")];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
-    let request = ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH);
+    let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
 
     let mut iter = gj.extract(&[request]).expect("extract failed");
 
@@ -536,7 +530,7 @@ fn test_gribjump_iterator_methods() {
     drop(tmpdir);
 }
 
-/// Test IntoIterator for ExtractionResult
+/// Test `IntoIterator` for `ExtractionResult`
 #[test]
 #[ignore = "requires GribJump libraries"]
 fn test_gribjump_extraction_into_iter() {
@@ -547,15 +541,15 @@ fn test_gribjump_extraction_into_iter() {
 
     let ranges = vec![Range::new(0, 5).expect("valid range")];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
-    let request = ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH);
+    let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
 
     let result = gj.extract(&[request]).expect("extract failed");
     let results: Vec<_> = result.collect();
 
     if let Some(Ok(extraction_result)) = results.into_iter().next() {
         // Test IntoIterator - consumes the ExtractionResult
-        let owned_ranges: Vec<_> = extraction_result.into_iter().collect();
-        println!("into_iter produced {} owned ranges", owned_ranges.len());
+        let count = extraction_result.into_iter().count();
+        println!("into_iter produced {count} owned ranges");
     }
 
     drop(gj);

@@ -60,16 +60,14 @@ impl Range {
 }
 
 /// An extraction request for gribjump.
-///
-/// Use the builder pattern to construct requests.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ExtractionRequest {
     /// MARS request string (e.g., "class=od,expver=0001,...")
     pub request_str: String,
     /// Ranges to extract
     pub ranges: Vec<Range>,
-    /// Optional grid hash for validation
-    pub grid_hash: Option<String>,
+    /// Grid hash for validation (required by gribjump)
+    pub grid_hash: String,
 }
 
 impl ExtractionRequest {
@@ -79,20 +77,18 @@ impl ExtractionRequest {
     ///
     /// * `request` - MARS request string
     /// * `ranges` - Ranges to extract
+    /// * `grid_hash` - Grid hash for validation
     #[must_use]
-    pub fn new(request: impl Into<String>, ranges: Vec<Range>) -> Self {
+    pub fn new(
+        request: impl Into<String>,
+        ranges: Vec<Range>,
+        grid_hash: impl Into<String>,
+    ) -> Self {
         Self {
             request_str: request.into(),
             ranges,
-            grid_hash: None,
+            grid_hash: grid_hash.into(),
         }
-    }
-
-    /// Add a grid hash for validation.
-    #[must_use]
-    pub fn with_grid_hash(mut self, hash: impl Into<String>) -> Self {
-        self.grid_hash = Some(hash.into());
-        self
     }
 
     /// Convert to the cxx request data type.
@@ -101,7 +97,7 @@ impl ExtractionRequest {
         gribjump_sys::ExtractionRequestData {
             request_str: self.request_str.clone(),
             ranges: self.ranges.iter().copied().map(Range::to_cxx).collect(),
-            grid_hash: self.grid_hash.clone().unwrap_or_default(),
+            grid_hash: self.grid_hash.clone(),
         }
     }
 }
@@ -109,7 +105,7 @@ impl ExtractionRequest {
 /// A path-based extraction request for gribjump.
 ///
 /// Used for extracting data directly from GRIB files.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct PathExtractionRequest {
     /// Path to the GRIB file
     pub filename: String,
@@ -123,14 +119,18 @@ pub struct PathExtractionRequest {
     pub port: i32,
     /// Ranges to extract
     pub ranges: Vec<Range>,
-    /// Optional grid hash for validation
-    pub grid_hash: Option<String>,
+    /// Grid hash for validation (required by gribjump)
+    pub grid_hash: String,
 }
 
 impl PathExtractionRequest {
     /// Create a new path-based extraction request.
     #[must_use]
-    pub fn new(filename: impl Into<String>, ranges: Vec<Range>) -> Self {
+    pub fn new(
+        filename: impl Into<String>,
+        ranges: Vec<Range>,
+        grid_hash: impl Into<String>,
+    ) -> Self {
         Self {
             filename: filename.into(),
             scheme: "file".to_string(),
@@ -138,7 +138,7 @@ impl PathExtractionRequest {
             host: None,
             port: 0,
             ranges,
-            grid_hash: None,
+            grid_hash: grid_hash.into(),
         }
     }
 
@@ -170,13 +170,6 @@ impl PathExtractionRequest {
         self
     }
 
-    /// Add a grid hash for validation.
-    #[must_use]
-    pub fn with_grid_hash(mut self, hash: impl Into<String>) -> Self {
-        self.grid_hash = Some(hash.into());
-        self
-    }
-
     /// Convert to the cxx request data type.
     #[must_use]
     pub(crate) fn to_cxx(&self) -> gribjump_sys::PathExtractionRequestData {
@@ -187,7 +180,7 @@ impl PathExtractionRequest {
             host: self.host.clone().unwrap_or_default(),
             port: self.port,
             ranges: self.ranges.iter().copied().map(Range::to_cxx).collect(),
-            grid_hash: self.grid_hash.clone().unwrap_or_default(),
+            grid_hash: self.grid_hash.clone(),
         }
     }
 }
@@ -282,18 +275,18 @@ mod tests {
     }
 
     #[test]
-    fn test_extraction_request_builder() {
+    fn test_extraction_request() {
         let ranges = vec![Range::new_unchecked(0, 100)];
-        let req = ExtractionRequest::new("class=od,expver=0001", ranges).with_grid_hash("abc123");
+        let req = ExtractionRequest::new("class=od,expver=0001", ranges, "abc123");
 
         assert_eq!(req.request_str, "class=od,expver=0001");
-        assert_eq!(req.grid_hash, Some("abc123".to_string()));
+        assert_eq!(req.grid_hash, "abc123");
     }
 
     #[test]
     fn test_path_extraction_request_builder() {
         let ranges = vec![Range::new_unchecked(0, 100)];
-        let req = PathExtractionRequest::new("/path/to/file.grib", ranges)
+        let req = PathExtractionRequest::new("/path/to/file.grib", ranges, "abc123")
             .with_scheme("fdb")
             .with_offset(1024)
             .with_host("localhost")
@@ -304,6 +297,7 @@ mod tests {
         assert_eq!(req.offset, 1024);
         assert_eq!(req.host, Some("localhost".to_string()));
         assert_eq!(req.port, 8080);
+        assert_eq!(req.grid_hash, "abc123");
     }
 
     #[test]

@@ -18,6 +18,7 @@
 //! let request = ExtractionRequest::new(
 //!     "class=od,expver=0001,stream=oper,date=20230508,time=1200,step=1,param=151130",
 //!     ranges,
+//!     "33c7d6025995e1b4913811e77d38ec50",  // grid hash
 //! );
 //!
 //! // Extract data (zero-copy access via RangeView)

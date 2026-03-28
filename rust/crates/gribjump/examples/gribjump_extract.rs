@@ -51,7 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     println!();
 
-    let request = ExtractionRequest::new(request_str, ranges).with_grid_hash(grid_hash);
+    let request = ExtractionRequest::new(request_str, ranges, grid_hash);
 
     println!("Extracting...");
     for result in gj.extract(&[request])? {
