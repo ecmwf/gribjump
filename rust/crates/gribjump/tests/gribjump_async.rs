@@ -2,10 +2,10 @@
 //!
 //! These tests verify correct concurrent access from multiple tokio tasks.
 //!
-//! Note: `GribJump`'s `thread-safe` feature uses internal `Arc<Mutex<>>`, so methods
-//! take `&self` and the type is `Clone`. Can share via `gj.clone()`.
+//! Note: `GribJump` uses internal `Arc<Mutex<>>`, so methods take `&self` and the type is `Clone`.
+//! Can share via `gj.clone()`.
 //!
-//! Run with: `cargo test --test gribjump_async --features thread-safe -- --ignored --test-threads=1`
+//! Run with: `cargo test --test gribjump_async -- --ignored --test-threads=1`
 
 use std::env;
 use std::fs;

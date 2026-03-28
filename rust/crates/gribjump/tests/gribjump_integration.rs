@@ -339,9 +339,7 @@ fn test_gribjump_extract_from_paths() {
     // First scan the path so gribjump knows about it
     gj.scan_paths(&[&path_str]).expect("scan_paths failed");
 
-    let ranges = vec![
-        Range::new(0, 5).expect("valid range"),
-    ];
+    let ranges = vec![Range::new(0, 5).expect("valid range")];
 
     let request = PathExtractionRequest::new(&path_str, ranges);
     let result = gj.extract_from_paths(&[request]);
@@ -394,7 +392,11 @@ fn test_gribjump_extraction_result_methods() {
 
     assert!(!results.is_empty(), "expected at least one result");
 
-    let extraction_result = results.into_iter().next().expect("expected result").expect("result should be ok");
+    let extraction_result = results
+        .into_iter()
+        .next()
+        .expect("expected result")
+        .expect("result should be ok");
 
     // Test num_ranges()
     let num_ranges = extraction_result.num_ranges();
@@ -420,8 +422,11 @@ fn test_gribjump_extraction_result_methods() {
         let len = range_view.len();
         let is_range_empty = range_view.is_empty();
 
-        println!("range 0: len={len}, values.len={}, masks.len={}, is_empty={is_range_empty}",
-                 values.len(), masks.len());
+        println!(
+            "range 0: len={len}, values.len={}, masks.len={}, is_empty={is_range_empty}",
+            values.len(),
+            masks.len()
+        );
 
         // Test is_valid() for various indices
         if !values.is_empty() {
@@ -439,7 +444,11 @@ fn test_gribjump_extraction_result_methods() {
 
         // Test to_owned()
         let owned = range_view.to_owned();
-        println!("owned: len={}, values.len={}", owned.len(), owned.values.len());
+        println!(
+            "owned: len={}, values.len={}",
+            owned.len(),
+            owned.values.len()
+        );
         assert!(!owned.is_empty() || len == 0);
 
         // Test RangeResult is_valid

@@ -2,10 +2,10 @@
 //!
 //! These tests verify that `GribJump` works correctly under concurrent access.
 //!
-//! Run with: `cargo test --test gribjump_thread_safety --features thread-safe`
+//! Run with: `cargo test --test gribjump_thread_safety`
 //!
 //! For integration tests that require `GribJump` libraries:
-//! `cargo test --test gribjump_thread_safety --features thread-safe -- --ignored --test-threads=1`
+//! `cargo test --test gribjump_thread_safety -- --ignored --test-threads=1`
 
 use std::sync::Arc;
 use std::thread;
