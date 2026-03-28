@@ -336,11 +336,19 @@ fn test_gribjump_extract_from_paths() {
     let ranges = vec![Range::new(0, 5).expect("valid range")];
 
     let request = PathExtractionRequest::new(&path_str, ranges, GRID_HASH);
-    let result = gj.extract_from_paths(&[request]);
+    let iter = gj
+        .extract_from_paths(&[request])
+        .expect("extract_from_paths failed");
 
-    println!("extract_from_paths result: {:?}", result.is_ok());
+    // Verify we get results
+    let results: Vec<_> = iter.collect();
+    assert!(!results.is_empty(), "expected at least one result");
 
-    drop(gj);
+    // Verify each result is successful
+    for result in results {
+        let extraction = result.expect("extraction result failed");
+        assert!(extraction.num_ranges() > 0, "expected ranges in result");
+    }
 }
 
 /// Test `scan_requests` API
