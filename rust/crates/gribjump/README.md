@@ -7,19 +7,27 @@ GribJump enables efficient random access extraction of data from GRIB files stor
 ## Usage
 
 ```rust
-use gribjump::{GribJump, ExtractionRequest};
+use gribjump::{GribJump, ExtractionRequest, Range};
 
 // Create GribJump instance
 let gj = GribJump::new()?;
 
-// Define extraction ranges (start, end pairs)
-let ranges = vec![(0, 100), (500, 600)];
+// Define extraction ranges (start, end inclusive)
+let ranges = vec![
+    Range::new(0, 100)?,
+    Range::new(500, 600)?,
+];
 
 // Extract specific value ranges from GRIB data
-let request = ExtractionRequest::new("class=od,stream=oper,type=fc", ranges);
+let request = ExtractionRequest::new(
+    "class=od,stream=oper,type=fc",
+    ranges,
+    "grid_hash",  // Grid hash for validation
+);
 let results = gj.extract(&[request])?;
 
 for result in results {
+    let result = result?;
     for range in result.iter() {
         println!("Values: {:?}", range.values());
     }
