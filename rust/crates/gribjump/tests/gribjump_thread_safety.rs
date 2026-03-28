@@ -7,10 +7,70 @@
 //! For integration tests that require `GribJump` libraries:
 //! `cargo test --test gribjump_thread_safety -- --ignored --test-threads=1`
 
+use std::env;
+use std::fs;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
 
+use fdb::{Fdb, Key};
 use gribjump::{ExtractionIterator, ExtractionRequest, ExtractionResult, GribJump, Range};
+
+const GRID_HASH: &str = "33c7d6025995e1b4913811e77d38ec50";
+
+/// Get the path to test fixtures directory.
+fn fixtures_dir() -> PathBuf {
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+    PathBuf::from(manifest_dir).join("tests/fixtures")
+}
+
+/// Setup FDB and archive test data for thread-safety tests.
+fn setup_test_fdb(tmpdir: &std::path::Path) -> String {
+    let schema_src = fixtures_dir().join("schema");
+    let schema_dst = tmpdir.join("schema");
+    fs::copy(&schema_src, &schema_dst).expect("failed to copy schema");
+
+    let config = format!(
+        r"---
+type: local
+engine: toc
+schema: {}/schema
+spaces:
+  - roots:
+      - path: {}
+",
+        tmpdir.display(),
+        tmpdir.display()
+    );
+
+    // Set FDB5_CONFIG for GribJump
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
+
+    // Archive test data
+    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB");
+    let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
+
+    // Archive multiple steps for concurrent extraction tests
+    for step in 1..=4 {
+        let key = Key::new()
+            .with("class", "rd")
+            .with("expver", "xxxx")
+            .with("stream", "oper")
+            .with("date", "20230508")
+            .with("time", "1200")
+            .with("type", "fc")
+            .with("levtype", "sfc")
+            .with("step", &step.to_string())
+            .with("param", "151130");
+
+        fdb.archive(&key, &grib_data).expect("archive failed");
+    }
+
+    fdb.flush().expect("flush failed");
+    config
+}
 
 // =============================================================================
 // Trait bound tests (compile-time verification)
@@ -156,17 +216,25 @@ fn test_concurrent_axes_queries() {
 #[test]
 #[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_concurrent_extractions() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let _config = setup_test_fdb(tmpdir.path());
+
     let gj = GribJump::new().expect("failed to create handle");
 
-    let handles: Vec<_> = (0..4)
-        .map(|_| {
+    let handles: Vec<_> = (1..=4)
+        .map(|step| {
             let gj = gj.clone();
             thread::spawn(move || {
                 let ranges = vec![Range::new(0, 10).expect("valid range")];
-                let requests = vec![ExtractionRequest::new("class=rd,expver=xxxx", ranges)];
+                let request_str = format!(
+                    "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
+                );
+                let requests =
+                    vec![ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH)];
 
-                // Each thread does its own extraction
-                let _ = gj.extract(&requests);
+                // Each thread does its own extraction - assert success
+                let results: Vec<_> = gj.extract(&requests).expect("extract failed").collect();
+                assert!(!results.is_empty(), "expected results");
             })
         })
         .collect();
@@ -180,6 +248,9 @@ fn test_concurrent_extractions() {
 #[test]
 #[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_mixed_operations() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let _config = setup_test_fdb(tmpdir.path());
+
     let gj = GribJump::new().expect("failed to create handle");
 
     let mut handles = vec![];
@@ -196,13 +267,18 @@ fn test_mixed_operations() {
     }
 
     // Spawn writer threads (extractions)
-    for _ in 0..2 {
+    for step in 1..=2 {
         let gj = gj.clone();
         handles.push(thread::spawn(move || {
             for _ in 0..5 {
                 let ranges = vec![Range::new(0, 10).expect("valid range")];
-                let requests = vec![ExtractionRequest::new("class=rd", ranges)];
-                let _ = gj.extract(&requests);
+                let request_str = format!(
+                    "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
+                );
+                let requests =
+                    vec![ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH)];
+                let results: Vec<_> = gj.extract(&requests).expect("extract failed").collect();
+                assert!(!results.is_empty(), "expected results");
                 thread::yield_now();
             }
         }));
@@ -217,47 +293,60 @@ fn test_mixed_operations() {
 #[test]
 #[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_iterator_send_to_thread() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let _config = setup_test_fdb(tmpdir.path());
+
     let gj = GribJump::new().expect("failed to create handle");
 
     let ranges = vec![Range::new(0, 10).expect("valid range")];
-    let requests = vec![ExtractionRequest::new("class=rd", ranges)];
+    let request_str = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
+    let requests = vec![ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH)];
 
     // Create iterator on main thread
-    if let Ok(iter) = gj.extract(&requests) {
-        // Move iterator to another thread and consume there
-        let handle = thread::spawn(move || {
-            for result in iter {
-                let _ = result;
-            }
-        });
+    let iter = gj.extract(&requests).expect("extract failed");
 
-        handle.join().expect("thread panicked");
-    }
+    // Move iterator to another thread and consume there
+    let handle = thread::spawn(move || {
+        let results: Vec<_> = iter.collect();
+        assert!(!results.is_empty(), "expected results");
+    });
+
+    handle.join().expect("thread panicked");
 }
 
 /// Test: Calling methods while iterating doesn't deadlock
 #[test]
 #[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_no_deadlock_while_iterating() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let _config = setup_test_fdb(tmpdir.path());
+
     let gj = GribJump::new().expect("failed to create handle");
 
     let ranges = vec![Range::new(0, 10).expect("valid range")];
-    let requests = vec![ExtractionRequest::new("class=rd", ranges)];
+    let request_str = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
+    let requests = vec![ExtractionRequest::new(request_str, ranges).with_grid_hash(GRID_HASH)];
 
-    if let Ok(iter) = gj.extract(&requests) {
-        // While iterating, we should be able to call other methods
-        // This tests that the iterator doesn't hold a lock
-        for result in iter {
-            let _ = gj.axes("class=rd", 1);
-            let _ = result;
-        }
+    let iter = gj.extract(&requests).expect("extract failed");
+
+    // While iterating, we should be able to call other methods
+    // This tests that the iterator doesn't hold a lock
+    let mut count = 0;
+    for result in iter {
+        let _ = gj.axes("class=rd", 1);
+        assert!(result.is_ok(), "expected successful result");
+        count += 1;
     }
+    assert!(count > 0, "expected at least one result");
 }
 
 /// Test: Stress test with many threads
 #[test]
 #[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_stress_concurrent_access() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let _config = setup_test_fdb(tmpdir.path());
+
     let gj = GribJump::new().expect("failed to create handle");
     let iterations = 50;
     let thread_count = 16;
@@ -271,10 +360,18 @@ fn test_stress_concurrent_access() {
                         // Read operation
                         let _ = gj.axes("class=rd", 1);
                     } else {
-                        // Write operation
+                        // Extract operation - use step based on thread/iteration
+                        let step = ((i + j) % 4) + 1;
                         let ranges = vec![Range::new(0, 5).expect("valid range")];
-                        let requests = vec![ExtractionRequest::new("class=rd", ranges)];
-                        let _ = gj.extract(&requests);
+                        let request_str = format!(
+                            "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
+                        );
+                        let requests = vec![
+                            ExtractionRequest::new(&request_str, ranges).with_grid_hash(GRID_HASH)
+                        ];
+                        let results: Vec<_> =
+                            gj.extract(&requests).expect("extract failed").collect();
+                        assert!(!results.is_empty(), "expected results");
                     }
                 }
             })
@@ -290,6 +387,9 @@ fn test_stress_concurrent_access() {
 #[test]
 #[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_concurrent_errors_no_crash() {
+    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+    let _config = setup_test_fdb(tmpdir.path());
+
     let gj = GribJump::new().expect("failed to create handle");
 
     let handles: Vec<_> = (0..8)
@@ -297,12 +397,14 @@ fn test_concurrent_errors_no_crash() {
             let gj = gj.clone();
             thread::spawn(move || {
                 for _ in 0..20 {
-                    // Use invalid requests to trigger errors
+                    // Use invalid requests to trigger errors (invalid MARS request format)
+                    // grid_hash is provided to get past FFI validation, but the request
+                    // will fail at the GribJump level due to invalid format
                     let ranges = vec![Range::new(0, 10).expect("valid range")];
-                    let requests = vec![ExtractionRequest::new(
-                        format!("INVALID_REQUEST_THREAD_{i}"),
-                        ranges,
-                    )];
+                    let requests = vec![
+                        ExtractionRequest::new(format!("INVALID_REQUEST_THREAD_{i}"), ranges)
+                            .with_grid_hash(GRID_HASH),
+                    ];
                     // Ignore the error - testing that concurrent errors don't crash
                     let _ = gj.extract(&requests);
                 }
