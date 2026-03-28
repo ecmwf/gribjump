@@ -16,12 +16,18 @@ impl Range {
     ///
     /// # Errors
     ///
-    /// Returns an error if `start > end`.
+    /// Returns an error if `start > end` or if `end == usize::MAX` (which would
+    /// overflow when converting to the C++ exclusive range format).
     pub fn new(start: usize, end: usize) -> Result<Self> {
         if start > end {
             return Err(Error::InvalidArgument(format!(
                 "Range start ({start}) must be <= end ({end})"
             )));
+        }
+        if end == usize::MAX {
+            return Err(Error::InvalidArgument(
+                "Range end cannot be usize::MAX (would overflow in C++ conversion)".to_string(),
+            ));
         }
         Ok(Self { start, end })
     }
@@ -271,6 +277,13 @@ mod tests {
     #[test]
     fn test_range_invalid() {
         let result = Range::new(100, 50);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_range_max_overflow() {
+        // end == usize::MAX would overflow when converting to exclusive range
+        let result = Range::new(0, usize::MAX);
         assert!(result.is_err());
     }
 
