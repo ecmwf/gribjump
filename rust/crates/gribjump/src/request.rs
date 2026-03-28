@@ -130,7 +130,10 @@ pub struct PathExtractionRequest {
 }
 
 impl PathExtractionRequest {
-    /// Create a new path-based extraction request.
+    /// Create a new path-based extraction request with default settings.
+    ///
+    /// Uses defaults: scheme="file", offset=0, no host/port.
+    /// Use [`Self::from_parts`] or builder methods (`.with_*()`) to customize.
     #[must_use]
     pub fn new(
         filename: impl Into<String>,
@@ -143,6 +146,40 @@ impl PathExtractionRequest {
             offset: 0,
             host: None,
             port: 0,
+            ranges,
+            grid_hash: grid_hash.into(),
+        }
+    }
+
+    /// Create a path-based extraction request from all components.
+    ///
+    /// Use this when you have all the URI components available (e.g., from FDB).
+    ///
+    /// # Arguments
+    ///
+    /// * `filename` - Path to the GRIB file
+    /// * `scheme` - URI scheme (e.g., "file", "fdb")
+    /// * `offset` - Byte offset within the file
+    /// * `host` - Remote host (`None` for local access)
+    /// * `port` - Remote port (use `0` for local access)
+    /// * `ranges` - Ranges to extract
+    /// * `grid_hash` - Grid hash for validation
+    #[must_use]
+    pub fn from_parts(
+        filename: impl Into<String>,
+        scheme: impl Into<String>,
+        offset: usize,
+        host: Option<String>,
+        port: i32,
+        ranges: Vec<Range>,
+        grid_hash: impl Into<String>,
+    ) -> Self {
+        Self {
+            filename: filename.into(),
+            scheme: scheme.into(),
+            offset,
+            host,
+            port,
             ranges,
             grid_hash: grid_hash.into(),
         }
@@ -304,6 +341,27 @@ mod tests {
             .with_offset(1024)
             .with_host("localhost")
             .with_port(8080);
+
+        assert_eq!(req.filename, "/path/to/file.grib");
+        assert_eq!(req.scheme, "fdb");
+        assert_eq!(req.offset, 1024);
+        assert_eq!(req.host, Some("localhost".to_string()));
+        assert_eq!(req.port, 8080);
+        assert_eq!(req.grid_hash, "abc123");
+    }
+
+    #[test]
+    fn test_path_extraction_request_from_parts() {
+        let ranges = vec![Range::new_unchecked(0, 100)];
+        let req = PathExtractionRequest::from_parts(
+            "/path/to/file.grib",
+            "fdb",
+            1024,
+            Some("localhost".to_string()),
+            8080,
+            ranges,
+            "abc123",
+        );
 
         assert_eq!(req.filename, "/path/to/file.grib");
         assert_eq!(req.scheme, "fdb");
