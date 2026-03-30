@@ -4,7 +4,7 @@ NOTE:
 To be able to run the tests pyfdb and pygribjump need to find the native libraries.
 If not installed into a default location export the following environent
 variables in the shell running pytest:
-    GRIBJUMP_HOME = <cmake-build-root-for-gribjump> or <custom-install-location>
+    GRIBJUMP_DIR = <cmake-build-root-for-gribjump> or <custom-install-location>
     FDB5_DIR = <cmake-build-root-for-fdb> or <custom-install-location>
 """
 

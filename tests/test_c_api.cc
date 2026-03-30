@@ -67,9 +67,12 @@ CASE("Extract") {
 
     // ---------------------------------------------------
     std::vector<std::string> requests = {
-        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
-        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
-        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
+        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,"
+        "type=fc",
+        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,"
+        "type=fc",
+        "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,"
+        "type=fc"};
 
     const size_t range_arr[]           = {0, 5, 20, 30};  // 2 ranges
     const size_t range_arr_size        = 4;
@@ -94,7 +97,7 @@ CASE("Extract") {
     std::vector<std::string> paths = {};
 
     for (size_t i = 0; i < requests.size(); i++) {
-        std::string mars_str = "retrieve," + requests[i];
+        std::string mars_str = requests[i];
         std::string path_str = get_path_name_from_mars_req(mars_str, fdb);
         paths.push_back(path_str);
     }
