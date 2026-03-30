@@ -117,7 +117,7 @@ def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> path
     fdb = pyfdb.FDB()
     for i in range(5):
         request["step"] = str(i)
-        fdb.archive(grib_file.read_bytes(), key=request)
+        fdb.archive(grib_file.read_bytes(), request)
     fdb.flush()
 
     return tmp_path
@@ -242,16 +242,16 @@ def test_extract_from_paths(read_only_fdb_setup) -> None:
     port = 0
 
     fdb = pyfdb.FDB()
-    result = fdb.list({
+    it = fdb.list({
         "class": "od", "type": "fc", "stream": "oper",
         "param": "151130", "date": "20230508", "time": "1200", "step": "1"
     })
 
     filenames = []
     offsets = []
-    for r in result:
-        filenames.append(r["path"])
-        offsets.append(r["offset"])
+    for ele in it:
+        filenames.append(ele.uri.path())
+        offsets.append(ele.offset())
 
     scheme = "file"
 
