@@ -401,7 +401,7 @@ def test_axes(read_only_fdb_setup) -> None:
     ([(0, 5), (11, 12), (12, 13)], [0, 1, 2, 3, 4, 11, 12])
 ])
 def test_extraction_request(ranges, indices):
-    request = ExtractionRequest({"a": "b"}, ranges)
+    request = ExtractionRequest({"step": "0"}, ranges)
 
     arr_expected_indices = np.array(indices, dtype=int)
     arr_observed_indices = request.indices()
@@ -412,10 +412,10 @@ def test_extraction_request(ranges, indices):
 
 def test_extraction_request_errors_for_invalid_ranges():
     with pytest.raises(ValueError, match='at least one'):
-        ExtractionRequest({"a": "b"}, [])
+        ExtractionRequest({"step": "0"}, [])
 
     with pytest.raises(ValueError, match='invalid range'):
-        ExtractionRequest({"a": "b"}, [(2, 2)])
+        ExtractionRequest({"step": "0"}, [(2, 2)])
 
     with pytest.raises(ValueError, match='invalid range'):
-        ExtractionRequest({"a": "b"}, [(1, 2), (4, 2)])
+        ExtractionRequest({"step": "0"}, [(1, 2), (4, 2)])
