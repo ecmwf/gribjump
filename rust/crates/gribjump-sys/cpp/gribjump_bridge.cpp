@@ -76,65 +76,60 @@ static std::vector<gribjump::PathExtractionRequest> to_cpp_path_requests(
 // GribJumpHandle implementation
 // ============================================================================
 
-GribJumpHandle::GribJumpHandle() : impl_(std::make_unique<gribjump::GribJump>()) {}
-
-GribJumpHandle::~GribJumpHandle() = default;
+GribJumpHandle::GribJumpHandle() : impl_() {}
 
 // ============================================================================
 // ExtractionIteratorHandle implementation
 // ============================================================================
 
-ExtractionIteratorHandle::ExtractionIteratorHandle(gribjump::ExtractionIterator&& it) :
-    impl_(std::make_unique<gribjump::ExtractionIterator>(std::move(it))) {}
-
-ExtractionIteratorHandle::~ExtractionIteratorHandle() = default;
+ExtractionIteratorHandle::ExtractionIteratorHandle(gribjump::ExtractionIterator&& it) : impl_(std::move(it)) {}
 
 bool ExtractionIteratorHandle::hasNext() const {
-    return impl_ && impl_->hasNext();
+    return impl_.hasNext();
 }
 
 std::unique_ptr<ExtractionResultHandle> ExtractionIteratorHandle::next() {
-    if (!impl_ || !impl_->hasNext()) {
+    if (!impl_.hasNext()) {
         throw std::runtime_error("Iterator exhausted");
     }
-    return std::make_unique<ExtractionResultHandle>(impl_->next());
+    // impl_.next() returns unique_ptr<ExtractionResult>, dereference and move
+    auto result_ptr = impl_.next();
+    return std::make_unique<ExtractionResultHandle>(std::move(*result_ptr));
 }
 
 // ============================================================================
 // ExtractionResultHandle implementation (zero-copy)
 // ============================================================================
 
-ExtractionResultHandle::ExtractionResultHandle(std::unique_ptr<gribjump::ExtractionResult> result) :
+ExtractionResultHandle::ExtractionResultHandle(gribjump::ExtractionResult&& result) :
     result_(std::move(result)), masks_converted_(false) {}
 
-ExtractionResultHandle::~ExtractionResultHandle() = default;
-
 size_t ExtractionResultHandle::num_ranges() const {
-    return result_ ? result_->values().size() : 0;
+    return result_.values().size();
 }
 
 const double* ExtractionResultHandle::values_ptr(size_t range_idx) const {
-    if (!result_ || range_idx >= result_->values().size()) {
+    if (range_idx >= result_.values().size()) {
         return nullptr;
     }
-    return result_->values()[range_idx].data();
+    return result_.values()[range_idx].data();
 }
 
 size_t ExtractionResultHandle::values_len(size_t range_idx) const {
-    if (!result_ || range_idx >= result_->values().size()) {
+    if (range_idx >= result_.values().size()) {
         return 0;
     }
-    return result_->values()[range_idx].size();
+    return result_.values()[range_idx].size();
 }
 
 bool ExtractionResultHandle::try_convert_masks() const noexcept {
     // Already converted or failed - don't retry
-    if (masks_converted_ || masks_conversion_failed_ || !result_) {
+    if (masks_converted_ || masks_conversion_failed_) {
         return masks_converted_;
     }
 
     try {
-        const auto& masks = result_->mask();
+        const auto& masks = result_.mask();
         masks_cache_.reserve(masks.size());
 
         for (const auto& range_masks : masks) {

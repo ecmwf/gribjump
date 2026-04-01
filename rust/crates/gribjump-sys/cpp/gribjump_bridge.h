@@ -55,12 +55,9 @@ catch (...) {
 }
 }  // namespace rust::behavior
 
-// Forward declarations of gribjump types
-namespace gribjump {
-class GribJump;
-class ExtractionIterator;
-class ExtractionResult;
-}  // namespace gribjump
+#include "gribjump/GribJump.h"
+#include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/ExtractionData.h"
 
 namespace gribjump::ffi {
 
@@ -84,23 +81,21 @@ class GribJumpHandle {
 public:
 
     GribJumpHandle();
-    ~GribJumpHandle();
+    ~GribJumpHandle() = default;
 
-    // Non-copyable
+    // Non-copyable, non-movable
     GribJumpHandle(const GribJumpHandle&)            = delete;
     GribJumpHandle& operator=(const GribJumpHandle&) = delete;
-
-    // Movable
-    GribJumpHandle(GribJumpHandle&&)            = default;
-    GribJumpHandle& operator=(GribJumpHandle&&) = default;
+    GribJumpHandle(GribJumpHandle&&)                 = delete;
+    GribJumpHandle& operator=(GribJumpHandle&&)      = delete;
 
     /// Access the underlying GribJump instance.
-    gribjump::GribJump& inner() { return *impl_; }
-    const gribjump::GribJump& inner() const { return *impl_; }
+    gribjump::GribJump& inner() { return impl_; }
+    const gribjump::GribJump& inner() const { return impl_; }
 
 private:
 
-    std::unique_ptr<gribjump::GribJump> impl_;
+    gribjump::GribJump impl_;
 };
 
 /// Wrapper around gribjump::ExtractionIterator.
@@ -108,7 +103,7 @@ class ExtractionIteratorHandle {
 public:
 
     explicit ExtractionIteratorHandle(gribjump::ExtractionIterator&& it);
-    ~ExtractionIteratorHandle();
+    ~ExtractionIteratorHandle() = default;
 
     // Non-copyable
     ExtractionIteratorHandle(const ExtractionIteratorHandle&)            = delete;
@@ -126,17 +121,16 @@ public:
 
 private:
 
-    std::unique_ptr<gribjump::ExtractionIterator> impl_;
+    gribjump::ExtractionIterator impl_;
 };
 
 /// Zero-copy wrapper around gribjump::ExtractionResult.
-/// Keeps the C++ result alive and provides direct pointer access to data.
 /// Values are truly zero-copy; masks are converted lazily from bitset<64>.
 class ExtractionResultHandle {
 public:
 
-    explicit ExtractionResultHandle(std::unique_ptr<gribjump::ExtractionResult> result);
-    ~ExtractionResultHandle();
+    explicit ExtractionResultHandle(gribjump::ExtractionResult&& result);
+    ~ExtractionResultHandle() = default;
 
     // Non-copyable
     ExtractionResultHandle(const ExtractionResultHandle&)            = delete;
@@ -165,7 +159,7 @@ public:
 
 private:
 
-    std::unique_ptr<gribjump::ExtractionResult> result_;
+    gribjump::ExtractionResult result_;
     // Cached masks converted from bitset<64> to uint64_t
     mutable std::vector<std::vector<uint64_t>> masks_cache_;
     mutable bool masks_converted_         = false;
