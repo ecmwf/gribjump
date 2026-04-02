@@ -55,9 +55,9 @@ catch (...) {
 }
 }  // namespace rust::behavior
 
+#include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
-#include "gribjump/ExtractionData.h"
 
 namespace gribjump::ffi {
 
