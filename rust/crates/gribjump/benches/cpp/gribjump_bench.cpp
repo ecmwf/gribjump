@@ -43,14 +43,6 @@ static void BM_HandleCreation(benchmark::State& state) {
 }
 BENCHMARK(BM_HandleCreation)->Name("cpp/handle_creation");
 
-static void BM_Version(benchmark::State& state) {
-    for (auto _ : state) {
-        std::string version = gribjump::LibGribJump::instance().version();
-        benchmark::DoNotOptimize(version);
-    }
-}
-BENCHMARK(BM_Version)->Name("cpp/version");
-
 static void BM_RequestCreation(benchmark::State& state) {
     std::vector<gribjump::Range> ranges = {{0, 10}, {20, 30}};
     std::string request                 = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200";

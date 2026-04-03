@@ -104,20 +104,6 @@ fn bench_handle_creation(c: &mut Criterion) {
     });
 }
 
-/// Benchmark version string retrieval.
-/// Note: Requires FDB setup to initialize eckit `Main()` singleton.
-fn bench_version(c: &mut Criterion) {
-    // Ensure eckit is initialized via FDB setup
-    let Some(_fdb) = get_fdb_setup() else {
-        eprintln!("Skipping version benchmark: FDB setup failed (eckit not initialized)");
-        return;
-    };
-
-    c.bench_function("rust_version", |b| {
-        b.iter(|| black_box(GribJump::version()));
-    });
-}
-
 /// Benchmark `ExtractionRequest` creation.
 fn bench_request_creation(c: &mut Criterion) {
     let ranges = vec![
@@ -302,7 +288,6 @@ fn bench_result_processing(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_handle_creation,
-    bench_version,
     bench_request_creation,
     bench_range_creation,
     bench_request_many_ranges,
