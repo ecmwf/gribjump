@@ -45,8 +45,8 @@ static std::vector<gribjump::ExtractionRequest> to_cpp_requests(const rust::Vec<
         const auto& req = requests[i];
         // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
         if (req.grid_hash.empty()) {
-            throw std::runtime_error("ExtractionRequest[" + std::to_string(i) +
-                                     "]: grid_hash is required but was empty");
+            throw eckit::BadParameter("ExtractionRequest[" + std::to_string(i) +
+                                      "]: grid_hash is required but was empty");
         }
         result.emplace_back(std::string(req.request_str), to_cpp_ranges(req.ranges), std::string(req.grid_hash));
     }
@@ -63,8 +63,8 @@ static std::vector<gribjump::PathExtractionRequest> to_cpp_path_requests(
         const auto& req = requests[i];
         // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
         if (req.grid_hash.empty()) {
-            throw std::runtime_error("PathExtractionRequest[" + std::to_string(i) +
-                                     "]: grid_hash is required but was empty");
+            throw eckit::BadParameter("PathExtractionRequest[" + std::to_string(i) +
+                                      "]: grid_hash is required but was empty");
         }
         result.emplace_back(std::string(req.filename), std::string(req.scheme), req.offset, std::string(req.host),
                             req.port, to_cpp_ranges(req.ranges), std::string(req.grid_hash));
@@ -90,7 +90,7 @@ bool ExtractionIteratorHandle::hasNext() const {
 
 std::unique_ptr<ExtractionResultHandle> ExtractionIteratorHandle::next() {
     if (!impl_.hasNext()) {
-        throw std::runtime_error("Iterator exhausted");
+        throw eckit::SeriousBug("Iterator exhausted: next() called after hasNext() returned false");
     }
     // impl_.next() returns unique_ptr<ExtractionResult>, dereference and move
     auto result_ptr = impl_.next();
@@ -220,7 +220,7 @@ std::unique_ptr<ExtractionIteratorHandle> extract_mars(GribJumpHandle& handle, r
                                                        const rust::Vec<Range>& ranges, rust::Str grid_hash) {
     // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
     if (grid_hash.empty()) {
-        throw std::runtime_error("extract_mars: grid_hash is required but was empty");
+        throw eckit::BadParameter("extract_mars: grid_hash is required but was empty");
     }
     std::string request_str{request};
     auto mars_request = metkit::mars::MarsRequest::parse(request_str);
