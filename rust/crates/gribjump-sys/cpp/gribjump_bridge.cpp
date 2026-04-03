@@ -122,7 +122,7 @@ size_t ExtractionResultHandle::values_len(size_t range_idx) const {
     return result_.values()[range_idx].size();
 }
 
-bool ExtractionResultHandle::try_convert_masks() const noexcept {
+bool ExtractionResultHandle::try_convert_masks() const {
     // Already converted or failed - don't retry
     if (masks_converted_ || masks_conversion_failed_) {
         return masks_converted_;
@@ -144,8 +144,8 @@ bool ExtractionResultHandle::try_convert_masks() const noexcept {
         masks_converted_ = true;
         return true;
     }
-    catch (...) {
-        // OOM or other allocation failure - mark as failed, don't retry
+    catch (const std::bad_alloc&) {
+        // OOM - handle gracefully by returning false
         masks_conversion_failed_ = true;
         masks_cache_.clear();  // Release any partial allocations
         return false;

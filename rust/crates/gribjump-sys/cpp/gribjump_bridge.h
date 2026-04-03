@@ -167,7 +167,8 @@ private:
 
     /// Convert masks from bitset<64> to uint64_t (lazy, cached).
     /// Returns true on success, false if conversion failed (OOM).
-    bool try_convert_masks() const noexcept;
+    /// Other exceptions propagate to the FFI boundary handler.
+    bool try_convert_masks() const;
 };
 
 // ============================================================================
