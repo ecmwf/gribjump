@@ -6,14 +6,12 @@
 // Run: python3 scripts/bench_compare.py --cpp
 //
 // Benchmark names use `cpp/` prefix for comparison with Rust benchmarks.
-// Extraction benchmarks require FDB setup via environment.
+// These benchmarks measure FFI overhead, not gribjump core performance.
 
 #include <benchmark/benchmark.h>
 #include <eckit/runtime/Main.h>
 #include <gribjump/GribJump.h>
 #include <gribjump/LibGribJump.h>
-#include <cstdlib>
-#include <cstring>
 #include <vector>
 
 // Initialize eckit Main singleton (required for gribjump)
@@ -28,12 +26,6 @@ struct EckitInitializer {
 };
 static EckitInitializer eckit_init;
 }  // namespace
-
-// Check if FDB is configured for extraction benchmarks
-static bool fdb_available() {
-    const char* fdb_config = std::getenv("FDB5_CONFIG");
-    return fdb_config != nullptr && strlen(fdb_config) > 0;
-}
 
 static void BM_HandleCreation(benchmark::State& state) {
     for (auto _ : state) {
@@ -77,102 +69,5 @@ static void BM_RequestManyRanges(benchmark::State& state) {
     }
 }
 BENCHMARK(BM_RequestManyRanges)->Name("cpp/request_100_ranges");
-
-static void BM_Extract(benchmark::State& state) {
-    if (!fdb_available()) {
-        state.SkipWithMessage("FDB5_CONFIG not set");
-        return;
-    }
-
-    gribjump::GribJump gj;
-    std::vector<gribjump::Range> ranges = {{0, 5}};
-    std::string request =
-        "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
-    std::string gridhash = "33c7d6025995e1b4913811e77d38ec50";
-
-    for (auto _ : state) {
-        std::vector<gribjump::ExtractionRequest> requests;
-        requests.emplace_back(request, ranges, gridhash);
-
-        auto iter = gj.extract(requests);
-        benchmark::DoNotOptimize(&iter);
-    }
-}
-BENCHMARK(BM_Extract)->Name("cpp/extract");
-
-static void BM_ExtractWithValues(benchmark::State& state) {
-    if (!fdb_available()) {
-        state.SkipWithMessage("FDB5_CONFIG not set");
-        return;
-    }
-
-    gribjump::GribJump gj;
-    std::vector<gribjump::Range> ranges = {{0, 5}};
-    std::string request =
-        "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
-    std::string gridhash = "33c7d6025995e1b4913811e77d38ec50";
-
-    for (auto _ : state) {
-        std::vector<gribjump::ExtractionRequest> requests;
-        requests.emplace_back(request, ranges, gridhash);
-
-        auto iter = gj.extract(requests);
-
-        size_t total_values = 0;
-        while (iter.hasNext()) {
-            auto result = iter.next();
-            total_values += result->total_values();
-        }
-
-        benchmark::DoNotOptimize(total_values);
-    }
-}
-BENCHMARK(BM_ExtractWithValues)->Name("cpp/extract_with_values");
-
-static void BM_ExtractLarge(benchmark::State& state) {
-    if (!fdb_available()) {
-        state.SkipWithMessage("FDB5_CONFIG not set");
-        return;
-    }
-
-    gribjump::GribJump gj;
-    // Extract 100 values instead of 5
-    std::vector<gribjump::Range> ranges = {{0, 100}};
-    std::string request =
-        "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
-    std::string gridhash = "33c7d6025995e1b4913811e77d38ec50";
-
-    for (auto _ : state) {
-        std::vector<gribjump::ExtractionRequest> requests;
-        requests.emplace_back(request, ranges, gridhash);
-
-        auto iter = gj.extract(requests);
-
-        size_t total_values = 0;
-        while (iter.hasNext()) {
-            auto result = iter.next();
-            total_values += result->total_values();
-        }
-
-        benchmark::DoNotOptimize(total_values);
-    }
-}
-BENCHMARK(BM_ExtractLarge)->Name("cpp/extract_large");
-
-static void BM_Axes(benchmark::State& state) {
-    if (!fdb_available()) {
-        state.SkipWithMessage("FDB5_CONFIG not set");
-        return;
-    }
-
-    gribjump::GribJump gj;
-    std::string request = "class=rd,expver=xxxx,stream=oper";
-
-    for (auto _ : state) {
-        auto axes = gj.axes(request, 3);
-        benchmark::DoNotOptimize(&axes);
-    }
-}
-BENCHMARK(BM_Axes)->Name("cpp/axes");
 
 BENCHMARK_MAIN();
