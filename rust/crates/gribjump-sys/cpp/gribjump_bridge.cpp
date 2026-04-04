@@ -37,35 +37,21 @@ static std::vector<gribjump::Range> to_cpp_ranges(const rust::Vec<Range>& ranges
 }
 
 /// Convert rust::Vec<ExtractionRequestData> to std::vector<gribjump::ExtractionRequest>
-/// Validates that grid_hash is not empty (prevents SeriousBug exception from gribjump)
 static std::vector<gribjump::ExtractionRequest> to_cpp_requests(const rust::Vec<ExtractionRequestData>& requests) {
     std::vector<gribjump::ExtractionRequest> result;
     result.reserve(requests.size());
-    for (size_t i = 0; i < requests.size(); ++i) {
-        const auto& req = requests[i];
-        // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
-        if (req.grid_hash.empty()) {
-            throw eckit::BadParameter("ExtractionRequest[" + std::to_string(i) +
-                                      "]: grid_hash is required but was empty");
-        }
+    for (const auto& req : requests) {
         result.emplace_back(std::string(req.request_str), to_cpp_ranges(req.ranges), std::string(req.grid_hash));
     }
     return result;
 }
 
 /// Convert rust::Vec<PathExtractionRequestData> to std::vector<gribjump::PathExtractionRequest>
-/// Validates that grid_hash is not empty (prevents SeriousBug exception from gribjump)
 static std::vector<gribjump::PathExtractionRequest> to_cpp_path_requests(
     const rust::Vec<PathExtractionRequestData>& requests) {
     std::vector<gribjump::PathExtractionRequest> result;
     result.reserve(requests.size());
-    for (size_t i = 0; i < requests.size(); ++i) {
-        const auto& req = requests[i];
-        // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
-        if (req.grid_hash.empty()) {
-            throw eckit::BadParameter("PathExtractionRequest[" + std::to_string(i) +
-                                      "]: grid_hash is required but was empty");
-        }
+    for (const auto& req : requests) {
         result.emplace_back(std::string(req.filename), std::string(req.scheme), req.offset, std::string(req.host),
                             req.port, to_cpp_ranges(req.ranges), std::string(req.grid_hash));
     }
@@ -218,10 +204,6 @@ std::unique_ptr<ExtractionIteratorHandle> extract_from_paths(GribJumpHandle& han
 
 std::unique_ptr<ExtractionIteratorHandle> extract_mars(GribJumpHandle& handle, rust::Str request,
                                                        const rust::Vec<Range>& ranges, rust::Str grid_hash) {
-    // Validate grid_hash is not empty - gribjump throws SeriousBug (aborts) for empty hash
-    if (grid_hash.empty()) {
-        throw eckit::BadParameter("extract_mars: grid_hash is required but was empty");
-    }
     std::string request_str{request};
     auto mars_request = metkit::mars::MarsRequest::parse(request_str);
     auto cpp_ranges   = to_cpp_ranges(ranges);

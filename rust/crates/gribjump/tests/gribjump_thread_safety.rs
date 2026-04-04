@@ -398,8 +398,6 @@ fn test_concurrent_errors_no_crash() {
             thread::spawn(move || {
                 for _ in 0..20 {
                     // Use invalid requests to trigger errors (invalid MARS request format)
-                    // grid_hash is provided to get past FFI validation, but the request
-                    // will fail at the GribJump level due to invalid format
                     let ranges = vec![Range::new(0, 10).expect("valid range")];
                     let requests = vec![ExtractionRequest::new(
                         format!("INVALID_REQUEST_THREAD_{i}"),
