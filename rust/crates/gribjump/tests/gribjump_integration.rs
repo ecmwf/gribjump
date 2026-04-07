@@ -589,7 +589,7 @@ fn test_gribjump_extraction_into_iter() {
 
     if let Some(Ok(extraction_result)) = results.into_iter().next() {
         // Test to_owned_ranges - explicitly converts to owned data
-        let count = extraction_result.to_owned_ranges().into_iter().count();
+        let count = extraction_result.to_owned_ranges().len();
         println!("to_owned_ranges produced {count} owned ranges");
     }
 
