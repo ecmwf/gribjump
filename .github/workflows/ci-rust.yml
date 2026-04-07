@@ -57,10 +57,6 @@ jobs:
         with:
           components: clippy
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
-
       - name: Clippy
         run: cargo clippy --features vendored --all-targets -- -D warnings
 
@@ -78,10 +74,6 @@ jobs:
         run: git config --global url."https://x-access-token:${{ secrets.GH_REPO_READ_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
 
       - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rust
 
       - name: Test
         run: cargo test --features vendored
