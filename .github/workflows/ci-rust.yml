@@ -62,7 +62,7 @@ jobs:
           workspaces: rust
 
       - name: Clippy
-        run: cargo clippy --features vendored -- -D warnings
+        run: cargo clippy --features vendored --all-targets -- -D warnings
 
   test:
     name: test
