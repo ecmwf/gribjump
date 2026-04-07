@@ -10,17 +10,18 @@ on:
       - '**'
     paths:
       - 'rust/**'
-      - '.github/workflows/rust.yml'
+      - '.github/workflows/ci-rust.yml'
 
   pull_request:
     paths:
       - 'rust/**'
-      - '.github/workflows/rust.yml'
+      - '.github/workflows/ci-rust.yml'
 
   workflow_dispatch: ~
 
 env:
   CARGO_TERM_COLOR: always
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
 
 jobs:
   fmt:
@@ -49,6 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure git for private repos
+        run: git config --global url."https://x-access-token:${{ secrets.GH_REPO_READ_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -69,6 +73,9 @@ jobs:
         working-directory: rust
     steps:
       - uses: actions/checkout@v4
+
+      - name: Configure git for private repos
+        run: git config --global url."https://x-access-token:${{ secrets.GH_REPO_READ_TOKEN }}@github.com/".insteadOf "ssh://git@github.com/"
 
       - uses: dtolnay/rust-toolchain@stable
 
