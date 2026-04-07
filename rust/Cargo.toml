@@ -26,7 +26,7 @@ eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git",
 metkit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
 
 # Build tools
-bindman = { git = "https://github.com/ecmwf/bindman.git" }
+bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
 bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git" }
 
 # External
