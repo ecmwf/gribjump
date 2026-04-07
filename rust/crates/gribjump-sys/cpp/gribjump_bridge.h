@@ -162,12 +162,10 @@ private:
     gribjump::ExtractionResult result_;
     // Cached masks converted from bitset<64> to uint64_t
     mutable std::vector<std::vector<uint64_t>> masks_cache_;
-    mutable bool masks_converted_         = false;
-    mutable bool masks_conversion_failed_ = false;
+    mutable bool masks_converted_ = false;
 
     /// Convert masks from bitset<64> to uint64_t (lazy, cached).
-    /// Returns true on success, false if conversion failed (OOM).
-    /// Other exceptions propagate to the FFI boundary handler.
+    /// Exceptions propagate to the FFI boundary handler.
     bool try_convert_masks() const;
 };
 

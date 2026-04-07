@@ -109,33 +109,24 @@ size_t ExtractionResultHandle::values_len(size_t range_idx) const {
 }
 
 bool ExtractionResultHandle::try_convert_masks() const {
-    // Already converted or failed - don't retry
-    if (masks_converted_ || masks_conversion_failed_) {
-        return masks_converted_;
-    }
-
-    try {
-        const auto& masks = result_.mask();
-        masks_cache_.reserve(masks.size());
-
-        for (const auto& range_masks : masks) {
-            std::vector<uint64_t> converted;
-            converted.reserve(range_masks.size());
-            for (const auto& bits : range_masks) {
-                converted.push_back(bits.to_ullong());
-            }
-            masks_cache_.push_back(std::move(converted));
-        }
-
-        masks_converted_ = true;
+    if (masks_converted_) {
         return true;
     }
-    catch (const std::bad_alloc&) {
-        // OOM - handle gracefully by returning false
-        masks_conversion_failed_ = true;
-        masks_cache_.clear();  // Release any partial allocations
-        return false;
+
+    const auto& masks = result_.mask();
+    masks_cache_.reserve(masks.size());
+
+    for (const auto& range_masks : masks) {
+        std::vector<uint64_t> converted;
+        converted.reserve(range_masks.size());
+        for (const auto& bits : range_masks) {
+            converted.push_back(bits.to_ullong());
+        }
+        masks_cache_.push_back(std::move(converted));
     }
+
+    masks_converted_ = true;
+    return true;
 }
 
 const uint64_t* ExtractionResultHandle::masks_ptr(size_t range_idx) const {
