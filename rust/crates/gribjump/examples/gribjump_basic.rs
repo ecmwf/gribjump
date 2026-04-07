@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Print stats (debugging info)
     println!("\nStats:");
-    gj.print_stats();
+    gj.print_stats()?;
 
     Ok(())
 }

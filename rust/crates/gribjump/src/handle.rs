@@ -237,8 +237,9 @@ impl GribJump {
     /// Print statistics to stdout.
     ///
     /// This is primarily for debugging and diagnostics.
-    pub fn print_stats(&self) {
+    pub fn print_stats(&self) -> Result<()> {
         let mut guard = self.inner.lock();
-        let _ = gribjump_sys::stats(guard.0.pin_mut());
+        gribjump_sys::stats(guard.0.pin_mut())?;
+        Ok(())
     }
 }

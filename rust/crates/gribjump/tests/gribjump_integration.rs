@@ -346,7 +346,7 @@ fn test_gribjump_print_stats() {
     let mut gj = GribJump::new().expect("failed to create GribJump handle");
 
     // Just verify it doesn't crash
-    gj.print_stats();
+    gj.print_stats().expect("print_stats failed");
     println!("print_stats completed");
 
     drop(gj);
