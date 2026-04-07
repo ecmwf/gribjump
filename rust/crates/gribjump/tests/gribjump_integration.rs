@@ -588,9 +588,9 @@ fn test_gribjump_extraction_into_iter() {
     let results: Vec<_> = result.collect();
 
     if let Some(Ok(extraction_result)) = results.into_iter().next() {
-        // Test IntoIterator - consumes the ExtractionResult
-        let count = extraction_result.into_iter().count();
-        println!("into_iter produced {count} owned ranges");
+        // Test to_owned_ranges - explicitly converts to owned data
+        let count = extraction_result.to_owned_ranges().into_iter().count();
+        println!("to_owned_ranges produced {count} owned ranges");
     }
 
     drop(gj);

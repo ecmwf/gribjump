@@ -263,12 +263,3 @@ impl RangeResult {
         self.values.is_empty()
     }
 }
-
-impl IntoIterator for ExtractionResult {
-    type Item = RangeResult;
-    type IntoIter = std::vec::IntoIter<RangeResult>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.to_owned_ranges().into_iter()
-    }
-}
