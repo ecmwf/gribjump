@@ -15,6 +15,7 @@
 #include "eckit/runtime/Main.h"
 #include "metkit/mars/MarsRequest.h"
 
+#include <mutex>
 #include <stdexcept>
 
 // Include the cxx-generated header for our bridge types
@@ -168,10 +169,11 @@ rust::String gribjump_git_sha1() {
 std::unique_ptr<GribJumpHandle> new_gribjump() {
     // Initialize eckit Main if not already done
     // This is required for eckit's PathName, Resource, and other subsystems
-    if (!eckit::Main::ready()) {
+    static std::once_flag init_flag;
+    std::call_once(init_flag, [] {
         static const char* argv[] = {"gribjump", nullptr};
         eckit::Main::initialise(1, const_cast<char**>(argv));
-    }
+    });
     return std::make_unique<GribJumpHandle>();
 }
 
