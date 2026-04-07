@@ -237,7 +237,7 @@ fn build_system() {
         .expect("DEP_FDB_SYS_INCLUDE not set - fdb-sys must be a dependency");
 
     let (root, gribjump_include, lib_dir) =
-        cmake_find_package("gribjump", "0.8.0", Some("GRIBJUMP_DIR"));
+        cmake_find_package("gribjump", "0.10.3", Some("GRIBJUMP_DIR"));
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=gribjump");
