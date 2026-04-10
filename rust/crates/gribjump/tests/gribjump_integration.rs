@@ -55,7 +55,7 @@ fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB");
+    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
 
     // Read extract_ranges.grib - contains 3 messages with step=1,2,3
     let grib_path = fixtures_dir().join("extract_ranges.grib");
@@ -79,7 +79,7 @@ fn setup_test_fdb_axes(tmpdir: &std::path::Path) -> String {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB");
+    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
 
     // Read axes.grib - contains messages for axes testing
     let grib_path = fixtures_dir().join("axes.grib");
@@ -548,7 +548,7 @@ fn test_gribjump_api_extract_multi_request() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB");
+    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -637,7 +637,7 @@ fn test_gribjump_api_extract_mars_expanded() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB");
+    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -704,7 +704,7 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::from_yaml(&config).expect("failed to create FDB");
+    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -724,17 +724,28 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
         .with("time", "1200")
         .with("type", "fc");
 
-    let list_iter = fdb.list(&list_request, 3, false).expect("fdb list failed");
+    let list_iter = fdb
+        .list(
+            &list_request,
+            fdb::ListOptions {
+                depth: 3,
+                deduplicate: false,
+            },
+        )
+        .expect("fdb list failed");
 
     let mut paths = BTreeSet::new();
     let mut offsets = Vec::new();
 
     for item in list_iter {
         let item = item.expect("list item failed");
-        let path = item
-            .uri
-            .strip_prefix("file:")
-            .unwrap_or(&item.uri)
+        // URI format: file:/path/to/file.data?length=N#offset
+        // Strip scheme, query string, and fragment to get the file path
+        let raw = item.uri.strip_prefix("file:").unwrap_or(&item.uri);
+        let path = raw
+            .split('?')
+            .next()
+            .expect("URI should have a path")
             .to_string();
         paths.insert(path);
         offsets.push(item.offset);
