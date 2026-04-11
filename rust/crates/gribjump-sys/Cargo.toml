@@ -34,5 +34,6 @@ bindman.workspace = true
 [build-dependencies]
 cxx-build.workspace = true
 bindman-build.workspace = true
+bindman-utils.workspace = true
 
 [package.metadata.docs.rs]
