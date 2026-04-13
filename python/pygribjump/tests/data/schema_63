@@ -1,0 +1,18 @@
+# Default types
+
+param:      Param;
+step:       Step;
+date:       Date;
+levelist:   Double;
+grid:       Grid;
+expver:     Expver;
+time:       Time;
+number:     Integer;
+
+########################################################
+# These are the rules for the On-Demand Extremes DT
+# oper
+[ class=d1, dataset=on-demand-extremes-dt, expver, stream=oper, date, time, timespan
+       [ type, levtype, georef
+               [ step, levelist?, param ]]
+]
