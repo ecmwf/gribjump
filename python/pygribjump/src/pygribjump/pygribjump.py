@@ -146,7 +146,7 @@ class ExtractionRequest:
 
         self.__shape = []
         self.__ranges = ranges.copy()
-        reqstr = dic_to_request(req)
+        reqstr = "retrieve," + dic_to_request(req)
         request = ffi.new('gribjump_extraction_request_t**')
         c_reqstr = ffi.new("char[]", reqstr.encode())
         c_hash = ffi.NULL if gridHash is None else ffi.new(
