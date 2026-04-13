@@ -4,7 +4,7 @@ NOTE:
 To be able to run the tests pyfdb and pygribjump need to find the native libraries.
 If not installed into a default location export the following environent
 variables in the shell running pytest:
-    GRIBJUMP_HOME = <cmake-build-root-for-gribjump> or <custom-install-location>
+    GRIBJUMP_DIR = <cmake-build-root-for-gribjump> or <custom-install-location>
     FDB5_DIR = <cmake-build-root-for-fdb> or <custom-install-location>
 """
 
@@ -117,7 +117,7 @@ def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> path
     fdb = pyfdb.FDB()
     for i in range(5):
         request["step"] = str(i)
-        fdb.archive(grib_file.read_bytes(), key=request)
+        fdb.archive(grib_file.read_bytes(), request)
     fdb.flush()
 
     return tmp_path
@@ -242,16 +242,16 @@ def test_extract_from_paths(read_only_fdb_setup) -> None:
     port = 0
 
     fdb = pyfdb.FDB()
-    result = fdb.list({
+    it = fdb.list({
         "class": "od", "type": "fc", "stream": "oper",
         "param": "151130", "date": "20230508", "time": "1200", "step": "1"
     })
 
     filenames = []
     offsets = []
-    for r in result:
-        filenames.append(r["path"])
-        offsets.append(r["offset"])
+    for ele in it:
+        filenames.append(ele.uri.path())
+        offsets.append(ele.offset())
 
     scheme = "file"
 
@@ -401,7 +401,7 @@ def test_axes(read_only_fdb_setup) -> None:
     ([(0, 5), (11, 12), (12, 13)], [0, 1, 2, 3, 4, 11, 12])
 ])
 def test_extraction_request(ranges, indices):
-    request = ExtractionRequest({"a": "b"}, ranges)
+    request = ExtractionRequest({"step": "0"}, ranges)
 
     arr_expected_indices = np.array(indices, dtype=int)
     arr_observed_indices = request.indices()
@@ -412,10 +412,10 @@ def test_extraction_request(ranges, indices):
 
 def test_extraction_request_errors_for_invalid_ranges():
     with pytest.raises(ValueError, match='at least one'):
-        ExtractionRequest({"a": "b"}, [])
+        ExtractionRequest({"step": "0"}, [])
 
     with pytest.raises(ValueError, match='invalid range'):
-        ExtractionRequest({"a": "b"}, [(2, 2)])
+        ExtractionRequest({"step": "0"}, [(2, 2)])
 
     with pytest.raises(ValueError, match='invalid range'):
-        ExtractionRequest({"a": "b"}, [(1, 2), (4, 2)])
+        ExtractionRequest({"step": "0"}, [(1, 2), (4, 2)])

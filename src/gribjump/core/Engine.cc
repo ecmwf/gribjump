@@ -93,7 +93,13 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
             }
         }
 
-        ASSERT(keyToExtractionItem.find(canonicalised) == keyToExtractionItem.end());  // no repeats
+        if (keyToExtractionItem.find(canonicalised) != keyToExtractionItem.end()) {
+            std::stringstream ss;
+            ss << "Could not canonicalise request as it clashes with an existing request." << std::endl
+               << "  Original request: " << s << std::endl
+               << "  Canonicalised request: " << canonicalised << std::endl;
+            throw eckit::SeriousBug(ss.str());
+        }
         r.requestString(canonicalised);
 
         auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));

@@ -73,6 +73,15 @@ template <typename FN>
     }
 }
 
+metkit::mars::MarsRequest parseMarsRequest(const char* request) {
+    std::istringstream in(request);
+    metkit::mars::MarsParser parser(in);
+    metkit::mars::MarsExpansion expand(false, true);
+    auto v = expand.expand(parser.parse());
+    ASSERT(v.size() == 1);
+    return v[0];
+}
+
 }  // namespace
 
 // --------------------------------------------------------------------------------------------
@@ -177,7 +186,10 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
         }
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
-        *request                 = new gribjump_extraction_request_t(reqstr, ranges, gridhash_str);
+
+        metkit::mars::MarsRequest req = parseMarsRequest(reqstr);
+
+        *request = new gribjump_extraction_request_t(req.asString(), ranges, gridhash_str);
     });
 }
 
@@ -313,14 +325,7 @@ gribjump_error_t gribjump_extract_single(gribjump_handle_t* handle, const char* 
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
 
-        // Parse the mars request
-        std::istringstream in(request);
-        metkit::mars::MarsParser parser(in);
-        metkit::mars::MarsExpansion expand(false, true);
-        auto v = expand.expand(parser.parse());
-        ASSERT(v.size() == 1);
-        metkit::mars::MarsRequest req = v[0];
-
+        metkit::mars::MarsRequest req = parseMarsRequest(request);
         *iterator = new gribjump_extractioniterator_t(handle->extract(req, ranges, gridhash_str, logctx));
     });
 }
