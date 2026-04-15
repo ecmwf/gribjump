@@ -72,6 +72,27 @@ fn build_system() {
     println!("cargo:rustc-link-lib=dylib=eckit");
     bindman_utils::link_cpp_stdlib();
 
+    // Re-publish each dependency's install lib dir so the downstream
+    // `gribjump` crate's build script can emit matching absolute rpath
+    // entries on the final binary. `rustc-link-arg` emitted by a
+    // library crate's build.rs does not reach binaries that link the
+    // crate, so the rpath flags have to come from `gribjump/build.rs`.
+    // The fdb5 entry is forwarded from `fdb-sys` (which does the same
+    // re-publishing trick) so gribjump's binaries pick up every rpath
+    // they need, not just the ones gribjump-sys knows about directly.
+    let metkit_root = env::var("DEP_METKIT_ROOT")
+        .expect("DEP_METKIT_ROOT not set - metkit-sys must be a dependency");
+    let eccodes_root = env::var("DEP_ECCODES_ROOT")
+        .expect("DEP_ECCODES_ROOT not set - eccodes-sys must be a dependency");
+    let fdb5_lib = env::var("DEP_FDB_SYS_SYSTEM_FDB5_LIB").expect(
+        "DEP_FDB_SYS_SYSTEM_FDB5_LIB not set - fdb-sys must be built with --features system",
+    );
+    println!("cargo:system_gribjump_lib={}", lib_dir.display());
+    println!("cargo:system_eckit_lib={eckit_root}/lib");
+    println!("cargo:system_metkit_lib={metkit_root}/lib");
+    println!("cargo:system_eccodes_lib={eccodes_root}/lib");
+    println!("cargo:system_fdb5_lib={fdb5_lib}");
+
     // Export for downstream crates
     println!("cargo:root={}", root.display());
     println!("cargo:include={}", gribjump_include.display());

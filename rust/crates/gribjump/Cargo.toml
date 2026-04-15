@@ -9,11 +9,16 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 description = "Safe Rust wrapper for ECMWF gribjump library"
+links = "gribjump_rpath"
+build = "build.rs"
 
 [features]
 default = ["vendored"]
 vendored = ["gribjump-sys/vendored"]
 system = ["gribjump-sys/system"]
+
+[build-dependencies]
+bindman-utils.workspace = true
 
 [dependencies]
 gribjump-sys.workspace = true
