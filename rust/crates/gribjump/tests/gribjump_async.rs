@@ -5,7 +5,7 @@
 //! Note: `GribJump` uses internal `Arc<Mutex<>>`, so methods take `&self` and the type is `Clone`.
 //! Can share via `gj.clone()`.
 //!
-//! Run with: `cargo test --test gribjump_async -- --ignored --test-threads=1`
+//! Run with `cargo test --test gribjump_async`.
 
 use std::env;
 use std::fs;
@@ -72,7 +72,6 @@ spaces:
 }
 
 #[tokio::test]
-#[ignore = "requires GribJump libraries and thread-safe feature"]
 async fn test_gribjump_concurrent_extract() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -123,7 +122,6 @@ async fn test_gribjump_concurrent_extract() {
 }
 
 #[tokio::test]
-#[ignore = "requires GribJump libraries and thread-safe feature"]
 async fn test_gribjump_concurrent_axes() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -160,7 +158,6 @@ async fn test_gribjump_concurrent_axes() {
 }
 
 #[tokio::test]
-#[ignore = "requires GribJump libraries and thread-safe feature"]
 async fn test_gribjump_spawn_blocking_pattern() {
     // Test the recommended pattern for using GribJump in async code:
     // use spawn_blocking for blocking operations
@@ -210,7 +207,6 @@ async fn test_gribjump_spawn_blocking_pattern() {
 }
 
 #[tokio::test]
-#[ignore = "requires GribJump libraries and thread-safe feature"]
 async fn test_gribjump_mixed_concurrent_operations() {
     // Test mixing different operations concurrently
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
@@ -278,7 +274,6 @@ async fn test_gribjump_mixed_concurrent_operations() {
 }
 
 #[tokio::test]
-#[ignore = "requires GribJump libraries and thread-safe feature"]
 async fn test_gribjump_high_concurrency() {
     // Stress test with many concurrent tasks
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");

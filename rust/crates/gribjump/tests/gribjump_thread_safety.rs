@@ -2,10 +2,7 @@
 //!
 //! These tests verify that `GribJump` works correctly under concurrent access.
 //!
-//! Run with: `cargo test --test gribjump_thread_safety`
-//!
-//! For integration tests that require `GribJump` libraries:
-//! `cargo test --test gribjump_thread_safety -- --ignored --test-threads=1`
+//! Run with `cargo test --test gribjump_thread_safety`.
 
 use std::env;
 use std::fs;
@@ -139,7 +136,6 @@ fn test_range_traits() {
 
 /// Test: `GribJump` handle can be created
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_handle_creation() {
     let gj = GribJump::new();
     assert!(gj.is_ok(), "Failed to create GribJump: {:?}", gj.err());
@@ -147,7 +143,6 @@ fn test_handle_creation() {
 
 /// Test: Cloned `GribJump` can be sent to another thread
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_handle_clone_send() {
     let gj = GribJump::new().expect("failed to create handle");
 
@@ -169,7 +164,6 @@ fn test_handle_clone_send() {
 
 /// Test: `GribJump` can be wrapped in Arc and shared
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_arc_sharing() {
     let gj = Arc::new(GribJump::new().expect("failed to create handle"));
 
@@ -191,7 +185,6 @@ fn test_arc_sharing() {
 
 /// Test: Concurrent axes queries
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_concurrent_axes_queries() {
     let gj = GribJump::new().expect("failed to create handle");
 
@@ -214,7 +207,6 @@ fn test_concurrent_axes_queries() {
 
 /// Test: Concurrent extract calls
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_concurrent_extractions() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -246,7 +238,6 @@ fn test_concurrent_extractions() {
 
 /// Test: Mixed read/write operations
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_mixed_operations() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -291,7 +282,6 @@ fn test_mixed_operations() {
 
 /// Test: Iterator can be sent to another thread
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_iterator_send_to_thread() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -316,7 +306,6 @@ fn test_iterator_send_to_thread() {
 
 /// Test: Calling methods while iterating doesn't deadlock
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_no_deadlock_while_iterating() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -342,7 +331,6 @@ fn test_no_deadlock_while_iterating() {
 
 /// Test: Stress test with many threads
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_stress_concurrent_access() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());
@@ -385,7 +373,6 @@ fn test_stress_concurrent_access() {
 
 /// Test: Concurrent errors don't cause crashes
 #[test]
-#[ignore = "requires GribJump libraries and FDB configuration"]
 fn test_concurrent_errors_no_crash() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb(tmpdir.path());

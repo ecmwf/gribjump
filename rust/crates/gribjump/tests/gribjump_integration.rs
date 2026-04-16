@@ -1,12 +1,8 @@
 //! Integration tests for `GribJump` safe wrapper.
 //!
-//! These tests require `GribJump` and FDB to be properly initialized and are marked
-//! with `#[ignore]` by default.
-//!
-//! Run with: `cargo test --test gribjump_integration -- --ignored --test-threads=1`
-//!
-//! Note: `--test-threads=1` is required because tests modify the global `FDB5_CONFIG`
-//! environment variable.
+//! Run with `cargo test --test gribjump_integration`. Each test
+//! spins up its own temp FDB + `GribJump` config so they're
+//! self-contained.
 
 use std::env;
 use std::fs;
@@ -100,7 +96,6 @@ const GRID_HASH: &str = "33c7d6025995e1b4913811e77d38ec50";
 //----------------------------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_version() {
     let version = GribJump::version();
     assert!(!version.is_empty());
@@ -108,7 +103,6 @@ fn test_gribjump_version() {
 }
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_git_sha1() {
     let sha = GribJump::git_sha1();
     assert!(!sha.is_empty());
@@ -116,7 +110,6 @@ fn test_gribjump_git_sha1() {
 }
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_handle_creation() {
     let gj = GribJump::new();
     assert!(
@@ -127,7 +120,6 @@ fn test_gribjump_handle_creation() {
 }
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_range_creation() {
     let range = Range::new(0, 100);
     assert!(range.is_ok());
@@ -138,7 +130,6 @@ fn test_range_creation() {
 }
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_range_invalid() {
     // End before start should fail
     let range = Range::new(100, 50);
@@ -146,7 +137,6 @@ fn test_range_invalid() {
 }
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_extraction_request_creation() {
     let ranges = vec![
         Range::new(0, 10).expect("valid range"),
@@ -177,7 +167,6 @@ fn test_extraction_request_creation() {
 //----------------------------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_api_extract_hash_validation() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb_extract_ranges(tmpdir.path());
@@ -256,7 +245,6 @@ fn test_gribjump_api_extract_hash_validation() {
 //----------------------------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_api_axes() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb_axes(tmpdir.path());
@@ -322,7 +310,6 @@ fn test_gribjump_api_axes() {
 
 /// Test `scan_paths` API
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_scan_paths() {
     #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
     let mut gj = GribJump::new().expect("failed to create GribJump handle");
@@ -342,7 +329,6 @@ fn test_gribjump_scan_paths() {
 
 /// Test `print_stats` API
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_print_stats() {
     #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
     let mut gj = GribJump::new().expect("failed to create GribJump handle");
@@ -356,7 +342,6 @@ fn test_gribjump_print_stats() {
 
 /// Test `extract_from_paths` API
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_extract_from_paths() {
     use gribjump::PathExtractionRequest;
 
@@ -388,7 +373,6 @@ fn test_gribjump_extract_from_paths() {
 
 /// Test `scan_requests` API
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_scan_requests() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb_extract_ranges(tmpdir.path());
@@ -410,7 +394,6 @@ fn test_gribjump_scan_requests() {
 
 /// Test `ExtractionResult` helper methods
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_extraction_result_methods() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb_extract_ranges(tmpdir.path());
@@ -519,7 +502,6 @@ fn test_gribjump_extraction_result_methods() {
 
 /// Test `GribJump` clone
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_clone() {
     let gj1 = GribJump::new().expect("failed to create GribJump handle");
     let gj2 = gj1.clone();
@@ -539,7 +521,6 @@ fn test_gribjump_clone() {
 //----------------------------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_api_extract_multi_request() {
     // --- FDB: set up temporary database and archive GRIB data ---
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
@@ -628,7 +609,6 @@ fn test_gribjump_api_extract_multi_request() {
 //----------------------------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_api_extract_mars_expanded() {
     // --- FDB: set up temporary database and archive GRIB data ---
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
@@ -695,7 +675,6 @@ fn test_gribjump_api_extract_mars_expanded() {
 //----------------------------------------------------------------------------------------------------------------------
 
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_api_extract_from_file_via_fdb_list() {
     // --- FDB: set up temporary database and archive GRIB data ---
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
@@ -809,7 +788,6 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
 
 /// Test `ExtractionIterator` methods directly
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_iterator_methods() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb_extract_ranges(tmpdir.path());
@@ -849,7 +827,6 @@ fn test_gribjump_iterator_methods() {
 
 /// Test `IntoIterator` for `ExtractionResult`
 #[test]
-#[ignore = "requires GribJump libraries"]
 fn test_gribjump_extraction_into_iter() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
     let _config = setup_test_fdb_extract_ranges(tmpdir.path());
