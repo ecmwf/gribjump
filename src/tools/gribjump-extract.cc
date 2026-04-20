@@ -9,17 +9,38 @@
  */
 /// @author Christopher Bradley
 
+#include <stddef.h>
+#include <bitset>
 #include <fstream>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
 #include "eckit/testing/Test.h"
 
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionIterator.h"
 #include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsParsedRequest.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/tools/ToolUtils.h"
+
+namespace eckit {
+namespace option {
+class Option;
+}
+}  // namespace eckit
 
 namespace gribjump::tool {
 

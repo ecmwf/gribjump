@@ -11,10 +11,21 @@
 #include "gribjump/compression/compressors/Ccsds.h"
 
 #include <libaec.h>
+#include <stdint.h>
 #include <algorithm>
 #include <memory>
+#include <sstream>
+#include <string>
 
+#include "eckit/log/CodeLocation.h"
 #include "gribjump/compression/compressors/Aec.h"
+
+namespace eckit {
+class Buffer;
+}
+namespace gribjump::mc {
+class DataAccessor;
+}
 
 namespace {
 

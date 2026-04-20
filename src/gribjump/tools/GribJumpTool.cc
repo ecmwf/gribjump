@@ -9,10 +9,21 @@
  */
 
 #include "gribjump/tools/GribJumpTool.h"
-#include "gribjump/LibGribJump.h"
 
 #include <pwd.h>
 #include <unistd.h>
+#include <sstream>
+#include "eckit/log/JSON.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/runtime/Main.h"
+#include "gribjump/config/LibGribJump.h"
+
+namespace eckit {
+class CodeLocation;
+}
+namespace eckit {
+class Log;
+}
 
 using eckit::Log;
 

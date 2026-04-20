@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "gribjump/GribJump.h"
+#include <string>
 
 namespace gribjump {
 

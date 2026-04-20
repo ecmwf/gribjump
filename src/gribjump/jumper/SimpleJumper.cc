@@ -11,10 +11,25 @@
 /// @author Christopher Bradley
 
 #include "gribjump/jumper/SimpleJumper.h"
-#include "gribjump/GribJumpDataAccessor.h"
+
+#include <algorithm>
+#include <memory>
+#include "eckit/io/Length.h"
+#include "eckit/log/CodeLocation.h"
+#include "gribjump/compression/Range.h"
 #include "gribjump/compression/compressors/Simple.h"
+#include "gribjump/core/GribJumpDataAccessor.h"
 #include "gribjump/info/SimpleInfo.h"
 #include "gribjump/jumper/JumperFactory.h"
+
+namespace eckit {
+class DataHandle;
+}
+namespace gribjump {
+namespace mc {
+class DataAccessor;
+}
+}  // namespace gribjump
 
 namespace gribjump {
 

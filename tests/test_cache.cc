@@ -14,7 +14,7 @@
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/info/JumpInfo.h"

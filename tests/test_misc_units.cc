@@ -8,11 +8,14 @@
  * nor does it submit to any jurisdiction.
  */
 
-#include <cmath>
-#include <fstream>
+#include <cstddef>
+#include <iostream>
+#include <ostream>
+#include <string>
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/testing/Test.h"
-#include "gribjump/compression/NumericCompressor.h"
+#include "gribjump/compression/Range.h"
 #include "gribjump/info/LRUCache.h"
 
 

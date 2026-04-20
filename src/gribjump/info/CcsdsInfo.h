@@ -12,7 +12,27 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <iosfwd>
+#include <string>
+#include <vector>
+
+#include "eckit/io/Offset.h"
+#include "eckit/serialisation/Reanimator.h"
 #include "gribjump/info/JumpInfo.h"
+
+namespace eckit {
+class DataHandle;
+}
+namespace eckit {
+class Stream;
+}
+namespace eckit::message {
+class Message;
+}
+namespace metkit::codes {
+class CodesHandle;
+}
 
 namespace gribjump {
 

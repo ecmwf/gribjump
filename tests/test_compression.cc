@@ -8,15 +8,27 @@
  * nor does it submit to any jurisdiction.
  */
 
+#include <algorithm>
+#include <bitset>
 #include <cmath>
-#include <filesystem>
-#include <fstream>
+#include <cstddef>
+#include <iostream>
+#include <iterator>
+#include <memory>
+#include <ostream>
+#include <sstream>
+#include <utility>
+#include <vector>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/CodeLocation.h"
 #include "eckit/testing/Test.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/api/Types.h"
 #include "gribjump/info/InfoExtractor.h"
+#include "gribjump/info/JumpInfo.h"
 
 using namespace eckit::testing;
 

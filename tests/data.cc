@@ -10,12 +10,16 @@
 
 #include <bitset>
 #include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <limits>
+#include <ostream>
 #include <string>
 #include <vector>
 
 #include "eckit/testing/Test.h"
 
-#include "gribjump/Types.h"
+#include "gribjump/api/Types.h"
 
 #include "gribjump/tools/EccodesExtract.h"
 

@@ -12,12 +12,23 @@
 
 #pragma once
 
-#include "gribjump/info/JumpInfo.h"
-
-#include "metkit/codes/api/CodesAPI.h"
-
+#include <map>
 #include <memory>
 #include <mutex>
+#include <string>
+
+#include "eckit/io/Offset.h"
+#include "gribjump/info/JumpInfo.h"
+
+namespace eckit {
+class DataHandle;
+}
+namespace eckit::message {
+class Message;
+}
+namespace metkit::codes {
+class CodesHandle;
+}
 
 namespace gribjump {
 

@@ -11,11 +11,26 @@
 /// @author Christopher Bradley
 
 #include "gribjump/jumper/CcsdsJumper.h"
-#include "gribjump/GribJumpDataAccessor.h"
-#include "gribjump/Types.h"
+
+#include <memory>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/Length.h"
+#include "eckit/log/CodeLocation.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/compression/Range.h"
 #include "gribjump/compression/compressors/Ccsds.h"
+#include "gribjump/core/GribJumpDataAccessor.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/jumper/JumperFactory.h"
+
+namespace eckit {
+class DataHandle;
+}
+namespace gribjump {
+namespace mc {
+class DataAccessor;
+}
+}  // namespace gribjump
 
 
 namespace gribjump {

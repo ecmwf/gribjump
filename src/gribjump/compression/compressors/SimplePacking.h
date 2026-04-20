@@ -12,7 +12,10 @@
 
 #include <cstddef>
 #include <vector>
-#include "eckit/io/Buffer.h"
+
+namespace eckit {
+class Buffer;
+}
 
 namespace gribjump::mc {
 

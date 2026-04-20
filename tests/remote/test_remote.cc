@@ -19,8 +19,8 @@
 #include "eckit/testing/Test.h"
 
 #include "eckit/value/Value.h"
-#include "gribjump/GribJump.h"
-#include "gribjump/Metrics.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/config/Metrics.h"
 #include "gribjump/gribjump_config.h"
 
 #include "fdb5/api/FDB.h"

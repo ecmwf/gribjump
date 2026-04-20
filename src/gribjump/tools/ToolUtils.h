@@ -11,8 +11,9 @@
 
 #pragma once
 
+#include <vector>
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/ExtractionData.h"
+#include "gribjump/api/Types.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace gribjump {

@@ -9,17 +9,20 @@
  */
 
 #include <cmath>
-#include <fstream>
+#include <cstddef>
+#include <memory>
+#include <vector>
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/testing/Test.h"
 
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/info/JumpInfo.h"
 #include "gribjump/tools/EccodesExtract.h"
-#include "gribjump/tools/ToolUtils.h"
 
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
 #include "gribjump/info/CcsdsInfo.h"
 #include "gribjump/info/InfoExtractor.h"
-#include "gribjump/jumper/JumperFactory.h"
 
 using namespace eckit::testing;
 

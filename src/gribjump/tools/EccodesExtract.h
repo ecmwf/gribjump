@@ -11,9 +11,16 @@
 
 #pragma once
 
+#include <vector>
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/Types.h"
-#include "metkit/mars/MarsRequest.h"
+#include "eckit/io/Offset.h"
+#include "gribjump/api/Types.h"
+
+namespace metkit {
+namespace mars {
+class MarsRequest;
+}
+}  // namespace metkit
 
 
 /// Functions for performing extraction using eccodes directly, for testing and benchmarking purposes.

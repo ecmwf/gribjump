@@ -14,7 +14,7 @@
 
 #include "eckit/net/NetService.h"
 #include "eckit/thread/ThreadControler.h"
-#include "gribjump/LogRouter.h"
+#include "gribjump/config/LogRouter.h"
 #include "gribjump/remote/GribJumpService.h"
 #include "gribjump/remote/WorkQueue.h"
 

@@ -12,10 +12,26 @@
 
 #pragma once
 
-#include "gribjump/ExtractionData.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/compression/NumericCompressor.h"
+#include <stddef.h>
+#include <algorithm>
+#include <string>
+#include <utility>
+#include <vector>
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/Offset.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/compression/Range.h"
 #include "gribjump/info/JumpInfo.h"
+
+namespace eckit {
+class CodeLocation;
+}
+namespace eckit {
+class DataHandle;
+}
+namespace gribjump {
+class ExtractionItem;
+}
 
 namespace gribjump {
 

@@ -10,6 +10,10 @@
 
 
 #include "gribjump/compression/compressors/Simple.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/Buffer.h"
+#include "gribjump/compression/DataAccessor.h"
 #include "gribjump/compression/compressors/SimplePacking.h"
 
 namespace gribjump::mc {

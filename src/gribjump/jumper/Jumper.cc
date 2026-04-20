@@ -10,11 +10,20 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/exception/Exceptions.h"
-#include "eckit/io/DataHandle.h"
-
+#include <algorithm>
+#include <bitset>
+#include <cassert>
+#include <iterator>
+#include <limits>
 #include <memory>
-#include "gribjump/ExtractionItem.h"
+
+#include "eckit/exception/Exceptions.h"
+#include "eckit/io/Buffer.h"
+#include "eckit/io/DataHandle.h"
+#include "eckit/log/CodeLocation.h"
+
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionItem.h"
 #include "gribjump/jumper/Jumper.h"
 
 namespace gribjump {

@@ -10,10 +10,16 @@
 
 /// @author Christopher Bradley
 
+#include <stdint.h>
+#include <functional>
+#include <utility>
 
 #include "eckit/io/DataHandle.h"
 #include "metkit/codes/api/CodesAPI.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/CodeLocation.h"
+#include "eckit/message/Message.h"
 #include "gribjump/info/InfoFactory.h"
 
 namespace gribjump {

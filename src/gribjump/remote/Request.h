@@ -13,15 +13,23 @@
 
 #pragma once
 
-#include <condition_variable>
-#include <mutex>
-#include "eckit/serialisation/Stream.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <map>
+#include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/Types.h"
+#include "gribjump/core/Engine.h"
+#include "gribjump/core/Task.h"
+#include "metkit/mars/MarsRequest.h"
 
-#include "gribjump/Engine.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/GribJump.h"
-#include "gribjump/Metrics.h"
-#include "gribjump/remote/WorkQueue.h"
+namespace eckit {
+class Stream;
+}
 
 namespace gribjump {
 

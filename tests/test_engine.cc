@@ -9,25 +9,29 @@
  */
 
 #include <cmath>
-#include <fstream>
+#include <cstddef>
+#include <ostream>
+#include <string>
+#include <utility>
+#include <vector>
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
 #include "eckit/testing/Test.h"
 
 #include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/TmpDir.h"
-#include "eckit/io/DataHandle.h"
-#include "eckit/io/FileHandle.h"
-#include "eckit/serialisation/FileStream.h"
 
-#include "metkit/mars/MarsExpansion.h"
+#include "fdb5/api/FDB.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/Types.h"
 #include "metkit/mars/MarsParser.h"
 
-#include "gribjump/Engine.h"
-#include "gribjump/ExtractionItem.h"
-#include "gribjump/GribJumpException.h"
-#include "gribjump/LibGribJump.h"
-#include "gribjump/info/InfoFactory.h"
+#include "gribjump/api/ExtractionItem.h"
+#include "gribjump/api/GribJumpException.h"
+#include "gribjump/config/LibGribJump.h"
+#include "gribjump/core/Engine.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 #include "fdb5/api/helpers/FDBToolRequest.h"

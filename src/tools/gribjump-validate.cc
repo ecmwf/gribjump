@@ -9,15 +9,27 @@
  */
 /// @author Christopher Bradley
 
+#include <stddef.h>
 #include <fstream>
+#include <memory>
+#include <string>
+#include <vector>
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Channel.h"
+#include "eckit/log/Log.h"
+#include "eckit/option/CmdArgs.h"
+#include "eckit/option/SimpleOption.h"
+#include "eckit/types/Types.h"
+#include "gribjump/api/ExtractionData.h"
+#include "gribjump/api/ExtractionIterator.h"
 #include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsParsedRequest.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include "fdb5/api/FDB.h"
-
-#include "gribjump/GribJump.h"
+#include "gribjump/api/GribJump.h"
+#include "gribjump/config/LibGribJump.h"
 #include "gribjump/tools/EccodesExtract.h"
 #include "gribjump/tools/GribJumpTool.h"
 #include "gribjump/tools/ToolUtils.h"

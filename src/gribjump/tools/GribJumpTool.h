@@ -15,19 +15,24 @@
 
 #pragma once
 
+#include <string>
 #include <vector>
-
-#include "eckit/filesystem/PathName.h"
-#include "eckit/option/CmdArgs.h"
-#include "eckit/option/SimpleOption.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/runtime/Tool.h"
-#include "gribjump/Metrics.h"
+#include "gribjump/config/Metrics.h"
 
+namespace eckit {
+class CodeLocation;
+}
+namespace eckit {
+namespace option {
+class CmdArgs;
+}
+}  // namespace eckit
 namespace eckit {
 namespace option {
 class Option;
-class CmdArgs;
-}  // namespace option
+}
 }  // namespace eckit
 
 namespace gribjump {

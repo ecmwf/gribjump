@@ -15,19 +15,19 @@ list( APPEND gribjump_srcs
 
     # libraries for clientside, no extraction support
 
-    LibGribJump.cc
-    LibGribJump.h
+    config/LibGribJump.cc
+    config/LibGribJump.h
     gribjump_config.h.in
     gribjump_version.c.in
     gribjump_version.h.in
 
-    gribjump_c.cc
-    gribjump_c.h
+    api/gribjump_c.cc
+    api/gribjump_c.h
 
-    Config.cc
-    Config.h
-    Stats.cc
-    Stats.h
+    config/Config.cc
+    config/Config.h
+    config/Stats.cc
+    config/Stats.h
 
     tools/GribJumpTool.h
     tools/GribJumpTool.cc
@@ -37,40 +37,40 @@ list( APPEND gribjump_srcs
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
 
-    GribJump.cc
-    GribJump.h
-    GribJumpBase.h
-    GribJumpBase.cc
-    GribJumpFactory.cc
-    GribJumpFactory.h
-    GribJumpException.h 
-    ExtractionData.cc
-    ExtractionData.h
-    Metrics.h
-    Metrics.cc
-    LogRouter.h
-    LogRouter.cc
+    api/GribJump.cc
+    api/GribJump.h
+    api/GribJumpBase.h
+    api/GribJumpBase.cc
+    api/GribJumpFactory.cc
+    api/GribJumpFactory.h
+    api/GribJumpException.h 
+    api/ExtractionData.cc
+    api/ExtractionData.h
+    config/Metrics.h
+    config/Metrics.cc
+    config/LogRouter.h
+    config/LogRouter.cc
 
     api/ExtractionIterator.h
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     list( APPEND gribjump_srcs
-    LocalGribJump.cc
-    LocalGribJump.h
-    GribJumpDataAccessor.h
+    core/LocalGribJump.cc
+    core/LocalGribJump.h
+    core/GribJumpDataAccessor.h
 
-    Engine.cc
-    Engine.h
-    Lister.cc
-    Lister.h
-    Task.cc
-    Task.h
-    ExtractionItem.cc
-    ExtractionItem.h
-    Forwarder.cc
-    Forwarder.h
-    URIHelper.h
+    core/Engine.cc
+    core/Engine.h
+    core/Lister.cc
+    core/Lister.h
+    core/Task.cc
+    core/Task.h
+    api/ExtractionItem.cc
+    api/ExtractionItem.h
+    core/Forwarder.cc
+    core/Forwarder.h
+    core/URIHelper.h
 
     tools/EccodesExtract.h
     tools/EccodesExtract.cc
@@ -128,8 +128,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     compression/compressors/SimplePacking.h
     compression/compressors/SimplePacking.cc
 
-    FDBPlugin.cc
-    FDBPlugin.h
+    plugins/FDBPlugin.cc
+    plugins/FDBPlugin.h
     )
 
     set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )

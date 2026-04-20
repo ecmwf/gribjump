@@ -12,13 +12,24 @@
 
 #pragma once
 
+#include <stddef.h>
+#include <algorithm>
 #include <future>
+#include <map>
+#include <memory>
+#include <string>
+#include <thread>
+#include <utility>
+
 #include "eckit/container/Queue.h"
 #include "eckit/filesystem/URI.h"
-#include "eckit/io/MemoryHandle.h"
-#include "eckit/message/Message.h"
+#include "eckit/io/Offset.h"
 #include "gribjump/info/InfoExtractor.h"
+#include "gribjump/info/JumpInfo.h"
 
+namespace eckit {
+class MemoryHandle;
+}
 namespace fdb5 {
 class FieldLocation;
 }
