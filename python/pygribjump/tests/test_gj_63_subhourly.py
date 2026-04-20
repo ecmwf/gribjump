@@ -8,11 +8,15 @@ import pytest
 import yaml
 
 from pygribjump import GribJump, ExtractionRequest, ExtractionResult, PathExtractionRequest
-import pyfdb
 
 context = {
     "source": "pytest",
 }
+
+# Skip by default (sorry...)
+explicitly_enabled = os.getenv("PYGRIBJUMP_TEST_ENABLE_FDB") == "1"
+SKIP_FDB = not explicitly_enabled
+
 
 @pytest.fixture(scope="function")
 def gj_63_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> pathlib.Path:
@@ -20,6 +24,9 @@ def gj_63_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> pathlib.
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
     """
+    assert not SKIP_FDB, "FDB tests are skipped, this fixture should not be used"
+    import pyfdb
+
     db_store_path = tmp_path / "db_store"
     db_store_path.mkdir(exist_ok=True)
     schema_path = tmp_path / "schema"
@@ -49,8 +56,9 @@ def gj_63_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> pathlib.
 
     return tmp_path
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_gj_63_subhourly(gj_63_fdb_setup) -> None:
+    import pyfdb
     
     gj = GribJump()
 
