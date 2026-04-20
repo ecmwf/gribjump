@@ -12,7 +12,7 @@ build:
     - ecmwf/gribjump@develop
   dependency_cmake_options:
     - "ecmwf/gribjump: '-DENABLE_FDB_BUILD_TOOLS=ON'"
-    - "ecmwf/fdb: '-DENABLE_LUSTRE=OFF'"
+    - "ecmwf/fdb: '-DENABLE_LUSTRE=OFF'" # + build pyfdb?
   parallel: 64
   env:
     - ECCODES_SAMPLES_PATH=$ECCODES_DIR/share/eccodes/samples

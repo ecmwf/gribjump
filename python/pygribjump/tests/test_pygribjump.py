@@ -19,7 +19,6 @@ import yaml
 # Do not reorder the imports otherwise this will trigger an assertion in eckits
 # library registration handling.
 from pygribjump import GribJump, ExtractionRequest, ExtractionResult, PathExtractionRequest
-import pyfdb
 
 synthetic_data = [
     0., np.nan, np.nan, 3., 4., np.nan, np.nan, np.nan, 8., 9.,
@@ -39,6 +38,9 @@ context = {
     "source": "pytest",
 }
 
+# Skip by default (sorry...)
+explicitly_enabled = os.getenv("PYGRIBJUMP_TEST_ENABLE_FDB") == "1"
+SKIP_FDB = not explicitly_enabled
 
 def compare_synthetic_data(values, expected):
     """
@@ -78,6 +80,10 @@ def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> path
     Creates a FDB setup in this tests temp directory.
     Test FDB currently reads all grib files in `tests/data`
     """
+    assert not SKIP_FDB, "FDB tests are skipped, this fixture should not be used"
+
+    import pyfdb
+
     db_store_path = tmp_path / "db_store"
     db_store_path.mkdir(exist_ok=True)
     schema_path = tmp_path / "schema"
@@ -122,8 +128,10 @@ def read_only_fdb_setup(data_path: pathlib.Path, tmp_path: pathlib.Path) -> path
 
     return tmp_path
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_extract_dump_legacy(read_only_fdb_setup) -> None:
+    import pyfdb
+
     gribjump = GribJump()
     reqstrs = [
         {
@@ -150,7 +158,7 @@ def test_extract_dump_legacy(read_only_fdb_setup) -> None:
         polyrequest, ctx=context).dump_legacy()  # old api output
     assert np.array_equal(expected, actual[0][0][0][0], equal_nan=True)
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_extract_iter(read_only_fdb_setup) -> None:
     gribjump = GribJump()
 
@@ -211,8 +219,10 @@ def test_extract_iter(read_only_fdb_setup) -> None:
 
     assert i == 3
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_extract_from_paths(read_only_fdb_setup) -> None:
+    import pyfdb
+
     gribjump = GribJump()
 
     basereq = {
@@ -264,8 +274,9 @@ def test_extract_from_paths(read_only_fdb_setup) -> None:
         validate_masks(result)
     assert i == len(ranges) - 1
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_extract_from_mask(read_only_fdb_setup) -> None:
+    import pyfdb
 
     gribjump = GribJump()
 
@@ -301,8 +312,9 @@ def test_extract_from_mask(read_only_fdb_setup) -> None:
                 assert not np.isnan(val)
     assert i == 0
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_extract_from_mask_edge_cases(read_only_fdb_setup) -> None:
+    import pyfdb
 
     gribjump = GribJump()
 
@@ -343,8 +355,9 @@ def test_extract_from_mask_edge_cases(read_only_fdb_setup) -> None:
             compare_synthetic_data(result.values_flat, expected_values_flat)
         assert j == 0
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_extract_from_indices() -> None:
+    import pyfdb
 
     points = [10, 20, 30, 40, 50]
     ranges = [(10, 11), (20, 21), (30, 31), (40, 41), (50, 51)]
@@ -376,8 +389,10 @@ def test_extract_from_indices() -> None:
     compare_synthetic_data(result2.values_flat, [
                            synthetic_data[i] for i in points])
 
-
+@pytest.mark.skipif(SKIP_FDB, reason="FDB tests are skipped")
 def test_axes(read_only_fdb_setup) -> None:
+    import pyfdb
+
     gribjump = GribJump()
     req = {
         "date": "20230508",
