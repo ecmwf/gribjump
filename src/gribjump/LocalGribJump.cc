@@ -14,7 +14,6 @@
 #include <chrono>
 #include <set>
 
-#include "eckit/config/Resource.h"
 #include "eckit/container/Queue.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
@@ -43,7 +42,7 @@ using namespace metkit::mars;
 
 typedef std::chrono::high_resolution_clock Clock;
 
-LocalGribJump::LocalGribJump(const Config& config) : GribJumpBase(config) {}
+LocalGribJump::LocalGribJump() {}
 
 LocalGribJump::~LocalGribJump() {}
 

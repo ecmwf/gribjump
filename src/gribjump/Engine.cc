@@ -10,13 +10,13 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/config/Resource.h"
 #include "eckit/utils/StringTools.h"
 
 #include "gribjump/LogRouter.h"
 #include "metkit/mars/MarsParser.h"
 
 #include <sstream>
+#include "gribjump/Config.h"
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Forwarder.h"
@@ -37,7 +37,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     // We also canonicalise the requests such that their keys are in alphabetical order
     /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should
     /// look into merging into the minimum number of requests.
-    static bool ignoreYearMonth = eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", true);
+    static bool ignoreYearMonth = ConfigOptions::instance().ignoreYearMonth();
     std::map<std::string, std::set<std::string>> keyValues;
     bool dropYearMonth = false;
     for (auto& r : requests) {
@@ -157,7 +157,7 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
         return forwarder.extract(filemap);
     }
 
-    bool inefficientExtraction = LibGribJump::instance().config().getBool("inefficientExtraction", false);
+    bool inefficientExtraction = ConfigOptions::instance().inefficientExtraction();
 
     TaskGroup taskGroup;
 
@@ -191,7 +191,7 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     timer.reset("Gribjump Engine: Built file map");
 
     // Schedule tasks
-    bool forward      = LibGribJump::instance().config().getBool("forwardExtraction", false);
+    bool forward      = ConfigOptions::instance().forwardExtraction();
     TaskReport report = scheduleExtractionTasks(filemap, forward);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
@@ -258,7 +258,7 @@ TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
     }
 
     // forwarded scan requests
-    if (LibGribJump::instance().config().getBool("forwardScan", false)) {
+    if (ConfigOptions::instance().forwardScan()) {
         Forwarder forwarder;
         return forwarder.scan(uris);
     }

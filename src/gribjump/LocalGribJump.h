@@ -25,7 +25,7 @@ class LocalGribJump : public GribJumpBase {
 
 public:
 
-    explicit LocalGribJump(const Config& config);
+    LocalGribJump();
     ~LocalGribJump();
 
     /// @brief Scans the full grib file, looking for GRIB messages and populates cache

@@ -10,9 +10,9 @@
 
 /// @author Christopher Bradley
 
-#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/Lister.h"
 #include "gribjump/Metrics.h"
@@ -33,9 +33,7 @@ FDBLister& FDBLister::instance() {
     return instance;
 }
 
-FDBLister::FDBLister() :
-    allowMissing_(eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING",
-                                        LibGribJump::instance().config().getBool("allowMissing", false))) {}
+FDBLister::FDBLister() : allowMissing_(ConfigOptions::instance().allowMissing()) {}
 
 FDBLister::~FDBLister() {}
 
@@ -64,7 +62,7 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
     std::set<std::string> keys = key.keys();
 
     // Special case: If date is present, ignore year and month as they are aliases.
-    static bool ignoreYearMonth = eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", true);
+    static bool ignoreYearMonth = ConfigOptions::instance().ignoreYearMonth();
     if (ignoreYearMonth && keys.find("date") != keys.end()) {
         keys.erase("year");
         keys.erase("month");

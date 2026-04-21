@@ -12,10 +12,10 @@
 #include <unistd.h>
 #include <fstream>
 
-#include "eckit/config/Resource.h"
 #include "eckit/net/Port.h"
 #include "eckit/runtime/Application.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/gribjump_config.h"
 #include "gribjump/remote/GribJumpServer.h"
 
@@ -39,9 +39,7 @@ public:
 
     GribJumpServerApp(int argc, char** argv) :
         BaseApp(argc, argv, "GRIBJUMP_HOME"),
-        GribJumpServer(eckit::net::Port(
-            "gribjumpServer", eckit::Resource<int>("$GRIBJUMP_SERVER_PORT",
-                                                   LibGribJump::instance().config().getInt("server.port", 9777)))) {}
+        GribJumpServer(eckit::net::Port("gribjumpServer", ConfigOptions::instance().serverPort())) {}
 
     ~GribJumpServerApp() {}
 

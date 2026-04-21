@@ -12,7 +12,6 @@
 /// @author Tiago Quintino
 
 
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
@@ -20,6 +19,7 @@
 #include "eckit/log/Plural.h"
 #include "eckit/log/TimeStamp.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/info/InfoCache.h"
@@ -47,19 +47,17 @@ InfoCache::~InfoCache() {}
 
 InfoCache::InfoCache() :
     cacheDir_(eckit::PathName()),
-    infocache_(eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 1024))),
-    lazy_(eckit::Resource<bool>("gribjumpLazyInfo", LibGribJump::instance().config().getBool("cache.lazy", true))) {
+    infocache_(ConfigOptions::instance().cacheSize()),
+    lazy_(ConfigOptions::instance().cacheLazy()) {
 
-    const Config& config = LibGribJump::instance().config();
-
-    bool enabled = config.getBool("cache.enabled", true);
+    bool enabled = ConfigOptions::instance().cacheEnabled();
     if (!enabled) {
         LOG_DEBUG_LIB(LibGribJump) << "Cache disabled" << std::endl;
         return;
     }
 
-    std::string cache_str = config.getString("cache.directory", "");
-    shadowCache_          = config.getBool("cache.shadowfdb", cache_str.empty());
+    std::string cache_str = ConfigOptions::instance().cacheDirectory();
+    shadowCache_          = ConfigOptions::instance().cacheShadowFdb();
     if (shadowCache_) {
         LOG_DEBUG_LIB(LibGribJump) << "Shadow FDB cache enabled" << std::endl;
         return;

@@ -11,9 +11,9 @@
 /// @author Christopher Bradley
 
 #include "gribjump/remote/WorkQueue.h"
-#include "eckit/config/Resource.h"
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
+#include "gribjump/Config.h"
 #include "gribjump/LibGribJump.h"
 
 
@@ -32,9 +32,8 @@ WorkQueue::~WorkQueue() {
     }
 }
 
-WorkQueue::WorkQueue() : queue_(eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gribjumpQueueSize", 1024)) {
-    int nthreads = eckit::Resource<size_t>("$GRIBJUMP_THREADS;gribjumpThreads",
-                                           LibGribJump::instance().config().getInt("threads", 1));
+WorkQueue::WorkQueue() : queue_(ConfigOptions::instance().queueSize()) {
+    int nthreads = ConfigOptions::instance().numThreads();
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] {

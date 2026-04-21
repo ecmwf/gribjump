@@ -15,7 +15,7 @@
 namespace gribjump {
 
 class GribJumpFactory {
-    virtual GribJumpBase* make(const Config& config) const = 0;
+    virtual GribJumpBase* make() const = 0;
 
 protected:
 
@@ -26,7 +26,7 @@ protected:
 
 public:
 
-    static GribJumpBase* build(const Config& config);
+    static GribJumpBase* build();
 };
 
 /// Templated specialisation of the self-registering factory,
@@ -34,7 +34,7 @@ public:
 
 template <class T>
 class GribJumpBuilder : public GribJumpFactory {
-    GribJumpBase* make(const Config& config) const override { return new T(config); }
+    GribJumpBase* make() const override { return new T(); }
 
 public:
 

@@ -12,11 +12,11 @@
 
 #include "gribjump/info/InfoExtractor.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/info/JumpInfo.h"
 
 #include "eccodes.h"
-#include "eckit/config/Resource.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/io/FileHandle.h"
@@ -144,7 +144,7 @@ eckit::OffsetList InfoExtractor::offsets(const eckit::PathName& path) const {
     off_t* offsets_c = nullptr;
     int err          = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets_c, &n, 1);
 
-    bool scan_corrupted = eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", false);
+    bool scan_corrupted = ConfigOptions::instance().scanCorrupted();
 
     if (err && scan_corrupted) {
         eckit::Log::warning() << "Error extracting offsets from " << path
