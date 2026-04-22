@@ -41,7 +41,11 @@ spaces:
     );
 
     // Archive test data
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
 
     // Archive multiple steps for concurrent extraction tests
