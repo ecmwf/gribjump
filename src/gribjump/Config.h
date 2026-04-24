@@ -88,6 +88,12 @@ public:
     /// If true, ignore year/month keys when date is present. Env: GRIBJUMP_IGNORE_YEARMONTH. Default: true.
     bool ignoreYearMonth() const;
 
+    /// If true, enable request parsing. Env: GRIBJUMP_REQUEST_PARSING (takes precedence).
+    /// YAML: requestParsing. Default: false.
+    /// Request parsing can be a bottleneck when we have many MARS requests, so this remains configurable
+    /// and may need to be revisited in the future.
+    bool requestParsing() const;
+
     /// If true, allow missing fields when listing. Env: GRIBJUMP_ALLOW_MISSING. Resource: allowMissing.
     /// YAML: allowMissing. Default: false.
     bool allowMissing() const;

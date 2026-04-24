@@ -110,6 +110,12 @@ bool ConfigOptions::ignoreYearMonth() const {
     return value;
 }
 
+bool ConfigOptions::requestParsing() const {
+    static bool value = eckit::Resource<bool>("$GRIBJUMP_REQUEST_PARSING",
+                                              LibGribJump::instance().config().getBool("requestParsing", false));
+    return value;
+}
+
 bool ConfigOptions::allowMissing() const {
     static bool value = eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING",
                                               LibGribJump::instance().config().getBool("allowMissing", false));
