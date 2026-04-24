@@ -13,10 +13,10 @@
 #include "gribjump/LibGribJump.h"
 
 #include "eckit/config/LibEcKit.h"
-#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/eckit_version.h"
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/log/Log.h"
 
 #include "gribjump/gribjump_config.h"
@@ -34,7 +34,7 @@ Config LibGribJump::loadConfig() {
 
     if (getenv("GRIBJUMP_CONFIG_FILE") != nullptr) {
         LOG_DEBUG_LIB(LibGribJump) << "Config file set to: " << getenv("GRIBJUMP_CONFIG_FILE") << std::endl;
-        return Config(getenv("GRIBJUMP_CONFIG_FILE"));
+        return Config(eckit::PathName(getenv("GRIBJUMP_CONFIG_FILE")));
     }
 
     eckit::PathName defaultPath = eckit::PathName("~gribjump/etc/gribjump/config.yaml");

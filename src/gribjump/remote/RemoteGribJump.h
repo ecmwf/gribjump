@@ -33,7 +33,7 @@ class RemoteGribJump : public GribJumpBase {
 
 public:  // methods
 
-    RemoteGribJump(const Config& config);
+    RemoteGribJump();
     RemoteGribJump(eckit::net::Endpoint endpoint);
     ~RemoteGribJump();
 

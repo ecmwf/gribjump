@@ -16,8 +16,6 @@
 
 namespace gribjump {
 
-GribJumpBase::GribJumpBase(const Config& config) {}
-
 GribJumpBase::GribJumpBase() {}
 
 GribJumpBase::~GribJumpBase() {}
