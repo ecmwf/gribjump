@@ -64,6 +64,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     Engine.h
     Lister.cc
     Lister.h
+    MarsListerClient.cc
+    MarsListerClient.h
     Task.cc
     Task.h
     ExtractionItem.cc
