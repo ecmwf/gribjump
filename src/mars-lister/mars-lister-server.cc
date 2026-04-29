@@ -14,7 +14,7 @@
 #include "eckit/net/Port.h"
 #include "eckit/runtime/Application.h"
 
-#include "MarsListerServer.h"
+#include "MarsLister.h"
 
 namespace marslister {
 

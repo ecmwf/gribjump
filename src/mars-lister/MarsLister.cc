@@ -8,13 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-#include "MarsListerUser.h"
+#include "MarsLister.h"
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 #include "metkit/mars/MarsRequest.h"
 
 namespace marslister {
+
+//----------------------------------------------------------------------------------------------------------------------
 
 MarsListerUser::MarsListerUser(eckit::net::TCPSocket& protocol) : NetUser(protocol) {}
 
@@ -66,7 +68,6 @@ void MarsListerUser::handle(eckit::Stream& s) {
 }
 
 void MarsListerUser::handleList(eckit::Stream& s) {
-    // Receive MARS requests
     size_t numRequests;
     s >> numRequests;
 
@@ -90,5 +91,7 @@ void MarsListerUser::handleList(eckit::Stream& s) {
 
     eckit::Log::info() << "MarsLister: echoed " << numRequests << " request(s) back to client" << std::endl;
 }
+
+//----------------------------------------------------------------------------------------------------------------------
 
 }  // namespace marslister
