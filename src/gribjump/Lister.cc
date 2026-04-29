@@ -11,16 +11,29 @@
 /// @author Christopher Bradley
 
 #include "eckit/log/Log.h"
+#include "eckit/net/Endpoint.h"
 
 #include "gribjump/Config.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/Lister.h"
+#include "gribjump/MarsListerClient.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/URIHelper.h"
 
 namespace gribjump {
 
 //  ------------------------------------------------------------------
+
+Lister& Lister::instance() {
+    std::string type = LibGribJump::instance().config().getString("lister", "fdb");
+    if (type == "marslister") {
+        std::string uri = LibGribJump::instance().config().getString("listerUri", "localhost:9778");
+        eckit::net::Endpoint endpoint(uri);
+        static MarsListerClient inst(endpoint.host(), endpoint.port());
+        return inst;
+    }
+    return FDBLister::instance();
+}
 
 Lister::Lister() {}
 

@@ -26,19 +26,22 @@
 namespace gribjump {
 
 
-/// @todo Do we want a Lister factory that builds depending on config?
-
 class Lister {
 public:
 
+    /// Returns the configured Lister implementation (FDBLister or MarsListerClient).
+    /// Determined by config key "lister" ("fdb" by default, or "marslister").
+    static Lister& instance();
+
     virtual std::vector<eckit::URI> list(
-        const std::vector<metkit::mars::MarsRequest> requests) = 0;  // <-- May not want to use mars request?
+        const std::vector<metkit::mars::MarsRequest> requests) = 0;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0;
+
+    virtual ~Lister();
 
 protected:
 
     Lister();
-    ~Lister();
 };
 
 //  ------------------------------------------------------------------
