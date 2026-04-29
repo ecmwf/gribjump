@@ -9,6 +9,8 @@
 use std::env;
 use std::path::PathBuf;
 
+const GRIBJUMP_VERSION: &str = "0.10.3";
+
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
@@ -50,7 +52,7 @@ fn build_system() {
         .expect("DEP_FDB_SYS_INCLUDE not set - fdb-sys must be a dependency");
 
     let (root, gribjump_include, lib_dir) =
-        bindman_utils::cmake_find_package("gribjump", "0.10.3", Some("GRIBJUMP_DIR"));
+        bindman_utils::cmake_find_package("gribjump", GRIBJUMP_VERSION, Some("GRIBJUMP_DIR"));
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=gribjump");
@@ -116,7 +118,6 @@ fn build_vendored() {
     const ECBUILD_TAG: &str = "3.13.1";
 
     const GRIBJUMP_REPO: &str = "https://github.com/ecmwf/gribjump.git";
-    const GRIBJUMP_TAG: &str = "0.10.3";
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let src_dir = out_dir.join("src");
@@ -141,7 +142,7 @@ fn build_vendored() {
     // Clone sources
     let ecbuild_src = bindman_utils::git_clone(ECBUILD_REPO, ECBUILD_TAG, &src_dir.join("ecbuild"));
     let gribjump_src =
-        bindman_utils::git_clone(GRIBJUMP_REPO, GRIBJUMP_TAG, &src_dir.join("gribjump"));
+        bindman_utils::git_clone(GRIBJUMP_REPO, GRIBJUMP_VERSION, &src_dir.join("gribjump"));
 
     let ecbuild_bin = ecbuild_src.join("bin/ecbuild");
     let num_jobs = bindman_utils::build_parallelism();
