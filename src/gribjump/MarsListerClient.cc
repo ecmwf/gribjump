@@ -13,7 +13,10 @@
 #include "gribjump/MarsListerClient.h"
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
+#include "eckit/parser/JSONParser.h"
+#include "eckit/value/Value.h"
 
 namespace gribjump {
 
@@ -25,58 +28,62 @@ MarsListerClient::~MarsListerClient() {}
 
 std::vector<eckit::URI> MarsListerClient::list(const std::vector<metkit::mars::MarsRequest> requests) {
 
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    std::vector<eckit::URI> allURIs;
 
-    // Send header
-    stream << protocolVersion_;
-    stream << static_cast<uint16_t>(RequestType::LIST);
+    for (const auto& request : requests) {
 
-    // Send requests
-    size_t numRequests = requests.size();
-    stream << numRequests;
-    for (const auto& req : requests) {
-        stream << req;
-    }
+        eckit::net::TCPClient client;
+        eckit::net::InstantTCPStream stream(client.connect(host_, port_));
 
-    // Receive errors
-    size_t nErrors;
-    stream >> nErrors;
-    if (nErrors > 0) {
-        std::stringstream ss;
-        ss << "MarsListerClient received " << nErrors << " server-side error(s):" << std::endl;
-        for (size_t i = 0; i < nErrors; i++) {
-            std::string error;
-            stream >> error;
-            ss << error << std::endl;
+        // Send header
+        stream << protocolVersion_;
+        stream << static_cast<uint16_t>(RequestType::LIST);
+
+        // Send single request
+        stream << request;
+
+        // Receive errors
+        size_t nErrors;
+        stream >> nErrors;
+        if (nErrors > 0) {
+            std::stringstream ss;
+            ss << "MarsListerClient received " << nErrors << " server-side error(s):" << std::endl;
+            for (size_t i = 0; i < nErrors; i++) {
+                std::string error;
+                stream >> error;
+                ss << error << std::endl;
+            }
+            throw eckit::RemoteException(ss.str(), Here());
         }
-        throw eckit::RemoteException(ss.str(), Here());
-    }
 
-    // Receive echoed requests
-    size_t numReceived;
-    stream >> numReceived;
-    ASSERT(numReceived == numRequests);
+        // Receive JSON response
+        std::string json;
+        stream >> json;
 
-    for (size_t i = 0; i < numReceived; i++) {
-        metkit::mars::MarsRequest received(stream);
+        eckit::Log::info() << "MarsListerClient: received JSON: " << json << std::endl;
 
-        // Verify the echoed request matches the original
-        std::ostringstream origStr, recvStr;
-        origStr << requests[i];
-        recvStr << received;
-        if (origStr.str() != recvStr.str()) {
-            throw eckit::SeriousBug(
-                "MarsListerClient: echoed request does not match original.\n"
-                "  Sent:     " + origStr.str() + "\n"
-                "  Received: " + recvStr.str());
+        // Parse JSON array of {path, offsets[], lengths[]}
+        eckit::Value parsed = eckit::JSONParser::decodeString(json);
+
+        for (size_t i = 0; i < parsed.size(); i++) {
+            const eckit::Value& entry = parsed[i];
+            std::string path = entry["path"];
+            eckit::Value offsets = entry["offsets"];
+            // eckit::Value lengths = entry["lengths"]; // TODO: use lengths when needed
+
+            for (size_t j = 0; j < offsets.size(); j++) {
+                long long offset = offsets[j];
+                eckit::URI uri("file", eckit::PathName(path));
+                uri.fragment(std::to_string(offset));
+                allURIs.push_back(uri);
+            }
         }
+
+        eckit::Log::info() << "MarsListerClient: parsed " << parsed.size()
+                           << " URI(s) for request" << std::endl;
     }
 
-    eckit::Log::info() << "MarsListerClient: verified echo of " << numRequests << " request(s)" << std::endl;
-
-    // No real URIs to return yet — the server only echoes requests for now
-    return {};
+    return allURIs;
 }
 
 std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(const std::string& request, int level) {

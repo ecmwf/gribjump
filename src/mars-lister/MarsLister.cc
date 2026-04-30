@@ -10,7 +10,10 @@
 
 #include "MarsLister.h"
 
+#include <sstream>
+
 #include "eckit/exception/Exceptions.h"
+#include "eckit/log/JSON.h"
 #include "eckit/log/Log.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -68,28 +71,45 @@ void MarsListerUser::handle(eckit::Stream& s) {
 }
 
 void MarsListerUser::handleList(eckit::Stream& s) {
-    size_t numRequests;
-    s >> numRequests;
+    metkit::mars::MarsRequest request(s);
 
-    eckit::Log::info() << "MarsLister: received " << numRequests << " request(s)" << std::endl;
+    eckit::Log::info() << "MarsLister: received request: " << request << std::endl;
 
-    std::vector<metkit::mars::MarsRequest> requests;
-    requests.reserve(numRequests);
-    for (size_t i = 0; i < numRequests; i++) {
-        requests.emplace_back(metkit::mars::MarsRequest(s));
+    // Build JSON response with dummy URIs, aggregated by path
+    // TODO: replace with real listing logic
+    std::ostringstream oss;
+    {
+        eckit::JSON j(oss);
+        j.startList();
+
+        j.startObject();
+        j << "path" << "/dummy/data/fc_20250101_00.grib";
+        j << "offsets";
+        j.startList(); j << 0; j << 2000; j.endList();
+        j << "lengths";
+        j.startList(); j << 2000; j << 1500; j.endList();
+        j.endObject();
+
+        j.startObject();
+        j << "path" << "/dummy/data/fc_20250101_12.grib";
+        j << "offsets";
+        j.startList(); j << 0; j.endList();
+        j << "lengths";
+        j.startList(); j << 3000; j.endList();
+        j.endObject();
+
+        j.endList();
     }
+
+    std::string json = oss.str();
+    eckit::Log::info() << "MarsLister: sending response: " << json << std::endl;
 
     // Send errors count (none)
     size_t nErrors = 0;
     s << nErrors;
 
-    // Echo the requests back
-    s << numRequests;
-    for (const auto& req : requests) {
-        s << req;
-    }
-
-    eckit::Log::info() << "MarsLister: echoed " << numRequests << " request(s) back to client" << std::endl;
+    // Send JSON response
+    s << json;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
