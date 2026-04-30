@@ -488,12 +488,11 @@ fn test_gribjump_extraction_result_methods() {
 #[test]
 fn test_gribjump_clone() {
     let gj1 = GribJump::new().expect("failed to create GribJump handle");
-    let _gj2 = gj1.clone();
+    let gj2 = gj1.clone();
 
-    // Both should work independently
-    let v1 = gribjump::version();
-    let v2 = gribjump::version();
-    assert_eq!(v1, v2);
+    // Both handles should work independently
+    gj1.print_stats().expect("gj1 print_stats failed");
+    gj2.print_stats().expect("gj2 print_stats failed");
 }
 
 //----------------------------------------------------------------------------------------------------------------------
