@@ -44,9 +44,6 @@ public:  // methods
     ExtractionResult();
 
     /// @brief Construct from extracted values and missing-value masks.
-    /// @param values Extracted values grouped by requested range.
-    /// @param mask Bit masks grouped by requested range. Each bitset<64>
-    ///             encodes present/missing flags (1 = present, 0 = missing).
     ExtractionResult(std::vector<std::vector<double>>&& values, std::vector<std::vector<std::bitset<64>>>&& mask);
 
     /// @brief Decode a result from a serialisation stream.
@@ -202,8 +199,8 @@ public:
     /// @param filename File path.
     /// @param scheme URI scheme (for example "file").
     /// @param offset Byte offset of the target GRIB message.
-    /// @param host Optional host for remote access.
-    /// @param port Optional port for remote access.
+    /// @param host Host for remote access.
+    /// @param port Port for remote access.
     /// @param ranges Element index ranges to extract.
     /// @param gridHash Optional grid identifier used for grid compatibility checks.
     PathExtractionRequest(const std::string& filename, const std::string& scheme, size_t offset,

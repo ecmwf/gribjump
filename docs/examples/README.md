@@ -1,6 +1,6 @@
 # GribJump Examples
 
-This directory contains small examples demonstrating how to use GribJump from Python and C++.
+This directory contains small examples demonstrating how to use GribJump from Python.
 
 ## Prerequisites
 
