@@ -127,8 +127,8 @@ fn test_range_invalid() {
 #[test]
 fn test_extraction_request_creation() {
     let ranges = vec![
-        Range::new(0, 10).expect("valid range"),
-        Range::new(20, 30).expect("valid range"),
+        Range::new(0, 11).expect("valid range"),
+        Range::new(20, 31).expect("valid range"),
     ];
 
     let request = ExtractionRequest::new(
@@ -167,8 +167,8 @@ fn test_gribjump_api_extract_hash_validation() {
     let mut gj = GribJump::new().expect("failed to create GribJump handle");
 
     let ranges = vec![
-        Range::new(0, 5).expect("valid range"),
-        Range::new(10, 15).expect("valid range"),
+        Range::new(0, 6).expect("valid range"),
+        Range::new(10, 16).expect("valid range"),
     ];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
 
@@ -338,7 +338,7 @@ fn test_gribjump_extract_from_paths() {
     // First scan the path so gribjump knows about it
     gj.scan_paths(&[&path_str]).expect("scan_paths failed");
 
-    let ranges = vec![Range::new(0, 5).expect("valid range")];
+    let ranges = vec![Range::new(0, 6).expect("valid range")];
 
     let request = PathExtractionRequest::new(&path_str, ranges, GRID_HASH);
     let iter = gj
@@ -389,8 +389,8 @@ fn test_gribjump_extraction_result_methods() {
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let ranges = vec![
-        Range::new(0, 5).expect("valid range"),
-        Range::new(10, 15).expect("valid range"),
+        Range::new(0, 6).expect("valid range"),
+        Range::new(10, 16).expect("valid range"),
     ];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
     let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
@@ -526,25 +526,25 @@ fn test_gribjump_api_extract_multi_request() {
         ExtractionRequest::new(
             "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
             vec![
-                Range::new(0, 4).expect("valid range"),
-                Range::new(20, 29).expect("valid range"),
+                Range::new(0, 5).expect("valid range"),
+                Range::new(20, 30).expect("valid range"),
             ],
             GRID_HASH,
         ),
         // step=1: range (0,99) -> 100 values (full message)
         ExtractionRequest::new(
             "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
-            vec![Range::new(0, 99).expect("valid range")],
+            vec![Range::new(0, 100).expect("valid range")],
             GRID_HASH,
         ),
         // step=3: 4 single-element ranges -> 4 values
         ExtractionRequest::new(
             "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
             vec![
-                Range::new(0, 0).expect("valid range"),
-                Range::new(1, 1).expect("valid range"),
-                Range::new(3, 3).expect("valid range"),
-                Range::new(4, 4).expect("valid range"),
+                Range::new(0, 1).expect("valid range"),
+                Range::new(1, 2).expect("valid range"),
+                Range::new(3, 4).expect("valid range"),
+                Range::new(4, 5).expect("valid range"),
             ],
             GRID_HASH,
         ),
@@ -611,8 +611,8 @@ fn test_gribjump_api_extract_mars_expanded() {
     // Single MARS request with step=2/1/3, same ranges for all fields (mirrors C++ test_api.cc Test 2)
     let mars_request = "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc";
     let ranges = vec![
-        Range::new(0, 4).expect("valid range"),
-        Range::new(20, 29).expect("valid range"),
+        Range::new(0, 5).expect("valid range"),
+        Range::new(20, 30).expect("valid range"),
     ];
 
     let results: Vec<_> = gj
@@ -720,8 +720,8 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let ranges = vec![
-        Range::new(0, 4).expect("valid range"),
-        Range::new(20, 29).expect("valid range"),
+        Range::new(0, 5).expect("valid range"),
+        Range::new(20, 30).expect("valid range"),
     ];
     let mut extraction = FileExtraction::new(&file_path);
     for &offset in &offsets {
@@ -778,7 +778,7 @@ fn test_gribjump_iterator_methods() {
 
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
-    let ranges = vec![Range::new(0, 5).expect("valid range")];
+    let ranges = vec![Range::new(0, 6).expect("valid range")];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
     let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
 
@@ -817,7 +817,7 @@ fn test_gribjump_extraction_into_iter() {
 
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
-    let ranges = vec![Range::new(0, 5).expect("valid range")];
+    let ranges = vec![Range::new(0, 6).expect("valid range")];
     let request_str = "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc";
     let request = ExtractionRequest::new(request_str, ranges, GRID_HASH);
 

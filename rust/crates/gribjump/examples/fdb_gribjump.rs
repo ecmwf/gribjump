@@ -95,21 +95,21 @@ fn demo_multi_request(gj: &GribJump) -> Result<(), Box<dyn std::error::Error>> {
     let requests = vec![
         ExtractionRequest::new(
             "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
-            vec![Range::new(0, 4)?, Range::new(20, 29)?],
+            vec![Range::new(0, 5)?, Range::new(20, 30)?],
             GRID_HASH,
         ),
         ExtractionRequest::new(
             "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
-            vec![Range::new(0, 99)?],
+            vec![Range::new(0, 100)?],
             GRID_HASH,
         ),
         ExtractionRequest::new(
             "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
             vec![
-                Range::new(0, 0)?,
-                Range::new(1, 1)?,
-                Range::new(3, 3)?,
-                Range::new(4, 4)?,
+                Range::new(0, 1)?,
+                Range::new(1, 2)?,
+                Range::new(3, 4)?,
+                Range::new(4, 5)?,
             ],
             GRID_HASH,
         ),
@@ -128,7 +128,7 @@ fn demo_expanded_mars(gj: &GribJump) -> Result<(), Box<dyn std::error::Error>> {
     println!("Single request with step=2/1/3, same ranges for all fields.\n");
 
     let mars_request = "retrieve,class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2/1/3,stream=oper,time=1200,type=fc";
-    let ranges = vec![Range::new(0, 4)?, Range::new(20, 29)?];
+    let ranges = vec![Range::new(0, 5)?, Range::new(20, 30)?];
 
     let results: Vec<_> = gj.extract_mars(mars_request, &ranges, GRID_HASH)?.collect();
     print_results(&results);
@@ -187,7 +187,7 @@ fn demo_path_and_offset(fdb: &Fdb, gj: &GribJump) -> Result<(), Box<dyn std::err
     println!("  File: {file_path}");
     println!("  Offsets: {offsets:?}\n");
 
-    let ranges_per_message = vec![Range::new(0, 4)?, Range::new(20, 29)?];
+    let ranges_per_message = vec![Range::new(0, 5)?, Range::new(20, 30)?];
     let mut extraction = FileExtraction::new(&file_path);
     for &offset in &offsets {
         extraction = extraction.with_message(offset, ranges_per_message.clone());

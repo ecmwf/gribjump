@@ -85,7 +85,7 @@ async fn test_gribjump_concurrent_extract() {
         let gj = gj.clone(); // Clone shares the internal Arc<Mutex<Handle>>
 
         tasks.spawn(async move {
-            let ranges = vec![Range::new(0, 5).expect("valid range")];
+            let ranges = vec![Range::new(0, 6).expect("valid range")];
             let request_str = format!(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
             );
@@ -170,7 +170,7 @@ async fn test_gribjump_spawn_blocking_pattern() {
     // Extract using spawn_blocking
     let gj_clone = gj.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let ranges = vec![Range::new(0, 10).expect("valid range")];
+        let ranges = vec![Range::new(0, 11).expect("valid range")];
         let request_str =
             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
 
@@ -221,7 +221,7 @@ async fn test_gribjump_mixed_concurrent_operations() {
     // Task 1: Extract step 1
     let gj1 = gj.clone();
     tasks.spawn(async move {
-        let ranges = vec![Range::new(0, 5).expect("valid range")];
+        let ranges = vec![Range::new(0, 6).expect("valid range")];
         let request = ExtractionRequest::new(
             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130",
             ranges,
@@ -235,7 +235,7 @@ async fn test_gribjump_mixed_concurrent_operations() {
     // Task 2: Extract step 2
     let gj2 = gj.clone();
     tasks.spawn(async move {
-        let ranges = vec![Range::new(0, 5).expect("valid range")];
+        let ranges = vec![Range::new(0, 6).expect("valid range")];
         let request = ExtractionRequest::new(
             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=2,param=151130",
             ranges,
@@ -292,7 +292,7 @@ async fn test_gribjump_high_concurrency() {
         let step = (i % 4) + 1;
 
         tasks.spawn(async move {
-            let ranges = vec![Range::new(0, 3).expect("valid range")];
+            let ranges = vec![Range::new(0, 4).expect("valid range")];
             let request_str = format!(
                 "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
             );

@@ -216,7 +216,7 @@ fn test_concurrent_extractions() {
         .map(|step| {
             let gj = gj.clone();
             thread::spawn(move || {
-                let ranges = vec![Range::new(0, 10).expect("valid range")];
+                let ranges = vec![Range::new(0, 11).expect("valid range")];
                 let request_str = format!(
                     "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
                 );
@@ -265,7 +265,7 @@ fn test_mixed_operations() {
         let gj = gj.clone();
         handles.push(thread::spawn(move || {
             for _ in 0..5 {
-                let ranges = vec![Range::new(0, 10).expect("valid range")];
+                let ranges = vec![Range::new(0, 11).expect("valid range")];
                 let request_str = format!(
                     "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
                 );
@@ -295,7 +295,7 @@ fn test_iterator_send_to_thread() {
 
     let gj = GribJump::new().expect("failed to create handle");
 
-    let ranges = vec![Range::new(0, 10).expect("valid range")];
+    let ranges = vec![Range::new(0, 11).expect("valid range")];
     let request_str = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
     let requests = vec![ExtractionRequest::new(request_str, ranges, GRID_HASH)];
 
@@ -323,7 +323,7 @@ fn test_no_deadlock_while_iterating() {
 
     let gj = GribJump::new().expect("failed to create handle");
 
-    let ranges = vec![Range::new(0, 10).expect("valid range")];
+    let ranges = vec![Range::new(0, 11).expect("valid range")];
     let request_str = "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step=1,param=151130";
     let requests = vec![ExtractionRequest::new(request_str, ranges, GRID_HASH)];
 
@@ -365,7 +365,7 @@ fn test_stress_concurrent_access() {
                     } else {
                         // Extract operation - use step based on thread/iteration
                         let step = ((i + j) % 4) + 1;
-                        let ranges = vec![Range::new(0, 5).expect("valid range")];
+                        let ranges = vec![Range::new(0, 6).expect("valid range")];
                         let request_str = format!(
                             "class=rd,expver=xxxx,stream=oper,date=20230508,time=1200,type=fc,levtype=sfc,step={step},param=151130"
                         );
@@ -404,7 +404,7 @@ fn test_concurrent_errors_no_crash() {
             thread::spawn(move || {
                 for _ in 0..20 {
                     // Use invalid requests to trigger errors (invalid MARS request format)
-                    let ranges = vec![Range::new(0, 10).expect("valid range")];
+                    let ranges = vec![Range::new(0, 11).expect("valid range")];
                     let requests = vec![ExtractionRequest::new(
                         format!("INVALID_REQUEST_THREAD_{i}"),
                         ranges,

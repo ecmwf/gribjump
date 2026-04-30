@@ -36,8 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Define ranges to extract (grid indices)
     // These are inclusive ranges of grid point indices
     let ranges = vec![
-        Range::new(0, 99)?,    // First 100 grid points
-        Range::new(200, 299)?, // Grid points 200-299
+        Range::new(0, 100)?,   // First 100 grid points
+        Range::new(200, 300)?, // Grid points 200-299
     ];
 
     println!("Request: {request_str}");

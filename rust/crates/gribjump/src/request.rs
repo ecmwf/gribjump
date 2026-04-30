@@ -2,72 +2,67 @@
 
 use crate::error::{Error, Result};
 
-/// A range of indices to extract (start and end inclusive).
+/// A range of grid point indices to extract (exclusive end, matching C++).
+///
+/// `Range::new(0, 5)` extracts indices 0, 1, 2, 3, 4 (5 values).
+/// Can also be created from `std::ops::Range`: `Range::from(0..5)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Range {
     /// Start index (inclusive).
     pub start: usize,
-    /// End index (inclusive).
+    /// End index (exclusive).
     pub end: usize,
 }
 
 impl Range {
-    /// Create a new range.
+    /// Create a new range with exclusive end.
     ///
     /// # Errors
     ///
-    /// Returns an error if `start > end` or if `end == usize::MAX` (which would
-    /// overflow when converting to the C++ exclusive range format).
+    /// Returns an error if `start >= end` (empty range).
     pub fn new(start: usize, end: usize) -> Result<Self> {
-        if start > end {
+        if start >= end {
             return Err(Error::InvalidArgument(format!(
-                "Range start ({start}) must be <= end ({end})"
+                "Range {start}..{end} is empty (start must be < end)"
             )));
         }
-        if end == usize::MAX {
-            return Err(Error::InvalidArgument(
-                "Range end cannot be usize::MAX (would overflow in C++ conversion)".to_string(),
-            ));
-        }
         Ok(Self { start, end })
-    }
-
-    /// Create a range without validation.
-    ///
-    /// Use when you know the range is valid.
-    #[must_use]
-    pub const fn new_unchecked(start: usize, end: usize) -> Self {
-        Self { start, end }
     }
 
     /// Returns the number of elements in the range.
     #[must_use]
     pub const fn len(&self) -> usize {
-        self.end.saturating_sub(self.start) + 1
+        self.end.saturating_sub(self.start)
     }
 
-    /// Returns true if the range is empty (start > end, which shouldn't happen).
+    /// Returns true if the range is empty.
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.start > self.end
+        self.start >= self.end
     }
 
-    /// Convert to the cxx Range type.
-    ///
-    /// The Rust Range uses inclusive end, but gribjump C++ uses exclusive end,
-    /// so we add 1 to the end value.
+    /// Convert to the cxx Range type. Direct mapping — both use exclusive end.
     #[must_use]
     pub(crate) const fn to_cxx(self) -> gribjump_sys::Range {
         gribjump_sys::Range {
             start: self.start,
-            end: self.end + 1,
+            end: self.end,
+        }
+    }
+}
+
+impl From<std::ops::Range<usize>> for Range {
+    fn from(r: std::ops::Range<usize>) -> Self {
+        Self {
+            start: r.start,
+            end: r.end,
         }
     }
 }
 
 impl std::fmt::Display for Range {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}..{}]", self.start, self.end)
+        write!(f, "{}..{}", self.start, self.end)
     }
 }
 
@@ -306,33 +301,47 @@ mod tests {
     #[test]
     fn test_range_creation() {
         let r = Range::new(0, 100).expect("valid range");
-        assert_eq!(r.len(), 101); // inclusive
+        assert_eq!(r.len(), 100);
         assert!(!r.is_empty());
     }
 
     #[test]
     fn test_range_single_element() {
-        let r = Range::new(50, 50).expect("valid range");
+        let r = Range::new(50, 51).expect("valid range");
         assert_eq!(r.len(), 1);
         assert!(!r.is_empty());
     }
 
     #[test]
     fn test_range_invalid() {
-        let result = Range::new(100, 50);
-        assert!(result.is_err());
+        assert!(Range::new(100, 50).is_err());
+        assert!(Range::new(5, 5).is_err()); // empty
     }
 
     #[test]
-    fn test_range_max_overflow() {
-        // end == usize::MAX would overflow when converting to exclusive range
-        let result = Range::new(0, usize::MAX);
-        assert!(result.is_err());
+    fn test_range_from_std() {
+        let r = Range::from(0..100);
+        assert_eq!(r.start, 0);
+        assert_eq!(r.end, 100);
+        assert_eq!(r.len(), 100);
+    }
+
+    #[test]
+    fn test_range_into() {
+        let r: Range = (0..100).into();
+        assert_eq!(r.start, 0);
+        assert_eq!(r.end, 100);
+
+        // Works in Vec context too
+        let ranges: Vec<Range> = vec![(0..5).into(), (20..30).into()];
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(ranges[0].len(), 5);
+        assert_eq!(ranges[1].len(), 10);
     }
 
     #[test]
     fn test_extraction_request() {
-        let ranges = vec![Range::new_unchecked(0, 100)];
+        let ranges = vec![Range::from(0..100)];
         let req = ExtractionRequest::new("class=od,expver=0001", ranges, "abc123");
 
         assert_eq!(req.request_str, "class=od,expver=0001");
@@ -341,7 +350,7 @@ mod tests {
 
     #[test]
     fn test_path_extraction_request_builder() {
-        let ranges = vec![Range::new_unchecked(0, 100)];
+        let ranges = vec![Range::from(0..100)];
         let req = PathExtractionRequest::new("/path/to/file.grib", ranges, "abc123")
             .with_scheme("fdb")
             .with_offset(1024)
@@ -358,7 +367,7 @@ mod tests {
 
     #[test]
     fn test_path_extraction_request_from_parts() {
-        let ranges = vec![Range::new_unchecked(0, 100)];
+        let ranges = vec![Range::from(0..100)];
         let req = PathExtractionRequest::from_parts(
             "/path/to/file.grib",
             "fdb",
@@ -380,8 +389,8 @@ mod tests {
     #[test]
     fn test_file_extraction_builder() {
         let fe = FileExtraction::new("/path/to/file.grib")
-            .with_message(0, vec![Range::new_unchecked(0, 100)])
-            .with_message(1024, vec![Range::new_unchecked(0, 50)]);
+            .with_message(0, vec![Range::from(0..100)])
+            .with_message(1024, vec![Range::from(0..50)]);
 
         assert_eq!(fe.path, "/path/to/file.grib");
         assert_eq!(fe.messages.len(), 2);

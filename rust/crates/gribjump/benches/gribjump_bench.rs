@@ -18,8 +18,8 @@ fn bench_handle_creation(c: &mut Criterion) {
 /// Benchmark `ExtractionRequest` creation.
 fn bench_request_creation(c: &mut Criterion) {
     let ranges = vec![
-        Range::new(0, 10).expect("valid range"),
-        Range::new(20, 30).expect("valid range"),
+        Range::new(0, 11).expect("valid range"),
+        Range::new(20, 31).expect("valid range"),
     ];
 
     c.bench_function("rust_request_creation", |b| {
@@ -36,7 +36,7 @@ fn bench_request_creation(c: &mut Criterion) {
 /// Benchmark Range creation.
 fn bench_range_creation(c: &mut Criterion) {
     c.bench_function("rust_range_creation", |b| {
-        b.iter(|| black_box(Range::new(0, 100).expect("valid range")));
+        b.iter(|| black_box(Range::new(0, 101).expect("valid range")));
     });
 }
 

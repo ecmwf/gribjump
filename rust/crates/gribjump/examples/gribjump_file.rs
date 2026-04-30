@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Extract first 50 values from each of the first few messages
-    let ranges = vec![Range::new(0, 49)?];
+    let ranges = vec![Range::new(0, 50)?];
 
     // Build a FileExtraction request for the first 3 messages
     // Note: offset is the byte offset in the file, not message number
