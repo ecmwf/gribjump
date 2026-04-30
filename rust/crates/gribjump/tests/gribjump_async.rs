@@ -42,11 +42,6 @@ spaces:
         tmpdir.display()
     );
 
-    // Set FDB5_CONFIG for GribJump
-    unsafe {
-        env::set_var("FDB5_CONFIG", &config);
-    }
-
     // Archive test data
     let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
@@ -74,7 +69,11 @@ spaces:
 #[tokio::test]
 async fn test_gribjump_concurrent_extract() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     // With thread-safe feature, GribJump is Clone (shares internal Arc<Mutex>)
     let gj = GribJump::new().expect("failed to create GribJump");
@@ -121,7 +120,11 @@ async fn test_gribjump_concurrent_extract() {
 #[tokio::test]
 async fn test_gribjump_concurrent_axes() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump");
 
@@ -156,7 +159,11 @@ async fn test_gribjump_spawn_blocking_pattern() {
     // Test the recommended pattern for using GribJump in async code:
     // use spawn_blocking for blocking operations
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump");
 
@@ -201,7 +208,11 @@ async fn test_gribjump_spawn_blocking_pattern() {
 async fn test_gribjump_mixed_concurrent_operations() {
     // Test mixing different operations concurrently
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump");
 
@@ -265,7 +276,11 @@ async fn test_gribjump_mixed_concurrent_operations() {
 async fn test_gribjump_high_concurrency() {
     // Stress test with many concurrent tasks
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump");
 

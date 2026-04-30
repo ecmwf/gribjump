@@ -45,12 +45,6 @@ spaces:
 /// This file contains 3 messages with `step=1,2,3`.
 fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
     let config = create_test_config(tmpdir);
-
-    // SAFETY: Single-threaded test environment, setting FDB config before use
-    unsafe {
-        env::set_var("FDB5_CONFIG", &config);
-    }
-
     let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
 
     // Read extract_ranges.grib - contains 3 messages with step=1,2,3
@@ -69,12 +63,6 @@ fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
 /// This file contains 6 messages with different dates and steps.
 fn setup_test_fdb_axes(tmpdir: &std::path::Path) -> String {
     let config = create_test_config(tmpdir);
-
-    // SAFETY: Single-threaded test environment
-    unsafe {
-        env::set_var("FDB5_CONFIG", &config);
-    }
-
     let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
 
     // Read axes.grib - contains messages for axes testing
@@ -169,7 +157,11 @@ fn test_extraction_request_creation() {
 #[test]
 fn test_gribjump_api_extract_hash_validation() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb_extract_ranges(tmpdir.path());
+    let config = setup_test_fdb_extract_ranges(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
     let mut gj = GribJump::new().expect("failed to create GribJump handle");
@@ -244,7 +236,10 @@ fn test_gribjump_api_extract_hash_validation() {
 #[test]
 fn test_gribjump_api_axes() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb_axes(tmpdir.path());
+    let config = setup_test_fdb_axes(tmpdir.path());
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
     let mut gj = GribJump::new().expect("failed to create GribJump handle");
@@ -365,7 +360,10 @@ fn test_gribjump_extract_from_paths() {
 #[test]
 fn test_gribjump_scan_requests() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb_extract_ranges(tmpdir.path());
+    let config = setup_test_fdb_extract_ranges(tmpdir.path());
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
@@ -383,7 +381,10 @@ fn test_gribjump_scan_requests() {
 #[test]
 fn test_gribjump_extraction_result_methods() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb_extract_ranges(tmpdir.path());
+    let config = setup_test_fdb_extract_ranges(tmpdir.path());
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
@@ -770,7 +771,10 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
 #[test]
 fn test_gribjump_iterator_methods() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb_extract_ranges(tmpdir.path());
+    let config = setup_test_fdb_extract_ranges(tmpdir.path());
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump handle");
 
@@ -806,7 +810,10 @@ fn test_gribjump_iterator_methods() {
 #[test]
 fn test_gribjump_extraction_into_iter() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb_extract_ranges(tmpdir.path());
+    let config = setup_test_fdb_extract_ranges(tmpdir.path());
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create GribJump handle");
 

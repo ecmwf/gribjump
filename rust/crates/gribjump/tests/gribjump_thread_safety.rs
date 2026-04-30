@@ -40,11 +40,6 @@ spaces:
         tmpdir.display()
     );
 
-    // Set FDB5_CONFIG for GribJump
-    unsafe {
-        env::set_var("FDB5_CONFIG", &config);
-    }
-
     // Archive test data
     let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
@@ -209,7 +204,11 @@ fn test_concurrent_axes_queries() {
 #[test]
 fn test_concurrent_extractions() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create handle");
 
@@ -240,7 +239,11 @@ fn test_concurrent_extractions() {
 #[test]
 fn test_mixed_operations() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create handle");
 
@@ -284,7 +287,11 @@ fn test_mixed_operations() {
 #[test]
 fn test_iterator_send_to_thread() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create handle");
 
@@ -308,7 +315,11 @@ fn test_iterator_send_to_thread() {
 #[test]
 fn test_no_deadlock_while_iterating() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create handle");
 
@@ -333,7 +344,11 @@ fn test_no_deadlock_while_iterating() {
 #[test]
 fn test_stress_concurrent_access() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create handle");
     let iterations = 50;
@@ -375,7 +390,11 @@ fn test_stress_concurrent_access() {
 #[test]
 fn test_concurrent_errors_no_crash() {
     let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let _config = setup_test_fdb(tmpdir.path());
+    let config = setup_test_fdb(tmpdir.path());
+    // GribJump discovers FDB via this env var (its constructor takes no config param)
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
 
     let gj = GribJump::new().expect("failed to create handle");
 
