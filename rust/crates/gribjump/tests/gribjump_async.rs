@@ -246,7 +246,7 @@ async fn test_gribjump_mixed_concurrent_operations() {
 
     // Task 4: Get version (fast, non-blocking)
     tasks.spawn(async move {
-        let version = GribJump::version();
+        let version = gribjump::version();
         ("version", usize::from(!version.is_empty()))
     });
 

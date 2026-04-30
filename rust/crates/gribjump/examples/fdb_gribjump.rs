@@ -207,7 +207,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let fdb = setup_fdb(tmpdir.path())?;
     let gj = GribJump::new()?;
-    println!("GribJump version: {}\n", GribJump::version());
+    println!("GribJump version: {}\n", gribjump::version());
 
     demo_multi_request(&gj)?;
     demo_expanded_mars(&gj)?;

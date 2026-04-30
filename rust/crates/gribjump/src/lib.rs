@@ -41,3 +41,15 @@ pub use handle::GribJump;
 pub use iterator::ExtractionIterator;
 pub use request::{ExtractionRequest, FileExtraction, PathExtractionRequest, Range};
 pub use result::{ExtractionResult, RangeResult, RangeView};
+
+/// Get the gribjump library version.
+#[must_use]
+pub fn version() -> String {
+    gribjump_sys::gribjump_version()
+}
+
+/// Get the gribjump git SHA1.
+#[must_use]
+pub fn git_sha1() -> String {
+    gribjump_sys::gribjump_git_sha1()
+}

@@ -6,8 +6,8 @@ use gribjump::GribJump;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Print version info (works without config)
-    println!("GribJump version: {}", GribJump::version());
-    println!("GribJump git SHA1: {}", GribJump::git_sha1());
+    println!("GribJump version: {}", gribjump::version());
+    println!("GribJump git SHA1: {}", gribjump::git_sha1());
 
     // Create handle
     let gj = GribJump::new()?;

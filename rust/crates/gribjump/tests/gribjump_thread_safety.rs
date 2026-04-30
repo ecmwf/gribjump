@@ -150,13 +150,13 @@ fn test_handle_clone_send() {
     let gj_clone = gj.clone();
     let handle = thread::spawn(move || {
         // Use the cloned handle in another thread
-        let _version = GribJump::version();
+        let _version = gribjump::version();
         // Use the cloned handle to verify it works
         let _ = gj_clone.axes("class=rd", 1);
     });
 
     // Use original handle in main thread
-    let _version = GribJump::version();
+    let _version = gribjump::version();
     let _ = gj.axes("class=rd", 1);
 
     handle.join().expect("thread panicked");
@@ -172,7 +172,7 @@ fn test_arc_sharing() {
             let gj = Arc::clone(&gj);
             thread::spawn(move || {
                 // Each thread can call methods via Arc
-                let _version = GribJump::version();
+                let _version = gribjump::version();
                 let _ = &gj; // Use the handle
             })
         })

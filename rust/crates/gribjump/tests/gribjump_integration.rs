@@ -97,14 +97,14 @@ const GRID_HASH: &str = "33c7d6025995e1b4913811e77d38ec50";
 
 #[test]
 fn test_gribjump_version() {
-    let version = GribJump::version();
+    let version = gribjump::version();
     assert!(!version.is_empty());
     println!("GribJump version: {version}");
 }
 
 #[test]
 fn test_gribjump_git_sha1() {
-    let sha = GribJump::git_sha1();
+    let sha = gribjump::git_sha1();
     assert!(!sha.is_empty());
     println!("GribJump git SHA1: {sha}");
 }
@@ -491,8 +491,8 @@ fn test_gribjump_clone() {
     let _gj2 = gj1.clone();
 
     // Both should work independently
-    let v1 = GribJump::version();
-    let v2 = GribJump::version();
+    let v1 = gribjump::version();
+    let v2 = gribjump::version();
     assert_eq!(v1, v2);
 }
 

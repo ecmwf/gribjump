@@ -64,18 +64,6 @@ impl GribJump {
         })
     }
 
-    /// Get the gribjump library version.
-    #[must_use]
-    pub fn version() -> String {
-        gribjump_sys::gribjump_version()
-    }
-
-    /// Get the gribjump git SHA1.
-    #[must_use]
-    pub fn git_sha1() -> String {
-        gribjump_sys::gribjump_git_sha1()
-    }
-
     /// Extract data using the given requests.
     ///
     /// # Arguments
