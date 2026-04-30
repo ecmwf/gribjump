@@ -235,9 +235,6 @@ fn test_gribjump_api_extract_hash_validation() {
     }
 
     println!("test_gribjump_api_extract_hash_validation completed");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -299,9 +296,6 @@ fn test_gribjump_api_axes() {
     }
 
     println!("test_gribjump_api_axes completed");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -323,8 +317,6 @@ fn test_gribjump_scan_paths() {
     assert!(result.is_ok(), "scan_paths should not error");
     let count = result.expect("scan_paths should succeed");
     println!("Scanned {count} messages");
-
-    drop(gj);
 }
 
 /// Test `print_stats` API
@@ -336,8 +328,6 @@ fn test_gribjump_print_stats() {
     // Just verify it doesn't crash
     gj.print_stats().expect("print_stats failed");
     println!("print_stats completed");
-
-    drop(gj);
 }
 
 /// Test `extract_from_paths` API
@@ -387,9 +377,6 @@ fn test_gribjump_scan_requests() {
     // Also test with by_files=true
     let result2 = gj.scan_requests(&requests, true);
     println!("scan_requests (by_files=true) result: {result2:?}");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 /// Test `ExtractionResult` helper methods
@@ -495,24 +482,18 @@ fn test_gribjump_extraction_result_methods() {
 
     // Test Debug implementation
     println!("ExtractionResult Debug: {extraction_result:?}");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 /// Test `GribJump` clone
 #[test]
 fn test_gribjump_clone() {
     let gj1 = GribJump::new().expect("failed to create GribJump handle");
-    let gj2 = gj1.clone();
+    let _gj2 = gj1.clone();
 
     // Both should work independently
     let v1 = GribJump::version();
     let v2 = GribJump::version();
     assert_eq!(v1, v2);
-
-    drop(gj1);
-    drop(gj2);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -820,9 +801,6 @@ fn test_gribjump_iterator_methods() {
     // next_result on exhausted iterator should return error
     let err = iter.next_result();
     assert!(err.is_err(), "next_result on exhausted should error");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 /// Test `IntoIterator` for `ExtractionResult`
@@ -845,7 +823,4 @@ fn test_gribjump_extraction_into_iter() {
         let count = extraction_result.to_owned_ranges().len();
         println!("to_owned_ranges produced {count} owned ranges");
     }
-
-    drop(gj);
-    drop(tmpdir);
 }

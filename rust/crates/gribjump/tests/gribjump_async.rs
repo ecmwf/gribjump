@@ -116,9 +116,6 @@ async fn test_gribjump_concurrent_extract() {
         assert!(*values > 0, "step {step} should have values");
         println!("Step {step}: extracted {values} values");
     }
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -152,9 +149,6 @@ async fn test_gribjump_concurrent_axes() {
     let first_count = results[0].1;
     assert!(results.iter().all(|(_, c)| *c == first_count));
     println!("Concurrent axes: all tasks found {first_count} axis entries");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -201,9 +195,6 @@ async fn test_gribjump_spawn_blocking_pattern() {
     .expect("spawn_blocking failed");
 
     println!("spawn_blocking pattern: found {axes_count} axis entries");
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -268,9 +259,6 @@ async fn test_gribjump_mixed_concurrent_operations() {
     for (op, count) in &results {
         println!("{op}: {count}");
     }
-
-    drop(gj);
-    drop(tmpdir);
 }
 
 #[tokio::test]
@@ -316,7 +304,4 @@ async fn test_gribjump_high_concurrency() {
 
     assert_eq!(completed, num_tasks);
     println!("High concurrency test: {completed} tasks completed successfully");
-
-    drop(gj);
-    drop(tmpdir);
 }
