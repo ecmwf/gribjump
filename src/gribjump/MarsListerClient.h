@@ -33,6 +33,9 @@ public:
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
+    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest,
+                      const ExItemMap& reqToExtractionItem) override;
+
 private:
 
     static constexpr uint16_t protocolVersion_ = 1;
