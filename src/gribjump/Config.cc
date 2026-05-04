@@ -58,8 +58,18 @@ Config::ServerMap Config::loadServerMap() const {
     eckit::LocalConfiguration conf                    = getSubConfiguration("servermap");
     std::vector<eckit::LocalConfiguration> serverList = conf.getSubConfigurations();
 
+    // @todo: handling of the servermap in general could be improved, especially now with the addition of mars.
     for (const auto& server : serverList) {
-        map[server.getString("fdb")] = server.getString("gribjump");
+        // src can now be 'fdb' or 'mars'
+        auto src_uri = server.getString("fdb", "");
+        if (src_uri.empty()) {
+            src_uri = server.getString("mars", "");
+        }
+        if (src_uri.empty()) {
+            throw eckit::SeriousBug("Invalid servermap config: each entry must have either 'fdb' or 'mars' key");
+        }
+        auto gj_uri = server.getString("gribjump");
+        map[src_uri] = gj_uri;
     }
 
     return map;

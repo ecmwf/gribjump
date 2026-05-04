@@ -22,7 +22,7 @@ class MarsListerServerApp : public eckit::Application, public MarsListerServer {
 public:
 
     MarsListerServerApp(int argc, char** argv) :
-        eckit::Application(argc, argv, "MARS_LISTER_HOME"),
+        eckit::Application(argc, argv, "DHSHOME"),
         MarsListerServer(eckit::net::Port("marsLister",
             eckit::Resource<int>("$MARS_LISTER_PORT", 9778))) {}
 

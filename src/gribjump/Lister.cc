@@ -24,15 +24,30 @@ namespace gribjump {
 
 //  ------------------------------------------------------------------
 
+// @todo: move this configure logic into ConfigOptions.
 Lister& Lister::instance() {
     std::string type = LibGribJump::instance().config().getString("lister", "fdb");
-    if (type == "marslister") {
-        std::string uri = LibGribJump::instance().config().getString("listerUri", "localhost:9778");
+    
+    if (type == "fdb") {
+        // @todo
+        // std::string config_path = LibGribJump::instance().config().getString("lister.config", "");
+        // if it isnt set, or is empty, then FDB will use its default behaviour.
+        // if it is set, but doesnt exist, it is an error.
+        return FDBLister::instance();
+    }
+    else if (type == "mars") {
+        ASSERT(false);
+        std::string uri = LibGribJump::instance().config().getString("lister.uri", "");
+        if (uri.empty()) {
+            throw eckit::SeriousBug("Lister type is set to 'mars' but no URI provided in config. Please set 'lister.uri' to the host:port of the MarsLister server.");
+        }
         eckit::net::Endpoint endpoint(uri);
         static MarsListerClient inst(endpoint.host(), endpoint.port());
         return inst;
+    } 
+    else {
+        throw eckit::SeriousBug("Unknown lister type: " + type);
     }
-    return FDBLister::instance();
 }
 
 Lister::Lister() {}
@@ -166,7 +181,9 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     return filemap;
 }
 
-filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
+// from paths...
+// note this doesnt even need an FDB list. it assumes the paths in the extraction items are correct, and just builds the filemap from that.
+filemap_t FDBLister::fileMap(const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
     for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
         // key is a std::string, assumed to represent a URI string

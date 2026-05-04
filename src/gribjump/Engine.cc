@@ -146,7 +146,7 @@ filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, Ex
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
-    filemap_t filemap = FDBLister::instance().fileMapfromPaths(keyToExtractionItem);
+    filemap_t filemap = FDBLister::instance().fileMap(keyToExtractionItem);
     return filemap;
 }
 
