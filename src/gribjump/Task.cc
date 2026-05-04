@@ -8,7 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/io/AutoCloser.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
@@ -19,6 +18,7 @@
 
 #include "fdb5/api/FDB.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
 #include "gribjump/Task.h"
@@ -187,8 +187,7 @@ FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, co
     Task(taskgroup, id),
     fname_(fname),
     extractionItems_(extractionItems),
-    ignoreGrid_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID",
-                                      LibGribJump::instance().config().getBool("ignoreGridHash", false))) {}
+    ignoreGrid_(ConfigOptions::instance().ignoreGrid()) {}
 
 void FileExtractionTask::executeImpl() {
 

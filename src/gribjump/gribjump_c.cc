@@ -14,6 +14,7 @@
 #include <functional>
 #include <sstream>
 #include "eckit/runtime/Main.h"
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
@@ -172,9 +173,13 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
 
-        metkit::mars::MarsRequest req = parseMarsRequest(reqstr);
+        if (ConfigOptions::instance().requestParsing()) {
+            metkit::mars::MarsRequest req = parseMarsRequest(reqstr);
+            *request                      = new gribjump_extraction_request_t(req.asString(), ranges, gridhash_str);
+            return;
+        }
 
-        *request = new gribjump_extraction_request_t(req.asString(), ranges, gridhash_str);
+        *request = new gribjump_extraction_request_t(reqstr, ranges, gridhash_str);
     });
 }
 

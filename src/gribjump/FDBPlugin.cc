@@ -8,14 +8,15 @@
  * does it submit to any jurisdiction.
  */
 
-#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
 #include "eckit/message/Reader.h"
+#include "eckit/utils/Tokenizer.h"
 
 #include "fdb5/LibFdb5.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/FDBPlugin.h"
 #include "gribjump/LibGribJump.h"
 
@@ -36,9 +37,8 @@ FDBPlugin& FDBPlugin::instance() {
 FDBPlugin::FDBPlugin() {
     // NB: Can't access eckit::Resource outside the callback because eckit::main has not finished initialising
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::CallbackRegistry& fdb) {
-        static bool enableGribjump = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
-        static bool disableGribjump =
-            eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false);  // Emergency off-switch
+        static bool enableGribjump  = ConfigOptions::instance().fdbEnableGribjump();
+        static bool disableGribjump = ConfigOptions::instance().fdbDisableGribjump();
         if (enableGribjump && !disableGribjump) {
             LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin has been enabled" << std::endl;
             FDBPlugin::instance().addFDB(fdb);
@@ -89,9 +89,7 @@ void FDBPlugin::parseConfig() {
         return;
     configParsed_ = true;
 
-    const Config& config = LibGribJump::instance().config();
-
-    std::string select = config.getString("plugin.select", "");
+    std::string select = ConfigOptions::instance().pluginSelect();
 
     std::vector<std::string> select_key_values;
     eckit::Tokenizer(',')(select, select_key_values);

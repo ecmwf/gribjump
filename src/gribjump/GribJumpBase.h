@@ -38,7 +38,6 @@ using ResultsMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 class GribJumpBase {
 public:
 
-    GribJumpBase(const Config& config);
     GribJumpBase();
 
     GribJumpBase(const GribJumpBase&)            = delete;

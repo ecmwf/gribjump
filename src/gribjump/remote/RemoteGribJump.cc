@@ -21,8 +21,8 @@
 
 namespace gribjump {
 
-RemoteGribJump::RemoteGribJump(const Config& config) : GribJumpBase(config) {
-    std::string uri = config.getString("uri", "");
+RemoteGribJump::RemoteGribJump() {
+    std::string uri = ConfigOptions::instance().remoteURI();
 
     if (uri.empty())
         throw eckit::UserError("RemoteGribJump requires uri to be set in config (format host:port)", Here());
