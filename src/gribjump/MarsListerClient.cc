@@ -12,8 +12,11 @@
 
 #include "gribjump/MarsListerClient.h"
 #include <memory>
+#include <string>
+#include <tuple>
 
 #include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
 #include "eckit/parser/JSONParser.h"
@@ -21,6 +24,11 @@
 #include "gribjump/Types.h"
 
 namespace gribjump {
+
+namespace {
+
+}
+
 
 MarsListerClient::MarsListerClient(const std::string& host, int port) : host_(host), port_(port) {
     eckit::Log::info() << "MarsListerClient targeting " << host_ << ":" << port_ << std::endl;
@@ -91,13 +99,64 @@ std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(co
     NOTIMP;
 }
 
-filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
-    eckit::Log::info() << "MarsListerClient::fileMap -- hello" << std::endl;
+// we expect the parsed to look like this:
+// XXX Random comment: I couldnt help but notice the offsets are in reverse order...
+//    [ // start list
+//     { // start object
+//         // key mars:  value // object
+//         "mars":{"class":"od","date":"2025-11-30","expver":"1","levtype":"pl","month":"202511","stream":"enfo","time":"00:00:00","type":"pf","year":"2025"},
+    
+//         // key files: value // list of (marsfs) filepaths
+//         "files":["marsfs://mvr000/data/fc/marsdev_mvr000_p_pool1_a/prearc/hpss/marsodenfo/0001/pf/20251130/pl/0.20260505.180542.marsdev-mvr000.575525617664"],
+    
+//         // key fields: value // list of lists
+//         "fields":[
+//             // each list contains 4 elements:
+//             // 0. dict representing a partial mars request.
+//             // 1. the file_id
+//             // 2. the offset 
+//             // 3. the length
+//             [{"step":"0","number":"1","levelist":"300","param":"130.128"},0,16402260,3280452],
+//             [{"levelist":"400"},0,13121808,3280452],
+//             [{"levelist":"500"},0,9841356,3280452],
+//             [{"levelist":"700"},0,6560904,3280452],
+//             [{"levelist":"850"},0,3280452,3280452],
+//             [{"levelist":"1000"},0,0,3280452]]
+//     }
+// ]
+//  void MarsListerClient::parseResult(const eckit::Value& parsed) {
 
-    std::vector<eckit::URI> uris = list({unionRequest});
+//     // Start by accumulating a list of URIs.
+//     ASSERT(parsed.size() == 1); // one mars request in, one object out
+//     const eckit::Value& obj = parsed[0];
+//     eckit::Value files = obj["files"];
+//     eckit::Value fields = obj["fields"];
+//     eckit::Value mars_request = obj["mars"];
+
+//     std::vector<eckit::URI> uris;
+//     for (size_t i = 0; i < fields.size(); i++) {
+//         const eckit::Value& field = fields[i];
+//         eckit::Value mars_request = field[0];
+//         int file_id = field[1];
+//         long long offset = field[2];
+//         long long length = field[3]; // TODO: use length when needed
+//         std::string path = files[file_id];
+//         // eckit::URI uri("file", eckit::PathName(path));
+
+//         eckit::PathName p(path);
+//         eckit::URI uri("file", p.path());
+//         uri.host(p.node());
+//         uri.port(0);
+//         uri.fragment(std::to_string(offset));
+//         uris.push_back(uri);
+//     }
+// }
+
+filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
+
+    // std::vector<eckit::URI> uris = list({unionRequest});
 
     filemap_t filemap; // temporary until we implement this properly
-    eckit::Log::info() << "MarsListerClient::fileMap -- Not implemented, returning dummy filemap with " << uris.size() << " URIs" << std::endl;
 
     eckit::net::TCPClient client;
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
@@ -124,36 +183,69 @@ filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& unionReques
     }
 
     // Receive JSON response
-    std::string json;
-    stream >> json;
 
-    eckit::Log::info() << "MarsListerClient: received JSON: " << json << std::endl;
+    std::string jsonString;
+    stream >> jsonString;
+    eckit::Value decoded = eckit::JSONParser::decodeString(jsonString);
+    eckit::Log::info() << "MarsListerClient::fileMap -- received JSON: " << jsonString << std::endl;
 
-    // Parse JSON array of {path, offsets[], lengths[]}
-    eckit::Value parsed = eckit::JSONParser::decodeString(json);
 
-    // idk if I can really make use of reqToExtractionItem as is...
+    // Start by accumulating a list of URIs.
+    // @todo: I suspect you get multiple objects if you vary high up the tree e.g. DATE. Check and if so we will need to loop over objects here and then combine results.
+    ASSERT(decoded.size() == 1); // one mars request in, one object out
+    const eckit::Value& shape = decoded[0];
 
-    for (size_t i = 0; i < parsed.size(); i++) {
-        const eckit::Value& entry = parsed[i];
-        std::string key = entry["key"]; // Todo: not yet added, but some identifer for which request this corresponds to would be needed to make use of reqToExtractionItem
-        std::string path = entry["path"];
-        eckit::Value offsets = entry["offsets"];
-        // eckit::Value lengths = entry["lengths"]; // TODO: use lengths when needed
+    const eckit::Value& files = shape["files"];
+    const eckit::Value& fields = shape["fields"];
+    const eckit::Value& shape_mars = shape["mars"]; // Only the first part of the full request.
 
-        for (size_t j = 0; j < offsets.size(); j++) {
-            long long offset = offsets[j];
-            eckit::URI uri("file", eckit::PathName(path)); // TODO may not be "file", because marsfs stuff.
-            uri.fragment(std::to_string(offset));
-            ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
+    // Split marsfs paths into node and path components
+    
+    using marsfs_path = std::tuple<std::string, std::string>; // <node, path>
+    std::vector<marsfs_path> marsfs_paths;
+    marsfs_paths.reserve(files.size());
 
-            insertFileMap(filemap, uri.path(), extractionItem);
-
-        }
+    for (size_t i = 0; i < files.size(); i++) {
+        const std::string& file = files[i];
+        eckit::PathName p(file);
+        marsfs_paths.emplace_back(p.node(), p.path());
     }
 
-    eckit::Log::info() << "MarsListerClient: parsed " << parsed.size()
-                        << " URI(s) for request" << std::endl;
+    // Combine with offsets to get full URIs
+
+    std::vector<eckit::URI> uris;
+    for (size_t i = 0; i < fields.size(); i++) {
+        const eckit::Value& field = fields[i];
+        const eckit::Value& mars_request = field[0]; // the 
+        int file_id = field[1];
+        long long offset = field[2];
+        long long length = field[3]; // TODO: use length when needed
+
+        const std::string& node = std::get<0>(marsfs_paths[file_id]);
+        const std::string& path = std::get<1>(marsfs_paths[file_id]);
+
+        eckit::URI uri("file", path);
+        uri.host(node);
+        uri.port(0);
+        uri.fragment(std::to_string(offset));
+        uris.push_back(uri);
+
+    }
+
+    // XXX FOR DEMO: We will just assign URIs to the next available ExtractionItem in the map..
+    // Maybe it is time to move to a more tree-like structure.
+    size_t i = 0;
+    for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
+        if (i >= uris.size()) {
+            throw eckit::SeriousBug("MarsListerClient::fileMap -- Not enough URIs parsed from response to assign to all ExtractionItems");
+        }
+        ExtractionItem* extractionItem = extractionItemPtr.get();
+        eckit::URI uri = uris[i++];
+
+        extractionItem->URI(uri);
+        insertFileMap(filemap, uri.path(), extractionItem);
+    }
+
     return filemap;
 }
 
