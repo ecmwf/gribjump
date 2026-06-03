@@ -32,17 +32,14 @@ class TaskGroup;
 
 /// Round-robin, multi-queue work scheduler shared by all worker threads.
 ///
-/// Each TaskGroup gets its own internal FIFO queue. Worker threads pop tasks
+/// Each TaskGroup has its own internal FIFO queue. Worker threads pop tasks
 /// by visiting the groups in round-robin order, so a single very large
 /// TaskGroup cannot block tasks belonging to other groups.
 ///
-/// Notes on fairness:
-/// - Round-robin is per-task: a worker takes one task from group A, the next
-///   worker takes one from group B, etc.
-/// - A new TaskGroup is always admitted (its first task bypasses the global
-///   backpressure cap), so a saturating producer cannot prevent newcomers
-///   from entering the rotation.
-/// - Subsequent pushes by an already-admitted group respect the global cap.
+/// The queue is unbounded: tasks are small handles whose payloads are already
+/// allocated by the producer before push() is called, so capping the number
+/// of queued tasks does not cap any meaningful resource. Producers never
+/// block on push.
 class WorkQueue {
 public:
 
@@ -55,8 +52,7 @@ public:
 
     ~WorkQueue();
 
-    /// Enqueue a task belonging to the given task group.
-    /// May block if the queue is at capacity and the group is already admitted.
+    /// Enqueue a task belonging to the given task group. Never blocks.
     void push(TaskGroup* group, Task* task);
 
 protected:
@@ -65,7 +61,6 @@ protected:
 
 private:
 
-    /// Worker loop: pops tasks in round-robin order across groups and runs them.
     void workerLoop();
 
     /// Pop one task from the next group in round-robin order.
@@ -75,12 +70,8 @@ private:
 private:
 
     mutable std::mutex mtx_;
-    std::condition_variable cvPop_;   //< signalled when tasks become available or the queue is closed
-    std::condition_variable cvPush_;  //< signalled when slots free up or the queue is closed
-
-    bool closed_       = false;
-    size_t totalTasks_ = 0;
-    size_t maxSize_;
+    std::condition_variable cv_;  //< signalled when tasks become available or the queue is closed
+    bool closed_ = false;
 
     /// Per-group FIFO of pending tasks. A group is only present here while it
     /// has at least one queued task; it is erased once drained and re-added on

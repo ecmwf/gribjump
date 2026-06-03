@@ -12,10 +12,8 @@ instances (one per file, typically), enqueues them on the shared
 `WorkQueue` singleton, and blocks in `TaskGroup::waitForTasks()` until
 every task has completed, errored, or been cancelled.
 
-A pool of worker threads (`ConfigOptions::numThreads()`) pops tasks from
-the `WorkQueue` and runs them. The queue is bounded
-(`ConfigOptions::queueSize()`, default 1024) so producers experience
-backpressure when the system is saturated.
+A pool of worker threads (`ConfigOptions::numThreads()`) pops tasks
+from the `WorkQueue` and runs them.
 
 ## Before: single FIFO queue
 
@@ -31,7 +29,8 @@ Properties:
 
 - **Strict FIFO**: tasks were dispatched strictly in the order in which
   `WorkQueue::push(Task*)` was called.
-- **Bounded**: producers blocked when the global queue was full.
+- **Bounded**: the queue had a hard cap (`ConfigOptions::queueSize()`,
+  default 1024) and producers blocked when it was full.
 
 ### The starvation problem
 
@@ -51,6 +50,17 @@ completely block every later request. Concretely:
 As a result, small requests waited for large requests to finish — a
 classic head-of-line blocking issue.
 
+### Note on the old size cap
+
+The old queue cap was not actually bounding any meaningful resource.
+By the time `push()` was called, the producer had already allocated
+every `ExtractionItem` and the entire `filemap` describing the
+request. A queued `Task*` is a small handle on top of that state, so
+capping the number of pending handles did not cap memory or I/O — it
+only added complexity and contributed to the starvation problem above.
+The cap (and the `GRIBJUMP_QUEUESIZE` / `gribjumpQueueSize` /
+`ConfigOptions::queueSize()` knob that exposed it) has been removed.
+
 ## After: round-robin per-group scheduling
 
 The new `WorkQueue` keeps a separate FIFO per active `TaskGroup` and
@@ -68,50 +78,49 @@ TaskGroup C.push ┤                            └─► A0, B0, C0,
 ### Data structures
 
 - `std::unordered_map<TaskGroup*, std::deque<Task*>> groupQueues_` —
-  the per-group FIFO of pending tasks. A group is present only while it
-  has at least one queued task.
+  the per-group FIFO of pending tasks. A group is present only while
+  it has at least one queued task.
 - `std::list<TaskGroup*> rrOrder_` — the round-robin rotation. Each
   group appears at most once. The front is served next.
-- `size_t totalTasks_` and `size_t maxSize_` — preserve the existing
-  global backpressure cap.
+- A single mutex `mtx_` and condition variable `cv_` coordinate
+  producers, consumers, and shutdown.
+
+The queue is **unbounded** — `push` never blocks. See "Why no size
+cap" above.
 
 ### Push (`WorkQueue::push(TaskGroup*, Task*)`)
 
-1. If the group is **already** in `groupQueues_`, the producer waits on
-   `cvPush_` while `totalTasks_ >= maxSize_` (standard backpressure),
-   then appends the task to the group's deque.
-2. If the group is **new** (not currently in the rotation), the push is
-   admitted immediately — bypassing the global cap for the *first*
-   task. The group is inserted in `groupQueues_` and pushed to the back
-   of `rrOrder_`.
-3. `totalTasks_` is incremented and `cvPop_` is signalled.
+1. Lock `mtx_`.
+2. If the group is not yet in `groupQueues_`, insert an empty deque
+   for it and append the group to the back of `rrOrder_`.
+3. Append the task to the group's deque.
+4. Unlock; signal `cv_`.
 
-**Admission bypass** is a deliberate fairness guarantee: a saturating
-producer cannot prevent a newcomer from entering the rotation. Once a
-group is in the rotation, its tasks are served alongside everyone
-else's.
+`push` is non-blocking and constant-time. A newcomer is always
+admitted immediately into the rotation, so no producer can starve
+another.
 
 ### Pop (worker thread)
 
-1. Wait on `cvPop_` until `rrOrder_` is non-empty or the queue is
-   closed.
+1. Lock `mtx_`. Wait on `cv_` until `rrOrder_` is non-empty or the
+   queue is closed.
 2. Take the group `g` at the front of `rrOrder_`; pop one task from
    `groupQueues_[g]`.
 3. If `g`'s queue is now empty, erase `g` from `groupQueues_`;
    otherwise re-append `g` to the back of `rrOrder_`. This is the
    round-robin rotation.
-4. Signal `cvPush_` so any blocked producers can re-check the cap.
-5. Execute the task outside the mutex.
+4. Unlock; execute the task outside the mutex.
 
-Each task served = exactly one rotation step, so with `k` active groups
-the worst-case latency for any one group is `k - 1` other tasks ahead.
+Each task served = exactly one rotation step, so with `k` active
+groups the worst-case latency for any one group is `k − 1` other
+tasks ahead.
 
 ### Shutdown
 
-Destruction sets `closed_ = true`, notifies both condition variables,
+Destruction sets `closed_ = true`, notifies the condition variable,
 and joins the worker threads. Workers continue draining tasks until
-`rrOrder_` is empty, after which they exit. `push` after close throws
-`eckit::SeriousBug` (this only occurs at program teardown).
+`rrOrder_` is empty, after which they exit. `push` after close is a
+programming error and asserts.
 
 ## API change
 
@@ -136,24 +145,24 @@ the change is fully internal.
 | Dispatch order                        | Strict global FIFO      | Round-robin across active groups |
 | Head-of-line blocking between groups  | Yes                     | No                               |
 | Worst-case wait for next group's task | All earlier tasks       | `(k − 1)` tasks (`k` groups)     |
-| Global capacity cap                   | `queueSize` (hard)      | `queueSize` (soft for new groups)|
-| New group admission under saturation  | Blocked behind producer | Always admitted (first task)     |
+| Producer backpressure                 | Blocks at `queueSize`   | None (push is non-blocking)      |
+| `queueSize` / `GRIBJUMP_QUEUESIZE`    | Honoured (default 1024) | Removed                          |
 | Per-group ordering                    | FIFO                    | FIFO (unchanged)                 |
 | Push API                              | `push(Task*)`           | `push(TaskGroup*, Task*)`        |
 | Cancellation behaviour                | Unchanged               | Unchanged                        |
 
 ## Known limitations / future work
 
-- **Pre-admission fairness across many simultaneous producers.** Once
-  the global cap is hit, multiple producers from already-admitted
-  groups compete for slots via `cvPush_.notify_all()`; the OS thread
-  scheduler decides who wins. Per-group fair admission queues would
-  require a more elaborate design and are not implemented.
 - **No priority / weighting.** All groups are treated equally. Adding
   weighted round-robin (e.g. proportional to client quota) is a
   straightforward extension of the `rrOrder_` rotation.
 - **Group identity is the `TaskGroup*` pointer.** This is safe because
-  `TaskGroup::waitForTasks` guarantees the group outlives every one of
-  its tasks in the queue, but the scheduler does not expose a stable
-  external client/session identifier — distinct requests from the same
-  client are still distinct groups.
+  `TaskGroup::waitForTasks` guarantees the group outlives every one
+  of its tasks in the queue, but the scheduler does not expose a
+  stable external client/session identifier — distinct requests from
+  the same client are still distinct groups.
+- **No flow control on producers.** Removing the cap means a runaway
+  producer could grow `groupQueues_` without bound. In practice this
+  is gated by upstream limits (request size, FDB list latency), but
+  if a future workload changes that assumption an explicit per-group
+  or per-client cap would be the right place to add it back.

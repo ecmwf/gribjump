@@ -32,18 +32,16 @@ WorkQueue::~WorkQueue() {
         std::lock_guard<std::mutex> lock(mtx_);
         closed_ = true;
     }
-    cvPop_.notify_all();
-    cvPush_.notify_all();
+    cv_.notify_all();
 
     for (auto& w : workers_) {
         w.join();
     }
 }
 
-WorkQueue::WorkQueue() : maxSize_(ConfigOptions::instance().queueSize()) {
+WorkQueue::WorkQueue() {
     int nthreads = ConfigOptions::instance().numThreads();
-    eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread")
-                       << " (round-robin work queue, capacity " << maxSize_ << ")" << std::endl;
+    eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << " (round-robin work queue)" << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] { workerLoop(); });
     }
@@ -78,38 +76,33 @@ void WorkQueue::workerLoop() {
 }
 
 bool WorkQueue::popNext(WorkItem& item) {
-    Task* task = nullptr;
-    {
-        std::unique_lock<std::mutex> lock(mtx_);
-        cvPop_.wait(lock, [&] { return closed_ || !rrOrder_.empty(); });
+    std::unique_lock<std::mutex> lock(mtx_);
+    cv_.wait(lock, [&] { return closed_ || !rrOrder_.empty(); });
 
-        if (rrOrder_.empty()) {
-            // closed_ must be true here
-            return false;
-        }
-
-        // Round-robin: serve the group at the front, then rotate it to the back
-        // (if it still has tasks) or remove it (if drained).
-        TaskGroup* group = rrOrder_.front();
-        rrOrder_.pop_front();
-
-        auto it = groupQueues_.find(group);
-        ASSERT(it != groupQueues_.end());
-        ASSERT(!it->second.empty());
-
-        task = it->second.front();
-        it->second.pop_front();
-        --totalTasks_;
-
-        if (it->second.empty()) {
-            groupQueues_.erase(it);
-        }
-        else {
-            rrOrder_.push_back(group);
-        }
+    if (rrOrder_.empty()) {
+        // closed_ must be true here
+        return false;
     }
 
-    cvPush_.notify_all();  // wake any blocked producers; fair contention via notify_all
+    // Round-robin: serve the group at the front, then rotate it to the back
+    // (if it still has tasks) or remove it (if drained).
+    TaskGroup* group = rrOrder_.front();
+    rrOrder_.pop_front();
+
+    auto it = groupQueues_.find(group);
+    ASSERT(it != groupQueues_.end());
+    ASSERT(!it->second.empty());
+
+    Task* task = it->second.front();
+    it->second.pop_front();
+
+    if (it->second.empty()) {
+        groupQueues_.erase(it);
+    }
+    else {
+        rrOrder_.push_back(group);
+    }
+
     item = WorkItem(task);
     return true;
 }
@@ -118,38 +111,18 @@ void WorkQueue::push(TaskGroup* group, Task* task) {
     ASSERT(group != nullptr);
     ASSERT(task != nullptr);
 
-    bool wasEmpty = false;
     {
-        std::unique_lock<std::mutex> lock(mtx_);
+        std::lock_guard<std::mutex> lock(mtx_);
+        ASSERT(!closed_);
 
-        // Admission bypass: a brand new group (not currently in the rotation)
-        // is always allowed to enqueue its first task, so a saturating
-        // producer cannot starve newcomers out of the round-robin schedule.
-        auto it = groupQueues_.find(group);
-        if (it != groupQueues_.end()) {
-            cvPush_.wait(lock, [&] { return closed_ || totalTasks_ < maxSize_; });
-            if (closed_) {
-                throw eckit::SeriousBug("WorkQueue::push called after queue was closed");
-            }
-            it->second.push_back(task);
-        }
-        else {
-            if (closed_) {
-                throw eckit::SeriousBug("WorkQueue::push called after queue was closed");
-            }
-            groupQueues_.emplace(group, std::deque<Task*>{task});
+        auto [it, inserted] = groupQueues_.try_emplace(group);
+        if (inserted) {
             rrOrder_.push_back(group);
-            wasEmpty = true;
         }
-        ++totalTasks_;
+        it->second.push_back(task);
     }
 
-    if (wasEmpty) {
-        cvPop_.notify_all();  // multiple workers may be waiting; let them race
-    }
-    else {
-        cvPop_.notify_one();
-    }
+    cv_.notify_one();
 }
 
 }  // namespace gribjump

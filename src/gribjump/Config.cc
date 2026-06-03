@@ -94,11 +94,6 @@ size_t ConfigOptions::numThreads() const {
     return value;
 }
 
-size_t ConfigOptions::queueSize() const {
-    static size_t value = eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gribjumpQueueSize", 1024);
-    return value;
-}
-
 bool ConfigOptions::ignoreGrid() const {
     static bool value = eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID",
                                               LibGribJump::instance().config().getBool("ignoreGridHash", false));
