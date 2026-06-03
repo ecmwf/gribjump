@@ -54,8 +54,8 @@ void WorkQueue::workerLoop() {
         eckit::Log::status() << "Waiting for job" << std::endl;
         WorkItem item;
         if (!popNext(item)) {
-            LOG_DEBUG_LIB(LibGribJump)
-                << "Thread " << std::this_thread::get_id() << " stopping (queue closed)" << std::endl;
+            LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " stopping (queue closed)"
+                                       << std::endl;
             break;
         }
 
@@ -64,8 +64,8 @@ void WorkQueue::workerLoop() {
             item.run();
         }
         catch (const std::exception& e) {
-            LOG_DEBUG_LIB(LibGribJump)
-                << "Thread " << std::this_thread::get_id() << " exception: " << e.what() << std::endl;
+            LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " exception: " << e.what()
+                                       << std::endl;
             item.error(e.what());
         }
         catch (...) {

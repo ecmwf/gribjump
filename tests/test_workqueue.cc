@@ -169,8 +169,7 @@ CASE("round_robin_large_does_not_block_small") {
     groupB.waitForTasks();
 
     const std::vector<std::pair<std::string, size_t>> expected = {
-        {"A", 0}, {"B", 0}, {"A", 1}, {"B", 1}, {"A", 2}, {"B", 2},
-        {"A", 3}, {"A", 4}, {"A", 5},
+        {"A", 0}, {"B", 0}, {"A", 1}, {"B", 1}, {"A", 2}, {"B", 2}, {"A", 3}, {"A", 4}, {"A", 5},
     };
 
     EXPECT_EQUAL(log.entries.size(), expected.size());
