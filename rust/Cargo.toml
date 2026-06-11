@@ -23,9 +23,9 @@ fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-
 # Foundation crates
 eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "rust-bindings", default-features = false }
 eckit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
-metkit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings", default-features = false }
 metkit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
-eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads"] }
+eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads", "aec"] }
 
 # Build tools
 bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
