@@ -36,6 +36,12 @@ public:
     filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest,
                       const ExItemMap& reqToExtractionItem) override;
 
+    /// Previous implementation: parses a JSON response and assigns URIs to ExtractionItems
+    /// positionally. Kept for reference; superseded by fileMap() which consumes a
+    /// ListAggregation object straight off the wire.
+    filemap_t fileMap_old(const metkit::mars::MarsRequest& unionRequest,
+                          const ExItemMap& reqToExtractionItem);
+
 private:
 
     static constexpr uint16_t protocolVersion_ = 1;

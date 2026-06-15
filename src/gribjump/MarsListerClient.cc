@@ -21,13 +21,31 @@
 #include "eckit/log/Log.h"
 #include "eckit/parser/JSONParser.h"
 #include "eckit/value/Value.h"
+
+#include "dhskit/ListAggregation.h"
+
 #include "gribjump/Types.h"
 
 namespace gribjump {
 
 namespace {
 
+/// Build the lookup key used to match a listed field against an ExtractionItem.
+/// The key must have its mars keys sorted alphabetically (to match the canonical key used in
+/// reqToExtractionItem). FlatField::request is a std::map, so iterating it already yields the
+/// keys in sorted order. Unlike the FDB lister, we do not manipulate the values or drop
+/// date/year/month aliases here.
+std::string marsRequestToKey(const std::map<std::string, std::string>& request) {
+    std::string key;
+    std::string separator;
+    for (const auto& [k, v] : request) {
+        key += separator + k + "=" + v;
+        separator = ",";
+    }
+    return key;
 }
+
+}  // namespace
 
 
 MarsListerClient::MarsListerClient(const std::string& host, int port) : host_(host), port_(port) {
@@ -100,11 +118,11 @@ std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(co
 }
 
 // we expect the parsed to look like this:
-// XXX Random comment: I couldnt help but notice the offsets are in reverse order...
+// XXX : I couldnt help but notice the offsets are in reverse order...
 //    [ // start list
-//     { // start object
+//     { // start shape
 //         // key mars:  value // object
-//         "mars":{"class":"od","date":"2025-11-30","expver":"1","levtype":"pl","month":"202511","stream":"enfo","time":"00:00:00","type":"pf","year":"2025"},
+//         "mars":{"class":"od","date":"2025-11-30","expver":"1","levtype":"pl","month":"202511","stream":"enfo","time":"00:00:00","type":"pf","year":"2025"}, // labels shape
     
 //         // key files: value // list of (marsfs) filepaths
 //         "files":["marsfs://mvr000/data/fc/marsdev_mvr000_p_pool1_a/prearc/hpss/marsodenfo/0001/pf/20251130/pl/0.20260505.180542.marsdev-mvr000.575525617664"],
@@ -116,14 +134,14 @@ std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(co
 //             // 1. the file_id
 //             // 2. the offset 
 //             // 3. the length
-//             [{"step":"0","number":"1","levelist":"300","param":"130.128"},0,16402260,3280452],
-//             [{"levelist":"400"},0,13121808,3280452],
+//             [{"step":"0","number":"1","levelist":"300","param":"130.128"},0,16402260,3280452], // inherits from shape.
+//             [{"levelist":"400"},0,13121808,3280452], // Inherits from previous.
 //             [{"levelist":"500"},0,9841356,3280452],
 //             [{"levelist":"700"},0,6560904,3280452],
 //             [{"levelist":"850"},0,3280452,3280452],
 //             [{"levelist":"1000"},0,0,3280452]]
-//     }
-// ]
+//     } // end shape
+// ] // end list
 //  void MarsListerClient::parseResult(const eckit::Value& parsed) {
 
 //     // Start by accumulating a list of URIs.
@@ -152,9 +170,65 @@ std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(co
 //     }
 // }
 
-filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
+filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest, const ExItemMap& reqToExtractionItem) {
 
-    // std::vector<eckit::URI> uris = list({unionRequest});
+    filemap_t filemap;
+
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+
+    // Send header
+    stream << protocolVersion_;
+    stream << static_cast<uint16_t>(RequestType::LIST);
+
+    // Send single request
+    stream << marsRequest;
+
+    // Receive errors
+    size_t nErrors;
+    stream >> nErrors;
+    if (nErrors > 0) {
+        std::stringstream ss;
+        ss << "MarsListerClient received " << nErrors << " server-side error(s):" << std::endl;
+        for (size_t i = 0; i < nErrors; i++) {
+            std::string error;
+            stream >> error;
+            ss << error << std::endl;
+        }
+        throw eckit::RemoteException(ss.str(), Here());
+    }
+
+    // Receive the ListAggregation object directly off the wire.
+    dhskit::ListAggregation aggregation(stream);
+
+    // Lazily walk the flattened fields, matching each to its ExtractionItem by canonical key.
+    for (const auto& field : aggregation) {
+        const std::string key = marsRequestToKey(field.request);
+
+        auto it = reqToExtractionItem.find(key);
+        if (it == reqToExtractionItem.end()) {
+            // Field is not one we requested; skip it.
+            continue;
+        }
+
+        // Build the URI from the (marsfs) file path and offset.
+        eckit::PathName p(field.file);
+        eckit::URI uri("file", p.path());
+        uri.host(p.node());
+        uri.port(0);
+        uri.fragment(std::to_string(static_cast<long long>(field.offset)));
+
+        ExtractionItem* extractionItem = it->second.get();
+        extractionItem->URI(uri);
+        insertFileMap(filemap, uri.path(), extractionItem);
+    }
+
+    return filemap;
+}
+
+filemap_t MarsListerClient::fileMap_old(const metkit::mars::MarsRequest& marsRequest, const ExItemMap& reqToExtractionItem) {
+
+    // std::vector<eckit::URI> uris = list({marsRequest});
 
     filemap_t filemap; // temporary until we implement this properly
 
@@ -166,7 +240,7 @@ filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& unionReques
     stream << static_cast<uint16_t>(RequestType::LIST);
 
     // Send single request
-    stream << unionRequest;
+    stream << marsRequest;
 
     // Receive errors
     size_t nErrors;
