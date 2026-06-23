@@ -24,8 +24,6 @@ fn main() {
     println!("cargo:rerun-if-changed=cpp/ExtractionIteratorHandle.cc");
     println!("cargo:rerun-if-changed=cpp/ExtractionResultHandle.h");
     println!("cargo:rerun-if-changed=cpp/ExtractionResultHandle.cc");
-    println!("cargo:rerun-if-changed=cpp/ExceptionTest.h");
-    println!("cargo:rerun-if-changed=cpp/ExceptionTest.cc");
     println!("cargo:rerun-if-env-changed=GRIBJUMP_DIR");
     println!("cargo:rerun-if-env-changed=CMAKE_PREFIX_PATH");
     println!("cargo:rerun-if-env-changed=DOCS_RS");
@@ -94,7 +92,6 @@ fn build_system() {
         .file(crate_dir.join("cpp/GribJumpHandle.cc"))
         .file(crate_dir.join("cpp/ExtractionIteratorHandle.cc"))
         .file(crate_dir.join("cpp/ExtractionResultHandle.cc"))
-        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&gribjump_include)
         .include(&eckit_include)
         .include(&out_dir) // for generated gribjump_exceptions.h
@@ -244,7 +241,6 @@ fn build_vendored() {
         .file(crate_dir.join("cpp/GribJumpHandle.cc"))
         .file(crate_dir.join("cpp/ExtractionIteratorHandle.cc"))
         .file(crate_dir.join("cpp/ExtractionResultHandle.cc"))
-        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&include_dir)
         .include(&gribjump_src_include)
         .include(format!("{eckit_root}/include"))
