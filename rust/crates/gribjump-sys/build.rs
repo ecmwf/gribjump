@@ -14,8 +14,18 @@ const GRIBJUMP_VERSION: &str = "0.11.0";
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=cpp/gribjump_bridge.h");
-    println!("cargo:rerun-if-changed=cpp/gribjump_bridge.cpp");
+    println!("cargo:rerun-if-changed=cpp/GribJumpBridge.h");
+    println!("cargo:rerun-if-changed=cpp/Types.h");
+    println!("cargo:rerun-if-changed=cpp/Library.h");
+    println!("cargo:rerun-if-changed=cpp/Library.cc");
+    println!("cargo:rerun-if-changed=cpp/GribJumpHandle.h");
+    println!("cargo:rerun-if-changed=cpp/GribJumpHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ExtractionIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ExtractionIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ExtractionResultHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ExtractionResultHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ExceptionTest.h");
+    println!("cargo:rerun-if-changed=cpp/ExceptionTest.cc");
     println!("cargo:rerun-if-env-changed=GRIBJUMP_DIR");
     println!("cargo:rerun-if-env-changed=CMAKE_PREFIX_PATH");
     println!("cargo:rerun-if-env-changed=DOCS_RS");
@@ -26,11 +36,28 @@ fn main() {
 
     bindman_utils::validate_build_mode(cfg!(feature = "system"), cfg!(feature = "vendored"));
 
+    generate_exceptions();
+
     if cfg!(feature = "system") {
         build_system();
     } else {
         build_vendored();
     }
+}
+
+/// Generate `gribjump_exceptions.{h,rs}` for gribjump-sys's cxx bridge,
+/// inheriting catch blocks from upstream `-sys` crates (eckit-sys / metkit-sys
+/// / fdb-sys).
+fn generate_exceptions() {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let inherited = bindman_build::collect_dep_exception_sources();
+
+    bindman_build::generate_exception_bridge(&bindman_build::ExceptionBridgeConfig {
+        primary_namespace: "gribjump",
+        out_dir: &out_dir,
+        own: &[],
+        inherited: &inherited,
+    });
 }
 
 /// Build using system-installed gribjump via `CMake` `find_package`
@@ -57,18 +84,21 @@ fn build_system() {
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=gribjump");
 
-    let eckit_out_dir = env::var("DEP_ECKIT_SYS_OUT_DIR")
-        .expect("DEP_ECKIT_SYS_OUT_DIR not set - eckit-sys must be a dependency");
     let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR")
         .expect("DEP_ECKIT_SYS_CPP_DIR not set - eckit-sys must be a dependency");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/gribjump_bridge.cpp"))
+        .file(crate_dir.join("cpp/Library.cc"))
+        .file(crate_dir.join("cpp/GribJumpHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionResultHandle.cc"))
+        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&gribjump_include)
         .include(&eckit_include)
-        .include(&eckit_out_dir) // for eckit_exceptions.h
-        .include(&eckit_cpp_dir) // for eckit_bridge.h
+        .include(&out_dir) // for generated gribjump_exceptions.h
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(&metkit_include)
         .include(&eccodes_include)
         .include(&fdb_include)
@@ -205,17 +235,21 @@ fn build_vendored() {
     // gribjump source directory contains private headers like Types.h
     let gribjump_src_include = gribjump_src.join("src");
 
-    let eckit_out_dir = env::var("DEP_ECKIT_SYS_OUT_DIR").expect("DEP_ECKIT_SYS_OUT_DIR not set");
     let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR").expect("DEP_ECKIT_SYS_CPP_DIR not set");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
 
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/gribjump_bridge.cpp"))
+        .file(crate_dir.join("cpp/Library.cc"))
+        .file(crate_dir.join("cpp/GribJumpHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionResultHandle.cc"))
+        .file(crate_dir.join("cpp/ExceptionTest.cc"))
         .include(&include_dir)
         .include(&gribjump_src_include)
         .include(format!("{eckit_root}/include"))
-        .include(&eckit_out_dir) // for eckit_exceptions.h
-        .include(&eckit_cpp_dir) // for eckit_bridge.h
+        .include(&out_dir) // for generated gribjump_exceptions.h
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(format!("{metkit_root}/include"))
         .include(format!("{eccodes_root}/include"))
         .include(format!("{fdb_root}/include"))
