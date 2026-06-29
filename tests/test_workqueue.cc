@@ -24,6 +24,7 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -259,6 +260,53 @@ CASE("round_robin_unequal_groups_drains_in_order") {
 
     const std::vector<std::pair<std::string, size_t>> expected = {
         {"A", 0}, {"B", 0}, {"C", 0}, {"B", 1}, {"C", 1}, {"C", 2}, {"C", 3}, {"C", 4},
+    };
+
+    EXPECT_EQUAL(log.entries.size(), expected.size());
+    for (size_t i = 0; i < expected.size(); ++i) {
+        EXPECT_EQUAL(log.entries[i].first, expected[i].first);
+        EXPECT_EQUAL(log.entries[i].second, expected[i].second);
+    }
+}
+
+CASE("group_drains_and_is_readmitted") {
+    // Verify that a group whose queue is fully drained by the worker can
+    // re-enter the rotation when the producer pushes more tasks afterwards.
+    // The re-admitted group should join at the back of the rotation.
+
+    DispatchLog log;
+    TaskGroup groupA;
+    TaskGroup groupB;
+
+    // Phase 1: enqueue and fully drain A on its own.
+    {
+        WorkerGate gate;
+        groupA.enqueueTask<DummyTask>(std::string("A"), 0, std::ref(log));
+        groupA.enqueueTask<DummyTask>(std::string("A"), 1, std::ref(log));
+    }
+    // Wait for A's two tasks to actually finish executing, so A is removed
+    // from the WorkQueue's rotation before phase 2.
+    while (log.size() < 2) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    // Phase 2: with A drained, push more A tasks together with B tasks.
+    // B is the first to push, so B joins the rotation first; A's re-admission
+    // goes behind B. Expected: B0, A2, B1, A3.
+    {
+        WorkerGate gate;
+        groupB.enqueueTask<DummyTask>(std::string("B"), 0, std::ref(log));
+        groupA.enqueueTask<DummyTask>(std::string("A"), 2, std::ref(log));
+        groupB.enqueueTask<DummyTask>(std::string("B"), 1, std::ref(log));
+        groupA.enqueueTask<DummyTask>(std::string("A"), 3, std::ref(log));
+    }
+
+    groupA.waitForTasks();
+    groupB.waitForTasks();
+
+    const std::vector<std::pair<std::string, size_t>> expected = {
+        {"A", 0}, {"A", 1},                      // phase 1
+        {"B", 0}, {"A", 2}, {"B", 1}, {"A", 3},  // phase 2: A is re-admitted behind B
     };
 
     EXPECT_EQUAL(log.entries.size(), expected.size());

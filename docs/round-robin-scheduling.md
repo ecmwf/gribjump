@@ -101,41 +101,16 @@ Destruction sets `closed_ = true`, notifies the condition variable, and joins th
 continue draining tasks until `rrOrder_` is empty, after which they exit. `push` after close is a programming
 error and asserts.
 
-## API change
+### Lifetime of the `TaskGroup*`
 
-`WorkQueue::push` now takes the owning `TaskGroup*` as well as the `Task*`:
+`TaskGroup::waitForTasks()` blocks until every task has notified completion, and tasks notify _after_ being
+popped from the `WorkQueue` (popping removes the group's entry from `groupQueues_`/`rrOrder_` under the
+queue's mutex, before the task runs). Therefore, by the time `waitForTasks()` returns, the `WorkQueue` no
+longer holds the group's pointer in any data structure, and the group is safe to destroy. This is the only
+lifetime requirement the round-robin scheduler imposes.
 
-```cpp
-// before
-WorkQueue::instance().push(task);
-
-// after
-WorkQueue::instance().push(this, task);   // called from TaskGroup::enqueueTask
-```
-
-`TaskGroup::enqueueTask` is the only caller of `WorkQueue::push`, so the change is fully internal.
-
-## Properties summary
-
-| Property                              | Before (FIFO)           | After (round-robin)              |
-| ------------------------------------- | ----------------------- | -------------------------------- |
-| Dispatch order                        | Strict global FIFO      | Round-robin across active groups |
-| Head-of-line blocking between groups  | Yes                     | No                               |
-| Worst-case wait for next group's task | All earlier tasks       | `(k − 1)` tasks (`k` groups)     |
-| Producer backpressure                 | Blocks at `queueSize`   | None (push is non-blocking)      |
-| `queueSize` / `GRIBJUMP_QUEUESIZE`    | Honoured (default 1024) | Removed                          |
-| Per-group ordering                    | FIFO                    | FIFO (unchanged)                 |
-| Push API                              | `push(Task*)`           | `push(TaskGroup*, Task*)`        |
-| Cancellation behaviour                | Unchanged               | Unchanged                        |
-
-## Known limitations / future work
+## Known limitations
 
 - **No priority / weighting.** All groups are treated equally. Adding weighted round-robin (e.g. proportional
   to client quota) is a straightforward extension of the `rrOrder_` rotation.
-- **Group identity is the `TaskGroup*` pointer.** This is safe because `TaskGroup::waitForTasks` guarantees
-  the group outlives every one of its tasks in the queue, but the scheduler does not expose a stable external
-  client/session identifier — distinct requests from the same client are still distinct groups.
-- **No flow control on producers.** Removing the cap means a runaway producer could grow `groupQueues_`
-  without bound. In practice this is gated by upstream limits (request size, FDB list latency), but if a
-  future workload changes that assumption an explicit per-group or per-client cap would be the right place to
-  add it back.
+- **No flow control on producers.** A runaway producer could grow `groupQueues_` without bound.
