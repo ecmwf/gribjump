@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 #pragma once
 
@@ -75,9 +75,6 @@ public:
 
     /// Number of worker threads. Env: GRIBJUMP_THREADS. Resource: gribjumpThreads. YAML: threads. Default: 1.
     size_t numThreads() const;
-
-    /// Work queue size. Env: GRIBJUMP_QUEUESIZE. Resource: gribjumpQueueSize. Default: 1024.
-    size_t queueSize() const;
 
     // -- Extraction options --
 

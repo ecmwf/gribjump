@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/io/DataHandle.h"

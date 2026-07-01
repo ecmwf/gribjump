@@ -14,7 +14,7 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/tools/GribJumpTool.h"
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 /// Tool to scan a set of files to built a GribJump info index. Assumes that the files are local.
 /// Output directory is specified in the configuration file.
