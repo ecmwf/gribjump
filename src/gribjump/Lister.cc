@@ -24,20 +24,46 @@ namespace gribjump {
 
 //  ------------------------------------------------------------------
 
+// @todo: move this configure logic into ConfigOptions.
 Lister& Lister::instance() {
-    std::string type = LibGribJump::instance().config().getString("lister", "fdb");
-    if (type == "marslister") {
-        std::string uri = LibGribJump::instance().config().getString("listerUri", "localhost:9778");
+    static std::string type = LibGribJump::instance().config().getString("lister.type", "fdb");
+    
+    if (type == "fdb") {
+        // @todo
+        // std::string config_path = LibGribJump::instance().config().getString("lister.config", "");
+        // if it isnt set, or is empty, then FDB will use its default behaviour.
+        // if it is set, but doesnt exist, it is an error.
+        return FDBLister::instance();
+    }
+    else if (type == "mars") {
+        std::string uri = LibGribJump::instance().config().getString("lister.uri", "");
+        if (uri.empty()) {
+            throw eckit::SeriousBug("Lister type is set to 'mars' but no URI provided in config. Please set 'lister.uri' to the host:port of the MarsLister server.");
+        }
         eckit::net::Endpoint endpoint(uri);
         static MarsListerClient inst(endpoint.host(), endpoint.port());
         return inst;
+    } 
+    else {
+        throw eckit::SeriousBug("Unknown lister type: " + type);
     }
-    return FDBLister::instance();
 }
 
 Lister::Lister() {}
 
 Lister::~Lister() {}
+
+filemap_t Lister::fileMap(const ExItemMap& reqToExtractionItem) {
+    filemap_t filemap;
+    for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
+        ExtractionItem* extractionItem = extractionItemPtr.get();
+        eckit::PathName fname = extractionItem->URI().path();
+        insertFileMap(filemap, fname, extractionItem);
+    }
+
+    logFileMap(filemap);
+    return filemap;
+}
 
 //  ------------------------------------------------------------------
 
@@ -94,6 +120,29 @@ std::string fdbkeyToStr(const fdb5::Key& key) {
     return ss.str();
 }
 
+void Lister::insertFileMap(filemap_t& filemap, const eckit::PathName& fname, ExtractionItem* item) {
+    auto it = filemap.find(fname);
+    if (it == filemap.end()) {
+        filemap.emplace(fname, std::vector<ExtractionItem*>{item});
+    }
+    else {
+        it->second.push_back(item);
+    }
+}
+
+void Lister::logFileMap(const filemap_t& filemap) {
+    if (LibGribJump::instance().debug()) {
+        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
+        for (const auto& file : filemap) {
+            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
+            for (const auto& extractionItem : file.second) {
+                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
+            }
+            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
+        }
+    }
+}
+
 // i.e. do all of the listing work I want...
 filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
@@ -122,17 +171,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
-        // Add to filemap
-        eckit::PathName fname = uri.path();
-        auto it               = filemap.find(fname);
-        if (it == filemap.end()) {
-            std::vector<ExtractionItem*> extractionItems;
-            extractionItems.push_back(extractionItem);
-            filemap.emplace(fname, extractionItems);
-        }
-        else {
-            it->second.push_back(extractionItem);
-        }
+        insertFileMap(filemap, uri.path(), extractionItem);
 
         count++;
     }
@@ -152,50 +191,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         }
     }
 
-    if (LibGribJump::instance().debug()) {
-        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
-        for (const auto& file : filemap) {
-            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
-            for (const auto& extractionItem : file.second) {
-                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
-            }
-            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
-        }
-    }
-
-    return filemap;
-}
-
-filemap_t FDBLister::fileMapfromPaths(const ExItemMap& reqToExtractionItem) {
-    filemap_t filemap;
-    for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
-        // key is a std::string, assumed to represent a URI string
-
-        ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
-
-        // Add to filemap
-        eckit::PathName fname = extractionItem->URI().path();
-        auto it               = filemap.find(fname);
-        if (it == filemap.end()) {
-            std::vector<ExtractionItem*> extractionItems;
-            extractionItems.push_back(extractionItem);
-            filemap.emplace(fname, extractionItems);
-        }
-        else {
-            it->second.push_back(extractionItem);
-        }
-    }
-
-    if (LibGribJump::instance().debug()) {
-        LOG_DEBUG_LIB(LibGribJump) << "File map: " << std::endl;
-        for (const auto& file : filemap) {
-            LOG_DEBUG_LIB(LibGribJump) << "  file=" << file.first << ", Offsets=[";
-            for (const auto& extractionItem : file.second) {
-                LOG_DEBUG_LIB(LibGribJump) << extractionItem->offset() << ", ";
-            }
-            LOG_DEBUG_LIB(LibGribJump) << "]" << std::endl;
-        }
-    }
+    logFileMap(filemap);
 
     return filemap;
 }

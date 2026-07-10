@@ -139,15 +139,11 @@ void Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& ke
 }
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
-    // Map files to ExtractionItem
-    filemap_t filemap = FDBLister::instance().fileMap(unionrequest, keyToExtractionItem);
-    return filemap;
+    return Lister::instance().fileMap(unionrequest, keyToExtractionItem);
 }
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
-    // Map files to ExtractionItem
-    filemap_t filemap = FDBLister::instance().fileMapfromPaths(keyToExtractionItem);
-    return filemap;
+    return Lister::instance().fileMap(keyToExtractionItem);
 }
 
 TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
@@ -219,6 +215,7 @@ TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
     timer.reset("Gribjump Engine: Built file map");
 
     // Schedule tasks: if there is no host and port, set forward to false, otherwise set to true
+    // We assume the first request is representative.
     bool forward = true;
     if (requests[0].host() == "" and requests[0].port() == 0) {
         forward = false;

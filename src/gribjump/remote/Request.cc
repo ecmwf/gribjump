@@ -106,6 +106,9 @@ void ExtractRequest::execute() {
     }
 }
 
+// @todo: One day, we could have FileTasks send to the client as they finish rather than aggregating everything serverside.
+// this will be necessary if we want streaming.
+// Some thinking is required as to chunking and ordering of results, as well as how to handle errors in a streaming context.
 void ExtractRequest::replyToClient() {
 
     // Send the results, again repackage.
