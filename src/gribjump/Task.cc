@@ -127,7 +127,7 @@ void TaskGroup::enqueueTask(Task* task) {
         tasks_.push_back(std::unique_ptr<Task>(task));  // TaskGroup takes ownership of its tasks
     }
 
-    WorkQueue::instance().push(task);  /// @note Can block, so release the lock first
+    WorkQueue::instance().push(this, task);  // release TaskGroup lock before taking WorkQueue lock
 
     LOG_DEBUG_LIB(LibGribJump) << "Queued task " << tasks_.size() << std::endl;
 }

@@ -1,0 +1,38 @@
+[workspace]
+resolver = "2"
+members = ["crates/gribjump-sys", "crates/gribjump"]
+
+[workspace.package]
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/ecmwf/gribjump"
+rust-version = "1.90"
+readme = "README.md"
+keywords = ["ecmwf", "weather", "meteorology", "grib", "climate"]
+categories = ["science", "parser-implementations"]
+
+[workspace.dependencies]
+# Internal
+gribjump-sys = { path = "crates/gribjump-sys" }
+gribjump = { path = "crates/gribjump" }
+
+# FDB dependency
+fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings", default-features = false }
+fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings", default-features = false }
+
+# Foundation crates
+eckit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+
+# Build tools
+bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+
+# External
+thiserror = "2"
+cxx = "1.0"
+cxx-build = "1.0"
+parking_lot = "0.12"
+tempfile = "3"

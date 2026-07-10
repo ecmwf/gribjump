@@ -71,7 +71,8 @@ class PatchedLib:
         # Check versions
         versionstr = ffi.string(self.gribjump_version()).decode("utf-8")
 
-        if versionstr != __version__:
+        # Compare (major, minor, patch) only, ignoring any build-number suffix on the wheel
+        if version.parse(versionstr).release[:3] != version.parse(__version__).release[:3]:
             warnings.warn(
                 f"GribJump library version {versionstr} does not match pygribjump version {__version__}")
 

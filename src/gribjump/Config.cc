@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 #include "gribjump/Config.h"
 #include "eckit/config/Resource.h"
@@ -91,11 +91,6 @@ int ConfigOptions::serverPort() const {
 size_t ConfigOptions::numThreads() const {
     static size_t value = eckit::Resource<size_t>("$GRIBJUMP_THREADS;gribjumpThreads",
                                                   LibGribJump::instance().config().getInt("threads", 1));
-    return value;
-}
-
-size_t ConfigOptions::queueSize() const {
-    static size_t value = eckit::Resource<size_t>("$GRIBJUMP_QUEUESIZE;gribjumpQueueSize", 1024);
     return value;
 }
 
