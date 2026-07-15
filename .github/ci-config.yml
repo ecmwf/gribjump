@@ -6,6 +6,5 @@ dependencies: |
   ecmwf/eckit
   ecmwf/metkit
   ecmwf/fdb
-  ecmwf/dhskit@feature/mars-lister
 dependency_branch: develop
 parallelism_factor: 8
