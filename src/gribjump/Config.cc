@@ -88,6 +88,14 @@ std::string ConfigOptions::configType() const {
     return LibGribJump::instance().config().getString("type", "local");
 }
 
+std::string ConfigOptions::capabilityType(const std::string& capability) const {
+    const Config& config = LibGribJump::instance().config();
+    if (config.has(capability)) {
+        return config.getSubConfiguration(capability).getString("type", configType());
+    }
+    return configType();
+}
+
 std::string ConfigOptions::remoteURI() const {
     return LibGribJump::instance().config().getString("uri", "");
 }

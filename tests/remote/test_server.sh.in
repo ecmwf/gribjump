@@ -49,6 +49,7 @@ sleep 1
 
 # --- Run the client test
 env GRIBJUMP_CONFIG_FILE=$clientconfig $test
+rc=$?
 
 cleanup # start fresh
 
@@ -64,5 +65,10 @@ sleep 1
 
 # --- Run the client test
 env FDB5_CONFIG_FILE=$fdbconfig GRIBJUMP_CONFIG_FILE=$forward_client $test_remote
+forward_rc=$?
 
-exit $?
+# Fail if either client test failed
+if [[ $rc -ne 0 ]]; then
+    exit $rc
+fi
+exit $forward_rc

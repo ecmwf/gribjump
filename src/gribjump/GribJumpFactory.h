@@ -27,6 +27,7 @@ protected:
 public:
 
     static GribJumpBase* build();
+    static GribJumpBase* build(const std::string& type);
 };
 
 /// Templated specialisation of the self-registering factory,

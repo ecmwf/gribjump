@@ -43,12 +43,11 @@ static eckit::PathName metricsFile = "test_metrics";
 
 void checkContext(const eckit::Value& v, const std::string& origin) {
 
-    // ensure ctx can be parsed as json
-    std::string ctx = v["context"];
-    auto val        = eckit::JSONParser::decodeString(ctx);
+    // The context is serialised into the metrics as a nested JSON object (see LogContext::json).
+    const eckit::Value& ctx = v["context"];
 
-    EXPECT_EQUAL(val["origin"], origin);
-    EXPECT_EQUAL(val["description"], "test test test");
+    EXPECT_EQUAL(ctx["origin"], origin);
+    EXPECT_EQUAL(ctx["description"], "test test test");
 }
 
 CASE("Remote protocol: extract") {
@@ -166,7 +165,9 @@ CASE("Parse the metrics file") {
     // Check scan
     v = values[2];
     EXPECT_EQUAL(v["action"], "scan");
-    EXPECT_EQUAL(v["context"], "{}");
+    // No context was set for scan, so it serialises to an empty JSON object.
+    EXPECT(v["context"].isOrderedMap());
+    EXPECT_EQUAL(v["context"].keys().size(), 0);
 }
 #endif
 }  // namespace test

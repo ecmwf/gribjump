@@ -63,6 +63,10 @@ public:
     /// Implementation type: "local" or "remote". YAML: type. Default: "local".
     std::string configType() const;
 
+    /// Implementation type for a specific capability (e.g. "extract", "list", "scan", "axes").
+    /// YAML: <capability>.type. Falls back to the global configType() if unset.
+    std::string capabilityType(const std::string& capability) const;
+
     /// URI of remote server (host:port). Required when type is "remote". YAML: uri. Default: "" (empty).
     std::string remoteURI() const;
 

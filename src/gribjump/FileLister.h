@@ -26,12 +26,12 @@
 namespace gribjump {
 
 
-class Lister {
+class FileLister {
 public:
 
-    /// Returns the configured Lister implementation (FDBLister or MarsListerClient).
+    /// Returns the configured FileLister implementation (FDBLister or MarsListerClient).
     /// Determined by config key "lister" ("fdb" by default, or "marslister").
-    static Lister& instance();
+    static FileLister& instance();
 
     virtual std::vector<eckit::URI> list(
         const std::vector<metkit::mars::MarsRequest> requests) = 0;
@@ -42,11 +42,11 @@ public:
 
     filemap_t fileMap(const ExItemMap& reqToExtractionItem);
 
-    virtual ~Lister();
+    virtual ~FileLister();
 
 protected:
 
-    Lister();
+    FileLister();
 
     static void insertFileMap(filemap_t& filemap, const eckit::PathName& fname, ExtractionItem* item);
     static void logFileMap(const filemap_t& filemap);
@@ -54,12 +54,12 @@ protected:
 
 //  ------------------------------------------------------------------
 
-class FDBLister : public Lister {
+class FDBLister : public FileLister {
 public:
 
     static FDBLister& instance();
 
-    using Lister::fileMap;
+    using FileLister::fileMap;
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request,

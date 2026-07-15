@@ -168,7 +168,7 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
-if (ENABLE_FDB_BUILD_TOOLS)
+if (fdb5_HAVE_FDB_BUILD_TOOLS)
     add_subdirectory(tools)
     add_subdirectory(remote)
 endif()

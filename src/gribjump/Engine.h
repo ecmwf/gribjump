@@ -14,7 +14,7 @@
 
 #include "eckit/serialisation/Stream.h"
 #include "gribjump/ExtractionItem.h"
-#include "gribjump/Lister.h"
+#include "gribjump/FileLister.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
 #include "gribjump/Types.h"
