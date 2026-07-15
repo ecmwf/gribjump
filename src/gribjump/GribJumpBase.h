@@ -24,6 +24,8 @@
 #include "gribjump/Metrics.h"
 #include "gribjump/Stats.h"
 #include "gribjump/Types.h"
+#include "gribjump/api/ListRequest.h"
+#include "gribjump/api/ListResult.h"
 
 namespace fdb5 {
 class Key;
@@ -60,6 +62,8 @@ public:
                                                                    const std::vector<std::vector<Range>>& ranges) = 0;
 
     virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) = 0;
+
+    virtual ListIterator list(const ListRequest& request) = 0;
 
     virtual void stats();
 

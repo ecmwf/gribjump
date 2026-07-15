@@ -52,6 +52,8 @@ list( APPEND gribjump_srcs
     LogRouter.cc
 
     api/ExtractionIterator.h
+    api/ListRequest.h
+    api/ListRequest.cc
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )

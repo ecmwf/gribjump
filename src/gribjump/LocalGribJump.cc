@@ -142,6 +142,14 @@ std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const
     return Engine().axes(request, level);
 }
 
+ListIterator LocalGribJump::list(const ListRequest& request) {
+    // TODO: implement listing. This should query the backing store for the
+    // fields matching the request and return a ListIterator over the resulting
+    // ListResults, e.g.:
+    //     return ListIterator{std::make_unique<VectorResultSource<ListResult>>(...)};
+    throw eckit::NotImplemented("LocalGribJump::list is not yet implemented", Here());
+}
+
 static GribJumpBuilder<LocalGribJump> builder("local");
 
 }  // namespace gribjump

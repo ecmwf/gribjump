@@ -11,14 +11,20 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/filesystem/PathName.h"
 #include "eckit/log/Timer.h"
 
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
+#include <cstddef>
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribJumpFactory.h"
+#include "gribjump/Metrics.h"
 #include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/ListResult.h"
+#include "gribjump/api/ResultIterator.h"
 #include "gribjump/tools/ToolUtils.h"
 #include "metkit/mars/MarsRequest.h"
 
@@ -55,7 +61,7 @@ size_t GribJump::scan(const std::vector<metkit::mars::MarsRequest> requests, boo
 /// @todo: we ought to be asserting that the requests are of cardinality 1, though currently awkward as they are
 /// represented with strings not MarsRequest (for efficiency)
 ///        Perhaps we can do this check deeper in the code, when it is explicitly required.
-/// @note: Future note: we may switch VectorSource to a queue or something similar for better streaming support, but
+/// @note: Future note: we may switch VectorResultSource to a queue or something similar for better streaming support, but
 /// ideally the API should not change.
 ExtractionIterator GribJump::extract(std::vector<ExtractionRequest>& requests, const LogContext& ctx) {
     ContextManager::instance().set(ctx);
@@ -63,7 +69,7 @@ ExtractionIterator GribJump::extract(std::vector<ExtractionRequest>& requests, c
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
     }
-    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
+    return ExtractionIterator{std::make_unique<VectorResultSource<ExtractionResult>>(impl_->extract(requests))};
 }
 
 ExtractionIterator GribJump::extract(std::vector<PathExtractionRequest>& requests, const LogContext& ctx) {
@@ -72,7 +78,7 @@ ExtractionIterator GribJump::extract(std::vector<PathExtractionRequest>& request
     if (requests.empty()) {
         throw eckit::UserError("Requests must not be empty", Here());
     }
-    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(requests))};
+    return ExtractionIterator{std::make_unique<VectorResultSource<ExtractionResult>>(impl_->extract(requests))};
 }
 
 ExtractionIterator GribJump::extract(const metkit::mars::MarsRequest& request, const std::vector<Range>& ranges,
@@ -103,7 +109,13 @@ ExtractionIterator GribJump::extract(const eckit::PathName& path, const std::vec
         throw eckit::UserError("Offsets and ranges must be the same size", Here());
     }
 
-    return ExtractionIterator{std::make_unique<VectorSource>(impl_->extract(path, offsets, ranges))};
+    return ExtractionIterator{std::make_unique<VectorResultSource<ExtractionResult>>(impl_->extract(path, offsets, ranges))};
+}
+
+
+ListIterator GribJump::list(const ListRequest& request, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
+    return impl_->list(request);
 }
 
 

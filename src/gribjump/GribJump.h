@@ -19,11 +19,13 @@
 #include <unordered_set>
 #include <vector>
 
+#include "gribjump/api/ListRequest.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/ListResult.h"
 
 namespace gribjump {
 
@@ -58,6 +60,8 @@ public:
     ExtractionIterator extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
                                const std::vector<std::vector<Range>>& ranges, const LogContext& ctx = LogContext());
 
+
+    ListIterator list(const ListRequest& request, const LogContext& ctx = LogContext());
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
                                                                 const LogContext& ctx = LogContext());
 

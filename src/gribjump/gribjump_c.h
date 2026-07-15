@@ -43,6 +43,15 @@ typedef struct gribjump_path_extraction_request_t gribjump_path_extraction_reque
 struct gribjump_extractioniterator_t;
 typedef struct gribjump_extractioniterator_t gribjump_extractioniterator_t;
 
+struct gribjump_list_request_t;
+typedef struct gribjump_list_request_t gribjump_list_request_t;
+
+struct gribjump_list_result_t;
+typedef struct gribjump_list_result_t gribjump_list_result_t;
+
+struct gribjump_listiterator_t;
+typedef struct gribjump_listiterator_t gribjump_listiterator_t;
+
 struct gribjump_axes_t;
 typedef struct gribjump_axes_t gribjump_axes_t;
 
@@ -97,6 +106,19 @@ const char* gribjump_git_sha1();
 gribjump_error_t gribjump_extractioniterator_delete(const gribjump_extractioniterator_t* it);
 gribjump_iterator_status_t gribjump_extractioniterator_next(gribjump_extractioniterator_t* it,
                                                             gribjump_extraction_result_t** result);
+
+gribjump_error_t gribjump_new_list_request(gribjump_list_request_t** request, const char* reqstr);
+gribjump_error_t gribjump_delete_list_request(gribjump_list_request_t* request);
+
+gribjump_error_t gribjump_list(gribjump_handle_t* handle, gribjump_list_request_t* request, const char* ctx,
+                               gribjump_listiterator_t** iterator);
+
+gribjump_error_t gribjump_listiterator_delete(const gribjump_listiterator_t* it);
+gribjump_iterator_status_t gribjump_listiterator_next(gribjump_listiterator_t* it, gribjump_list_result_t** result);
+
+gribjump_error_t gribjump_list_result_mars_request(gribjump_list_result_t* result, const char** mars_request);
+gribjump_error_t gribjump_list_result_json(gribjump_list_result_t* result, const char** json);
+gribjump_error_t gribjump_delete_list_result(gribjump_list_result_t* result);
 
 const char* gribjump_error_string();
 
