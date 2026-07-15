@@ -10,6 +10,7 @@ build:
     - ecmwf/eckit@develop
     - ecmwf/metkit@develop
     - ecmwf/fdb@develop
+    - ecmwf/dhskit@feature/mars-lister
   dependency_cmake_options:
     - "ecmwf/fdb: '-DENABLE_LUSTRE=OFF'"
   parallel: 64
