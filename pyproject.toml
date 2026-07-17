@@ -16,26 +16,14 @@ name = "pygribjump"
 description = "Python interface to GribJump"
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["version"]
+# NOTE do *not* include static dependencies here -- we need dynamicity for the gribjumplib constraint
+dynamic = ["version", "dependencies", "optional-dependencies"]
 authors = [
     { name = "ECMWF", email = "software.support@ecmwf.int" }
 ]
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 urls = { "Home" = "https://github.com/ecmwf/gribjump" }
-dependencies = [
-    "cffi>=2.0,<3.0",
-    "numpy>=1.26",
-    "findlibs>=0.1.1",
-    "packaging>=20.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.3",
-    "pyyaml",
-    "pyfdb",
-]
 
 [tool.setuptools.dynamic]
 version = { file = ["VERSION"] }
