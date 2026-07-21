@@ -47,7 +47,7 @@ jobs:
       name: gribjump
       path: pull-requests
       link-tag: PREVIEW-PUBLISH-GRIBJUMP
-      link-text: 🌈🌦️📖🚧 Documentation GribJump 🚧📖🌦️🌈
+      link-text: 🦘 Updated GribJump Documentation 🦘
     secrets:
       sites-token: ${{ secrets.ECMWF_SITES_DOCS_GRIBJUMP_TOKEN }}
   preview-unpublish-gribjump:
