@@ -1,10 +1,10 @@
 # Round-Robin Work Scheduling
 
-This note documents the gribjump worker-thread round-robin scheduling system.
+This note documents the GribJump worker-thread round-robin scheduling system.
 
 ## Overview
 
-Calls to gribjump's engine/schedulign system (e.g. `Engine::extract`, `Engine::scan`) are served by a single
+Calls to GribJump's engine/schedulign system (e.g. `Engine::extract`, `Engine::scan`) are served by a single
 `TaskGroup`. The engine splits the request into many `Task` instances (one per file, typically), enqueues them
 on the shared `WorkQueue` singleton, and blocks in `TaskGroup::waitForTasks()` until every task has completed,
 errored, or been cancelled.
@@ -43,7 +43,7 @@ As a result, small requests waited for large requests to finish — a classic he
 
 ## Round-robin per-group scheduling
 
-All gribjump versions before 0.13.0 used a single FIFO `WorkQueue` for all task groups.
+All GribJump versions before 0.13.0 used a single FIFO `WorkQueue` for all task groups.
 
 ```
 TaskGroup A.enqueueTask ──┐

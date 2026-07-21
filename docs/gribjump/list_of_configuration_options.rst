@@ -2,6 +2,7 @@
 GribJump Configuration
 ======================
 
+
 Configuration File
 ------------------
 The following options can be added to the ``GRIBJUMP_CONFIG_FILE``:
@@ -17,8 +18,8 @@ The following options can be added to the ``GRIBJUMP_CONFIG_FILE``:
     - ``cache.shadowfdb``: If ``true``, the index files will be stored in the same directory as data files. Default is ``true``.
     - ``cache.directory``: The directory where the index will be stored, instead of shadowing an FDB.
     - ``cache.lazy``: If ``false``, extracting from a GRIB file without a corresponding index file is considered an error. If ``true``, the metadata will be lazily extracted if the index file is missing. Default is ``true``.
-- ``plugin``: Configuration options for using GribJump as a plugin to FDB, which generates a gribjump index on the fly for ``fdb.archive()``.
-    - ``plugin.select``: Defines regex for selecting which FDB keys to generate a gribjump index for. If unset, no gribjump indexes will be generated. Example: ``select: date=(20*),stream=(oper|test)``.
+- ``plugin``: Configuration options for using GribJump as a plugin to FDB, which generates a GribJump index on the fly for ``fdb.archive()``.
+    - ``plugin.select``: Defines regex for selecting which FDB keys to generate a GribJump index for. If unset, no GribJump indexes will be generated. Example: ``select: date=(20*),stream=(oper|test)``.
 
 Environment variables
 ---------------------
@@ -33,3 +34,11 @@ These are:
 - ``GRIBJUMP_SERVER_PORT``: Overrides the ``server.port`` option in the configuration file.
 
 .. this list is incomplete.
+
+
+Other Config Options
+---------------------
+All of GribJump's configuration options are documented in the C++ API reference, which is generated from the source code. The following Doxygen class documents the configuration options available in GribJump:
+
+.. doxygenclass:: gribjump::ConfigOptions
+   :members:

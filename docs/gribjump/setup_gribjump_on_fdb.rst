@@ -21,10 +21,10 @@ Alternatively, you can scan individual GRIB files using ``gribjump-scan-files``:
   gribjump-scan-files /path/to/file1 /path/to/file2 ...
 
 
-Activating the gribjump plugin
+Activating the GribJump plugin
 -------------------------------
 
-To create new gribjump indexes on the fly, you must configure the gribjump-plugin on your FDB writer process. On this process, you must set the following:
+To create new GribJump indexes on the fly, you must configure the gribjump-plugin on your FDB writer process. On this process, you must set the following:
 
 - Tell FDB to enable the plugin: Set the environment variable ``FDB_ENABLE_GRIBJUMP=1``
 - Tell GribJump where to find it's configuration: Either set ``GRIBJUMP_CONFIG_FILE=/path/to/file``, OR set ``GRIBJUMP_HOME=/path/to/home/`` in which case you must have a file called ``$GRIBJUMP_HOME/etc/gribjump/config.yaml``
@@ -44,7 +44,7 @@ To automatically index everything written by your FDB process, a config like thi
 
 Did it work?
 ------------
-Regardless if which of the above approaches you use, should see a number of ``.gribjump`` files in your FDB, one for each scanned ``.data`` file. You can inspect the contents of the gribjump index files using ``gribjump-dump-info``::
+Regardless if which of the above approaches you use, should see a number of ``.gribjump`` files in your FDB, one for each scanned ``.data`` file. You can inspect the contents of the GribJump index files using ``gribjump-dump-info``::
 
   gribjump-dump-info /path/to/file.gribjump
 

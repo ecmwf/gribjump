@@ -4,11 +4,25 @@ C++ API
 =======
 
 GribJump is primarily a C++ library. This page documents the main public C++
-interfaces. For the complete, auto-generated class, file and namespace indexes,
-see the :doc:`Doxygen reference </doxygen>`.
+interfaces.
+
+The GribJump class
+------------------
+
+:cpp:class:`gribjump::GribJump` is the high-level entry point to the library. It
+is the object you construct to scan data, extract subsets of GRIB fields and
+query their axes.
+
+.. doxygenclass:: gribjump::GribJump
+   :members:
+   :undoc-members:
 
 Extraction results
 ------------------
+
+Extraction calls return a :cpp:class:`gribjump::ExtractionIterator`, a simple
+iterator over the :cpp:class:`gribjump::ExtractionResult` objects produced by the
+request.
 
 .. doxygenclass:: gribjump::ExtractionIterator
    :members:

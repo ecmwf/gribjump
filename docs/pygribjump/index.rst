@@ -5,6 +5,9 @@ pygribjump
 
 :Version: |version|
 
+.. warning::
+   These documentation pages are a work in progress.
+
 ``pygribjump`` is the Python interface to :ref:`GribJump <GribJump_Introduction>`.
 It provides a thin, idiomatic Python layer over the GribJump client library
 installed on your system, so you can drive GribJump extraction operations

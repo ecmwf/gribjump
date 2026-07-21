@@ -5,6 +5,9 @@ GribJump
 
 :Version: |version|
 
+.. warning::
+   These documentation pages are a work in progress.
+
 GribJump is part of `ECMWF <https://www.ecmwf.int>`__'s high-performance data
 infrastructure. It provides fast extraction of subsets of GRIB data directly
 from the `FDB <https://github.com/ecmwf/fdb>`__ object store, without the need
@@ -15,13 +18,24 @@ This section documents the main C++ library: how to set it up, configure it,
 and the concepts behind its inner machinery.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
+   :caption: Notes
 
    setup_gribjump_on_fdb
    gribjump_index
    list_of_configuration_options
    gribjump_with_remotefdb
-   round-robin-scheduling
-   details
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API Reference
+
    api
+   c_api
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer Docs
+
+   details
+   round-robin-scheduling

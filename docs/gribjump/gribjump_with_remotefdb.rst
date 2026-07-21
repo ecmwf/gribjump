@@ -1,8 +1,6 @@
 GribJump with RemoteFDB
 =======================
 
-See also: gribjump_server_
-
 In a RemoteFDB deployment there are at least two FDB servers:
 
 - A single Catalogue Server, hosting the FDB index.

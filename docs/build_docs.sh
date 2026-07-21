@@ -6,7 +6,13 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 version_str=$(cat "${repo_root}/VERSION")
 output_dir=${DOCBUILD_OUTPUT:-doc-build}
 doxygen_output_dir="${output_dir}/doxygen"
-doxygen_input_dir="${repo_root}/src/gribjump/api"
+# The public API surface Doxygen parses: the api/ headers plus the main
+# high-level entry points (GribJump C++ class and the C API), which live
+# directly under src/gribjump/ rather than in src/gribjump/api/.
+doxygen_input_dir="${repo_root}/src/gribjump/api \
+${repo_root}/src/gribjump/GribJump.h \
+${repo_root}/src/gribjump/gribjump_c.h \
+${repo_root}/src/gribjump/Config.h"
 
 doxygen_executable="${DOXYGEN_EXECUTABLE:-doxygen}"
 sphinx_executable="${SPHINX_EXECUTABLE:-sphinx-build}"
