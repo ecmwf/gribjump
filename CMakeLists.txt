@@ -83,8 +83,8 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
 endif()
 
-if(ENABLE_GRIBJUMP_DOCUMENTATION)
-    add_subdirectory(docs)
+if (HAVE_GRIBJUMP_DOCUMENTATION)
+  add_subdirectory(docs)
 endif()
 
 if(HAVE_PYTHON_API_TESTS)
