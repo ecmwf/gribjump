@@ -1,0 +1,7 @@
+Sphinx~=8.1
+breathe~=4.35
+pydata-sphinx-theme
+myst-parser
+requests
+sphinxcontrib-mermaid
+sphinx-autoapi

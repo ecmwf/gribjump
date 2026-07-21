@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - Replace FIFO job queue with Round Robin queue, to prevent large requests starving small requests.
+- Read the docs integration (`https://sites.ecmwf.int/docs/gribjump/`)
 
 ## [0.12.0] - 2026-05-07
 
