@@ -53,6 +53,11 @@ ecbuild_add_option(
     DEFAULT OFF
     DESCRIPTION "Will execute python tests against pygribjump / libgribjump")
 
+### Documentation
+ecbuild_add_option( FEATURE GRIBJUMP_DOCUMENTATION
+                    DEFAULT OFF
+                    DESCRIPTION "Enable documentation generation" )
+
 ########################################################################################################################
 # contents
 
@@ -76,6 +81,10 @@ add_subdirectory( src )
 
 if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   add_subdirectory( tests )
+endif()
+
+if(ENABLE_GRIBJUMP_DOCUMENTATION)
+    add_subdirectory(docs)
 endif()
 
 if(HAVE_PYTHON_API_TESTS)

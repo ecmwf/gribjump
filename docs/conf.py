@@ -86,5 +86,16 @@ html_static_path = ["_static"]
 breathe_projects = {"GribJump": os.environ.get("DOXYGEN_XML_DIR", "doxygen/xml")}
 breathe_default_project = "GribJump"
 
+# -- Doxygen HTML ------------------------------------------------------------
+# The full Doxygen-generated HTML (indexes, tables, class/file lists) is copied
+# verbatim into the output under ``doxygen/`` so it can be surfaced under the
+# "Doxygen" section. ``DOXYGEN_HTML_EXTRA_DIR`` must point at a directory that
+# contains a ``doxygen/`` subfolder with the generated HTML (see build_docs.sh
+# and docs/CMakeLists.txt).
+_doxygen_html_extra_dir = os.environ.get("DOXYGEN_HTML_EXTRA_DIR")
+html_extra_path = []
+if _doxygen_html_extra_dir and os.path.isdir(_doxygen_html_extra_dir):
+    html_extra_path.append(_doxygen_html_extra_dir)
+
 # -- autosectionlabel configuration ------------------------------------------
 autosectionlabel_prefix_document = True

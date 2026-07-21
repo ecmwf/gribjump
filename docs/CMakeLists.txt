@@ -6,8 +6,13 @@ set(GRIBJUMP_API_HEADER_DIR "${PROJECT_SOURCE_DIR}/src/gribjump/api")
 set(DOXYGEN_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/doxygen")
 set(SPHINX_OUTPUT_DIR  "${CMAKE_CURRENT_BINARY_DIR}/sphinx")
 set(DOXYGEN_XML_DIR    "${DOXYGEN_OUTPUT_DIR}/xml")
+set(DOXYGEN_HTML_DIR   "${DOXYGEN_OUTPUT_DIR}/html")
 set(DOXYGEN_INPUT_DIR  "${GRIBJUMP_API_HEADER_DIR}")
 set(GRIBJUMP_VERSION   "${PROJECT_VERSION}")
+
+# Staging dir whose "doxygen/" subfolder holds the generated Doxygen HTML.
+# Sphinx copies it verbatim into the site (see conf.py / html_extra_path).
+set(SPHINX_EXTRA_DIR   "${CMAKE_CURRENT_BINARY_DIR}/extra")
 
 # --- Input file globs ---
 file(GLOB_RECURSE GRIBJUMP_PUBLIC_HEADERS CONFIGURE_DEPENDS "${GRIBJUMP_API_HEADER_DIR}/*.h")
@@ -31,6 +36,8 @@ add_custom_command(
     OUTPUT  ${DOXYGEN_INDEX_FILE}
     COMMAND ${CMAKE_COMMAND} -E make_directory "${DOXYGEN_OUTPUT_DIR}"
     COMMAND ${DOXYGEN_EXECUTABLE} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${SPHINX_EXTRA_DIR}/doxygen"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${DOXYGEN_HTML_DIR}" "${SPHINX_EXTRA_DIR}/doxygen"
     DEPENDS ${GRIBJUMP_PUBLIC_HEADERS} "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile"
     MAIN_DEPENDENCY "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -41,6 +48,9 @@ add_custom_command(
 add_custom_command(
     OUTPUT  ${SPHINX_INDEX_FILE}
     COMMAND
+        ${CMAKE_COMMAND} -E env
+        "DOXYGEN_HTML_EXTRA_DIR=${SPHINX_EXTRA_DIR}"
+        "DOXYGEN_XML_DIR=${DOXYGEN_XML_DIR}"
         ${SPHINX_EXECUTABLE} -j auto -E -a -T
         -Dbreathe_projects.GribJump=${DOXYGEN_XML_DIR}
         -Dversion=${GRIBJUMP_VERSION}

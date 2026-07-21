@@ -21,8 +21,18 @@ sed \
 
 ${doxygen_executable} "${output_dir}/Doxyfile"
 
+# Stage the Doxygen-generated HTML so Sphinx copies it verbatim into the site
+# under "doxygen/" (surfaced by the "Doxygen" section).
+extra_dir="${output_dir}/extra"
+rm -rf "${extra_dir}/doxygen"
+mkdir -p "${extra_dir}"
+cp -R "${doxygen_output_dir}/html" "${extra_dir}/doxygen"
+
+export DOXYGEN_HTML_EXTRA_DIR="$(cd "${extra_dir}" && pwd)"
+export DOXYGEN_XML_DIR="$(cd "${doxygen_output_dir}/xml" && pwd)"
+
 "${sphinx_executable}" -j auto -E -a -T \
-    -Dbreathe_projects.GribJump="$(cd "${doxygen_output_dir}/xml" && pwd)" \
+    -Dbreathe_projects.GribJump="${DOXYGEN_XML_DIR}" \
     -Dversion="${version_str}" \
     -Drelease="${version_str}" \
     "${script_dir}" "${output_dir}/sphinx"
