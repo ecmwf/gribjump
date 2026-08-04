@@ -11,6 +11,7 @@
 /// @author Christopher Bradley
 
 #include "gribjump/MarsListerClient.h"
+#include <iostream>
 #include <memory>
 #include <string>
 #include <tuple>
@@ -25,6 +26,8 @@
 #include "dhskit/ListAggregation.h"
 
 #include "gribjump/Types.h"
+#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsParser.h"
 
 namespace gribjump {
 
@@ -32,17 +35,72 @@ namespace {
 
 /// Build the lookup key used to match a listed field against an ExtractionItem.
 /// The key must have its mars keys sorted alphabetically (to match the canonical key used in
-/// reqToExtractionItem). FlatField::request is a std::map, so iterating it already yields the
-/// keys in sorted order. Unlike the FDB lister, we do not manipulate the values or drop
-/// date/year/month aliases here.
-std::string marsRequestToKey(const std::map<std::string, std::string>& request) {
-    std::string key;
+/// reqToExtractionItem). 
+
+/// @todo: It ought to be metkit or dhskit's job to be able to tell me if different 
+/// representations of the same request are equivalent. (e.g. date=2025-11-30 vs year=2025, month=202511, day=30).
+/// I'll put some hacky logic here for now, please don't let it stay.......
+std::map<std::string, std::string> keyMagic(const std::map<std::string, std::string>& request) {
+
+    std::map<std::string, std::string> newRequest = request;
+
+    // Magic 1: date.
+    // if date is present, ignore year and month as they are aliases.
+    if (request.find("date") != request.end()) {
+        newRequest.erase("year");
+        newRequest.erase("month");
+        newRequest.erase("day");
+    }
+    else if (request.find("year") != request.end() && request.find("month") != request.end() && request.find("day") != request.end()) {
+        // if date not present, but  year, month and day are present, construct a single date=YYYYMMDD from them.
+
+        const std::string& month = request.at("month");
+        
+        std::string mm = month.substr(month.size() - 2); // last two characters of month string
+
+        const std::string& yyyy = request.at("year");
+        const std::string& dd = request.at("day");
+
+        std::string date = yyyy + mm + dd;
+        newRequest.erase("year");
+        newRequest.erase("month");
+        newRequest.erase("day");
+        newRequest["date"] = date;
+    }
+
+    return newRequest; // return the modified request if no changes were made
+}
+
+/// @todo: incredibly hacky and quite expensive.
+std::string marsRequestToKey(const std::map<std::string, std::string>& request_in) {
+    std::map<std::string, std::string> request = keyMagic(request_in);
+    std::string key = "retrieve,";
     std::string separator;
     for (const auto& [k, v] : request) {
         key += separator + k + "=" + v;
         separator = ",";
     }
-    return key;
+    // return key;
+    std::istringstream in(key);
+    metkit::mars::MarsParser parser(in);
+    metkit::mars::MarsExpansion expand(false, true);
+    auto v = expand.expand(parser.parse());
+    ASSERT(v.size() == 1);
+
+    // return v[0].asString().substr(9); // drop the "retrieve," prefix
+    // to string, our own way.
+    std::string out="";
+    // iterate over keys
+    std::vector<std::string> keys;
+    v[0].getParams(keys);
+    std::sort(keys.begin(), keys.end());
+    for (const auto& k : keys) {
+        if (out != "") {
+            out += ",";
+        }
+        out += k + "=" + v[0].values(k)[0];
+    }
+    return out;
 }
 
 }  // namespace
@@ -171,6 +229,17 @@ std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(co
 // }
 
 filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest, const ExItemMap& reqToExtractionItem) {
+    // debug, print everything we have
+    if (LibGribJump::instance().debug()) {
+        std::cout << "XXX:" << "MarsListerClient::fileMap -- marsRequest: " << marsRequest << std::endl;
+        std::cout << "XXX:" << "MarsListerClient::fileMap -- reqToExtractionItem has " << reqToExtractionItem.size() << " items" << std::endl;
+        for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
+            std::cout << "XXX:" << "  key: " << key << std::endl;
+            std::cout << ">> ";
+            extractionItemPtr->debug_print();
+            std::cout << std::endl;
+        }
+    }
 
     filemap_t filemap;
 
@@ -204,6 +273,7 @@ filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest
     // Lazily walk the flattened fields, matching each to its ExtractionItem by canonical key.
     for (const auto& field : aggregation) {
         const std::string key = marsRequestToKey(field.request);
+        std::cout << "Searching for key: " << key << std::endl;
 
         auto it = reqToExtractionItem.find(key);
         if (it == reqToExtractionItem.end()) {
@@ -222,6 +292,8 @@ filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest
         extractionItem->URI(uri);
         insertFileMap(filemap, uri.path(), extractionItem);
     }
+
+    logFileMap(filemap);
 
     return filemap;
 }
