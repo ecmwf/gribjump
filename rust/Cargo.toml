@@ -21,10 +21,10 @@ fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-v1",
 fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-v1", default-features = false }
 
 # Foundation crates
-eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "rust-bindings", default-features = false }
-eckit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
-metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings", default-features = false }
-metkit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
+eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", default-features = false }
+eckit = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop" }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings-high-level-crate", default-features = false }
+metkit = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings-high-level-crate" }
 eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads", "aec"] }
 
 # Build tools
@@ -38,3 +38,8 @@ cxx = "1.0"
 cxx-build = "1.0"
 parking_lot = "0.12"
 tempfile = "3"
+
+# Local fdb changes not pushed yet — remove once rust-bindings-v1 is up to date on GitHub
+[patch."ssh://git@github.com/ecmwf/fdb.git"]
+fdb = { path = "../../fdb/rust/crates/fdb" }
+fdb-sys = { path = "../../fdb/rust/crates/fdb-sys" }

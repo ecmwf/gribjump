@@ -704,18 +704,17 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
     fdb.flush().expect("FDB flush failed");
 
     // --- FDB: list field locations to discover file paths and offsets ---
-    let list_request = metkit::MarsRequestBuilder::new("list")
-        .with("class", "rd")
-        .with("date", "20230508")
-        .with("domain", "g")
-        .with("expver", "xxxx")
-        .with("levtype", "sfc")
-        .with("param", "151130")
-        .with_values("step", &["2", "1", "3"])
-        .with("stream", "oper")
-        .with("time", "1200")
-        .with("type", "fc")
-        .build();
+    let mut list_request = metkit::MarsRequest::new("list");
+    list_request.set("class", "rd");
+    list_request.set("date", "20230508");
+    list_request.set("domain", "g");
+    list_request.set("expver", "xxxx");
+    list_request.set("levtype", "sfc");
+    list_request.set("param", "151130");
+    list_request.set("step", ["2", "1", "3"]);
+    list_request.set("stream", "oper");
+    list_request.set("time", "1200");
+    list_request.set("type", "fc");
 
     let list_iter = fdb
         .list(

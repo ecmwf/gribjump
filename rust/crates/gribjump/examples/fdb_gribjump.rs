@@ -142,18 +142,17 @@ fn demo_path_and_offset(fdb: &Fdb, gj: &GribJump) -> Result<(), Box<dyn std::err
     println!("--- Demo 3: Path + offset extraction via FDB list ---");
     println!("Use fdb.list() to discover field locations, then extract by path/offset.\n");
 
-    let list_request = metkit::MarsRequestBuilder::new("list")
-        .with("class", "rd")
-        .with("date", "20230508")
-        .with("domain", "g")
-        .with("expver", "xxxx")
-        .with("levtype", "sfc")
-        .with("param", "151130")
-        .with_values("step", &["2", "1", "3"])
-        .with("stream", "oper")
-        .with("time", "1200")
-        .with("type", "fc")
-        .build();
+    let mut list_request = metkit::MarsRequest::new("list");
+    list_request.set("class", "rd");
+    list_request.set("date", "20230508");
+    list_request.set("domain", "g");
+    list_request.set("expver", "xxxx");
+    list_request.set("levtype", "sfc");
+    list_request.set("param", "151130");
+    list_request.set("step", ["2", "1", "3"]);
+    list_request.set("stream", "oper");
+    list_request.set("time", "1200");
+    list_request.set("type", "fc");
 
     let list_iter = fdb.list(
         &list_request,
