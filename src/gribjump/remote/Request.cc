@@ -28,10 +28,7 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // @todo: Lots of common behaviour between these classes, consider refactoring. Especially the interaction with metrics.
 
-Request::Request(eckit::Stream& stream, EngineIface* engine) :
-    client_(stream),
-    ownedEngine_(engine ? nullptr : std::make_unique<Engine>()),
-    engine_(engine ? *engine : *ownedEngine_) {
+Request::Request(eckit::Stream& stream, EngineIface& engine) : client_(stream), engine_(engine) {
     id_ = requestid();
     MetricsManager::instance().set("gribjump_request_id", id_);
 }
@@ -42,7 +39,7 @@ void Request::reportErrors() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
+ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "scan");
 
     requests_ = ProtocolCodec::decodeScanRequest(client_, byfiles_);
@@ -70,7 +67,7 @@ void ScanRequest::info() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
+ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "extract");
 
     requests_ = ProtocolCodec::decodeExtractRequest(client_);
@@ -121,7 +118,7 @@ void ExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
+ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-extract");
 
     auto data = ProtocolCodec::decodeForwardExtractRequest(client_);
@@ -152,7 +149,7 @@ void ForwardedExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
+ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-scan");
 
     scanmap_ = ProtocolCodec::decodeForwardScanRequest(client_);
@@ -181,7 +178,7 @@ void ForwardedScanRequest::info() const {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
+AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "axes");
     ProtocolCodec::decodeAxesRequest(client_, request_, level_);
     ASSERT(request_.size() > 0);

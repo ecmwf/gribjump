@@ -11,6 +11,8 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
+#include <optional>
+
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
@@ -61,10 +63,18 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 }
 
 template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface* engine);
+static void processRequest(eckit::Stream& s, EngineIface& engine);
 
-void dispatchRequest(eckit::Stream& s, EngineIface* engine) {
+void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     RequestType requestType = ProtocolCodec::readRequestHeader(s);
+
+    // Resolve the inject-or-default decision once: tests inject a mock engine,
+    // production runs with a real Engine owned for the duration of this call.
+    std::optional<Engine> ownedEngine;
+    if (!injectedEngine) {
+        ownedEngine.emplace();
+    }
+    EngineIface& engine = injectedEngine ? *injectedEngine : *ownedEngine;
 
     switch (requestType) {
         case RequestType::EXTRACT:
@@ -88,7 +98,7 @@ void dispatchRequest(eckit::Stream& s, EngineIface* engine) {
 }
 
 template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface* engine) {
+static void processRequest(eckit::Stream& s, EngineIface& engine) {
     eckit::Timer timer("GribJumpUser::processRequest");
 
     RequestT request(s, engine);
