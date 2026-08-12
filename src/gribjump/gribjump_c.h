@@ -8,7 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @file gribjump_c.h
+/// @author Caragh Bradley
 
 #pragma once
 #include <stddef.h>

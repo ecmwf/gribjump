@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 #include "gribjump/gribjump_c.h"
 #include <functional>

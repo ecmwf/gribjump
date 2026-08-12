@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 #include "gribjump/Metrics.h"
 #include "eckit/log/Log.h"

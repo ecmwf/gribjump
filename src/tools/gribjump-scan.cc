@@ -21,7 +21,7 @@
 #include "gribjump/tools/GribJumpTool.h"
 
 /// @author Tiago Quintino
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 /// Tool to execute the scanning of the FDB and building the GribJump info
 /// either locally or remotely on the GribJump server

@@ -10,7 +10,7 @@
 
 /// @file   test_c_api.c
 /// @date   Dec 2024
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 
 #include <stdio.h>
 #include "gribjump/gribjump_c.h"

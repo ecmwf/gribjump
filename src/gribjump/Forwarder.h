@@ -8,7 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
-/// @author Christopher Bradley
+/// @author Caragh Bradley
 #include "eckit/net/Endpoint.h"
 #include "gribjump/Engine.h"
 #include "gribjump/Task.h"
