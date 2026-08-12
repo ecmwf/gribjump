@@ -15,13 +15,16 @@ and run in the normal fast unit-test suite.
 | `gribjump_test_protocol_loopback` | Real client codec wired back-to-back to real server dispatch over an in-memory stream — client and server agree on the format. |
 | `gribjump_test_protocol_socketpair` | Same as loopback but over a genuine connected kernel socket (`AF_UNIX` `socketpair`), server on its own thread. Proves framing survives a real blocking full-duplex transport. |
 
-Shared helpers (`MockEngine`, the duplex in-memory stream, encode utilities and
-the `RemoteProtocolTestAccess` friend seam) live in `protocol_test_helpers.h`.
+Shared helpers (`MockEngine`, the duplex in-memory stream, encode utilities)
+live in `protocol_test_helpers.h`.
 
-The single source of truth for the request framing (protocol version +
-`LogContext` + `RequestType`) is `src/gribjump/remote/Protocol.h`, used by both
-the client (`RemoteGribJump::sendHeader`) and the server
-(`GribJumpUser::dispatchRequest`).
+The single source of truth for the wire format is
+`src/gribjump/remote/ProtocolCodec.h`: every message has exactly one encoder and
+one matching decoder, side by side. Both the client (`RemoteGribJump`) and the
+server (`GribJumpUser::dispatchRequest` / the `Request` subclasses) drive all
+their stream I/O through `ProtocolCodec`, so the two sides cannot drift apart.
+The protocol version and `RequestType` enum live in the lightweight
+`src/gribjump/remote/Protocol.h`.
 
 ## Running them
 
@@ -35,13 +38,16 @@ A changed golden hash in `test_protocol_codec.cc` means the wire format
 changed. This is intentional only if you meant to change the protocol. When you
 do:
 
-1. **Bump `remoteProtocolVersion`** in `src/gribjump/remote/Protocol.h`. The
+1. **Edit the matched encode/decode pair in `ProtocolCodec`.** Because each
+   message's encoder and decoder sit side by side, a format change is a single,
+   local edit — keep the two halves in sync.
+2. **Bump `remoteProtocolVersion`** in `src/gribjump/remote/Protocol.h`. The
    codec test asserts its current value, so an intentional protocol change must
    update it. Old clients/servers will then correctly reject the new version.
-2. **Regenerate the golden hashes.** Run `gribjump_test_protocol_codec`; on a
+3. **Regenerate the golden hashes.** Run `gribjump_test_protocol_codec`; on a
    mismatch it prints the actual hash for each affected fixture. Copy the new
    values into the inline goldens in `test_protocol_codec.cc`.
-3. Re-run the full protocol suite and confirm the round-trips still
+4. Re-run the full protocol suite and confirm the round-trips still
    pass (they exercise the semantics, not just the bytes).
 
 If a golden hash changed and you did **not** intend to alter the protocol, treat

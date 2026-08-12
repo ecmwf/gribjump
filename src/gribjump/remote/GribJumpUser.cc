@@ -16,6 +16,7 @@
 
 #include "gribjump/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
+#include "gribjump/remote/ProtocolCodec.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/Request.h"
 
@@ -63,7 +64,7 @@ template <typename RequestT>
 static void processRequest(eckit::Stream& s, EngineIface* engine);
 
 void dispatchRequest(eckit::Stream& s, EngineIface* engine) {
-    RequestType requestType = readRequestHeader(s);
+    RequestType requestType = ProtocolCodec::readRequestHeader(s);
 
     switch (requestType) {
         case RequestType::EXTRACT:

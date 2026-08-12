@@ -8,25 +8,18 @@
  * does it submit to any jurisdiction.
  */
 
-/// Single source of truth for the remote gribjump wire protocol: the protocol
-/// version, the request-type enum, and the request-header framing shared by the
-/// client (RemoteGribJump) and the server (GribJumpUser). Centralising the
-/// header (de)serialisation here structurally prevents the two sides from
-/// drifting apart.
+/// Wire-protocol constants for the remote gribjump client/server: the protocol
+/// version and the request-type enum. Kept deliberately lightweight (no codec
+/// includes) so any translation unit can name a RequestType or check the
+/// version cheaply. The actual (de)serialisation lives in ProtocolCodec.h.
 ///
-/// Any change to the byte layout below is a protocol change: bump
+/// Any change to the byte layout of a message is a protocol change: bump
 /// remoteProtocolVersion and regenerate the golden hashes in
 /// tests/remote/test_protocol_codec.cc.
 
 #pragma once
 
 #include <cstdint>
-#include <string>
-
-#include "eckit/exception/Exceptions.h"
-#include "eckit/serialisation/Stream.h"
-
-#include "gribjump/Metrics.h"
 
 namespace gribjump {
 
@@ -41,36 +34,6 @@ enum class RequestType : uint16_t {
 };
 
 constexpr uint16_t remoteProtocolVersion = 3;
-
-//----------------------------------------------------------------------------------------------------------------------
-// Request header framing: [protocol version][log context][request type].
-
-/// Write the request header, as the client does at the start of every request.
-inline void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context) {
-    stream << remoteProtocolVersion;
-    stream << context;
-    stream << static_cast<uint16_t>(type);
-}
-
-/// Read and validate the request header from the client. Throws on protocol
-/// version mismatch. Installs the received log context into the ContextManager
-/// and returns the request type.
-inline RequestType readRequestHeader(eckit::Stream& stream) {
-    uint16_t version;
-    stream >> version;
-    if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug(
-            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
-            ", Clientside version: " + std::to_string(version));
-    }
-
-    LogContext ctx(stream);
-    ContextManager::instance().set(ctx);
-
-    uint16_t i_requestType;
-    stream >> i_requestType;
-    return static_cast<RequestType>(i_requestType);
-}
 
 //----------------------------------------------------------------------------------------------------------------------
 

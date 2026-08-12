@@ -14,6 +14,7 @@
 #include "gribjump/remote/Request.h"
 #include <cstddef>
 #include "gribjump/Engine.h"
+#include "gribjump/remote/ProtocolCodec.h"
 
 namespace {
 static std::atomic<uint64_t> requestid_{0};
@@ -44,20 +45,12 @@ void Request::reportErrors() {
 ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "scan");
 
-    client_ >> byfiles_;
+    requests_ = ProtocolCodec::decodeScanRequest(client_, byfiles_);
 
     LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: byfiles=" << byfiles_ << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: numRequests=" << requests_.size() << std::endl;
 
-    size_t numRequests;
-    client_ >> numRequests;
-
-    LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: numRequests=" << numRequests << std::endl;
-
-    for (size_t i = 0; i < numRequests; i++) {
-        requests_.emplace_back(metkit::mars::MarsRequest(client_));
-    }
-
-    MetricsManager::instance().set("count_scan_requests", numRequests);
+    MetricsManager::instance().set("count_scan_requests", requests_.size());
 }
 
 void ScanRequest::execute() {
@@ -67,7 +60,7 @@ void ScanRequest::execute() {
 }
 
 void ScanRequest::replyToClient() {
-    client_ << nFields_;
+    ProtocolCodec::encodeScanReply(client_, nFields_);
 }
 
 void ScanRequest::info() const {
@@ -80,18 +73,9 @@ void ScanRequest::info() const {
 ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "extract");
 
-    // Receive the requests
-    // Temp, repackage the requests from old format into format the engine expects
+    requests_ = ProtocolCodec::decodeExtractRequest(client_);
 
-    size_t nRequests;
-    client_ >> nRequests;
-
-    for (size_t i = 0; i < nRequests; i++) {
-        ExtractionRequest req(client_);
-        requests_.push_back(req);
-    }
-
-    MetricsManager::instance().set("count_extraction_requests", nRequests);
+    MetricsManager::instance().set("count_extraction_requests", requests_.size());
 }
 
 void ExtractRequest::execute() {
@@ -111,20 +95,22 @@ void ExtractRequest::execute() {
 
 void ExtractRequest::replyToClient() {
 
-    // Send the results, again repackage.
-
     size_t nRequests = requests_.size();
     LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
 
+    // Assemble the results in request order; encodeExtractReply frames each.
+    std::vector<std::unique_ptr<ExtractionResult>> ordered;
+    std::vector<const ExtractionResult*> results;
+    ordered.reserve(nRequests);
+    results.reserve(nRequests);
     for (size_t i = 0; i < nRequests; i++) {
-        LOG_DEBUG_LIB(LibGribJump) << "Sending result " << i << " to client" << std::endl;
-
         auto it = results_.find(requests_[i].requestString());
         ASSERT(it != results_.end());
-        size_t nfields = 1;  // @todo: remove this (bump protocol version)
-        client_ << nfields;
-        client_ << *(it->second->result());
+        ordered.push_back(it->second->result());
+        results.push_back(ordered.back().get());
     }
+
+    ProtocolCodec::encodeExtractReply(client_, results);
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
 }
@@ -138,27 +124,15 @@ void ExtractRequest::info() const {
 ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-extract");
 
-    size_t nFiles;
-    client_ >> nFiles;
+    auto data = ProtocolCodec::decodeForwardExtractRequest(client_);
+    items_    = std::move(data.items);
+    filemap_  = std::move(data.filemap);
 
-    LOG_DEBUG_LIB(LibGribJump) << "ForwardedExtractRequest: nFiles=" << nFiles << std::endl;
     size_t count = 0;
-    for (size_t i = 0; i < nFiles; i++) {
-        std::string fname;
-        size_t nItems;
-        client_ >> fname;
-        client_ >> nItems;
-        filemap_[fname] = std::vector<ExtractionItem*>();  // non-owning pointers
-        filemap_[fname].reserve(nItems);
-
-        for (size_t j = 0; j < nItems; j++) {
-            auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(client_));
-            extractionItem->URI(eckit::URI("file", client_));
-            filemap_[fname].push_back(extractionItem.get());  // non-owning pointers
-            items_.push_back(std::move(extractionItem));
-        }
-        count += nItems;
+    for (const auto& [fname, extractionItems] : filemap_) {
+        count += extractionItems.size();
     }
+    LOG_DEBUG_LIB(LibGribJump) << "ForwardedExtractRequest: nFiles=" << filemap_.size() << std::endl;
     MetricsManager::instance().set("count_extraction_requests", count);
 
     ASSERT(count > 0);  // We should not be talking to this server if we have no requests.
@@ -169,15 +143,7 @@ void ForwardedExtractRequest::execute() {
 }
 
 void ForwardedExtractRequest::replyToClient() {
-
-    for (auto& [fname, extractionItems] : filemap_) {
-        client_ << fname;  // sanity check
-        size_t nItems = extractionItems.size();
-        client_ << nItems;
-        for (auto& item : extractionItems) {
-            client_ << *(item->result());
-        }
-    }
+    ProtocolCodec::encodeForwardExtractReply(client_, filemap_);
 }
 
 void ForwardedExtractRequest::info() const {
@@ -189,17 +155,11 @@ void ForwardedExtractRequest::info() const {
 ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-scan");
 
-    size_t nFiles;
-    client_ >> nFiles;
-    LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanRequest: nFiles=" << nFiles << std::endl;
+    scanmap_ = ProtocolCodec::decodeForwardScanRequest(client_);
+    LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanRequest: nFiles=" << scanmap_.size() << std::endl;
 
     size_t count = 0;
-    for (size_t i = 0; i < nFiles; i++) {
-        std::string fname;
-        eckit::OffsetList offsets;
-        client_ >> fname;
-        client_ >> offsets;
-        scanmap_[fname] = offsets;
+    for (const auto& [fname, offsets] : scanmap_) {
         count += offsets.size();
     }
 
@@ -213,7 +173,7 @@ void ForwardedScanRequest::execute() {
 }
 
 void ForwardedScanRequest::replyToClient() {
-    client_ << nfields_;
+    ProtocolCodec::encodeScanReply(client_, nfields_);
 }
 
 void ForwardedScanRequest::info() const {
@@ -223,8 +183,7 @@ void ForwardedScanRequest::info() const {
 
 AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "axes");
-    client_ >> request_;
-    client_ >> level_;
+    ProtocolCodec::decodeAxesRequest(client_, request_, level_);
     ASSERT(request_.size() > 0);
 }
 
@@ -243,16 +202,7 @@ void AxesRequest::replyToClient() {
         eckit::Log::info() << std::endl;
     }
 
-    size_t naxes = axes_.size();
-    client_ << naxes;
-    for (auto& pair : axes_) {
-        client_ << pair.first;
-        size_t n = pair.second.size();
-        client_ << n;
-        for (auto& val : pair.second) {
-            client_ << val;
-        }
-    }
+    ProtocolCodec::encodeAxesReply(client_, axes_);
 }
 
 void AxesRequest::info() const {

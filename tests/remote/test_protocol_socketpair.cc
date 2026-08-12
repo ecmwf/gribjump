@@ -20,7 +20,6 @@
 #include <sys/socket.h>
 #include <thread>
 
-#include "eckit/net/Endpoint.h"
 #include "eckit/net/TCPSocket.h"
 #include "eckit/net/TCPStream.h"
 #include "eckit/testing/Test.h"
@@ -28,6 +27,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/remote/GribJumpUser.h"
+#include "gribjump/remote/ProtocolCodec.h"
 
 #include "protocol_test_helpers.h"
 
@@ -65,21 +65,17 @@ CASE("Socketpair: EXTRACT round-trips over a real kernel socket") {
     });
 
     // Client: encode header + request and read back the reply.
-    RemoteGribJump client(eckit::net::Endpoint("localhost", 1));
-    RemoteProtocolTestAccess access(client);
-
     std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2)};
 
     {
         FdSocket sock(fds[1]);
         eckit::net::InstantTCPStream s(sock);
 
-        access.sendHeader(s, RequestType::EXTRACT);
-        access.encodeExtractRequest(s, requests);
+        ProtocolCodec::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+        ProtocolCodec::encodeExtractRequest(s, requests);
 
-        bool error = access.receiveErrors(s);
-        EXPECT(!error);
-        auto results = access.decodeExtractReply(s, requests.size());
+        EXPECT(!ProtocolCodec::decodeErrors(s));
+        auto results = ProtocolCodec::decodeExtractReply(s, requests.size());
 
         EXPECT_EQUAL(results.size(), 2);
         for (auto& r : results) {
@@ -111,9 +107,6 @@ CASE("Socketpair: SCAN round-trips over a real kernel socket") {
         sock.close();
     });
 
-    RemoteGribJump client(eckit::net::Endpoint("localhost", 1));
-    RemoteProtocolTestAccess access(client);
-
     metkit::mars::MarsRequest mr("retrieve");
     mr.setValue("class", "rd");
     mr.setValue("expver", "xxxx");
@@ -123,13 +116,11 @@ CASE("Socketpair: SCAN round-trips over a real kernel socket") {
         FdSocket sock(fds[1]);
         eckit::net::InstantTCPStream s(sock);
 
-        access.sendHeader(s, RequestType::SCAN);
-        access.encodeScanRequest(s, requests, true);
+        ProtocolCodec::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        ProtocolCodec::encodeScanRequest(s, requests, true);
 
-        bool error = access.receiveErrors(s);
-        EXPECT(!error);
-        size_t nFields = access.decodeScanReply(s);
-        EXPECT_EQUAL(nFields, 7);
+        EXPECT(!ProtocolCodec::decodeErrors(s));
+        EXPECT_EQUAL(ProtocolCodec::decodeScanReply(s), 7);
 
         sock.close();
     }

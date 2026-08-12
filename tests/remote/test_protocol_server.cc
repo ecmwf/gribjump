@@ -257,7 +257,7 @@ CASE("Server reports engine errors in the error block") {
     engine.errors = {"boom: something failed", "and another"};
     dispatchRequest(stream, &engine);
 
-    // Client-side error decoding (mirrors RemoteGribJump::receiveErrors)
+    // Client-side error decoding (mirrors ProtocolCodec::decodeErrors)
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
     size_t nErrors;
     reply >> nErrors;

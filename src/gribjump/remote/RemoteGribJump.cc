@@ -9,14 +9,13 @@
  */
 
 /// @author Caragh Bradley
-#include <algorithm>
 
 #include "eckit/log/Log.h"
-#include "eckit/log/Plural.h"
 #include "eckit/log/Timer.h"
 
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LogRouter.h"
+#include "gribjump/remote/ProtocolCodec.h"
 #include "gribjump/remote/RemoteGribJump.h"
 
 namespace gribjump {
@@ -37,69 +36,7 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) : host_(endpoint.h
 RemoteGribJump::~RemoteGribJump() {}
 
 void RemoteGribJump::sendHeader(eckit::Stream& stream, RequestType type) {
-    writeRequestHeader(stream, type, ContextManager::instance().context());
-}
-
-void RemoteGribJump::encodeExtractRequest(eckit::Stream& stream, std::vector<ExtractionRequest>& requests) {
-    size_t nRequests = requests.size();
-    stream << nRequests;
-    for (auto& req : requests) {
-        stream << req;
-    }
-}
-
-std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::decodeExtractReply(eckit::Stream& stream,
-                                                                                  size_t nRequests) {
-    std::vector<std::unique_ptr<ExtractionResult>> result;
-    for (size_t i = 0; i < nRequests; i++) {
-        size_t nfields;
-        stream >> nfields;
-        ASSERT(nfields == 1);  // temporary. Note will have to update remote protocol if we wish to not send this. Not
-                               // really a problem though.
-        result.push_back(std::make_unique<ExtractionResult>(stream));
-    }
-    return result;
-}
-
-void RemoteGribJump::encodeScanRequest(eckit::Stream& stream, const std::vector<metkit::mars::MarsRequest>& requests,
-                                       bool byfiles) {
-    stream << byfiles;
-    size_t nRequests = requests.size();
-    stream << nRequests;
-    for (auto& req : requests) {
-        stream << req;
-    }
-}
-
-size_t RemoteGribJump::decodeScanReply(eckit::Stream& stream) {
-    size_t nFields;
-    stream >> nFields;
-    return nFields;
-}
-
-void RemoteGribJump::encodeAxesRequest(eckit::Stream& stream, const std::string& request, int level) {
-    stream << request;
-    stream << level;
-}
-
-std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::decodeAxesReply(eckit::Stream& stream) {
-    std::map<std::string, std::unordered_set<std::string>> result;
-    size_t nAxes;
-    stream >> nAxes;
-    for (size_t i = 0; i < nAxes; i++) {
-        std::string axisName;
-        stream >> axisName;
-        size_t nVals;
-        stream >> nVals;
-        std::unordered_set<std::string> vals;
-        for (size_t j = 0; j < nVals; j++) {
-            std::string val;
-            stream >> val;
-            vals.insert(val);
-        }
-        result[axisName] = vals;
-    }
-    return result;
+    ProtocolCodec::writeRequestHeader(stream, type, ContextManager::instance().context());
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
@@ -111,7 +48,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::SCAN);
-    encodeScanRequest(stream, requests, byfiles);
+    ProtocolCodec::encodeScanRequest(stream, requests, byfiles);
 
     std::stringstream ss;
     ss << "Sent " << requests.size() << " requests";
@@ -119,9 +56,9 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
 
     // receive responses
 
-    bool error = receiveErrors(stream);
+    ProtocolCodec::decodeErrors(stream);
 
-    size_t nFields = decodeScanReply(stream);
+    size_t nFields = ProtocolCodec::decodeScanReply(stream);
 
     timer.report("Scans complete");
     return nFields;
@@ -137,18 +74,11 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
 
     sendHeader(stream, RequestType::FORWARD_SCAN);
 
-    size_t nFiles = map.size();
-    stream << nFiles;
+    ProtocolCodec::encodeForwardScanRequest(stream, map);
 
-    for (auto& [fname, offsets] : map) {
-        stream << fname;
-        stream << offsets;
-    }
+    ProtocolCodec::decodeErrors(stream);
 
-    bool error = receiveErrors(stream);
-
-    size_t nfields = 0;
-    stream >> nfields;
+    size_t nfields = ProtocolCodec::decodeScanReply(stream);
 
     eckit::Log::info() << "Scanned " << nfields << " field(s) on endpoint " << host_ << ":" << port_ << std::endl;
 
@@ -168,7 +98,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     sendHeader(stream, RequestType::EXTRACT);
 
     size_t nRequests = requests.size();
-    encodeExtractRequest(stream, requests);
+    ProtocolCodec::encodeExtractRequest(stream, requests);
 
     std::stringstream ss;
     ss << "Sent " << nRequests << " requests";
@@ -176,9 +106,9 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 
     // receive response
 
-    bool error = receiveErrors(stream);
+    ProtocolCodec::decodeErrors(stream);
 
-    result = decodeExtractReply(stream, nRequests);
+    result = ProtocolCodec::decodeExtractReply(stream, nRequests);
     timer.report("All data recieved");
     return result;
 }
@@ -199,39 +129,13 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 
     sendHeader(stream, RequestType::FORWARD_EXTRACT);
 
-    size_t nFiles = filemap.size();
-    stream << nFiles;
-
-    for (auto& [fname, extractionItems] : filemap) {
-        // we will send (and receive) the extraction items in order of offset
-        std::sort(extractionItems.begin(), extractionItems.end(),
-                  [](const ExtractionItem* a, const ExtractionItem* b) { return a->offset() < b->offset(); });
-
-        stream << fname;
-        size_t nItems = extractionItems.size();
-        stream << nItems;
-        for (auto& item : extractionItems) {
-            // We have URI, no need to send a request string
-            ExtractionRequest req("", item->intervals(), item->gridHash());
-            stream << req;
-            stream << item->URI();
-        }
-    }
+    ProtocolCodec::encodeForwardExtractRequest(stream, filemap);
 
     timer.report("Request sent");
-    bool error = receiveErrors(stream);
+    ProtocolCodec::decodeErrors(stream);
 
     // receive results
-    for (size_t i = 0; i < nFiles; i++) {
-        std::string fname;
-        stream >> fname;
-        size_t nItems;
-        stream >> nItems;
-        ASSERT(nItems == filemap[fname].size());
-        for (size_t j = 0; j < nItems; j++) {
-            filemap[fname][j]->result(std::make_unique<ExtractionResult>(stream));
-        }
-    }
+    ProtocolCodec::decodeForwardExtractReply(stream, filemap);
 
     timer.report("Results received");
 
@@ -248,40 +152,17 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::AXES);
-    encodeAxesRequest(stream, request, level);
+    ProtocolCodec::encodeAxesRequest(stream, request, level);
     timer.report("Request sent");
 
     // receive response
 
-    bool error = receiveErrors(stream);
+    ProtocolCodec::decodeErrors(stream);
 
-    result = decodeAxesReply(stream);
+    result = ProtocolCodec::decodeAxesReply(stream);
     timer.report("Axes received");
 
     return result;
-}
-
-bool RemoteGribJump::receiveErrors(eckit::Stream& stream, bool raise) {
-    size_t nErrors;
-    stream >> nErrors;
-    if (nErrors == 0) {
-        return false;
-    }
-
-    std::stringstream ss;
-    ss << "RemoteGribJump received server-side " << eckit::Plural(nErrors, "error") << std::endl;
-    for (size_t i = 0; i < nErrors; i++) {
-        std::string error;
-        stream >> error;
-        ss << error << std::endl;
-    }
-    if (raise) {
-        throw eckit::RemoteException(ss.str(), Here());
-    }
-    else {
-        eckit::Log::error() << ss.str() << std::endl;
-    }
-    return true;
 }
 
 static GribJumpBuilder<RemoteGribJump> builder("remote");
