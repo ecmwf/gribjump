@@ -16,22 +16,13 @@
 #include "eckit/net/TCPStream.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
 
 namespace test {
 class RemoteProtocolTestAccess;  // test seam, see tests/remote/test_protocol_loopback.cc
 }
-
-enum class RequestType : uint16_t {
-    EXTRACT = 0,
-    AXES,
-    SCAN,
-    FORWARD_EXTRACT,
-    FORWARD_SCAN
-};
-
-constexpr static uint16_t remoteProtocolVersion = 3;
 
 class RemoteGribJump : public GribJumpBase {
 

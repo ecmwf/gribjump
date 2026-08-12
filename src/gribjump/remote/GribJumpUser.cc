@@ -59,22 +59,11 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     MetricsManager::instance().report();
 }
 
+template <typename RequestT>
+static void processRequest(eckit::Stream& s, EngineIface* engine);
+
 void dispatchRequest(eckit::Stream& s, EngineIface* engine) {
-    uint16_t version;
-    uint16_t i_requestType;
-
-    s >> version;
-    if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug(
-            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
-            ", Clientside version: " + std::to_string(version));
-    }
-
-    LogContext ctx(s);
-    ContextManager::instance().set(ctx);
-
-    s >> i_requestType;
-    RequestType requestType = static_cast<RequestType>(i_requestType);
+    RequestType requestType = readRequestHeader(s);
 
     switch (requestType) {
         case RequestType::EXTRACT:
@@ -93,7 +82,7 @@ void dispatchRequest(eckit::Stream& s, EngineIface* engine) {
             processRequest<ForwardedScanRequest>(s, engine);
             break;
         default:
-            throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
+            throw eckit::SeriousBug("Unknown request type: " + std::to_string(static_cast<uint16_t>(requestType)));
     }
 }
 

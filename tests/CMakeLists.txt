@@ -173,6 +173,17 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+# Socketpair smoke test: real client codec and real server dispatch exchanged
+# over a genuine kernel socket (AF_UNIX socketpair), mock engine (FDB-free).
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_socketpair"
+    SOURCES "remote/test_protocol_socketpair.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
 # c compiler test
 ecbuild_add_test(
     TARGET "gribjump_test_c_compile"

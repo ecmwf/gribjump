@@ -31,40 +31,6 @@ namespace gribjump {
 namespace test {
 
 //-----------------------------------------------------------------------------
-// Grants the loopback tests access to RemoteGribJump's transport-independent
-// codec helpers (declared as a friend of RemoteGribJump), so we can drive the
-// real client encode/decode without opening a TCP connection.
-
-class RemoteProtocolTestAccess {
-public:
-
-    explicit RemoteProtocolTestAccess(RemoteGribJump& client) : c_(client) {}
-
-    void sendHeader(eckit::Stream& s, RequestType type) { c_.sendHeader(s, type); }
-
-    void encodeExtractRequest(eckit::Stream& s, std::vector<ExtractionRequest>& r) { c_.encodeExtractRequest(s, r); }
-    std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReply(eckit::Stream& s, size_t n) {
-        return c_.decodeExtractReply(s, n);
-    }
-
-    void encodeScanRequest(eckit::Stream& s, const std::vector<metkit::mars::MarsRequest>& r, bool byfiles) {
-        c_.encodeScanRequest(s, r, byfiles);
-    }
-    size_t decodeScanReply(eckit::Stream& s) { return c_.decodeScanReply(s); }
-
-    void encodeAxesRequest(eckit::Stream& s, const std::string& r, int level) { c_.encodeAxesRequest(s, r, level); }
-    std::map<std::string, std::unordered_set<std::string>> decodeAxesReply(eckit::Stream& s) {
-        return c_.decodeAxesReply(s);
-    }
-
-    bool receiveErrors(eckit::Stream& s, bool raise = true) { return c_.receiveErrors(s, raise); }
-
-private:
-
-    RemoteGribJump& c_;
-};
-
-//-----------------------------------------------------------------------------
 // The endpoint is never actually contacted; only the codec helpers are used.
 
 CASE("Loopback: EXTRACT round-trips through real client and server") {

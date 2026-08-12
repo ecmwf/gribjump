@@ -37,9 +37,7 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) : host_(endpoint.h
 RemoteGribJump::~RemoteGribJump() {}
 
 void RemoteGribJump::sendHeader(eckit::Stream& stream, RequestType type) {
-    stream << remoteProtocolVersion;
-    stream << ContextManager::instance().context();
-    stream << static_cast<uint16_t>(type);
+    writeRequestHeader(stream, type, ContextManager::instance().context());
 }
 
 void RemoteGribJump::encodeExtractRequest(eckit::Stream& stream, std::vector<ExtractionRequest>& requests) {
