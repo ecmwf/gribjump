@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2023- ECMWF.
+ * (C) Copyright 2026- ECMWF.
  *
  * This software is licensed under the terms of the Apache Licence Version 2.0
  * which can be obtained at http://www.apache.org/licenses/LICENSE-2.0.
@@ -10,7 +10,7 @@
 
 /// @author Caragh Bradley
 
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 
 #include <algorithm>
 #include <sstream>
@@ -27,13 +27,13 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // Request header
 
-void ProtocolCodec::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context) {
+void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context) {
     stream << remoteProtocolVersion;
     stream << context;
     stream << static_cast<uint16_t>(type);
 }
 
-RequestType ProtocolCodec::readRequestHeader(eckit::Stream& stream) {
+RequestType Protocol::readRequestHeader(eckit::Stream& stream) {
     uint16_t version;
     stream >> version;
     if (version != remoteProtocolVersion) {
@@ -53,14 +53,14 @@ RequestType ProtocolCodec::readRequestHeader(eckit::Stream& stream) {
 //----------------------------------------------------------------------------------------------------------------------
 // Error block
 
-void ProtocolCodec::encodeErrors(eckit::Stream& stream, const std::vector<std::string>& errors) {
+void Protocol::encodeErrors(eckit::Stream& stream, const std::vector<std::string>& errors) {
     stream << errors.size();
     for (const auto& e : errors) {
         stream << e;
     }
 }
 
-bool ProtocolCodec::decodeErrors(eckit::Stream& stream, bool raise) {
+bool Protocol::decodeErrors(eckit::Stream& stream, bool raise) {
     size_t nErrors;
     stream >> nErrors;
     if (nErrors == 0) {
@@ -86,14 +86,14 @@ bool ProtocolCodec::decodeErrors(eckit::Stream& stream, bool raise) {
 //----------------------------------------------------------------------------------------------------------------------
 // EXTRACT
 
-void ProtocolCodec::encodeExtractRequest(eckit::Stream& stream, const std::vector<ExtractionRequest>& requests) {
+void Protocol::encodeExtractRequest(eckit::Stream& stream, const std::vector<ExtractionRequest>& requests) {
     stream << requests.size();
     for (const auto& req : requests) {
         stream << req;
     }
 }
 
-std::vector<ExtractionRequest> ProtocolCodec::decodeExtractRequest(eckit::Stream& stream) {
+std::vector<ExtractionRequest> Protocol::decodeExtractRequest(eckit::Stream& stream) {
     size_t nRequests;
     stream >> nRequests;
     std::vector<ExtractionRequest> requests;
@@ -104,7 +104,7 @@ std::vector<ExtractionRequest> ProtocolCodec::decodeExtractRequest(eckit::Stream
     return requests;
 }
 
-void ProtocolCodec::encodeExtractReply(eckit::Stream& stream, const std::vector<const ExtractionResult*>& results) {
+void Protocol::encodeExtractReply(eckit::Stream& stream, const std::vector<const ExtractionResult*>& results) {
     for (const auto* result : results) {
         size_t nfields = 1;  // @todo: remove this (bump protocol version)
         stream << nfields;
@@ -112,8 +112,7 @@ void ProtocolCodec::encodeExtractReply(eckit::Stream& stream, const std::vector<
     }
 }
 
-std::vector<std::unique_ptr<ExtractionResult>> ProtocolCodec::decodeExtractReply(eckit::Stream& stream,
-                                                                                 size_t nRequests) {
+std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReply(eckit::Stream& stream, size_t nRequests) {
     std::vector<std::unique_ptr<ExtractionResult>> results;
     results.reserve(nRequests);
     for (size_t i = 0; i < nRequests; i++) {
@@ -128,8 +127,8 @@ std::vector<std::unique_ptr<ExtractionResult>> ProtocolCodec::decodeExtractReply
 //----------------------------------------------------------------------------------------------------------------------
 // SCAN
 
-void ProtocolCodec::encodeScanRequest(eckit::Stream& stream, const std::vector<metkit::mars::MarsRequest>& requests,
-                                      bool byfiles) {
+void Protocol::encodeScanRequest(eckit::Stream& stream, const std::vector<metkit::mars::MarsRequest>& requests,
+                                 bool byfiles) {
     stream << byfiles;
     stream << requests.size();
     for (const auto& req : requests) {
@@ -137,7 +136,7 @@ void ProtocolCodec::encodeScanRequest(eckit::Stream& stream, const std::vector<m
     }
 }
 
-std::vector<metkit::mars::MarsRequest> ProtocolCodec::decodeScanRequest(eckit::Stream& stream, bool& byfiles) {
+std::vector<metkit::mars::MarsRequest> Protocol::decodeScanRequest(eckit::Stream& stream, bool& byfiles) {
     stream >> byfiles;
     size_t nRequests;
     stream >> nRequests;
@@ -149,11 +148,11 @@ std::vector<metkit::mars::MarsRequest> ProtocolCodec::decodeScanRequest(eckit::S
     return requests;
 }
 
-void ProtocolCodec::encodeScanReply(eckit::Stream& stream, size_t nFields) {
+void Protocol::encodeScanReply(eckit::Stream& stream, size_t nFields) {
     stream << nFields;
 }
 
-size_t ProtocolCodec::decodeScanReply(eckit::Stream& stream) {
+size_t Protocol::decodeScanReply(eckit::Stream& stream) {
     size_t nFields;
     stream >> nFields;
     return nFields;
@@ -162,18 +161,18 @@ size_t ProtocolCodec::decodeScanReply(eckit::Stream& stream) {
 //----------------------------------------------------------------------------------------------------------------------
 // AXES
 
-void ProtocolCodec::encodeAxesRequest(eckit::Stream& stream, const std::string& request, int level) {
+void Protocol::encodeAxesRequest(eckit::Stream& stream, const std::string& request, int level) {
     stream << request;
     stream << level;
 }
 
-void ProtocolCodec::decodeAxesRequest(eckit::Stream& stream, std::string& request, int& level) {
+void Protocol::decodeAxesRequest(eckit::Stream& stream, std::string& request, int& level) {
     stream >> request;
     stream >> level;
 }
 
-void ProtocolCodec::encodeAxesReply(eckit::Stream& stream,
-                                    const std::map<std::string, std::unordered_set<std::string>>& axes) {
+void Protocol::encodeAxesReply(eckit::Stream& stream,
+                               const std::map<std::string, std::unordered_set<std::string>>& axes) {
     stream << axes.size();
     for (const auto& [name, vals] : axes) {
         stream << name;
@@ -184,7 +183,7 @@ void ProtocolCodec::encodeAxesReply(eckit::Stream& stream,
     }
 }
 
-std::map<std::string, std::unordered_set<std::string>> ProtocolCodec::decodeAxesReply(eckit::Stream& stream) {
+std::map<std::string, std::unordered_set<std::string>> Protocol::decodeAxesReply(eckit::Stream& stream) {
     std::map<std::string, std::unordered_set<std::string>> result;
     size_t nAxes;
     stream >> nAxes;
@@ -207,7 +206,7 @@ std::map<std::string, std::unordered_set<std::string>> ProtocolCodec::decodeAxes
 //----------------------------------------------------------------------------------------------------------------------
 // FORWARD_SCAN
 
-void ProtocolCodec::encodeForwardScanRequest(eckit::Stream& stream, const scanmap_t& scanmap) {
+void Protocol::encodeForwardScanRequest(eckit::Stream& stream, const scanmap_t& scanmap) {
     stream << scanmap.size();
     for (const auto& [fname, offsets] : scanmap) {
         stream << fname;
@@ -215,7 +214,7 @@ void ProtocolCodec::encodeForwardScanRequest(eckit::Stream& stream, const scanma
     }
 }
 
-scanmap_t ProtocolCodec::decodeForwardScanRequest(eckit::Stream& stream) {
+scanmap_t Protocol::decodeForwardScanRequest(eckit::Stream& stream) {
     scanmap_t scanmap;
     size_t nFiles;
     stream >> nFiles;
@@ -232,7 +231,7 @@ scanmap_t ProtocolCodec::decodeForwardScanRequest(eckit::Stream& stream) {
 //----------------------------------------------------------------------------------------------------------------------
 // FORWARD_EXTRACT
 
-void ProtocolCodec::encodeForwardExtractRequest(eckit::Stream& stream, filemap_t& filemap) {
+void Protocol::encodeForwardExtractRequest(eckit::Stream& stream, filemap_t& filemap) {
     stream << filemap.size();
     for (auto& [fname, extractionItems] : filemap) {
         // Send (and receive) the extraction items in ascending offset order.
@@ -250,7 +249,7 @@ void ProtocolCodec::encodeForwardExtractRequest(eckit::Stream& stream, filemap_t
     }
 }
 
-ProtocolCodec::ForwardExtractRequest ProtocolCodec::decodeForwardExtractRequest(eckit::Stream& stream) {
+Protocol::ForwardExtractRequest Protocol::decodeForwardExtractRequest(eckit::Stream& stream) {
     ForwardExtractRequest out;
     size_t nFiles;
     stream >> nFiles;
@@ -272,7 +271,7 @@ ProtocolCodec::ForwardExtractRequest ProtocolCodec::decodeForwardExtractRequest(
     return out;
 }
 
-void ProtocolCodec::encodeForwardExtractReply(eckit::Stream& stream, const filemap_t& filemap) {
+void Protocol::encodeForwardExtractReply(eckit::Stream& stream, const filemap_t& filemap) {
     for (const auto& [fname, extractionItems] : filemap) {
         stream << fname;  // sanity check
         stream << extractionItems.size();
@@ -282,7 +281,7 @@ void ProtocolCodec::encodeForwardExtractReply(eckit::Stream& stream, const filem
     }
 }
 
-void ProtocolCodec::decodeForwardExtractReply(eckit::Stream& stream, filemap_t& filemap) {
+void Protocol::decodeForwardExtractReply(eckit::Stream& stream, filemap_t& filemap) {
     const size_t nFiles = filemap.size();
     for (size_t i = 0; i < nFiles; i++) {
         std::string fname;

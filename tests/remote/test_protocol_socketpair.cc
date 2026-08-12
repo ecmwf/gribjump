@@ -13,9 +13,7 @@
 /// through a genuine kernel socket (a connected AF_UNIX socketpair). The server
 /// half runs dispatchRequest() on its own thread against a mock engine, exactly
 /// as the production NetUser would, while the client half writes the request
-/// and reads the reply over eckit's InstantTCPStream. This proves the framing
-/// survives a real, blocking, full-duplex transport (partial reads, flushing,
-/// etc.) without needing FDB, a listening port, or a NetService.
+/// and reads the reply over eckit's InstantTCPStream.
 
 #include <sys/socket.h>
 #include <thread>
@@ -27,7 +25,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/remote/GribJumpUser.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 
 #include "protocol_test_helpers.h"
 
@@ -50,7 +48,7 @@ public:
 
 //-----------------------------------------------------------------------------
 
-CASE("Socketpair: EXTRACT round-trips over a real kernel socket") {
+CASE("Socketpair: EXTRACT round-trips over a kernel socket") {
     int fds[2];
     EXPECT(::socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
 
@@ -71,11 +69,11 @@ CASE("Socketpair: EXTRACT round-trips over a real kernel socket") {
         FdSocket sock(fds[1]);
         eckit::net::InstantTCPStream s(sock);
 
-        ProtocolCodec::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
-        ProtocolCodec::encodeExtractRequest(s, requests);
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+        Protocol::encodeExtractRequest(s, requests);
 
-        EXPECT(!ProtocolCodec::decodeErrors(s));
-        auto results = ProtocolCodec::decodeExtractReply(s, requests.size());
+        EXPECT(!Protocol::decodeErrors(s));
+        auto results = Protocol::decodeExtractReply(s, requests.size());
 
         EXPECT_EQUAL(results.size(), 2);
         for (auto& r : results) {
@@ -93,7 +91,7 @@ CASE("Socketpair: EXTRACT round-trips over a real kernel socket") {
     EXPECT_EQUAL(engine.lastExtractRequests, 2);
 }
 
-CASE("Socketpair: SCAN round-trips over a real kernel socket") {
+CASE("Socketpair: SCAN round-trips over a kernel socket") {
     int fds[2];
     EXPECT(::socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
 
@@ -116,11 +114,11 @@ CASE("Socketpair: SCAN round-trips over a real kernel socket") {
         FdSocket sock(fds[1]);
         eckit::net::InstantTCPStream s(sock);
 
-        ProtocolCodec::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
-        ProtocolCodec::encodeScanRequest(s, requests, true);
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::encodeScanRequest(s, requests, true);
 
-        EXPECT(!ProtocolCodec::decodeErrors(s));
-        EXPECT_EQUAL(ProtocolCodec::decodeScanReply(s), 7);
+        EXPECT(!Protocol::decodeErrors(s));
+        EXPECT_EQUAL(Protocol::decodeScanReply(s), 7);
 
         sock.close();
     }

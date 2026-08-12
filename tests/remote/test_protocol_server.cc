@@ -10,9 +10,9 @@
 
 /// Server-side protocol tests: drive the real Request classes and the server
 /// dispatch (dispatchRequest) against an in-memory stream, using a MockEngine
-/// so no FDB (or socket) is required. These tests pin the server's parse ->
-/// execute -> reply behaviour and the request-type dispatch / version
-/// negotiation.
+/// so no FDB (or socket) is required. Requests are encoded and replies decoded
+/// through the real remote Protocol (the same code the real client runs),
+/// so a change to a production encoder/decoder is reflected here automatically.
 
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Offset.h"
@@ -38,10 +38,7 @@ CASE("Server EXTRACT: parse, execute (mock), reply") {
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
         writeHeader(s, RequestType::EXTRACT);
-        s << n;
-        for (auto& r : requests) {
-            s << r;
-        }
+        Protocol::encodeExtractRequest(s, requests);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -52,19 +49,14 @@ CASE("Server EXTRACT: parse, execute (mock), reply") {
 
     // Decode the reply as the client would: error block then per-request results
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    size_t nErrors;
-    reply >> nErrors;
-    EXPECT_EQUAL(nErrors, 0);
-
-    for (size_t i = 0; i < n; i++) {
-        size_t nfields;
-        reply >> nfields;
-        EXPECT_EQUAL(nfields, 1);
-        ExtractionResult res(reply);
-        EXPECT_EQUAL(res.nrange(), 2);
-        EXPECT_EQUAL(res.nvalues(0), 2);
-        EXPECT_EQUAL(res.nvalues(1), 1);
-        EXPECT_EQUAL(res.values()[0][1], 20.0);
+    EXPECT(!Protocol::decodeErrors(reply));
+    auto results = Protocol::decodeExtractReply(reply, n);
+    EXPECT_EQUAL(results.size(), n);
+    for (auto& res : results) {
+        EXPECT_EQUAL(res->nrange(), 2);
+        EXPECT_EQUAL(res->nvalues(0), 2);
+        EXPECT_EQUAL(res->nvalues(1), 1);
+        EXPECT_EQUAL(res->values()[0][1], 20.0);
     }
 }
 
@@ -74,8 +66,7 @@ CASE("Server AXES: parse, execute (mock), reply") {
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
         writeHeader(s, RequestType::AXES);
-        s << request;
-        s << level;
+        Protocol::encodeAxesRequest(s, request, level);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -86,27 +77,8 @@ CASE("Server AXES: parse, execute (mock), reply") {
     EXPECT_EQUAL(engine.lastAxesLevel, 3);
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    size_t nErrors;
-    reply >> nErrors;
-    EXPECT_EQUAL(nErrors, 0);
-
-    // Decode axes reply order-insensitively
-    std::map<std::string, std::unordered_set<std::string>> axes;
-    size_t nAxes;
-    reply >> nAxes;
-    for (size_t i = 0; i < nAxes; i++) {
-        std::string name;
-        reply >> name;
-        size_t nvals;
-        reply >> nvals;
-        std::unordered_set<std::string> vals;
-        for (size_t j = 0; j < nvals; j++) {
-            std::string v;
-            reply >> v;
-            vals.insert(v);
-        }
-        axes[name] = vals;
-    }
+    EXPECT(!Protocol::decodeErrors(reply));
+    auto axes = Protocol::decodeAxesReply(reply);
     EXPECT_EQUAL(axes.size(), 2);
     EXPECT_EQUAL(axes["step"].size(), 3);
     EXPECT(axes["step"].count("2") == 1);
@@ -121,12 +93,7 @@ CASE("Server SCAN: parse, execute (mock), reply") {
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
         writeHeader(s, RequestType::SCAN);
-        s << byfiles;
-        size_t n = requests.size();
-        s << n;
-        for (auto& r : requests) {
-            s << r;
-        }
+        Protocol::encodeScanRequest(s, requests, byfiles);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -138,12 +105,8 @@ CASE("Server SCAN: parse, execute (mock), reply") {
     EXPECT_EQUAL(engine.lastByfiles, true);
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    size_t nErrors;
-    reply >> nErrors;
-    EXPECT_EQUAL(nErrors, 0);
-    size_t nFields;
-    reply >> nFields;
-    EXPECT_EQUAL(nFields, 7);
+    EXPECT(!Protocol::decodeErrors(reply));
+    EXPECT_EQUAL(Protocol::decodeScanReply(reply), 7ul);
 }
 
 CASE("Server dispatch rejects protocol version mismatch") {
@@ -173,14 +136,12 @@ CASE("Server dispatch rejects unknown request type") {
 
 CASE("Server FORWARD_SCAN: parse, execute (mock), reply") {
     eckit::OffsetList offsets = {eckit::Offset(0), eckit::Offset(1024), eckit::Offset(2048)};
+    scanmap_t scanmap;
+    scanmap[eckit::PathName("/data/file.grib")] = offsets;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
         writeHeader(s, RequestType::FORWARD_SCAN);
-        size_t nFiles = 1;
-        s << nFiles;
-        std::string fname = "/data/file.grib";
-        s << fname;
-        s << offsets;
+        Protocol::encodeForwardScanRequest(s, scanmap);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -192,28 +153,22 @@ CASE("Server FORWARD_SCAN: parse, execute (mock), reply") {
     EXPECT_EQUAL(engine.lastScanmapOffsets, 3);
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    size_t nErrors;
-    reply >> nErrors;
-    EXPECT_EQUAL(nErrors, 0);
-    size_t nfields;
-    reply >> nfields;
-    EXPECT_EQUAL(nfields, 5);
+    EXPECT(!Protocol::decodeErrors(reply));
+    EXPECT_EQUAL(Protocol::decodeScanReply(reply), 5ul);
 }
 
 CASE("Server FORWARD_EXTRACT: parse, execute (mock), reply") {
-    ExtractionRequest req = fixtureRequest(1);
-    eckit::URI uri("file", eckit::PathName("/data/file.grib"));
-    std::string fname = "/data/file.grib";
+    // Build a one-item filemap and drive both the request encode and the reply
+    // decode through the production codec (as the real client does).
+    auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(fixtureRequest(1)));
+    item->URI(eckit::URI("file", eckit::PathName("/data/file.grib")));
+
+    filemap_t filemap;
+    filemap["/data/file.grib"] = {item.get()};
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
         writeHeader(s, RequestType::FORWARD_EXTRACT);
-        size_t nFiles = 1;
-        s << nFiles;
-        s << fname;
-        size_t nItems = 1;
-        s << nItems;
-        s << req;
-        s << uri;
+        Protocol::encodeForwardExtractRequest(s, filemap);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -223,20 +178,15 @@ CASE("Server FORWARD_EXTRACT: parse, execute (mock), reply") {
     EXPECT_EQUAL(engine.lastFilemapFiles, 1);
     EXPECT_EQUAL(engine.lastFilemapItems, 1);
 
-    // Reply: error block, then per-file [fname, nItems, results...]
+    // Client-side decode: error block, then results filled into the filemap.
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    size_t nErrors;
-    reply >> nErrors;
-    EXPECT_EQUAL(nErrors, 0);
-    std::string replyFname;
-    reply >> replyFname;
-    EXPECT_EQUAL(replyFname, fname);
-    size_t nItems;
-    reply >> nItems;
-    EXPECT_EQUAL(nItems, 1);
-    ExtractionResult res(reply);
-    EXPECT_EQUAL(res.nrange(), 2);
-    EXPECT_EQUAL(res.values()[0][0], 10.0);
+    EXPECT(!Protocol::decodeErrors(reply));
+    Protocol::decodeForwardExtractReply(reply, filemap);
+
+    auto res = item->result();
+    EXPECT(res != nullptr);
+    EXPECT_EQUAL(res->nrange(), 2);
+    EXPECT_EQUAL(res->values()[0][0], 10.0);
 }
 
 CASE("Server reports engine errors in the error block") {
@@ -245,11 +195,7 @@ CASE("Server reports engine errors in the error block") {
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
         writeHeader(s, RequestType::SCAN);
-        bool byfiles = false;
-        s << byfiles;
-        size_t n = 1;
-        s << n;
-        s << mr;
+        Protocol::encodeScanRequest(s, {mr}, false);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -257,7 +203,9 @@ CASE("Server reports engine errors in the error block") {
     engine.errors = {"boom: something failed", "and another"};
     dispatchRequest(stream, &engine);
 
-    // Client-side error decoding (mirrors ProtocolCodec::decodeErrors)
+    // Manual decode here on purpose: Protocol::decodeErrors does not surface the individual messages (it throws/logs),
+    // so to assert the exact error strings and their order we read the block directly. The block's *encoding* is pinned
+    // by the codec golden test.
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
     size_t nErrors;
     reply >> nErrors;

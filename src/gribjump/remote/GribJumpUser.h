@@ -29,8 +29,7 @@ class EngineIface;
 /// the matching Request, replying on the same stream. Throws on protocol
 /// version mismatch or unknown request type.
 ///
-/// Factored out of GribJumpUser so the server protocol logic can be exercised
-/// over an in-memory stream in tests, optionally against an injected engine.
+/// Factored out of GribJumpUser so the server protocol logic can unit tested.
 void dispatchRequest(eckit::Stream& s, EngineIface* engine = nullptr);
 
 //----------------------------------------------------------------------------------------------------------------------

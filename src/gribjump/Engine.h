@@ -31,8 +31,7 @@ struct TaskOutcome {
 
 //----------------------------------------------------------------------------------------------------------------------
 // Abstract interface exposing only the operations the remote Request classes
-// need from the engine. This is the seam used to inject a mock engine in tests,
-// keeping the server-side protocol logic testable without FDB.
+// need from the engine. This is used to inject a mock engine in remote tests.
 
 class EngineIface {
 public:

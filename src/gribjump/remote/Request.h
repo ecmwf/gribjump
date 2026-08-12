@@ -48,7 +48,7 @@ public:
 protected:  // members
 
     eckit::Stream& client_;
-    EngineIface& engine_;  // engine used to service the request; owned by the caller
+    EngineIface& engine_;
     TaskReport report_;
     uint64_t id_;
 };

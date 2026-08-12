@@ -14,7 +14,7 @@
 #include "gribjump/remote/Request.h"
 #include <cstddef>
 #include "gribjump/Engine.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace {
 static std::atomic<uint64_t> requestid_{0};
@@ -42,7 +42,7 @@ void Request::reportErrors() {
 ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "scan");
 
-    requests_ = ProtocolCodec::decodeScanRequest(client_, byfiles_);
+    requests_ = Protocol::decodeScanRequest(client_, byfiles_);
 
     LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: byfiles=" << byfiles_ << std::endl;
     LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: numRequests=" << requests_.size() << std::endl;
@@ -57,7 +57,7 @@ void ScanRequest::execute() {
 }
 
 void ScanRequest::replyToClient() {
-    ProtocolCodec::encodeScanReply(client_, nFields_);
+    Protocol::encodeScanReply(client_, nFields_);
 }
 
 void ScanRequest::info() const {
@@ -70,7 +70,7 @@ void ScanRequest::info() const {
 ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "extract");
 
-    requests_ = ProtocolCodec::decodeExtractRequest(client_);
+    requests_ = Protocol::decodeExtractRequest(client_);
 
     MetricsManager::instance().set("count_extraction_requests", requests_.size());
 }
@@ -103,11 +103,13 @@ void ExtractRequest::replyToClient() {
     for (size_t i = 0; i < nRequests; i++) {
         auto it = results_.find(requests_[i].requestString());
         ASSERT(it != results_.end());
+
+        // *Move* result into ordered vector.
         ordered.push_back(it->second->result());
         results.push_back(ordered.back().get());
     }
 
-    ProtocolCodec::encodeExtractReply(client_, results);
+    Protocol::encodeExtractReply(client_, results);
 
     LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
 }
@@ -121,7 +123,7 @@ void ExtractRequest::info() const {
 ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-extract");
 
-    auto data = ProtocolCodec::decodeForwardExtractRequest(client_);
+    auto data = Protocol::decodeForwardExtractRequest(client_);
     items_    = std::move(data.items);
     filemap_  = std::move(data.filemap);
 
@@ -140,7 +142,7 @@ void ForwardedExtractRequest::execute() {
 }
 
 void ForwardedExtractRequest::replyToClient() {
-    ProtocolCodec::encodeForwardExtractReply(client_, filemap_);
+    Protocol::encodeForwardExtractReply(client_, filemap_);
 }
 
 void ForwardedExtractRequest::info() const {
@@ -152,7 +154,7 @@ void ForwardedExtractRequest::info() const {
 ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-scan");
 
-    scanmap_ = ProtocolCodec::decodeForwardScanRequest(client_);
+    scanmap_ = Protocol::decodeForwardScanRequest(client_);
     LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanRequest: nFiles=" << scanmap_.size() << std::endl;
 
     size_t count = 0;
@@ -170,7 +172,7 @@ void ForwardedScanRequest::execute() {
 }
 
 void ForwardedScanRequest::replyToClient() {
-    ProtocolCodec::encodeScanReply(client_, nfields_);
+    Protocol::encodeScanReply(client_, nfields_);
 }
 
 void ForwardedScanRequest::info() const {
@@ -180,7 +182,7 @@ void ForwardedScanRequest::info() const {
 
 AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "axes");
-    ProtocolCodec::decodeAxesRequest(client_, request_, level_);
+    Protocol::decodeAxesRequest(client_, request_, level_);
     ASSERT(request_.size() > 0);
 }
 
@@ -199,7 +201,7 @@ void AxesRequest::replyToClient() {
         eckit::Log::info() << std::endl;
     }
 
-    ProtocolCodec::encodeAxesReply(client_, axes_);
+    Protocol::encodeAxesReply(client_, axes_);
 }
 
 void AxesRequest::info() const {

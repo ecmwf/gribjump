@@ -9,7 +9,7 @@
  */
 
 /// Shared helpers for the remote-protocol tests: a mock engine, a duplex
-/// in-memory stream, and small encoding utilities. FDB-free and socket-free.
+/// in-memory stream, and small encoding utilities.
 
 #pragma once
 
@@ -22,6 +22,7 @@
 #include "eckit/io/Buffer.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/serialisation/Stream.h"
+#include "eckit/utils/Literals.h"
 
 #include "metkit/mars/MarsRequest.h"
 
@@ -30,7 +31,7 @@
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
 namespace test {
@@ -161,7 +162,7 @@ private:
 /// Encode a request frame via a lambda, returning the raw bytes.
 template <typename EncodeFn>
 inline std::vector<char> encodeRequest(EncodeFn&& encode) {
-    eckit::Buffer buffer(16384);
+    eckit::Buffer buffer(16 * 1024);
     eckit::ResizableMemoryStream s(buffer);
     encode(s);
     const char* p = static_cast<const char*>(buffer.data());
@@ -170,7 +171,7 @@ inline std::vector<char> encodeRequest(EncodeFn&& encode) {
 
 /// Write the request header exactly as the client does.
 inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& ctx = "{}") {
-    ProtocolCodec::writeRequestHeader(s, type, LogContext(ctx));
+    Protocol::writeRequestHeader(s, type, LogContext(ctx));
 }
 
 inline ExtractionRequest fixtureRequest(int step) {

@@ -8,13 +8,12 @@
  * nor does it submit to any jurisdiction.
  */
 
-/// Full client<->server loopback tests. These drive the *real* ProtocolCodec
-/// encode path (as the client uses) into the *real* server parse + reply
+/// Full client<->server loopback tests. These drive the Protocol
+/// encode path (as the client uses) into the server parse + reply
 /// (dispatchRequest) back-to-back over an in-memory stream, with a mock engine,
-/// then decode the reply with the *same* ProtocolCodec. Because client and
+/// then decode the reply. Because client and
 /// server share one codec, this catches any disagreement about the wire format
 /// -- and proves the codec round-trips against the live server path.
-/// No FDB, no sockets.
 
 #include "eckit/serialisation/MemoryStream.h"
 #include "eckit/testing/Test.h"
@@ -22,7 +21,7 @@
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/remote/GribJumpUser.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 
 #include "protocol_test_helpers.h"
 
@@ -38,8 +37,8 @@ CASE("Loopback: EXTRACT round-trips through codec and server") {
 
     // Client-side encode: header + payload, exactly as RemoteGribJump sends.
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        ProtocolCodec::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
-        ProtocolCodec::encodeExtractRequest(s, requests);
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+        Protocol::encodeExtractRequest(s, requests);
     });
 
     // Server parses + executes (mock) + replies.
@@ -50,8 +49,8 @@ CASE("Loopback: EXTRACT round-trips through codec and server") {
 
     // Client-side decode of the reply.
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    EXPECT(!ProtocolCodec::decodeErrors(reply));
-    auto results = ProtocolCodec::decodeExtractReply(reply, requests.size());
+    EXPECT(!Protocol::decodeErrors(reply));
+    auto results = Protocol::decodeExtractReply(reply, requests.size());
 
     EXPECT_EQUAL(results.size(), 2);
     for (auto& r : results) {
@@ -72,8 +71,8 @@ CASE("Loopback: SCAN round-trips through codec and server") {
     bool byfiles                                    = true;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        ProtocolCodec::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
-        ProtocolCodec::encodeScanRequest(s, requests, byfiles);
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::encodeScanRequest(s, requests, byfiles);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -84,8 +83,8 @@ CASE("Loopback: SCAN round-trips through codec and server") {
     EXPECT_EQUAL(engine.lastByfiles, true);
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    EXPECT(!ProtocolCodec::decodeErrors(reply));
-    EXPECT_EQUAL(ProtocolCodec::decodeScanReply(reply), 11);
+    EXPECT(!Protocol::decodeErrors(reply));
+    EXPECT_EQUAL(Protocol::decodeScanReply(reply), 11);
 }
 
 CASE("Loopback: AXES round-trips through codec and server") {
@@ -93,8 +92,8 @@ CASE("Loopback: AXES round-trips through codec and server") {
     int level           = 3;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        ProtocolCodec::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
-        ProtocolCodec::encodeAxesRequest(s, request, level);
+        Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+        Protocol::encodeAxesRequest(s, request, level);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -104,8 +103,8 @@ CASE("Loopback: AXES round-trips through codec and server") {
     EXPECT_EQUAL(engine.lastAxesLevel, 3);
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    EXPECT(!ProtocolCodec::decodeErrors(reply));
-    auto axes = ProtocolCodec::decodeAxesReply(reply);
+    EXPECT(!Protocol::decodeErrors(reply));
+    auto axes = Protocol::decodeAxesReply(reply);
 
     EXPECT_EQUAL(axes.size(), 2);
     EXPECT(axes.find("step") != axes.end());
@@ -119,8 +118,8 @@ CASE("Loopback: server errors propagate to the client as an exception") {
     std::vector<metkit::mars::MarsRequest> requests = {metkit::mars::MarsRequest("retrieve")};
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        ProtocolCodec::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
-        ProtocolCodec::encodeScanRequest(s, requests, false);
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::encodeScanRequest(s, requests, false);
     });
 
     DuplexTestStream stream(reqBytes);
@@ -129,9 +128,7 @@ CASE("Loopback: server errors propagate to the client as an exception") {
     dispatchRequest(stream, &engine);
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
-    // decodeErrors raises when the server reported errors, exactly as the real
-    // client would.
-    EXPECT_THROWS_AS(ProtocolCodec::decodeErrors(reply), eckit::RemoteException);
+    EXPECT_THROWS_AS(Protocol::decodeErrors(reply), eckit::RemoteException);
 }
 
 }  // namespace test

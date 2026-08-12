@@ -15,7 +15,7 @@
 
 #include "gribjump/GribJumpFactory.h"
 #include "gribjump/LogRouter.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
 
 namespace gribjump {
@@ -36,7 +36,7 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) : host_(endpoint.h
 RemoteGribJump::~RemoteGribJump() {}
 
 void RemoteGribJump::sendHeader(eckit::Stream& stream, RequestType type) {
-    ProtocolCodec::writeRequestHeader(stream, type, ContextManager::instance().context());
+    Protocol::writeRequestHeader(stream, type, ContextManager::instance().context());
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
@@ -48,7 +48,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::SCAN);
-    ProtocolCodec::encodeScanRequest(stream, requests, byfiles);
+    Protocol::encodeScanRequest(stream, requests, byfiles);
 
     std::stringstream ss;
     ss << "Sent " << requests.size() << " requests";
@@ -56,9 +56,9 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
 
     // receive responses
 
-    ProtocolCodec::decodeErrors(stream);
+    Protocol::decodeErrors(stream);
 
-    size_t nFields = ProtocolCodec::decodeScanReply(stream);
+    size_t nFields = Protocol::decodeScanReply(stream);
 
     timer.report("Scans complete");
     return nFields;
@@ -74,11 +74,11 @@ size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::Offset
 
     sendHeader(stream, RequestType::FORWARD_SCAN);
 
-    ProtocolCodec::encodeForwardScanRequest(stream, map);
+    Protocol::encodeForwardScanRequest(stream, map);
 
-    ProtocolCodec::decodeErrors(stream);
+    Protocol::decodeErrors(stream);
 
-    size_t nfields = ProtocolCodec::decodeScanReply(stream);
+    size_t nfields = Protocol::decodeScanReply(stream);
 
     eckit::Log::info() << "Scanned " << nfields << " field(s) on endpoint " << host_ << ":" << port_ << std::endl;
 
@@ -98,7 +98,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     sendHeader(stream, RequestType::EXTRACT);
 
     size_t nRequests = requests.size();
-    ProtocolCodec::encodeExtractRequest(stream, requests);
+    Protocol::encodeExtractRequest(stream, requests);
 
     std::stringstream ss;
     ss << "Sent " << nRequests << " requests";
@@ -106,9 +106,9 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 
     // receive response
 
-    ProtocolCodec::decodeErrors(stream);
+    Protocol::decodeErrors(stream);
 
-    result = ProtocolCodec::decodeExtractReply(stream, nRequests);
+    result = Protocol::decodeExtractReply(stream, nRequests);
     timer.report("All data recieved");
     return result;
 }
@@ -129,13 +129,13 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
 
     sendHeader(stream, RequestType::FORWARD_EXTRACT);
 
-    ProtocolCodec::encodeForwardExtractRequest(stream, filemap);
+    Protocol::encodeForwardExtractRequest(stream, filemap);
 
     timer.report("Request sent");
-    ProtocolCodec::decodeErrors(stream);
+    Protocol::decodeErrors(stream);
 
     // receive results
-    ProtocolCodec::decodeForwardExtractReply(stream, filemap);
+    Protocol::decodeForwardExtractReply(stream, filemap);
 
     timer.report("Results received");
 
@@ -152,14 +152,14 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::AXES);
-    ProtocolCodec::encodeAxesRequest(stream, request, level);
+    Protocol::encodeAxesRequest(stream, request, level);
     timer.report("Request sent");
 
     // receive response
 
-    ProtocolCodec::decodeErrors(stream);
+    Protocol::decodeErrors(stream);
 
-    result = ProtocolCodec::decodeAxesReply(stream);
+    result = Protocol::decodeAxesReply(stream);
     timer.report("Axes received");
 
     return result;

@@ -18,7 +18,7 @@
 
 #include "gribjump/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/Request.h"
 
@@ -63,13 +63,29 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 }
 
 template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface& engine);
+static void processRequest(eckit::Stream& s, EngineIface& engine) {
+    eckit::Timer timer("GribJumpUser::processRequest");
+
+    RequestT request(s, engine);
+    MetricsManager::instance().set("elapsed_receive", timer.elapsed());
+    timer.reset("Request received");
+    request.info();
+
+    request.execute();
+    MetricsManager::instance().set("elapsed_execute", timer.elapsed());
+    timer.reset("Request executed");
+
+    request.reportErrors();
+    request.replyToClient();
+    MetricsManager::instance().set("elapsed_reply", timer.elapsed());
+    timer.reset("Request replied");
+}
 
 void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
-    RequestType requestType = ProtocolCodec::readRequestHeader(s);
+    RequestType requestType = Protocol::readRequestHeader(s);
 
-    // Resolve the inject-or-default decision once: tests inject a mock engine,
-    // production runs with a real Engine owned for the duration of this call.
+    // By default we create an engine, though tests are allowed to
+    // inject one (e.g. a MockEngine) for unit testing.
     std::optional<Engine> ownedEngine;
     if (!injectedEngine) {
         ownedEngine.emplace();
@@ -97,23 +113,5 @@ void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     }
 }
 
-template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface& engine) {
-    eckit::Timer timer("GribJumpUser::processRequest");
-
-    RequestT request(s, engine);
-    MetricsManager::instance().set("elapsed_receive", timer.elapsed());
-    timer.reset("Request received");
-    request.info();
-
-    request.execute();
-    MetricsManager::instance().set("elapsed_execute", timer.elapsed());
-    timer.reset("Request executed");
-
-    request.reportErrors();
-    request.replyToClient();
-    MetricsManager::instance().set("elapsed_reply", timer.elapsed());
-    timer.reset("Request replied");
-}
 
 }  // namespace gribjump

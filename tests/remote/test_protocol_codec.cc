@@ -11,13 +11,13 @@
 /// Wire-format / codec regression tests for the remote gribjump protocol.
 ///
 /// These tests are deliberately FDB-free and socket-free: they drive the exact
-/// production ProtocolCodec encode paths used by the real client and server
+/// production Protocol encode paths used by the real client and server
 /// against an in-memory buffer. Their purpose is twofold:
 ///   1. round-trip: prove encode followed by decode reconstructs the object;
 ///   2. golden hash: pin the exact bytes on the wire so that any change to the
 ///      serialised format is detected and forces a deliberate protocol change.
 ///
-/// Because the framed cases call ProtocolCodec directly (rather than
+/// Because the framed cases call Protocol directly (rather than
 /// re-implementing the framing here), a change to the production encoders WILL
 /// change these hashes and fail the test -- which is the point.
 ///
@@ -42,7 +42,7 @@
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/Types.h"
-#include "gribjump/remote/ProtocolCodec.h"
+#include "gribjump/remote/Protocol.h"
 
 using namespace eckit::testing;
 
@@ -173,8 +173,8 @@ CASE("EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
-            ProtocolCodec::encodeExtractRequest(s, requests);
+            Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+            Protocol::encodeExtractRequest(s, requests);
         },
         buffer);
 
@@ -188,8 +188,8 @@ CASE("AXES request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
-            ProtocolCodec::encodeAxesRequest(s, request, level);
+            Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+            Protocol::encodeAxesRequest(s, request, level);
         },
         buffer);
 
@@ -203,8 +203,8 @@ CASE("SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
-            ProtocolCodec::encodeScanRequest(s, requests, byfiles);
+            Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+            Protocol::encodeScanRequest(s, requests, byfiles);
         },
         buffer);
 
@@ -219,8 +219,8 @@ CASE("FORWARD_SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"));
-            ProtocolCodec::encodeForwardScanRequest(s, scanmap);
+            Protocol::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"));
+            Protocol::encodeForwardScanRequest(s, scanmap);
         },
         buffer);
 
@@ -240,8 +240,8 @@ CASE("FORWARD_EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"));
-            ProtocolCodec::encodeForwardExtractRequest(s, filemap);
+            Protocol::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"));
+            Protocol::encodeForwardExtractRequest(s, filemap);
         },
         buffer);
 
@@ -270,8 +270,8 @@ CASE("EXTRACT reply frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::encodeErrors(s, {});
-            ProtocolCodec::encodeExtractReply(s, results);
+            Protocol::encodeErrors(s, {});
+            Protocol::encodeExtractReply(s, results);
         },
         buffer);
 
@@ -292,8 +292,8 @@ CASE("AXES reply frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::encodeErrors(s, {});
-            ProtocolCodec::encodeAxesReply(s, axes);
+            Protocol::encodeErrors(s, {});
+            Protocol::encodeAxesReply(s, axes);
         },
         buffer);
 
@@ -304,8 +304,8 @@ CASE("SCAN reply frame matches golden") {
     eckit::Buffer buffer(1024);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::encodeErrors(s, {});
-            ProtocolCodec::encodeScanReply(s, 3);
+            Protocol::encodeErrors(s, {});
+            Protocol::encodeScanReply(s, 3);
         },
         buffer);
 
@@ -316,8 +316,8 @@ CASE("FORWARD_SCAN reply frame matches golden") {
     eckit::Buffer buffer(1024);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::encodeErrors(s, {});
-            ProtocolCodec::encodeScanReply(s, 3);
+            Protocol::encodeErrors(s, {});
+            Protocol::encodeScanReply(s, 3);
         },
         buffer);
 
@@ -335,8 +335,8 @@ CASE("FORWARD_EXTRACT reply frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            ProtocolCodec::encodeErrors(s, {});
-            ProtocolCodec::encodeForwardExtractReply(s, filemap);
+            Protocol::encodeErrors(s, {});
+            Protocol::encodeForwardExtractReply(s, filemap);
         },
         buffer);
 
@@ -348,7 +348,7 @@ CASE("Error reply block matches golden") {
     std::vector<std::string> errors = {"boom: something failed", "and another"};
 
     eckit::Buffer buffer(2048);
-    std::string hash = hashOfEncoded([&](eckit::Stream& s) { ProtocolCodec::encodeErrors(s, errors); }, buffer);
+    std::string hash = hashOfEncoded([&](eckit::Stream& s) { Protocol::encodeErrors(s, errors); }, buffer);
 
     expectGolden(hash, "2d75195a420c1d50665d85da18fdbfe7", "error reply block");
 }
