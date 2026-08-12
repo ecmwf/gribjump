@@ -15,6 +15,12 @@ and run in the normal fast unit-test suite.
 | `gribjump_test_protocol_loopback` | Real client codec wired back-to-back to real server dispatch over an in-memory stream — client and server agree on the format. |
 | `gribjump_test_protocol_socketpair` | Same as loopback but over a genuine connected kernel socket (`AF_UNIX` `socketpair`), server on its own thread. Proves framing survives a real blocking full-duplex transport. |
 
+Every framed golden in `gribjump_test_protocol_codec` is produced by calling the
+**production** `ProtocolCodec::encode*` methods — the same code the real client
+and server run — not a hand-rolled re-implementation of the framing. So if you
+change a production encoder, the golden hash changes and the test fails; the
+fixtures cannot silently agree with a modified protocol.
+
 Shared helpers (`MockEngine`, the duplex in-memory stream, encode utilities)
 live in `protocol_test_helpers.h`.
 

@@ -10,12 +10,16 @@
 
 /// Wire-format / codec regression tests for the remote gribjump protocol.
 ///
-/// These tests are deliberately FDB-free and socket-free: they drive the same
-/// eckit::Stream encode/decode paths used by the real client and server against
-/// an in-memory buffer. Their purpose is twofold:
+/// These tests are deliberately FDB-free and socket-free: they drive the exact
+/// production ProtocolCodec encode paths used by the real client and server
+/// against an in-memory buffer. Their purpose is twofold:
 ///   1. round-trip: prove encode followed by decode reconstructs the object;
 ///   2. golden hash: pin the exact bytes on the wire so that any change to the
 ///      serialised format is detected and forces a deliberate protocol change.
+///
+/// Because the framed cases call ProtocolCodec directly (rather than
+/// re-implementing the framing here), a change to the production encoders WILL
+/// change these hashes and fail the test -- which is the point.
 ///
 /// If a golden hash below changes, the wire protocol has changed. That must be
 /// accompanied by a bump of `remoteProtocolVersion` and an update of the golden
@@ -29,13 +33,16 @@
 #include "eckit/testing/Test.h"
 #include "eckit/utils/MD5.h"
 
+#include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/io/Offset.h"
 #include "metkit/mars/MarsRequest.h"
 
 #include "gribjump/ExtractionData.h"
+#include "gribjump/ExtractionItem.h"
 #include "gribjump/Metrics.h"
-#include "gribjump/remote/RemoteGribJump.h"
+#include "gribjump/Types.h"
+#include "gribjump/remote/ProtocolCodec.h"
 
 using namespace eckit::testing;
 
@@ -66,13 +73,6 @@ static void expectGolden(const std::string& actual, const std::string& expected,
                             << std::endl;
     }
     EXPECT_EQUAL(actual, expected);
-}
-
-/// Write the request header exactly as RemoteGribJump::sendHeader does.
-static void writeHeader(eckit::Stream& s, RequestType type, const LogContext& ctx) {
-    s << remoteProtocolVersion;
-    s << ctx;
-    s << static_cast<uint16_t>(type);
 }
 
 /// Two fixed ExtractionRequests reused across framed tests.
@@ -173,12 +173,8 @@ CASE("EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeHeader(s, RequestType::EXTRACT, LogContext("{}"));
-            size_t n = requests.size();
-            s << n;
-            for (auto& r : requests) {
-                s << r;
-            }
+            ProtocolCodec::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+            ProtocolCodec::encodeExtractRequest(s, requests);
         },
         buffer);
 
@@ -192,9 +188,8 @@ CASE("AXES request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeHeader(s, RequestType::AXES, LogContext("{}"));
-            s << request;
-            s << level;
+            ProtocolCodec::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+            ProtocolCodec::encodeAxesRequest(s, request, level);
         },
         buffer);
 
@@ -208,13 +203,8 @@ CASE("SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeHeader(s, RequestType::SCAN, LogContext("{}"));
-            s << byfiles;
-            size_t n = requests.size();
-            s << n;
-            for (auto& r : requests) {
-                s << r;
-            }
+            ProtocolCodec::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+            ProtocolCodec::encodeScanRequest(s, requests, byfiles);
         },
         buffer);
 
@@ -223,16 +213,14 @@ CASE("SCAN request frame matches golden") {
 
 CASE("FORWARD_SCAN request frame matches golden") {
     eckit::OffsetList offsets = {eckit::Offset(0), eckit::Offset(1024), eckit::Offset(2048)};
+    scanmap_t scanmap;
+    scanmap[eckit::PathName("/data/file.grib")] = offsets;
 
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"));
-            size_t nFiles = 1;
-            s << nFiles;
-            std::string fname = "/data/file.grib";
-            s << fname;
-            s << offsets;
+            ProtocolCodec::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"));
+            ProtocolCodec::encodeForwardScanRequest(s, scanmap);
         },
         buffer);
 
@@ -240,25 +228,24 @@ CASE("FORWARD_SCAN request frame matches golden") {
 }
 
 CASE("FORWARD_EXTRACT request frame matches golden") {
-    ExtractionRequest req = fixtureRequest0();
-    eckit::URI uri("file", eckit::PathName("/data/file.grib"));
+    // Build a real ExtractionItem so the production encoder drives the bytes.
+    // Note production sends an ExtractionRequest with an EMPTY request string
+    // (only intervals + gridHash), plus the item URI.
+    auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(fixtureRequest0()));
+    item->URI(eckit::URI("file", eckit::PathName("/data/file.grib")));
+
+    filemap_t filemap;
+    filemap["/data/file.grib"] = {item.get()};
 
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"));
-            size_t nFiles = 1;
-            s << nFiles;
-            std::string fname = "/data/file.grib";
-            s << fname;
-            size_t nItems = 1;
-            s << nItems;
-            s << req;
-            s << uri;
+            ProtocolCodec::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"));
+            ProtocolCodec::encodeForwardExtractRequest(s, filemap);
         },
         buffer);
 
-    expectGolden(hash, "9b18caa1229e7bb475793eac944b0400", "FORWARD_EXTRACT frame");
+    expectGolden(hash, "5aa4ba19a9436ebca7cffea55ceae27b", "FORWARD_EXTRACT frame");
 }
 
 //-----------------------------------------------------------------------------
@@ -273,24 +260,18 @@ static ExtractionResult fixtureResult() {
     return ExtractionResult(std::move(values), std::move(mask));
 }
 
-/// Error block for the success case: zero errors.
-static void writeNoErrors(eckit::Stream& s) {
-    size_t nErrors = 0;
-    s << nErrors;
-}
-
 CASE("EXTRACT reply frame matches golden") {
-    // Two results, each framed with the (currently mandatory) nfields == 1.
+    // Two results, each framed by the production encoder (incl. the currently
+    // mandatory nfields == 1).
+    ExtractionResult res0 = fixtureResult();
+    ExtractionResult res1 = fixtureResult();
+    std::vector<const ExtractionResult*> results = {&res0, &res1};
+
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeNoErrors(s);
-            for (int i = 0; i < 2; i++) {
-                size_t nfields = 1;
-                s << nfields;
-                ExtractionResult res = fixtureResult();
-                s << res;
-            }
+            ProtocolCodec::encodeErrors(s, {});
+            ProtocolCodec::encodeExtractReply(s, results);
         },
         buffer);
 
@@ -298,42 +279,33 @@ CASE("EXTRACT reply frame matches golden") {
 }
 
 CASE("AXES reply frame matches golden") {
-    // Note: the real server stores axis values in an unordered_set, so the
-    // on-the-wire ordering of values is not guaranteed. This golden pins the
-    // encoding structure using a fixed order; Layer 2 asserts decoded content
-    // order-insensitively against the real server.
-    std::vector<std::pair<std::string, std::vector<std::string>>> axes = {
-        {"step", {"1", "2", "3"}},
+    // The real server stores axis values in an unordered_set, so the on-the-wire
+    // order of values within an axis is not guaranteed across platforms. To pin a
+    // deterministic golden while still driving the production encoder, use a
+    // single value per axis (axis *names* come out in std::map key order). Layer 2
+    // asserts multi-value content order-insensitively against the real server.
+    std::map<std::string, std::unordered_set<std::string>> axes = {
         {"levtype", {"sfc"}},
+        {"step", {"2"}},
     };
 
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeNoErrors(s);
-            size_t naxes = axes.size();
-            s << naxes;
-            for (auto& [name, vals] : axes) {
-                s << name;
-                size_t n = vals.size();
-                s << n;
-                for (auto& v : vals) {
-                    s << v;
-                }
-            }
+            ProtocolCodec::encodeErrors(s, {});
+            ProtocolCodec::encodeAxesReply(s, axes);
         },
         buffer);
 
-    expectGolden(hash, "226399410eb200d0a2c56e306268bbc4", "AXES reply");
+    expectGolden(hash, "d908c9f30353463e17d9501135ea6754", "AXES reply");
 }
 
 CASE("SCAN reply frame matches golden") {
     eckit::Buffer buffer(1024);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeNoErrors(s);
-            size_t nFields = 3;
-            s << nFields;
+            ProtocolCodec::encodeErrors(s, {});
+            ProtocolCodec::encodeScanReply(s, 3);
         },
         buffer);
 
@@ -344,9 +316,8 @@ CASE("FORWARD_SCAN reply frame matches golden") {
     eckit::Buffer buffer(1024);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeNoErrors(s);
-            size_t nfields = 3;
-            s << nfields;
+            ProtocolCodec::encodeErrors(s, {});
+            ProtocolCodec::encodeScanReply(s, 3);
         },
         buffer);
 
@@ -354,16 +325,18 @@ CASE("FORWARD_SCAN reply frame matches golden") {
 }
 
 CASE("FORWARD_EXTRACT reply frame matches golden") {
+    auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(fixtureRequest0()));
+    item->URI(eckit::URI("file", eckit::PathName("/data/file.grib")));
+    item->result(std::make_unique<ExtractionResult>(fixtureResult()));
+
+    filemap_t filemap;
+    filemap["/data/file.grib"] = {item.get()};
+
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            writeNoErrors(s);
-            std::string fname = "/data/file.grib";
-            s << fname;
-            size_t nItems = 1;
-            s << nItems;
-            ExtractionResult res = fixtureResult();
-            s << res;
+            ProtocolCodec::encodeErrors(s, {});
+            ProtocolCodec::encodeForwardExtractReply(s, filemap);
         },
         buffer);
 
@@ -375,15 +348,7 @@ CASE("Error reply block matches golden") {
     std::vector<std::string> errors = {"boom: something failed", "and another"};
 
     eckit::Buffer buffer(2048);
-    std::string hash = hashOfEncoded(
-        [&](eckit::Stream& s) {
-            size_t n = errors.size();
-            s << n;
-            for (auto& e : errors) {
-                s << e;
-            }
-        },
-        buffer);
+    std::string hash = hashOfEncoded([&](eckit::Stream& s) { ProtocolCodec::encodeErrors(s, errors); }, buffer);
 
     expectGolden(hash, "2d75195a420c1d50665d85da18fdbfe7", "error reply block");
 }
