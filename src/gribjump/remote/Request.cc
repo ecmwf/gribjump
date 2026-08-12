@@ -27,7 +27,10 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // @todo: Lots of common behaviour between these classes, consider refactoring. Especially the interaction with metrics.
 
-Request::Request(eckit::Stream& stream) : client_(stream) {
+Request::Request(eckit::Stream& stream, EngineIface* engine) :
+    client_(stream),
+    ownedEngine_(engine ? nullptr : std::make_unique<Engine>()),
+    engine_(engine ? *engine : *ownedEngine_) {
     id_ = requestid();
     MetricsManager::instance().set("gribjump_request_id", id_);
 }
@@ -38,7 +41,7 @@ void Request::reportErrors() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ScanRequest::ScanRequest(eckit::Stream& stream) : Request(stream) {
+ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "scan");
 
     client_ >> byfiles_;
@@ -74,7 +77,7 @@ void ScanRequest::info() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream) : Request(stream) {
+ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "extract");
 
     // Receive the requests
@@ -132,7 +135,7 @@ void ExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream) : Request(stream) {
+ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-extract");
 
     size_t nFiles;
@@ -183,7 +186,7 @@ void ForwardedExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream) : Request(stream) {
+ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "forwarded-scan");
 
     size_t nFiles;
@@ -218,7 +221,7 @@ void ForwardedScanRequest::info() const {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesRequest::AxesRequest(eckit::Stream& stream) : Request(stream) {
+AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface* engine) : Request(stream, engine) {
     MetricsManager::instance().set("action", "axes");
     client_ >> request_;
     client_ >> level_;

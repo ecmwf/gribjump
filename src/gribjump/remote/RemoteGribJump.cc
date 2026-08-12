@@ -36,10 +36,72 @@ RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) : host_(endpoint.h
 
 RemoteGribJump::~RemoteGribJump() {}
 
-void RemoteGribJump::sendHeader(eckit::net::InstantTCPStream& stream, RequestType type) {
+void RemoteGribJump::sendHeader(eckit::Stream& stream, RequestType type) {
     stream << remoteProtocolVersion;
     stream << ContextManager::instance().context();
     stream << static_cast<uint16_t>(type);
+}
+
+void RemoteGribJump::encodeExtractRequest(eckit::Stream& stream, std::vector<ExtractionRequest>& requests) {
+    size_t nRequests = requests.size();
+    stream << nRequests;
+    for (auto& req : requests) {
+        stream << req;
+    }
+}
+
+std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::decodeExtractReply(eckit::Stream& stream,
+                                                                                  size_t nRequests) {
+    std::vector<std::unique_ptr<ExtractionResult>> result;
+    for (size_t i = 0; i < nRequests; i++) {
+        size_t nfields;
+        stream >> nfields;
+        ASSERT(nfields == 1);  // temporary. Note will have to update remote protocol if we wish to not send this. Not
+                               // really a problem though.
+        result.push_back(std::make_unique<ExtractionResult>(stream));
+    }
+    return result;
+}
+
+void RemoteGribJump::encodeScanRequest(eckit::Stream& stream, const std::vector<metkit::mars::MarsRequest>& requests,
+                                       bool byfiles) {
+    stream << byfiles;
+    size_t nRequests = requests.size();
+    stream << nRequests;
+    for (auto& req : requests) {
+        stream << req;
+    }
+}
+
+size_t RemoteGribJump::decodeScanReply(eckit::Stream& stream) {
+    size_t nFields;
+    stream >> nFields;
+    return nFields;
+}
+
+void RemoteGribJump::encodeAxesRequest(eckit::Stream& stream, const std::string& request, int level) {
+    stream << request;
+    stream << level;
+}
+
+std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::decodeAxesReply(eckit::Stream& stream) {
+    std::map<std::string, std::unordered_set<std::string>> result;
+    size_t nAxes;
+    stream >> nAxes;
+    for (size_t i = 0; i < nAxes; i++) {
+        std::string axisName;
+        stream >> axisName;
+        size_t nVals;
+        stream >> nVals;
+        std::unordered_set<std::string> vals;
+        for (size_t j = 0; j < nVals; j++) {
+            std::string val;
+            stream >> val;
+            vals.insert(val);
+        }
+        result[axisName] = vals;
+    }
+    return result;
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
@@ -51,24 +113,17 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::SCAN);
-    stream << byfiles;
-
-    size_t nRequests = requests.size();
-    stream << nRequests;
-    for (auto& req : requests) {
-        stream << req;
-    }
+    encodeScanRequest(stream, requests, byfiles);
 
     std::stringstream ss;
-    ss << "Sent " << nRequests << " requests";
+    ss << "Sent " << requests.size() << " requests";
     timer.report(ss.str());
 
     // receive responses
 
     bool error = receiveErrors(stream);
 
-    size_t nFields;
-    stream >> nFields;
+    size_t nFields = decodeScanReply(stream);
 
     timer.report("Scans complete");
     return nFields;
@@ -115,10 +170,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     sendHeader(stream, RequestType::EXTRACT);
 
     size_t nRequests = requests.size();
-    stream << nRequests;
-    for (auto& req : requests) {
-        stream << req;
-    }
+    encodeExtractRequest(stream, requests);
 
     std::stringstream ss;
     ss << "Sent " << nRequests << " requests";
@@ -128,14 +180,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 
     bool error = receiveErrors(stream);
 
-    for (size_t i = 0; i < nRequests; i++) {
-        std::vector<std::unique_ptr<ExtractionResult>> response;
-        size_t nfields;
-        stream >> nfields;
-        ASSERT(nfields == 1);  // temporary. Note will have to update remote protocol if we wish to not send this. Not
-                               // really a problem though.
-        result.push_back(std::make_unique<ExtractionResult>(stream));
-    }
+    result = decodeExtractReply(stream, nRequests);
     timer.report("All data recieved");
     return result;
 }
@@ -205,29 +250,14 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::AXES);
-    stream << request;
-    stream << level;
+    encodeAxesRequest(stream, request, level);
     timer.report("Request sent");
 
     // receive response
 
     bool error = receiveErrors(stream);
 
-    size_t nAxes;
-    stream >> nAxes;
-    for (size_t i = 0; i < nAxes; i++) {
-        std::string axisName;
-        stream >> axisName;
-        size_t nVals;
-        stream >> nVals;
-        std::unordered_set<std::string> vals;
-        for (size_t j = 0; j < nVals; j++) {
-            std::string val;
-            stream >> val;
-            vals.insert(val);
-        }
-        result[axisName] = vals;
-    }
+    result = decodeAxesReply(stream);
     timer.report("Axes received");
 
     return result;

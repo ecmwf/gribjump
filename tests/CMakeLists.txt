@@ -151,6 +151,28 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+# Server-side protocol tests: drive the real Request classes and dispatch
+# against an in-memory stream with a mock engine (FDB-free, socket-free).
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_server"
+    SOURCES "remote/test_protocol_server.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+# Full client<->server loopback: real client codec wired to real server
+# dispatch over an in-memory stream with a mock engine (FDB-free, socket-free).
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_loopback"
+    SOURCES "remote/test_protocol_loopback.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
 # c compiler test
 ecbuild_add_test(
     TARGET "gribjump_test_c_compile"

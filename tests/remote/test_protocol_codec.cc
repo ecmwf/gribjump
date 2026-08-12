@@ -124,7 +124,7 @@ CASE("ExtractionRequest round-trips and matches golden") {
 }
 
 CASE("ExtractionResult round-trips and matches golden") {
-    std::vector<std::vector<double>> values = {{1.0, 2.0, 3.0}, {4.0, 5.0}};
+    std::vector<std::vector<double>> values        = {{1.0, 2.0, 3.0}, {4.0, 5.0}};
     std::vector<std::vector<std::bitset<64>>> mask = {{std::bitset<64>(0xAAAAAAAAAAAAAAAAULL)},
                                                       {std::bitset<64>(0x1), std::bitset<64>(0x0)}};
     ExtractionResult res(std::move(values), std::move(mask));

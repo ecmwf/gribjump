@@ -35,7 +35,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 
     try {
         eckit::Timer timer("Connection served");
-        handle_client(s, timer);
+        dispatchRequest(s);
     }
     catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
@@ -59,7 +59,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     MetricsManager::instance().report();
 }
 
-void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
+void dispatchRequest(eckit::Stream& s, EngineIface* engine) {
     uint16_t version;
     uint16_t i_requestType;
 
@@ -78,30 +78,30 @@ void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
 
     switch (requestType) {
         case RequestType::EXTRACT:
-            processRequest<ExtractRequest>(s);
+            processRequest<ExtractRequest>(s, engine);
             break;
         case RequestType::AXES:
-            processRequest<AxesRequest>(s);
+            processRequest<AxesRequest>(s, engine);
             break;
         case RequestType::SCAN:
-            processRequest<ScanRequest>(s);
+            processRequest<ScanRequest>(s, engine);
             break;
         case RequestType::FORWARD_EXTRACT:
-            processRequest<ForwardedExtractRequest>(s);
+            processRequest<ForwardedExtractRequest>(s, engine);
             break;
         case RequestType::FORWARD_SCAN:
-            processRequest<ForwardedScanRequest>(s);
+            processRequest<ForwardedScanRequest>(s, engine);
             break;
         default:
             throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
     }
 }
 
-template <typename RequestType>
-void GribJumpUser::processRequest(eckit::Stream& s) {
+template <typename RequestT>
+static void processRequest(eckit::Stream& s, EngineIface* engine) {
     eckit::Timer timer("GribJumpUser::processRequest");
 
-    RequestType request(s);
+    RequestT request(s, engine);
     MetricsManager::instance().set("elapsed_receive", timer.elapsed());
     timer.reset("Request received");
     request.info();

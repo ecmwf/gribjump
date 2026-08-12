@@ -29,23 +29,47 @@ struct TaskOutcome {
     TaskReport report;
 };
 
-class Engine {
+//----------------------------------------------------------------------------------------------------------------------
+// Abstract interface exposing only the operations the remote Request classes
+// need from the engine. This is the seam used to inject a mock engine in tests,
+// keeping the server-side protocol logic testable without FDB.
+
+class EngineIface {
+public:
+
+    virtual ~EngineIface() = default;
+
+    virtual TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) = 0;
+
+    // byfiles: scan entire file, not just fields matching request
+    virtual TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) = 0;
+
+    virtual TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap) = 0;
+
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3) = 0;
+
+    virtual TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false) = 0;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class Engine : public EngineIface {
 public:
 
     Engine();
     ~Engine();
 
-    TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
+    TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) override;
     TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
     // byfiles: scan entire file, not just fields matching request
-    TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false);
+    TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) override;
     TaskOutcome<size_t> scan(std::vector<eckit::PathName> files);
-    TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap);
+    TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap) override;
 
-    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3);
+    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3) override;
 
-    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false);
+    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false) override;
 
 private:
 

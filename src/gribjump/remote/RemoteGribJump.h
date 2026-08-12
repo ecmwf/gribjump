@@ -19,6 +19,10 @@
 
 namespace gribjump {
 
+namespace test {
+class RemoteProtocolTestAccess;  // test seam, see tests/remote/test_protocol_loopback.cc
+}
+
 enum class RequestType : uint16_t {
     EXTRACT = 0,
     AXES,
@@ -58,12 +62,26 @@ public:  // methods
 private:  // methods
 
     bool receiveErrors(eckit::Stream& stream, bool raise = true);
-    void sendHeader(eckit::net::InstantTCPStream& stream, RequestType type);
+    void sendHeader(eckit::Stream& stream, RequestType type);
+
+    // Pure stream (de)serialisation of each operation, independent of the
+    // transport. Split out from the TCP methods so the wire protocol can be
+    // driven over an in-memory stream in tests (client<->server loopback).
+    void encodeExtractRequest(eckit::Stream& stream, std::vector<ExtractionRequest>& requests);
+    std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReply(eckit::Stream& stream, size_t nRequests);
+
+    void encodeScanRequest(eckit::Stream& stream, const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles);
+    size_t decodeScanReply(eckit::Stream& stream);
+
+    void encodeAxesRequest(eckit::Stream& stream, const std::string& request, int level);
+    std::map<std::string, std::unordered_set<std::string>> decodeAxesReply(eckit::Stream& stream);
 
 private:  // members
 
     std::string host_;
     int port_;
+
+    friend class test::RemoteProtocolTestAccess;  // grants tests access to the transport-independent codec helpers
 };
 
 
