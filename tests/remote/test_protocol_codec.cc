@@ -263,8 +263,8 @@ static ExtractionResult fixtureResult() {
 CASE("EXTRACT reply frame matches golden") {
     // Two results, each framed by the production encoder (incl. the currently
     // mandatory nfields == 1).
-    ExtractionResult res0 = fixtureResult();
-    ExtractionResult res1 = fixtureResult();
+    ExtractionResult res0                        = fixtureResult();
+    ExtractionResult res1                        = fixtureResult();
     std::vector<const ExtractionResult*> results = {&res0, &res1};
 
     eckit::Buffer buffer(8192);
