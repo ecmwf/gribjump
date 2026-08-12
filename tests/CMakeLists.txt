@@ -138,6 +138,19 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+# Wire-format / codec regression tests for the remote protocol.
+# FDB-free and socket-free: runs as a normal fast unit test (unlike the live
+# server tests under remote/, which require FDB build tools) so protocol
+# regressions are caught on every build.
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_codec"
+    SOURCES "remote/test_protocol_codec.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
 # c compiler test
 ecbuild_add_test(
     TARGET "gribjump_test_c_compile"
