@@ -58,6 +58,9 @@ void Task::execute() {
     // atomically set status to executing, but only if it is currently pending (i.e. not cancelled)
     Status expected = Status::PENDING;
     if (!status_.compare_exchange_strong(expected, Status::EXECUTING)) {
+        if (expected == Status::CANCELLED) {
+            notifyCancelled();
+        }
         return;
     }
     info();

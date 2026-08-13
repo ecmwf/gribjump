@@ -358,9 +358,7 @@ CASE("harvest_popCompleted_drains_all_completed_tasks") {
 
 CASE("harvest_single_error_yields_no_completed_and_reports_error") {
     // A failed task is not harvestable (produced no result); popCompleted()
-    // still terminates and the error is surfaced for the trailer. Single task
-    // so no sibling is left PENDING to cancel (which the current design would
-    // not count towards completion).
+    // still terminates and the error is surfaced for the trailer.
     TaskGroup group;
     group.enqueueTask<ThrowingTask>();
 
@@ -371,6 +369,62 @@ CASE("harvest_single_error_yields_no_completed_and_reports_error") {
 
     EXPECT_EQUAL(harvested.size(), 0u);
     EXPECT_EQUAL(group.nErrors(), 1u);
+}
+
+CASE("harvest_error_cancels_siblings_and_still_terminates") {
+    // Regression: a task erroring with cancelOnFirstError cancels its still
+    // PENDING siblings. Those cancelled tasks must still be counted towards
+    // completion (via Task::execute -> notifyCancelled), otherwise popCompleted()
+    // never reaches its terminal condition and hangs. The WorkerGate holds the
+    // single worker until every task is enqueued, so id 0 (throwing) runs first
+    // and finds all siblings still PENDING to cancel.
+    TaskGroup group;
+    DispatchLog log;
+    const size_t nSiblings = 4;
+
+    {
+        WorkerGate gate;
+        group.enqueueTask<ThrowingTask>();  // id 0: runs first, triggers cancellation
+        for (size_t i = 0; i < nSiblings; ++i) {
+            group.enqueueTask<DummyTask>(std::string("S"), i, std::ref(log));
+        }
+        // gate releases here; the worker then drains `group` in FIFO order
+    }
+
+    std::vector<size_t> harvested;
+    while (auto id = group.popCompleted()) {  // must not hang
+        harvested.push_back(*id);
+    }
+
+    // Nothing harvestable: the error produced no result and the siblings were
+    // cancelled before they could run.
+    EXPECT_EQUAL(harvested.size(), 0u);
+    EXPECT_EQUAL(log.size(), 0u);  // no sibling executed
+    EXPECT_EQUAL(group.nErrors(), 1u);
+    EXPECT_EQUAL(group.nCancelled(), nSiblings);
+}
+
+CASE("waitForTasks_terminates_when_error_cancels_siblings") {
+    // Same regression on the buffered barrier: waitForTasks() shares the
+    // nComplete_ == tasks_.size() terminal condition, so it too would hang if
+    // cancelled siblings were not counted.
+    TaskGroup group;
+    DispatchLog log;
+    const size_t nSiblings = 3;
+
+    {
+        WorkerGate gate;
+        group.enqueueTask<ThrowingTask>();
+        for (size_t i = 0; i < nSiblings; ++i) {
+            group.enqueueTask<DummyTask>(std::string("S"), i, std::ref(log));
+        }
+    }
+
+    group.waitForTasks();  // must not hang
+
+    EXPECT_EQUAL(log.size(), 0u);
+    EXPECT_EQUAL(group.nErrors(), 1u);
+    EXPECT_EQUAL(group.nCancelled(), nSiblings);
 }
 
 CASE("byte_budget_accounting_and_overBudget") {

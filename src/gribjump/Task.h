@@ -189,6 +189,11 @@ public:
         return errors_.size();
     }
 
+    size_t nCancelled() const {
+        std::lock_guard<std::mutex> lock(m_);
+        return nCancelledTasks_;
+    }
+
     void info() const;
 
     const LogContext& context() const { return ctx_; }
