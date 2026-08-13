@@ -76,6 +76,7 @@ void Task::cancel() {
 void TaskGroup::notify(size_t taskid) {
     std::lock_guard<std::mutex> lock(m_);
     nComplete_++;
+    completed_.push_back(taskid);  //< harvestable by popCompleted() (streaming path)
 
     // Logging progress
     if (waiting_) {
@@ -156,6 +157,51 @@ void TaskGroup::waitForTasks() {
     if (errors_.size() > 0) {
         MetricsManager::instance().set("first_error", errors_[0]);
     }
+}
+
+std::optional<size_t> TaskGroup::popCompleted() {
+    std::unique_lock<std::mutex> lock(m_);
+    ASSERT(tasks_.size() > 0);
+
+    // Wait until there is a completed task to harvest, or every task has been
+    // accounted for (same terminal condition as waitForTasks()).
+    cv_.wait(lock, [&] { return !completed_.empty() || nComplete_ == tasks_.size(); });
+
+    if (!completed_.empty()) {
+        size_t id = completed_.front();
+        completed_.pop_front();
+        return id;
+    }
+
+    // All tasks accounted for and nothing left to harvest.
+    done_ = true;
+    return std::nullopt;
+}
+
+void TaskGroup::releaseOutstanding(size_t bytes) {
+    bool underBudget;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        size_t before = outstandingBytes_.fetch_sub(bytes);
+        ASSERT(before >= bytes);
+        underBudget = (before - bytes) <= byteThreshold_;
+        if (underBudget) {
+            budgetCv_.notify_all();  // wake a task paused in waitIfOverBudget()
+        }
+    }
+    // Let the WorkQueue re-evaluate dispatching this group's tasks. Done outside
+    // m_ to keep the lock order m_ -> WorkQueue mutex (never nested).
+    if (underBudget) {
+        WorkQueue::instance().reconsider();
+    }
+}
+
+void TaskGroup::waitIfOverBudget() {
+    if (byteThreshold_ == std::numeric_limits<size_t>::max()) {
+        return;  // fast path: backpressure disabled
+    }
+    std::unique_lock<std::mutex> lock(m_);
+    budgetCv_.wait(lock, [&] { return !overBudget(); });
 }
 
 //----------------------------------------------------------------------------------------------------------------------

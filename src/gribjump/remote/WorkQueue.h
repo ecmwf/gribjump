@@ -55,6 +55,11 @@ public:
     /// Enqueue a task belonging to the given task group. Never blocks.
     void push(TaskGroup* group, Task* task);
 
+    /// Wake worker threads to re-evaluate which groups are servable. Called
+    /// when a group drops back under its byte budget so its previously-skipped
+    /// tasks can be dispatched again.
+    void reconsider();
+
 protected:
 
     WorkQueue();

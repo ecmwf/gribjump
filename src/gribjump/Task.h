@@ -12,7 +12,10 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <deque>
+#include <limits>
 #include <mutex>
+#include <optional>
 #include "eckit/serialisation/Stream.h"
 
 #include "gribjump/ExtractionItem.h"
@@ -117,6 +120,36 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
+    /// Streaming harvest (v4 reply path): block until the next successfully
+    /// completed task is available and return its id, or return nullopt once
+    /// every task has completed and the completed-queue is drained. Mutually
+    /// exclusive with waitForTasks() -- a TaskGroup uses one or the other.
+    std::optional<size_t> popCompleted();
+
+    // -- Backpressure: bound produced-but-not-yet-sent result bytes ------------
+    // The threshold defaults to unlimited, so these are inert (overBudget() is
+    // always false, waitIfOverBudget() returns immediately, and the WorkQueue
+    // serves this group exactly as before) unless a streaming consumer opts in
+    // via setByteThreshold(). The buffered (local) path is therefore unaffected.
+
+    void setByteThreshold(size_t bytes) { byteThreshold_ = bytes; }
+
+    /// Account for result bytes produced but not yet sent to the client.
+    void addOutstanding(size_t bytes) { outstandingBytes_.fetch_add(bytes); }
+
+    /// Account for result bytes that have been sent and freed. Wakes any task
+    /// paused in waitIfOverBudget() and lets the WorkQueue reconsider this group
+    /// once it drops back to/under budget.
+    void releaseOutstanding(size_t bytes);
+
+    /// True while more result bytes are outstanding than the configured budget.
+    /// Lock-free; used by the WorkQueue to skip an over-budget group.
+    bool overBudget() const { return outstandingBytes_.load() > byteThreshold_; }
+
+    /// Block while this group is over its byte budget. Used to pause a running
+    /// task between items so a single large file cannot outrun the consumer.
+    void waitIfOverBudget();
+
     /// Report on errors and other status information about executed tasks.
     /// Calling code may use this to report to a client or raise an exception.
     TaskReport report() {
@@ -159,6 +192,12 @@ private:
 
     std::vector<std::shared_ptr<Task>> tasks_;
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
+
+    std::deque<size_t> completed_;  //< ids of DONE tasks awaiting harvest (guarded by m_)
+
+    std::atomic<size_t> outstandingBytes_{0};                     //< produced-but-not-yet-sent result bytes
+    size_t byteThreshold_ = std::numeric_limits<size_t>::max();   //< unlimited by default (no backpressure)
+    std::condition_variable budgetCv_;                            //< signalled when outstandingBytes_ drops
 
     const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
 };

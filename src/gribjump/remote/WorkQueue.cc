@@ -77,17 +77,35 @@ void WorkQueue::workerLoop() {
 
 bool WorkQueue::popNext(WorkItem& item) {
     std::unique_lock<std::mutex> lock(mtx_);
-    cv_.wait(lock, [&] { return closed_ || !rrOrder_.empty(); });
 
-    if (rrOrder_.empty()) {
-        // closed_ must be true here
+    const auto firstServable = [this] {
+        // First group in round-robin order that has queued tasks and is not
+        // over its byte budget. end() if none is currently servable.
+        for (auto it = rrOrder_.begin(); it != rrOrder_.end(); ++it) {
+            if (!(*it)->overBudget()) {
+                return it;
+            }
+        }
+        return rrOrder_.end();
+    };
+
+    std::list<TaskGroup*>::iterator rrIt;
+    cv_.wait(lock, [&] {
+        rrIt = firstServable();
+        return closed_ || rrIt != rrOrder_.end();
+    });
+
+    if (rrIt == rrOrder_.end()) {
+        // closed_ must be true here (no servable group and told to stop). Any
+        // remaining groups are over budget and will not be drained.
         return false;
     }
 
-    // Round-robin: serve the group at the front, then rotate it to the back
-    // (if it still has tasks) or remove it (if drained).
-    TaskGroup* group = rrOrder_.front();
-    rrOrder_.pop_front();
+    // Serve the first servable group, then rotate it to the back (if it still
+    // has tasks) or remove it (if drained). Over-budget groups earlier in the
+    // rotation keep their position and are retried on a later pop.
+    TaskGroup* group = *rrIt;
+    rrOrder_.erase(rrIt);
 
     auto it = groupQueues_.find(group);
     ASSERT(it != groupQueues_.end());
@@ -105,6 +123,11 @@ bool WorkQueue::popNext(WorkItem& item) {
 
     item = WorkItem(task);
     return true;
+}
+
+void WorkQueue::reconsider() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    cv_.notify_all();
 }
 
 void WorkQueue::push(TaskGroup* group, Task* task) {
