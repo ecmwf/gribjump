@@ -21,13 +21,52 @@
 namespace gribjump {
 
 namespace {
-uint16_t configuredClientVersion() {
-    auto version = static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion());
+
+uint16_t validatedProtocolVersion(uint16_t version) {
     if (!isSupportedProtocolVersion(version)) {
-        throw eckit::UserError("Unsupported clientProtocolVersion: " + std::to_string(version), Here());
+        throw eckit::UserError("Unsupported client protocol version: " + std::to_string(version), Here());
     }
     return version;
 }
+
+uint16_t configuredClientVersion() {
+    return validatedProtocolVersion(static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion()));
+}
+
+// A single TCP request/reply exchange. Owns the socket (TCPClient) and the
+// stream wrapping it; declaration order matters -- InstantTCPStream holds a
+// reference to the socket, so client_ must outlive (be declared before)
+// stream_.
+class TcpConnection : public ClientConnection {
+public:
+
+    TcpConnection(const std::string& host, int port) : stream_(client_.connect(host, port)) {}
+
+    eckit::Stream& stream() override { return stream_; }
+
+private:
+
+    eckit::net::TCPClient client_;
+    eckit::net::InstantTCPStream stream_;
+};
+
+// Opens a fresh TCP connection per request, exactly as the client did inline
+// before the transport seam was introduced.
+class TcpTransport : public ClientTransport {
+public:
+
+    TcpTransport(std::string host, int port) : host_(std::move(host)), port_(port) {}
+
+    std::unique_ptr<ClientConnection> connect() override {
+        return std::make_unique<TcpConnection>(host_, port_);
+    }
+
+private:
+
+    std::string host_;
+    int port_;
+};
+
 }  // namespace
 
 RemoteGribJump::RemoteGribJump() : protocolVersion_(configuredClientVersion()) {
@@ -37,12 +76,22 @@ RemoteGribJump::RemoteGribJump() : protocolVersion_(configuredClientVersion()) {
         throw eckit::UserError("RemoteGribJump requires uri to be set in config (format host:port)", Here());
 
     eckit::net::Endpoint endpoint(uri);
-    host_ = endpoint.host();
-    port_ = endpoint.port();
+    host_      = endpoint.host();
+    port_      = endpoint.port();
+    transport_ = std::make_unique<TcpTransport>(host_, port_);
 }
 
 RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) :
-    host_(endpoint.host()), port_(endpoint.port()), protocolVersion_(configuredClientVersion()) {}
+    host_(endpoint.host()),
+    port_(endpoint.port()),
+    transport_(std::make_unique<TcpTransport>(endpoint.host(), endpoint.port())),
+    protocolVersion_(configuredClientVersion()) {}
+
+RemoteGribJump::RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint16_t protocolVersion) :
+    host_(""),
+    port_(0),
+    transport_(std::move(transport)),
+    protocolVersion_(validatedProtocolVersion(protocolVersion)) {}
 
 RemoteGribJump::~RemoteGribJump() {}
 
@@ -54,8 +103,8 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
     eckit::Timer timer("RemoteGribJump::scan()", LogRouter::instance().get("timer"));
 
     // connect to server
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    auto connection = transport_->connect();
+    eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::SCAN);
@@ -79,8 +128,8 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
 size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map) {
     ///@todo we could probably do the connection logic in the ctor
     eckit::Timer timer("RemoteGribJump::scan()", LogRouter::instance().get("timer"));
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    auto connection = transport_->connect();
+    eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::FORWARD_SCAN);
@@ -102,8 +151,8 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     std::vector<std::unique_ptr<ExtractionResult>> result;
 
     // connect to server
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    auto connection = transport_->connect();
+    eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::EXTRACT);
@@ -141,8 +190,8 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
     eckit::Timer timer("RemoteGribJump::forwardExtract()", LogRouter::instance().get("timer"));
 
     ///@todo we could probably do the connection logic in the ctor
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    auto connection = transport_->connect();
+    eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::FORWARD_EXTRACT);
@@ -165,8 +214,8 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     std::map<std::string, std::unordered_set<std::string>> result;
 
     // connect to server
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    auto connection = transport_->connect();
+    eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
     sendHeader(stream, RequestType::AXES);

@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "eckit/io/Buffer.h"
+#include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/serialisation/Stream.h"
 #include "eckit/utils/Literals.h"
@@ -202,6 +203,18 @@ inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& c
 inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType type, const std::string& ctx = "{}") {
     Protocol::writeRequestHeader(s, type, LogContext(ctx), version);
 }
+
+//-----------------------------------------------------------------------------
+// Wraps an already-connected file descriptor (e.g. from socketpair) in an
+// eckit::net::TCPSocket so it can be driven by InstantTCPStream. The base
+// class's socket_ member is protected, so a thin subclass is the simplest way
+// to adopt a raw fd.
+
+class FdSocket : public eckit::net::TCPSocket {
+public:
+
+    explicit FdSocket(int fd) { socket_ = fd; }
+};
 
 inline ExtractionRequest fixtureRequest(int step) {
     return ExtractionRequest("class=rd,expver=xxxx,step=" + std::to_string(step), {{0, 2}, {5, 6}},
