@@ -109,9 +109,9 @@ CASE("Server SCAN: parse, execute (mock), reply") {
     EXPECT_EQUAL(Protocol::decodeScanReply(reply), 7ul);
 }
 
-CASE("Server dispatch rejects protocol version mismatch") {
+CASE("Server dispatch rejects unsupported protocol version") {
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        uint16_t badVersion = remoteProtocolVersion + 1;
+        uint16_t badVersion = 9999;  // outside supportedProtocolVersions {3, 4}
         s << badVersion;
         s << LogContext("{}");
         s << static_cast<uint16_t>(RequestType::SCAN);
@@ -120,6 +120,21 @@ CASE("Server dispatch rejects protocol version mismatch") {
     DuplexTestStream stream(reqBytes);
     MockEngine engine;
     EXPECT_THROWS_AS(dispatchRequest(stream, &engine), eckit::SeriousBug);
+}
+
+CASE("Server dispatch accepts every supported protocol version") {
+    for (uint16_t version : supportedProtocolVersions) {
+        auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+            s << version;
+            s << LogContext("{}");
+            s << static_cast<uint16_t>(RequestType::SCAN);
+            Protocol::encodeScanRequest(s, {}, false);
+        });
+
+        DuplexTestStream stream(reqBytes);
+        MockEngine engine;
+        EXPECT_NO_THROW(dispatchRequest(stream, &engine));
+    }
 }
 
 CASE("Server dispatch rejects unknown request type") {

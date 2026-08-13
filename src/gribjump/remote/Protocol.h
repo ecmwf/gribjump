@@ -23,11 +23,13 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "eckit/serialisation/Stream.h"
@@ -52,7 +54,40 @@ enum class RequestType : uint16_t {
     FORWARD_SCAN
 };
 
+/// v4 reply framing: an EXTRACT/FORWARD_EXTRACT reply is a sequence of tagged
+/// chunks. A RESULTS chunk carries a batch of (requestIndex, ExtractionResult)
+/// pairs; a terminal END chunk is followed by the error trailer (identical
+/// layout to the leading error block used by v3).
+enum class ReplyChunkTag : uint16_t {
+    RESULTS = 0,
+    END     = 1
+};
+
+/// The protocol version the client advertises in every request header. During
+/// the v3->v4 migration this stays at 3 (buffered reply) until the client is
+/// switched to emit/consume the v4 streaming reply framing (at which point it
+/// becomes streamingProtocolVersion); the server already accepts both, see
+/// supportedProtocolVersions.
 constexpr uint16_t remoteProtocolVersion = 3;
+
+/// The streaming protocol version (v4): EXTRACT/FORWARD_EXTRACT replies are sent
+/// as batched result chunks + an error trailer instead of a single buffered
+/// block. Named so the server can branch its reply framing on the negotiated
+/// version.
+constexpr uint16_t streamingProtocolVersion = 4;
+
+/// Protocol versions the server accepts. A v4-capable server keeps serving v3
+/// clients for the duration of the migration window.
+inline constexpr std::array<uint16_t, 2> supportedProtocolVersions{remoteProtocolVersion, streamingProtocolVersion};
+
+inline bool isSupportedProtocolVersion(uint16_t version) {
+    for (uint16_t supported : supportedProtocolVersions) {
+        if (supported == version) {
+            return true;
+        }
+    }
+    return false;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -61,13 +96,21 @@ public:
 
     // -- Request header: [protocol version][log context][request type] ------------------------------------------------
 
+    /// The decoded request header: the negotiated protocol version (validated
+    /// against supportedProtocolVersions) plus the request type. The server
+    /// uses the version to select v3 (buffered) vs. v4 (streaming) reply framing.
+    struct RequestHeader {
+        uint16_t version;
+        RequestType type;
+    };
+
     /// Write the request header the client sends at the start of every request.
     static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context);
 
-    /// Read and validate the request header. Throws on protocol version
-    /// mismatch, installs the received log context into the ContextManager, and
-    /// returns the request type.
-    static RequestType readRequestHeader(eckit::Stream& stream);
+    /// Read and validate the request header. Throws on an unsupported protocol
+    /// version, installs the received log context into the ContextManager, and
+    /// returns the negotiated version + request type.
+    static RequestHeader readRequestHeader(eckit::Stream& stream);
 
     // -- Error block: [nErrors][error string]* (precedes every reply) -------------------------------------------------
 
@@ -85,6 +128,20 @@ public:
 
     static void encodeExtractReply(eckit::Stream& stream, const std::vector<const ExtractionResult*>& results);
     static std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReply(eckit::Stream& stream, size_t nRequests);
+
+    // -- EXTRACT reply, v4 streaming framing --------------------------------------------------------------------------
+    // A sequence of RESULTS chunks terminated by an END chunk + error trailer.
+    // The encoders are batch-composable so the server can flush chunks as work
+    // completes (in any order); decodeExtractReplyStreaming reassembles results
+    // by requestIndex into an nRequests-sized vector, then reads the trailer
+    // (same error semantics as decodeErrors: raise=true throws, false logs).
+
+    static void encodeExtractResultChunk(eckit::Stream& stream,
+                                         const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);
+    static void encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors);
+    static std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReplyStreaming(eckit::Stream& stream,
+                                                                                      size_t nRequests,
+                                                                                      bool raise = true);
 
     // -- SCAN ---------------------------------------------------------------------------------------------------------
 

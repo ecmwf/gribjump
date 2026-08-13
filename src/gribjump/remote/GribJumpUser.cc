@@ -82,7 +82,8 @@ static void processRequest(eckit::Stream& s, EngineIface& engine) {
 }
 
 void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
-    RequestType requestType = Protocol::readRequestHeader(s);
+    const Protocol::RequestHeader header = Protocol::readRequestHeader(s);
+    const RequestType requestType        = header.type;
 
     // By default we create an engine, though tests are allowed to
     // inject one (e.g. a MockEngine) for unit testing.
