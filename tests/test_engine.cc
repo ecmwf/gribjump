@@ -319,7 +319,8 @@ CASE("Engine: streaming extraction produces the same results as buffered") {
     // Every request index received a result, despite streaming order.
     EXPECT_EQUAL(sink.received.size(), requests.size());
     size_t count = 0;
-    for (const auto& [index, values] : sink.received) {
+    for (const auto& entry : sink.received) {
+        const auto& values = entry.second;
         EXPECT_EQUAL(values.size(), 2u);  // two intervals per request
         for (const auto& range : values) {
             count += range.size();
