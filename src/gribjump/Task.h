@@ -216,9 +216,9 @@ private:
 
     std::deque<size_t> completed_;  //< ids of DONE tasks awaiting harvest (guarded by m_)
 
-    std::atomic<size_t> outstandingBytes_{0};                     //< produced-but-not-yet-sent result bytes
-    size_t byteThreshold_ = std::numeric_limits<size_t>::max();   //< unlimited by default (no backpressure)
-    std::condition_variable budgetCv_;                            //< signalled when outstandingBytes_ drops
+    std::atomic<size_t> outstandingBytes_{0};                    //< produced-but-not-yet-sent result bytes
+    size_t byteThreshold_ = std::numeric_limits<size_t>::max();  //< unlimited by default (no backpressure)
+    std::condition_variable budgetCv_;                           //< signalled when outstandingBytes_ drops
 
     const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
 };

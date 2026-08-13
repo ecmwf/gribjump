@@ -293,8 +293,8 @@ CASE("EXTRACT reply frame matches golden") {
 // guard; these pin the new v4 bytes alongside it.
 
 CASE("EXTRACT v4 reply (single chunk) round-trips and matches golden") {
-    ExtractionResult res0 = fixtureResult();
-    ExtractionResult res1 = fixtureResult();
+    ExtractionResult res0                                         = fixtureResult();
+    ExtractionResult res1                                         = fixtureResult();
     std::vector<std::pair<size_t, const ExtractionResult*>> batch = {{0, &res0}, {1, &res1}};
 
     eckit::Buffer buffer(8192);
@@ -361,9 +361,9 @@ CASE("EXTRACT v4 reply (empty) round-trips and matches golden") {
 }
 
 CASE("EXTRACT v4 reply (error trailer after partial results) matches golden and throws") {
-    ExtractionResult res0                                        = fixtureResult();
+    ExtractionResult res0                                         = fixtureResult();
     std::vector<std::pair<size_t, const ExtractionResult*>> batch = {{0, &res0}};
-    std::vector<std::string> errors                              = {"boom: something failed"};
+    std::vector<std::string> errors                               = {"boom: something failed"};
 
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(

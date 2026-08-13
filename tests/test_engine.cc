@@ -304,8 +304,7 @@ CASE("Engine: streaming extraction produces the same results as buffered") {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
 
-    std::vector<std::vector<Interval>> allIntervals(requests.size(),
-                                                    {std::make_pair(0, 5), std::make_pair(20, 30)});
+    std::vector<std::vector<Interval>> allIntervals(requests.size(), {std::make_pair(0, 5), std::make_pair(20, 30)});
 
     Engine engine;
     ExtractionRequests exRequests;
@@ -339,8 +338,7 @@ CASE("Engine: streaming survives a client disconnecting mid-stream") {
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
         "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
 
-    std::vector<std::vector<Interval>> allIntervals(requests.size(),
-                                                    {std::make_pair(0, 5), std::make_pair(20, 30)});
+    std::vector<std::vector<Interval>> allIntervals(requests.size(), {std::make_pair(0, 5), std::make_pair(20, 30)});
 
     Engine engine;
     ExtractionRequests exRequests;

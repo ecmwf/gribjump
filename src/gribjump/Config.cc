@@ -84,9 +84,9 @@ std::string ConfigOptions::remoteURI() const {
 }
 
 size_t ConfigOptions::clientProtocolVersion() const {
-    static size_t value =
-        eckit::Resource<size_t>("$GRIBJUMP_CLIENT_PROTOCOL_VERSION",
-                                LibGribJump::instance().config().getInt("clientProtocolVersion", streamingProtocolVersion));
+    static size_t value = eckit::Resource<size_t>(
+        "$GRIBJUMP_CLIENT_PROTOCOL_VERSION",
+        LibGribJump::instance().config().getInt("clientProtocolVersion", streamingProtocolVersion));
     return value;
 }
 
