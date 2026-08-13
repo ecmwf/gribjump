@@ -52,6 +52,19 @@ public:  // methods
         return total;
     }
 
+    /// Approximate in-memory byte size of this result (values + mask). This is
+    /// the single source of truth for streaming backpressure accounting: the
+    /// producer (task) and consumer (harvest) must charge and release the same
+    /// figure for the outstanding-bytes budget to balance, so both go through
+    /// here (via ExtractionItem::resultBytes()).
+    size_t nbytes() const {
+        size_t bytes = total_values() * sizeof(double);
+        for (const auto& m : mask_) {
+            bytes += m.size() * sizeof(std::bitset<64>);
+        }
+        return bytes;
+    }
+
 private:  // methods
 
     void encode(eckit::Stream& s) const;

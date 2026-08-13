@@ -112,6 +112,18 @@ public:
     /// If true, forward scan requests to remote servers. YAML: forwardScan. Default: false.
     bool forwardScan() const;
 
+    // -- Streaming (v4) options --
+
+    /// Server-side streaming: accumulate this many result bytes before flushing
+    /// one RESULTS chunk to the wire. Env: GRIBJUMP_STREAMING_FLUSH_BYTES. YAML:
+    /// streaming.flushBytes. Default: 8 MiB.
+    size_t streamingFlushBytes() const;
+
+    /// Server-side streaming: per-request produced-but-unsent byte budget before
+    /// task dispatch is throttled (backpressure). Env:
+    /// GRIBJUMP_STREAMING_BYTE_BUDGET. YAML: streaming.byteBudget. Default: 128 MiB.
+    size_t streamingByteBudget() const;
+
     // -- Cache options --
 
     /// If true, the info cache is enabled. YAML: cache.enabled. Default: true.

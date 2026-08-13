@@ -137,6 +137,20 @@ bool ConfigOptions::forwardScan() const {
     return LibGribJump::instance().config().getBool("forwardScan", false);
 }
 
+size_t ConfigOptions::streamingFlushBytes() const {
+    static size_t value = eckit::Resource<size_t>(
+        "$GRIBJUMP_STREAMING_FLUSH_BYTES",
+        LibGribJump::instance().config().getUnsigned("streaming.flushBytes", 8 * 1024 * 1024));
+    return value;
+}
+
+size_t ConfigOptions::streamingByteBudget() const {
+    static size_t value = eckit::Resource<size_t>(
+        "$GRIBJUMP_STREAMING_BYTE_BUDGET",
+        LibGribJump::instance().config().getUnsigned("streaming.byteBudget", 128 * 1024 * 1024));
+    return value;
+}
+
 bool ConfigOptions::cacheEnabled() const {
     return LibGribJump::instance().config().getBool("cache.enabled", true);
 }

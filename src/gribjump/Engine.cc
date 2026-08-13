@@ -219,14 +219,6 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 // (WorkQueue skips an over-budget group), so a slow client can't make the
 // server accumulate unbounded produced-but-unsent results across many files.
 
-namespace {
-// Target size of one RESULTS chunk on the wire (accumulate this many result
-// bytes before flushing a chunk). Keeps chunks reasonably sized regardless of
-// how the work is grouped into per-file tasks.
-constexpr size_t streamingFlushBytes = 8 * 1024 * 1024;
-// Per-request produced-but-unsent budget before task dispatch is throttled.
-constexpr size_t streamingByteBudget = 128 * 1024 * 1024;
-}  // namespace
 
 TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& sink) {
 
@@ -258,8 +250,10 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     }
 
     TaskGroup taskGroup;
-    taskGroup.setByteThreshold(streamingByteBudget);
+    taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
+
+    const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
 
     // Harvest completed tasks, batch their results by byte budget, send, free.
     std::vector<std::unique_ptr<ExtractionResult>> owned;  // keeps batch results alive until flush
@@ -283,11 +277,11 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
             ASSERT(items);
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();  // move result out of the item
-                size_t bytes                          = res->total_values() * sizeof(double);
+                size_t bytes                          = res->nbytes();
                 batch.emplace_back(indexOf.at(item->request()), res.get());
                 owned.push_back(std::move(res));
                 batchBytes += bytes;
-                if (batchBytes >= streamingFlushBytes) {
+                if (batchBytes >= flushBytes) {
                     flush();
                 }
             }
@@ -325,7 +319,7 @@ void Engine::drainRemaining(TaskGroup& taskGroup, size_t pendingBytes) {
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();
                 if (res) {
-                    taskGroup.releaseOutstanding(res->total_values() * sizeof(double));
+                    taskGroup.releaseOutstanding(res->nbytes());
                 }
             }
         }
@@ -337,6 +331,7 @@ void Engine::drainRemaining(TaskGroup& taskGroup, size_t pendingBytes) {
 
 void Engine::streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
                                    ResultSink& sink) {
+    const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
     std::vector<std::unique_ptr<ExtractionResult>> owned;
     std::vector<std::pair<size_t, const ExtractionResult*>> batch;
     size_t batchBytes = 0;
@@ -353,11 +348,11 @@ void Engine::streamBufferedResults(ResultsMap& results, const std::unordered_map
 
     for (auto& [request, item] : results) {
         std::unique_ptr<ExtractionResult> res = item->result();
-        size_t bytes                          = res->total_values() * sizeof(double);
+        size_t bytes                          = res->nbytes();
         batch.emplace_back(indexOf.at(request), res.get());
         owned.push_back(std::move(res));
         batchBytes += bytes;
-        if (batchBytes >= streamingFlushBytes) {
+        if (batchBytes >= flushBytes) {
             flush();
         }
     }
