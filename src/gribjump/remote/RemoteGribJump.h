@@ -54,6 +54,10 @@ private:  // members
 
     std::string host_;
     int port_;
+
+    /// Protocol version this client advertises to the server. Defaults to v4
+    /// (streaming) but can be pinned to v3 via config for migration.
+    uint16_t protocolVersion_;
 };
 
 

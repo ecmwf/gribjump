@@ -16,6 +16,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
 
@@ -80,6 +81,13 @@ std::string ConfigOptions::configType() const {
 
 std::string ConfigOptions::remoteURI() const {
     return LibGribJump::instance().config().getString("uri", "");
+}
+
+size_t ConfigOptions::clientProtocolVersion() const {
+    static size_t value =
+        eckit::Resource<size_t>("$GRIBJUMP_CLIENT_PROTOCOL_VERSION",
+                                LibGribJump::instance().config().getInt("clientProtocolVersion", streamingProtocolVersion));
+    return value;
 }
 
 int ConfigOptions::serverPort() const {

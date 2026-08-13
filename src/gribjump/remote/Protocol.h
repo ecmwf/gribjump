@@ -105,7 +105,11 @@ public:
     };
 
     /// Write the request header the client sends at the start of every request.
-    static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context);
+    /// The advertised protocol version defaults to remoteProtocolVersion (v3);
+    /// a v4-capable client passes streamingProtocolVersion to opt into the
+    /// streaming reply framing.
+    static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
+                                   uint16_t version = remoteProtocolVersion);
 
     /// Read and validate the request header. Throws on an unsupported protocol
     /// version, installs the received log context into the ContextManager, and

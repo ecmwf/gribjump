@@ -20,7 +20,17 @@
 
 namespace gribjump {
 
-RemoteGribJump::RemoteGribJump() {
+namespace {
+uint16_t configuredClientVersion() {
+    auto version = static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion());
+    if (!isSupportedProtocolVersion(version)) {
+        throw eckit::UserError("Unsupported clientProtocolVersion: " + std::to_string(version), Here());
+    }
+    return version;
+}
+}  // namespace
+
+RemoteGribJump::RemoteGribJump() : protocolVersion_(configuredClientVersion()) {
     std::string uri = ConfigOptions::instance().remoteURI();
 
     if (uri.empty())
@@ -31,12 +41,13 @@ RemoteGribJump::RemoteGribJump() {
     port_ = endpoint.port();
 }
 
-RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) : host_(endpoint.host()), port_(endpoint.port()) {}
+RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) :
+    host_(endpoint.host()), port_(endpoint.port()), protocolVersion_(configuredClientVersion()) {}
 
 RemoteGribJump::~RemoteGribJump() {}
 
 void RemoteGribJump::sendHeader(eckit::Stream& stream, RequestType type) {
-    Protocol::writeRequestHeader(stream, type, ContextManager::instance().context());
+    Protocol::writeRequestHeader(stream, type, ContextManager::instance().context(), protocolVersion_);
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
@@ -106,9 +117,16 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 
     // receive response
 
-    Protocol::decodeErrors(stream);
-
-    result = Protocol::decodeExtractReply(stream, nRequests);
+    if (protocolVersion_ >= streamingProtocolVersion) {
+        // v4: results arrive as out-of-order RESULTS chunks terminated by END,
+        // followed by the error trailer (which raises on server-side errors).
+        result = Protocol::decodeExtractReplyStreaming(stream, nRequests);
+    }
+    else {
+        // v3: leading error block, then the buffered in-order reply.
+        Protocol::decodeErrors(stream);
+        result = Protocol::decodeExtractReply(stream, nRequests);
+    }
     timer.report("All data recieved");
     return result;
 }

@@ -200,9 +200,7 @@ inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& c
 /// to drive the server's v4 streaming reply path from tests. Byte layout must
 /// match Protocol::writeRequestHeader.
 inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType type, const std::string& ctx = "{}") {
-    s << version;
-    s << LogContext(ctx);
-    s << static_cast<uint16_t>(type);
+    Protocol::writeRequestHeader(s, type, LogContext(ctx), version);
 }
 
 inline ExtractionRequest fixtureRequest(int step) {

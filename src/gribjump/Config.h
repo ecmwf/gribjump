@@ -66,6 +66,11 @@ public:
     /// URI of remote server (host:port). Required when type is "remote". YAML: uri. Default: "" (empty).
     std::string remoteURI() const;
 
+    /// Protocol version the remote client advertises to the server. Env:
+    /// GRIBJUMP_CLIENT_PROTOCOL_VERSION. YAML: clientProtocolVersion.
+    /// Default: 4 (streaming). Pin to 3 to force the legacy buffered reply.
+    size_t clientProtocolVersion() const;
+
     // -- Server options --
 
     /// Server port. Env: GRIBJUMP_SERVER_PORT. YAML: server.port. Default: 9777.

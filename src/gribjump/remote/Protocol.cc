@@ -27,8 +27,9 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // Request header
 
-void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context) {
-    stream << remoteProtocolVersion;
+void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
+                                  uint16_t version) {
+    stream << version;
     stream << context;
     stream << static_cast<uint16_t>(type);
 }

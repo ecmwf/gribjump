@@ -128,6 +128,46 @@ CASE("Socketpair: SCAN round-trips over a kernel socket") {
     EXPECT_EQUAL(engine.lastByfiles, true);
 }
 
+CASE("Socketpair: EXTRACT v4 streams over a kernel socket") {
+    int fds[2];
+    EXPECT(::socketpair(AF_UNIX, SOCK_STREAM, 0, fds) == 0);
+
+    MockEngine engine;
+
+    std::thread server([&]() {
+        FdSocket sock(fds[0]);
+        eckit::net::InstantTCPStream s(sock);
+        dispatchRequest(s, &engine);
+        sock.close();
+    });
+
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2), fixtureRequest(3)};
+
+    {
+        FdSocket sock(fds[1]);
+        eckit::net::InstantTCPStream s(sock);
+
+        // v4-capable client: advertise streaming, decode the streamed reply.
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), streamingProtocolVersion);
+        Protocol::encodeExtractRequest(s, requests);
+
+        auto results = Protocol::decodeExtractReplyStreaming(s, requests.size());
+
+        EXPECT_EQUAL(results.size(), 3);
+        for (auto& r : results) {
+            EXPECT(r != nullptr);
+            EXPECT_EQUAL(r->nrange(), 2);
+            EXPECT_EQUAL(r->values()[0][0], 10.0);
+            EXPECT_EQUAL(r->values()[1][0], 30.0);
+        }
+
+        sock.close();
+    }
+
+    server.join();
+    EXPECT_EQUAL(engine.lastExtractRequests, 3);
+}
+
 }  // namespace test
 }  // namespace gribjump
 
