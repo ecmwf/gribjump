@@ -15,6 +15,10 @@ CMakeCache.txt
 *.egg-info
 dist/
 docs/doc-build/
+.clang-tidy
+.clangd
+*.swp
+todo*.md
 
 docs/examples/walkthrough_files/etc/fdb/root
 ignore/
