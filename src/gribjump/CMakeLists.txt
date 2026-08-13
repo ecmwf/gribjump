@@ -36,6 +36,8 @@ list( APPEND gribjump_srcs
 
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
+    remote/Protocol.cc
+    remote/Protocol.h
 
     GribJump.cc
     GribJump.h

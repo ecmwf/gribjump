@@ -11,11 +11,14 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
+#include <optional>
+
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
 #include "gribjump/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/Request.h"
 
@@ -35,7 +38,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 
     try {
         eckit::Timer timer("Connection served");
-        handle_client(s, timer);
+        dispatchRequest(s);
     }
     catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
@@ -59,49 +62,11 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     MetricsManager::instance().report();
 }
 
-void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
-    uint16_t version;
-    uint16_t i_requestType;
-
-    s >> version;
-    if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug(
-            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
-            ", Clientside version: " + std::to_string(version));
-    }
-
-    LogContext ctx(s);
-    ContextManager::instance().set(ctx);
-
-    s >> i_requestType;
-    RequestType requestType = static_cast<RequestType>(i_requestType);
-
-    switch (requestType) {
-        case RequestType::EXTRACT:
-            processRequest<ExtractRequest>(s);
-            break;
-        case RequestType::AXES:
-            processRequest<AxesRequest>(s);
-            break;
-        case RequestType::SCAN:
-            processRequest<ScanRequest>(s);
-            break;
-        case RequestType::FORWARD_EXTRACT:
-            processRequest<ForwardedExtractRequest>(s);
-            break;
-        case RequestType::FORWARD_SCAN:
-            processRequest<ForwardedScanRequest>(s);
-            break;
-        default:
-            throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
-    }
-}
-
-template <typename RequestType>
-void GribJumpUser::processRequest(eckit::Stream& s) {
+template <typename RequestT>
+static void processRequest(eckit::Stream& s, EngineIface& engine) {
     eckit::Timer timer("GribJumpUser::processRequest");
 
-    RequestType request(s);
+    RequestT request(s, engine);
     MetricsManager::instance().set("elapsed_receive", timer.elapsed());
     timer.reset("Request received");
     request.info();
@@ -115,5 +80,38 @@ void GribJumpUser::processRequest(eckit::Stream& s) {
     MetricsManager::instance().set("elapsed_reply", timer.elapsed());
     timer.reset("Request replied");
 }
+
+void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
+    RequestType requestType = Protocol::readRequestHeader(s);
+
+    // By default we create an engine, though tests are allowed to
+    // inject one (e.g. a MockEngine) for unit testing.
+    std::optional<Engine> ownedEngine;
+    if (!injectedEngine) {
+        ownedEngine.emplace();
+    }
+    EngineIface& engine = injectedEngine ? *injectedEngine : *ownedEngine;
+
+    switch (requestType) {
+        case RequestType::EXTRACT:
+            processRequest<ExtractRequest>(s, engine);
+            break;
+        case RequestType::AXES:
+            processRequest<AxesRequest>(s, engine);
+            break;
+        case RequestType::SCAN:
+            processRequest<ScanRequest>(s, engine);
+            break;
+        case RequestType::FORWARD_EXTRACT:
+            processRequest<ForwardedExtractRequest>(s, engine);
+            break;
+        case RequestType::FORWARD_SCAN:
+            processRequest<ForwardedScanRequest>(s, engine);
+            break;
+        default:
+            throw eckit::SeriousBug("Unknown request type: " + std::to_string(static_cast<uint16_t>(requestType)));
+    }
+}
+
 
 }  // namespace gribjump

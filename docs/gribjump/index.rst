@@ -39,3 +39,4 @@ and the concepts behind its inner machinery.
 
    details
    round-robin-scheduling
+   protocol_testing
