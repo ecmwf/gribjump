@@ -63,10 +63,11 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 }
 
 template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface& engine) {
+static void processRequest(eckit::Stream& s, EngineIface& engine, uint16_t version) {
     eckit::Timer timer("GribJumpUser::processRequest");
 
     RequestT request(s, engine);
+    request.protocolVersion(version);
     MetricsManager::instance().set("elapsed_receive", timer.elapsed());
     timer.reset("Request received");
     request.info();
@@ -84,6 +85,7 @@ static void processRequest(eckit::Stream& s, EngineIface& engine) {
 void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     const Protocol::RequestHeader header = Protocol::readRequestHeader(s);
     const RequestType requestType        = header.type;
+    const uint16_t version               = header.version;
 
     // By default we create an engine, though tests are allowed to
     // inject one (e.g. a MockEngine) for unit testing.
@@ -95,19 +97,19 @@ void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
 
     switch (requestType) {
         case RequestType::EXTRACT:
-            processRequest<ExtractRequest>(s, engine);
+            processRequest<ExtractRequest>(s, engine, version);
             break;
         case RequestType::AXES:
-            processRequest<AxesRequest>(s, engine);
+            processRequest<AxesRequest>(s, engine, version);
             break;
         case RequestType::SCAN:
-            processRequest<ScanRequest>(s, engine);
+            processRequest<ScanRequest>(s, engine, version);
             break;
         case RequestType::FORWARD_EXTRACT:
-            processRequest<ForwardedExtractRequest>(s, engine);
+            processRequest<ForwardedExtractRequest>(s, engine, version);
             break;
         case RequestType::FORWARD_SCAN:
-            processRequest<ForwardedScanRequest>(s, engine);
+            processRequest<ForwardedScanRequest>(s, engine, version);
             break;
         default:
             throw eckit::SeriousBug("Unknown request type: " + std::to_string(static_cast<uint16_t>(requestType)));

@@ -21,6 +21,7 @@
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/Metrics.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/WorkQueue.h"
 
 namespace gribjump {
@@ -40,7 +41,12 @@ public:
     /// Reply to the client with the results of the request
     virtual void replyToClient() = 0;
 
-    void reportErrors();
+    virtual void reportErrors();
+
+    /// The negotiated protocol version for this connection. Set by the dispatch
+    /// before execute(); used by EXTRACT to select v3 buffered vs. v4 streaming
+    /// reply framing.
+    void protocolVersion(uint16_t version) { protocolVersion_ = version; }
 
     /// Print information about the request to status(), for monitoring
     virtual void info() const = 0;
@@ -51,6 +57,7 @@ protected:  // members
     EngineIface& engine_;
     TaskReport report_;
     uint64_t id_;
+    uint16_t protocolVersion_ = remoteProtocolVersion;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -89,13 +96,21 @@ public:
 
     void replyToClient() override;
 
+    /// v4 streaming replies carry errors in the END-chunk trailer, so the
+    /// leading error block written by the base is suppressed.
+    void reportErrors() override;
+
     void info() const override;
 
 private:
 
+    bool streaming() const { return protocolVersion_ >= streamingProtocolVersion; }
+
     std::vector<ExtractionRequest> requests_;
 
     ResultsMap results_;
+
+    std::string streamError_;  //< set if the streaming pass threw mid-reply
 };
 
 //----------------------------------------------------------------------------------------------------------------------

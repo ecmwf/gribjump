@@ -279,6 +279,18 @@ void FileExtractionTask::extract() {
             JumperFactory::instance().build(info));  // todo, dont build a new jumper for each info.
         jumper->extract(fh, offsets[i], info, *extractionItem);
     }
+
+    // Streaming path only: account for the result bytes this task produced so
+    // the group's byte budget can gate further dispatch (releaseOutstanding is
+    // called by the harvest loop once these results are sent). No-op (and no
+    // extra work) on the buffered path, where no byte budget is set.
+    if (taskGroup_.backpressureEnabled()) {
+        size_t producedBytes = 0;
+        for (const auto* extractionItem : extractionItems_) {
+            producedBytes += extractionItem->resultBytes();
+        }
+        taskGroup_.addOutstanding(producedBytes);
+    }
 }
 
 void FileExtractionTask::info() const {

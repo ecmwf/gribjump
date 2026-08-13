@@ -88,6 +88,36 @@ size_t expectedCount(std::vector<std::vector<Interval>> allIntervals) {
     return count;
 }
 
+//-----------------------------------------------------------------------------
+// Sinks for exercising the streaming (v4) extraction path.
+
+// Records the streamed results by request index (deep-copying values) and how
+// many chunks were emitted.
+class RecordingSink : public ResultSink {
+public:
+
+    void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) override {
+        chunks++;
+        for (const auto& [index, result] : batch) {
+            received[index] = result->values();  // deep copy
+        }
+    }
+
+    size_t chunks = 0;
+    std::map<size_t, ExValues> received;
+};
+
+// Fails on the first write, simulating a client disconnecting mid-stream. The
+// engine must still drain outstanding tasks (not destroy the TaskGroup out from
+// under running workers) and rethrow.
+class ThrowingSink : public ResultSink {
+public:
+
+    void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>&) override {
+        throw eckit::SeriousBug("sink write failed (simulated client disconnect)");
+    }
+};
+
 CASE("Engine: pre-test setup") {
     tmpdir = eckit::TmpDir(eckit::LocalPathName::cwd().c_str());
     setupFDB(tmpdir);
@@ -262,6 +292,64 @@ CASE("Engine: Basic extraction") {
 
     /// @todo: request touching multiple files?
     /// @todo: request involving unsupported packingType?
+}
+
+//-----------------------------------------------------------------------------
+
+CASE("Engine: streaming extraction produces the same results as buffered") {
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
+
+    std::vector<std::vector<Interval>> allIntervals(requests.size(),
+                                                    {std::make_pair(0, 5), std::make_pair(20, 30)});
+
+    Engine engine;
+    ExtractionRequests exRequests;
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
+    }
+
+    RecordingSink sink;
+    TaskReport report = engine.extractStreaming(exRequests, sink);
+    EXPECT_NO_THROW(report.raiseErrors());
+
+    // Every request index received a result, despite streaming order.
+    EXPECT_EQUAL(sink.received.size(), requests.size());
+    size_t count = 0;
+    for (const auto& [index, values] : sink.received) {
+        EXPECT_EQUAL(values.size(), 2u);  // two intervals per request
+        for (const auto& range : values) {
+            count += range.size();
+        }
+    }
+    EXPECT_EQUAL(count, expectedCount(allIntervals));  // 45
+}
+
+CASE("Engine: streaming survives a client disconnecting mid-stream") {
+    // The sink throws on write; extractStreaming must drain outstanding tasks
+    // and rethrow rather than hang or destroy the TaskGroup under live workers.
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
+
+    std::vector<std::vector<Interval>> allIntervals(requests.size(),
+                                                    {std::make_pair(0, 5), std::make_pair(20, 30)});
+
+    Engine engine;
+    ExtractionRequests exRequests;
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
+    }
+
+    ThrowingSink sink;
+    EXPECT_THROWS_AS(engine.extractStreaming(exRequests, sink), eckit::Exception);
 }
 
 //-----------------------------------------------------------------------------

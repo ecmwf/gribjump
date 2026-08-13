@@ -18,7 +18,10 @@
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
 #include "gribjump/Types.h"
+#include "gribjump/remote/ResultSink.h"
 #include "metkit/mars/MarsRequest.h"
+
+#include <unordered_map>
 
 namespace gribjump {
 
@@ -39,6 +42,13 @@ public:
     virtual ~EngineIface() = default;
 
     virtual TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) = 0;
+
+    /// Streaming (v4) extraction: schedule the work and hand results to the sink
+    /// in byte-budgeted batches as tasks complete, freeing them after send, to
+    /// bound server-side peak memory. Returns the task report (errors) for the
+    /// reply trailer. Only the remote server uses this; the local API keeps the
+    /// buffered extract() above.
+    virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
 
     // byfiles: scan entire file, not just fields matching request
     virtual TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) = 0;
@@ -61,6 +71,8 @@ public:
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) override;
     TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
+    TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override;
+
     // byfiles: scan entire file, not just fields matching request
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) override;
     TaskOutcome<size_t> scan(std::vector<eckit::PathName> files);
@@ -74,6 +86,10 @@ private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
+    void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
+    void drainRemaining(TaskGroup& taskGroup, size_t pendingBytes);
+    void streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
+                               ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);

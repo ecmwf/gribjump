@@ -77,6 +77,20 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine) : Req
 
 void ExtractRequest::execute() {
 
+    if (streaming()) {
+        // v4: stream results to the client as tasks complete. Any exception is
+        // captured so replyToClient() can still emit the END chunk + error
+        // trailer -- chunks already on the wire cannot be unsent.
+        StreamResultSink sink(client_);
+        try {
+            report_ = engine_.extractStreaming(requests_, sink);
+        }
+        catch (std::exception& e) {
+            streamError_ = e.what();
+        }
+        return;
+    }
+
     auto [results, report] = engine_.extract(requests_);
     results_               = std::move(results);
     report_                = std::move(report);
@@ -90,7 +104,25 @@ void ExtractRequest::execute() {
     }
 }
 
+void ExtractRequest::reportErrors() {
+    if (streaming()) {
+        return;  // errors go in the v4 END-chunk trailer, written by replyToClient()
+    }
+    Request::reportErrors();
+}
+
 void ExtractRequest::replyToClient() {
+
+    if (streaming()) {
+        // Results were already streamed during execute(); terminate the reply
+        // with the END chunk followed by the error trailer.
+        std::vector<std::string> errors = report_.errors();
+        if (!streamError_.empty()) {
+            errors.push_back(streamError_);
+        }
+        Protocol::encodeExtractReplyEnd(client_, errors);
+        return;
+    }
 
     size_t nRequests = requests_.size();
     LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;

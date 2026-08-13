@@ -62,6 +62,10 @@ public:
 
     std::unique_ptr<ExtractionResult> result() { return std::move(result_); }
 
+    /// Estimated byte size of the held result (values only), used for the
+    /// streaming byte budget. Consistent with the harvest loop's estimate.
+    size_t resultBytes() const { return result_ ? result_->total_values() * sizeof(double) : 0; }
+
     /// @note alternatively we could store the offset directly instead of the uri.
     eckit::Offset offset() const {
         std::string fragment = uri_.fragment();

@@ -235,6 +235,81 @@ CASE("Server reports engine errors in the error block") {
     EXPECT_EQUAL(got[1], std::string("and another"));
 }
 
+//-----------------------------------------------------------------------------
+// v4 streaming reply path (Direction A: the same server serves v3 and v4).
+
+CASE("Server EXTRACT v4: streams results, reassembled by index") {
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2), fixtureRequest(3)};
+    size_t n                                = requests.size();
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        writeHeaderVersion(s, streamingProtocolVersion, RequestType::EXTRACT);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    dispatchRequest(stream, &engine);
+
+    EXPECT_EQUAL(engine.lastExtractRequests, n);
+
+    // Decode as a v4 client would: RESULTS chunks (any order) then END + trailer.
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    auto results = Protocol::decodeExtractReplyStreaming(reply, n);
+    EXPECT_EQUAL(results.size(), n);
+    for (auto& res : results) {
+        EXPECT(res != nullptr);  // every index was filled despite reverse-order chunks
+        EXPECT_EQUAL(res->nrange(), 2);
+        EXPECT_EQUAL(res->nvalues(0), 2);
+        EXPECT_EQUAL(res->nvalues(1), 1);
+        EXPECT_EQUAL(res->values()[0][1], 20.0);
+    }
+}
+
+CASE("Server EXTRACT v4: engine errors surface in the END-chunk trailer") {
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1)};
+    size_t n                                = requests.size();
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        writeHeaderVersion(s, streamingProtocolVersion, RequestType::EXTRACT);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    engine.errors = {"boom: streaming failed"};
+    dispatchRequest(stream, &engine);
+
+    // No leading error block in v4: the reply starts with chunks and the trailer
+    // (raise=true) throws the collected errors.
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    EXPECT_THROWS_AS(Protocol::decodeExtractReplyStreaming(reply, n), eckit::RemoteException);
+}
+
+CASE("Server EXTRACT v3 client still gets the buffered reply") {
+    // A v3-pinned client against the v4-capable server: leading error block +
+    // buffered per-request results, byte-for-byte the pre-streaming framing.
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2)};
+    size_t n                                = requests.size();
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        writeHeaderVersion(s, remoteProtocolVersion, RequestType::EXTRACT);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    dispatchRequest(stream, &engine);
+
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    EXPECT(!Protocol::decodeErrors(reply));
+    auto results = Protocol::decodeExtractReply(reply, n);
+    EXPECT_EQUAL(results.size(), n);
+    for (auto& res : results) {
+        EXPECT_EQUAL(res->nrange(), 2);
+    }
+}
+
 }  // namespace test
 }  // namespace gribjump
 

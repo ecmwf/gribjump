@@ -106,6 +106,7 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     remote/Request.h
     remote/Request.cc
+    remote/ResultSink.h
     remote/GribJumpServer.h
     remote/GribJumpService.h
     remote/GribJumpUser.cc

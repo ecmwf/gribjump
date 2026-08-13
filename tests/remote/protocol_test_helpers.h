@@ -61,6 +61,27 @@ public:
         return {std::move(map), makeReport()};
     }
 
+    // Stream one canned result per request. To exercise the client's
+    // reassembly-by-index and multi-chunk handling, results are emitted in two
+    // chunks in reverse index order rather than one in-order chunk.
+    TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override {
+        lastExtractRequests = requests.size();
+
+        std::vector<std::unique_ptr<ExtractionResult>> owned;
+        owned.reserve(requests.size());
+        for (size_t i = 0; i < requests.size(); i++) {
+            owned.push_back(std::make_unique<ExtractionResult>(cannedResult()));
+        }
+
+        // Emit in reverse order, one result per chunk, to prove ordering and
+        // chunk count don't matter to the decoder.
+        for (size_t i = requests.size(); i-- > 0;) {
+            std::vector<std::pair<size_t, const ExtractionResult*>> batch{{i, owned[i].get()}};
+            sink.writeResults(batch);
+        }
+        return makeReport();
+    }
+
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles) override {
         lastScanRequests = requests.size();
         lastByfiles      = byfiles;
@@ -172,6 +193,16 @@ inline std::vector<char> encodeRequest(EncodeFn&& encode) {
 /// Write the request header exactly as the client does.
 inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& ctx = "{}") {
     Protocol::writeRequestHeader(s, type, LogContext(ctx));
+}
+
+/// Write a request header advertising an explicit protocol version (the
+/// production writeRequestHeader always advertises remoteProtocolVersion). Used
+/// to drive the server's v4 streaming reply path from tests. Byte layout must
+/// match Protocol::writeRequestHeader.
+inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType type, const std::string& ctx = "{}") {
+    s << version;
+    s << LogContext(ctx);
+    s << static_cast<uint16_t>(type);
 }
 
 inline ExtractionRequest fixtureRequest(int step) {

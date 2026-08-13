@@ -64,6 +64,11 @@ public:
     /// Write description of task to eckit::Log::status() for monitoring
     virtual void info() const = 0;
 
+    /// The extraction items this task produced results into, for the streaming
+    /// (v4) harvest path to send and free. Returns nullptr for tasks that do not
+    /// produce streamable extraction results (e.g. scan/forward tasks).
+    virtual const ExtractionItems* streamableItems() const { return nullptr; }
+
 protected:
 
     virtual void executeImpl() = 0;
@@ -89,6 +94,10 @@ public:
 
     void reportErrors(eckit::Stream& client) const;
     void raiseErrors() const;
+
+    /// The collected error messages (empty if none). Used by the v4 streaming
+    /// reply path to build the END-chunk error trailer.
+    const std::vector<std::string>& errors() const { return errors_; }
 
 private:
 
@@ -145,6 +154,18 @@ public:
     /// True while more result bytes are outstanding than the configured budget.
     /// Lock-free; used by the WorkQueue to skip an over-budget group.
     bool overBudget() const { return outstandingBytes_.load() > byteThreshold_; }
+
+    /// True when a finite byte budget has been set (streaming path), so tasks
+    /// know to account for produced bytes. Unlimited by default, so the buffered
+    /// (local) path skips all byte accounting and is byte-identical.
+    bool backpressureEnabled() const { return byteThreshold_ != std::numeric_limits<size_t>::max(); }
+
+    /// The streamable extraction items of a completed task (by id), for the
+    /// streaming harvest to send and free. id is the task index within the group.
+    const ExtractionItems* streamableItems(size_t id) {
+        std::lock_guard<std::mutex> lock(m_);
+        return tasks_.at(id)->streamableItems();
+    }
 
     /// Block while this group is over its byte budget. Used to pause a running
     /// task between items so a single large file cannot outrun the consumer.
@@ -217,6 +238,8 @@ public:
     virtual void extract();
 
     virtual void info() const override;
+
+    const ExtractionItems* streamableItems() const override { return &extractionItems_; }
 
 protected:
 
