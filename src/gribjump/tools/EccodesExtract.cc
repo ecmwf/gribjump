@@ -16,7 +16,7 @@
 
 #include "metkit/codes/api/CodesAPI.h"
 
-#include "gribjump/Lister.h"
+#include "gribjump/FileLister.h"
 #include "gribjump/tools/EccodesExtract.h"
 
 

@@ -18,6 +18,8 @@
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/ListRequest.h"
+#include "gribjump/api/ListResult.h"
 #include "metkit/mars/MarsExpansion.h"
 #include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
@@ -100,6 +102,41 @@ struct gribjump_extractioniterator_t : public ExtractionIterator {
     using ExtractionIterator::ExtractionIterator;
 
     gribjump_extractioniterator_t(ExtractionIterator&& it) : ExtractionIterator(std::move(it)) {}
+};
+
+// Wrapper around ListRequest
+struct gribjump_list_request_t : public ListRequest {
+    using ListRequest::ListRequest;
+
+    gribjump_list_request_t(const ListRequest& request) : ListRequest(request) {}
+};
+
+// Wrapper around a single ListResult yielded by a ListIterator.
+// Owns the polymorphic result and caches its string outputs so that the
+// pointers handed back across the C boundary remain valid.
+struct gribjump_list_result_t {
+    explicit gribjump_list_result_t(std::unique_ptr<ListResult> result) : result_(std::move(result)) {}
+
+    const char* marsRequest() {
+        marsRequest_ = result_->marsRequest();
+        return marsRequest_.c_str();
+    }
+
+    const char* json() {
+        json_ = result_->json();
+        return json_.c_str();
+    }
+
+    std::unique_ptr<ListResult> result_;
+    std::string marsRequest_;
+    std::string json_;
+};
+
+// Wrapper around ListIterator
+struct gribjump_listiterator_t : public ListIterator {
+    using ListIterator::ListIterator;
+
+    gribjump_listiterator_t(ListIterator&& it) : ListIterator(std::move(it)) {}
 };
 
 struct gribjump_axes_t {
@@ -400,6 +437,95 @@ gribjump_iterator_status_t gribjump_extractioniterator_next(gribjump_extractioni
     else {
         return GRIBJUMP_ITERATOR_COMPLETE;
     }
+}
+
+// -----------------------------------------------------------------------------
+// gribjump_list_request_t
+// -----------------------------------------------------------------------------
+
+gribjump_error_t gribjump_new_list_request(gribjump_list_request_t** request, const char* reqstr) {
+    return tryCatch([=] {
+        ASSERT(request);
+        ASSERT(reqstr);
+        *request = new gribjump_list_request_t(ListRequest(std::string(reqstr)));
+    });
+}
+
+gribjump_error_t gribjump_delete_list_request(gribjump_list_request_t* request) {
+    return tryCatch([=] {
+        ASSERT(request);
+        delete request;
+    });
+}
+
+// -----------------------------------------------------------------------------
+// gribjump_list
+// -----------------------------------------------------------------------------
+
+gribjump_error_t gribjump_list(gribjump_handle_t* handle, gribjump_list_request_t* request, const char* ctx,
+                               gribjump_listiterator_t** iterator) {
+    return tryCatch([=] {
+        ASSERT(handle);
+        ASSERT(request);
+        ASSERT(iterator);
+
+        LogContext logctx;
+        if (ctx)
+            logctx = LogContext(ctx);
+
+        *iterator = new gribjump_listiterator_t(handle->list(*request, logctx));
+    });
+}
+
+// -----------------------------------------------------------------------------
+// gribjump_listiterator_t
+// -----------------------------------------------------------------------------
+
+gribjump_error_t gribjump_listiterator_delete(const gribjump_listiterator_t* it) {
+    return tryCatch([it] { delete it; });
+}
+
+gribjump_iterator_status_t gribjump_listiterator_next(gribjump_listiterator_t* it, gribjump_list_result_t** result) {
+    if (!it) {
+        LAST_ERROR_STR = "gribjump_listiterator_next: iterator is null";
+        return GRIBJUMP_ITERATOR_ERROR;
+    }
+
+    std::unique_ptr<ListResult> res = it->next();
+    if (res) {
+        *result = new gribjump_list_result_t(std::move(res));
+        return GRIBJUMP_ITERATOR_SUCCESS;
+    }
+    else {
+        return GRIBJUMP_ITERATOR_COMPLETE;
+    }
+}
+
+// -----------------------------------------------------------------------------
+// gribjump_list_result_t
+// -----------------------------------------------------------------------------
+
+gribjump_error_t gribjump_list_result_mars_request(gribjump_list_result_t* result, const char** mars_request) {
+    return tryCatch([=] {
+        ASSERT(result);
+        ASSERT(mars_request);
+        *mars_request = result->marsRequest();
+    });
+}
+
+gribjump_error_t gribjump_list_result_json(gribjump_list_result_t* result, const char** json) {
+    return tryCatch([=] {
+        ASSERT(result);
+        ASSERT(json);
+        *json = result->json();
+    });
+}
+
+gribjump_error_t gribjump_delete_list_result(gribjump_list_result_t* result) {
+    return tryCatch([=] {
+        ASSERT(result);
+        delete result;
+    });
 }
 
 /*

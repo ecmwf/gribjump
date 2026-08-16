@@ -55,6 +55,9 @@ public:  // methods
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
+    // TODO: implement remote listing.
+    ListIterator list(const ListRequest& request) override { NOTIMP; }
+
 private:  // methods
 
     bool receiveErrors(eckit::Stream& stream, bool raise = true);

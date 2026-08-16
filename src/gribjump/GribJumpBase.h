@@ -17,6 +17,7 @@
 
 #include "eckit/filesystem/URI.h"
 
+#include "gribjump/Capabilities.h"
 #include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/ExtractionItem.h"
@@ -24,6 +25,8 @@
 #include "gribjump/Metrics.h"
 #include "gribjump/Stats.h"
 #include "gribjump/Types.h"
+#include "gribjump/api/ListRequest.h"
+#include "gribjump/api/ListResult.h"
 
 namespace fdb5 {
 class Key;
@@ -35,7 +38,10 @@ namespace gribjump {
 ///@todo: Why is this *here*? and not in Engine
 using ResultsMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
-class GribJumpBase {
+// Convenience base implementing every capability at once, so a single concrete backend
+// (e.g. LocalGribJump, RemoteGribJump) can serve several roles and share resources.
+// The GribJump facade composes the roles individually, so backends may still be mixed.
+class GribJumpBase : public Scanner, public Extractor, public AxesProvider, public Lister {
 public:
 
     GribJumpBase();
@@ -46,20 +52,6 @@ public:
     GribJumpBase& operator=(GribJumpBase&&)      = delete;
 
     virtual ~GribJumpBase();
-
-    size_t virtual scan(const std::vector<eckit::PathName>& paths) = 0;
-
-    virtual size_t scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) = 0;
-
-    virtual std::vector<std::unique_ptr<ExtractionResult>> extract(std::vector<ExtractionRequest>&) = 0;
-
-    virtual std::vector<std::unique_ptr<ExtractionResult>> extract(PathExtractionRequests& requests) = 0;
-
-    virtual std::vector<std::unique_ptr<ExtractionResult>> extract(const eckit::PathName& path,
-                                                                   const std::vector<eckit::Offset>& offsets,
-                                                                   const std::vector<std::vector<Range>>& ranges) = 0;
-
-    virtual std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) = 0;
 
     virtual void stats();
 

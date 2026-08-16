@@ -18,11 +18,11 @@
 #include "eckit/net/TCPClient.h"
 #include "eckit/net/TCPStream.h"
 
-#include "gribjump/Lister.h"
+#include "gribjump/FileLister.h"
 
 namespace gribjump {
 
-class MarsListerClient : public Lister {
+class MarsListerClient : public FileLister {
 public:
 
     MarsListerClient(const std::string& host, int port);

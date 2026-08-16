@@ -39,6 +39,7 @@ list( APPEND gribjump_srcs
 
     GribJump.cc
     GribJump.h
+    Capabilities.h
     GribJumpBase.h
     GribJumpBase.cc
     GribJumpFactory.cc
@@ -52,6 +53,8 @@ list( APPEND gribjump_srcs
     LogRouter.cc
 
     api/ExtractionIterator.h
+    api/ListRequest.h
+    api/ListRequest.cc
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
@@ -62,8 +65,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     Engine.cc
     Engine.h
-    Lister.cc
-    Lister.h
+    FileLister.cc
+    FileLister.h
     MarsListerClient.cc
     MarsListerClient.h
     Task.cc

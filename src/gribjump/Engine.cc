@@ -43,7 +43,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     for (auto& r : requests) {
         const std::string& s = r.requestString();
 
-        /// @todo: this ignoreYearMonth logic is duplicated somewhat in Lister.cc. We should consolidate.
+        /// @todo: this ignoreYearMonth logic is duplicated somewhat in FileLister.cc. We should consolidate.
         // If "year" and "month" are present, we must drop them if "date" is also present.
         if (ignoreYearMonth && s.find("year") != std::string::npos && s.find("month") != std::string::npos &&
             s.find("date") != std::string::npos) {
@@ -139,11 +139,11 @@ void Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& ke
 }
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
-    return Lister::instance().fileMap(unionrequest, keyToExtractionItem);
+    return FileLister::instance().fileMap(unionrequest, keyToExtractionItem);
 }
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
-    return Lister::instance().fileMap(keyToExtractionItem);
+    return FileLister::instance().fileMap(keyToExtractionItem);
 }
 
 TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
@@ -296,7 +296,7 @@ TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 }
 
 std::map<std::string, std::unordered_set<std::string>> Engine::axes(const std::string& request, int level) {
-    return Lister::instance().axes(request, level);
+    return FileLister::instance().axes(request, level);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

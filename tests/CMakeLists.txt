@@ -70,6 +70,16 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
+    TARGET "gribjump_test_api_list"
+    SOURCES "test_api_list.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+ecbuild_add_test(
     TARGET "gribjump_test_O1280"
     SOURCES "test_O1280.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
@@ -158,7 +168,7 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
-if (ENABLE_FDB_BUILD_TOOLS)
+if (fdb5_HAVE_FDB_BUILD_TOOLS)
     add_subdirectory(tools)
     add_subdirectory(remote)
 endif()

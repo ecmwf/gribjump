@@ -14,16 +14,20 @@
 #pragma once
 
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <string>
 #include <unordered_set>
 #include <vector>
 
+#include "gribjump/api/ListRequest.h"
 #include "metkit/mars/MarsRequest.h"
 
+#include "gribjump/Capabilities.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/ListResult.h"
 
 namespace gribjump {
 
@@ -58,6 +62,8 @@ public:
     ExtractionIterator extract(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
                                const std::vector<std::vector<Range>>& ranges, const LogContext& ctx = LogContext());
 
+
+    ListIterator list(const ListRequest& request, const LogContext& ctx = LogContext());
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
                                                                 const LogContext& ctx = LogContext());
 
@@ -65,7 +71,15 @@ public:
 
 private:
 
-    std::unique_ptr<GribJumpBase> impl_;
+    // Each capability may be backed independently (local or remote). Where several
+    // capabilities share a transport they resolve to the same backend object; backends_
+    // owns the (deduplicated) set of concrete backends.
+    std::vector<std::shared_ptr<GribJumpBase>> backends_;
+
+    std::shared_ptr<Scanner>      scanner_;
+    std::shared_ptr<Extractor>    extractor_;
+    std::shared_ptr<AxesProvider> axesProvider_;
+    std::shared_ptr<Lister>       lister_;
 };
 
 }  // namespace gribjump
