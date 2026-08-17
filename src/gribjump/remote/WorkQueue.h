@@ -55,6 +55,10 @@ public:
     /// Enqueue a task belonging to the given task group. Never blocks.
     void push(TaskGroup* group, Task* task);
 
+    /// Remove all of a group's still-queued tasks from the scheduler.
+    //  Used when a request is abandoned (e.g. the client disconnected).
+    void cancelGroup(TaskGroup* group);
+
     /// Wake worker threads to re-evaluate which groups are servable. Called
     /// when a group drops back under its byte budget so its previously-skipped
     /// tasks can be dispatched again.

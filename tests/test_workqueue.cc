@@ -427,6 +427,45 @@ CASE("waitForTasks_terminates_when_error_cancels_siblings") {
     EXPECT_EQUAL(group.nCancelled(), nSiblings);
 }
 
+CASE("cancel_purges_queued_tasks_from_the_queue") {
+    // A group cancelled while its tasks are still queued must have those tasks
+    // *purged* from the WorkQueue, not merely flagged and left for a worker to
+    // pop lazily one round-robin turn at a time.
+    //
+    // We prove the purge by cancelling while the single worker is held inside
+    // the gate: the worker cannot have popped any of the group's tasks, yet
+    // they are already accounted as cancelled the instant cancel() returns.
+    // That can only happen if cancel() removed them from the queue and
+    // accounted them synchronously in this thread -- lazy cancellation would
+    // leave nCancelled() at zero until a freed worker eventually popped each one.
+    DispatchLog log;
+    TaskGroup group;
+    const size_t N = 5;
+
+    {
+        WorkerGate gate;  // the single worker is blocked inside the gate
+
+        for (size_t i = 0; i < N; ++i) {
+            group.enqueueTask<DummyTask>(std::string("G"), i, std::ref(log));
+        }
+
+        group.cancel();
+
+        // Worker still blocked: it has popped none of G's tasks. The purge has
+        // already removed them from the queue and accounted them as cancelled.
+        EXPECT_EQUAL(group.nCancelled(), N);
+        EXPECT_EQUAL(group.nErrors(), 0u);
+
+        // gate releases here; the freed worker drains only its own group
+    }
+
+    // None of the purged tasks ever executed, and the group is fully accounted.
+    EXPECT_EQUAL(log.size(), 0u);
+    EXPECT_EQUAL(group.nCancelled(), N);
+    group.waitForTasks();  // must not hang: cancelled tasks count as complete
+}
+
+
 CASE("byte_budget_accounting_and_overBudget") {
     TaskGroup group;
     EXPECT(!group.overBudget());  // unlimited by default

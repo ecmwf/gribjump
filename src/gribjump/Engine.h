@@ -85,7 +85,7 @@ private:
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
-    void drainRemaining(TaskGroup& taskGroup, size_t pendingBytes);
+    void drainRemaining(TaskGroup& taskGroup);
     void streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
                                ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);

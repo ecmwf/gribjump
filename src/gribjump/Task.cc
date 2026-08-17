@@ -126,6 +126,22 @@ void TaskGroup::cancelTasks() {
     }
 }
 
+
+/// @todo: is there not a hole here between cancelling in flight tasks and cancelling the ones in the group?
+void TaskGroup::cancel() {
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        // Flag every still-PENDING task as cancelled. This covers tasks that a
+        // worker has already popped but not yet begun executing: their
+        // Task::execute() will find the cancelled status and short-circuit.
+        cancelTasks();
+    }
+
+    // Purge the tasks still queued in the WorkQueue and account them as cancelled.
+    // Done outside m_ to keep the lock order m_ -> WorkQueue mutex.
+    WorkQueue::instance().cancelGroup(this);
+}
+
 void TaskGroup::enqueueTask(Task* task) {
     {
         std::lock_guard<std::mutex> lock(m_);
@@ -194,7 +210,7 @@ void TaskGroup::releaseOutstanding(size_t bytes) {
     // Let the WorkQueue re-evaluate dispatching this group's tasks. Done outside
     // m_ to keep the lock order m_ -> WorkQueue mutex.
     ///@todo: It seems there is some coupling between these two mutexes, which is not necessarily very easy to reason
-    ///about.
+    /// about.
     if (underBudget) {
         WorkQueue::instance().reconsider();
     }

@@ -129,6 +129,14 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
+    /// Abandon the whole group: flag every not-yet-started task as cancelled and
+    /// purge the still-queued ones from the WorkQueue so they never start. Used
+    /// when a request is given up on (e.g. the client disconnected). 
+    /// Tasks already in flight are left to finish; callers still
+    /// drain the group afterwards to wait for those. Cancelled tasks are
+    /// accounted towards completion, so waitForTasks()/popCompleted() terminate.
+    void cancel();
+
     /// Streaming harvest: block until the next successfully completed task is
     /// available and return its id, or return nullopt once every task has
     /// completed and the completed-queue is drained. Mutually exclusive with

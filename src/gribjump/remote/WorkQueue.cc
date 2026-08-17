@@ -130,6 +130,26 @@ void WorkQueue::reconsider() {
     cv_.notify_all();
 }
 
+void WorkQueue::cancelGroup(TaskGroup* group) {
+    ASSERT(group != nullptr);
+
+    std::deque<Task*> removed;
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto it = groupQueues_.find(group);
+        if (it != groupQueues_.end()) {
+            removed = std::move(it->second);
+            groupQueues_.erase(it);
+            rrOrder_.remove(group);
+        }
+    }
+
+    // Notify group that removed tasks are now cancelled.
+    for (Task* task : removed) {
+        task->notifyCancelled();
+    }
+}
+
 void WorkQueue::push(TaskGroup* group, Task* task) {
     ASSERT(group != nullptr);
     ASSERT(task != nullptr);

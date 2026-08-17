@@ -285,11 +285,9 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         flush();
     }
     catch (...) {
-        // A mid-stream failure (e.g. client disconnect).
-        // TaskGroup is kept alive until all tasks are complete. Drain completed tasks until every task is done, then rethrow.
-        /// @todo: I am a bit confused about whether we are draining only
-        /// finished tasks or also waiting for tasks that are still queued.
-        drainRemaining(taskGroup, batchBytes);  
+        // A mid-stream failure (e.g. client disconnect). The result can no longer be delivered, so cancel the whole group.
+        taskGroup.cancel();
+        drainRemaining(taskGroup);
         throw;
     }
 
@@ -299,31 +297,17 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     return taskGroup.report();
 }
 
-void Engine::drainRemaining(TaskGroup& taskGroup, size_t pendingBytes) {
-    // Release any budget still held by the batch that failed to flush, so the
-    // group can drop below its threshold and keep dispatching.
-    /// @todo: We ought to be cancelling pending jobs if we can no longer communicate with the client.
-
-    if (pendingBytes > 0) {
-        taskGroup.releaseOutstanding(pendingBytes);
-    }
+///@todo: i think just roll this into the above function. Remember to avoid the double exception.
+void Engine::drainRemaining(TaskGroup& taskGroup) {
+    // The caller has already cancelled the group, so its queued tasks are purged
+    // and only the tasks already in flight remain. Block until those finish, so
+    // the (stack-allocated) TaskGroup outlives the workers still referencing it.
     try {
-        while (std::optional<size_t> id = taskGroup.popCompleted()) {
-            const ExtractionItems* items = taskGroup.streamableItems(*id);
-            if (!items) {
-                continue;
-            }
-            for (ExtractionItem* item : *items) {
-                std::unique_ptr<ExtractionResult> res = item->result();
-                if (res) {
-                    taskGroup.releaseOutstanding(res->nbytes());
-                }
-            }
+        while (taskGroup.popCompleted()) {
         }
     }
     catch (...) {
-        // Best-effort drain; the original exception is the one that matters.
-        /// @todo: And what if this drain fails? Can we skip this step entirely?
+        // Best-effort barrier; never mask the original exception being unwound.
     }
 }
 
