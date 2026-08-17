@@ -131,7 +131,7 @@ public:
 
     /// Abandon the whole group: flag every not-yet-started task as cancelled and
     /// purge the still-queued ones from the WorkQueue so they never start. Used
-    /// when a request is given up on (e.g. the client disconnected). 
+    /// when a request is given up on (e.g. the client disconnected).
     /// Tasks already in flight are left to finish; callers still
     /// drain the group afterwards to wait for those. Cancelled tasks are
     /// accounted towards completion, so waitForTasks()/popCompleted() terminate.
@@ -149,14 +149,31 @@ public:
 
     void setByteThreshold(size_t bytes) { byteThreshold_ = bytes; }
 
-    /// Account for result bytes produced but not yet sent to the client.
-    void addOutstanding(size_t bytes) { outstandingBytes_.fetch_add(bytes); }
+    /// Account for result bytes produced but not yet sent to the client, and
+    /// track the high-water mark.
+    void addOutstanding(size_t bytes) {
+        std::lock_guard<std::mutex> lock(m_);
+        size_t updated = (outstandingBytes_ += bytes);
+        if (updated > peakOutstandingBytes_) {
+            peakOutstandingBytes_ = updated;
+        }
+    }
+
+    /// High-water mark of outstanding (produced-but-not-yet-sent) result bytes.
+    size_t peakOutstandingBytes() const {
+        std::lock_guard<std::mutex> lock(m_);
+        return peakOutstandingBytes_;
+    }
 
     /// Account for result bytes that have been sent and freed. Wakes any task
     /// paused in waitIfOverBudget() and lets the WorkQueue reconsider this group.
     void releaseOutstanding(size_t bytes);
 
     /// True while more result bytes are outstanding than the configured budget.
+    /// Reads outstandingBytes_ without locking m_ on purpose: this is called from
+    /// WorkQueue::popNext() while the WorkQueue mutex is held, and taking m_ here
+    /// would invert the lock order (m_ -> WorkQueue mutex) and risk deadlock. That
+    /// is the sole reason outstandingBytes_ is atomic; all its writes hold m_.
     bool overBudget() const { return outstandingBytes_.load() > byteThreshold_; }
 
     /// True when a finite byte budget has been set (streaming path), so tasks
@@ -175,11 +192,7 @@ public:
 
     /// Report on errors and other status information about executed tasks.
     /// Calling code may use this to report to a client or raise an exception.
-    TaskReport report() {
-        std::lock_guard<std::mutex> lock(m_);
-        ASSERT(done_);
-        return TaskReport(std::move(errors_));
-    }
+    TaskReport report();
 
     size_t nTasks() const {
         std::lock_guard<std::mutex> lock(m_);
@@ -223,9 +236,10 @@ private:
 
     std::deque<size_t> completed_;  //< ids of DONE tasks awaiting harvest (guarded by m_)
 
-    std::atomic<size_t> outstandingBytes_{0};                    //< produced-but-not-yet-sent result bytes
-    size_t byteThreshold_ = std::numeric_limits<size_t>::max();  //< unlimited by default (no backpressure)
-    std::condition_variable budgetCv_;                           //< signalled when outstandingBytes_ drops
+    std::atomic<size_t> outstandingBytes_{0};  //< produced-but-not-yet-sent bytes
+    size_t peakOutstandingBytes_ = 0;          //< high-water mark of outstandingBytes_ (guarded by m_)
+    size_t byteThreshold_        = std::numeric_limits<size_t>::max();  //< unlimited by default (no backpressure)
+    std::condition_variable budgetCv_;                                  //< signalled when outstandingBytes_ drops
 
     const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
 };

@@ -126,19 +126,14 @@ void TaskGroup::cancelTasks() {
     }
 }
 
-
-/// @todo: is there not a hole here between cancelling in flight tasks and cancelling the ones in the group?
 void TaskGroup::cancel() {
     {
         std::lock_guard<std::mutex> lock(m_);
-        // Flag every still-PENDING task as cancelled. This covers tasks that a
-        // worker has already popped but not yet begun executing: their
-        // Task::execute() will find the cancelled status and short-circuit.
+        // Step 1 -- flag: mark every still-PENDING task cancelled.
         cancelTasks();
     }
 
-    // Purge the tasks still queued in the WorkQueue and account them as cancelled.
-    // Done outside m_ to keep the lock order m_ -> WorkQueue mutex.
+    // Step 2 -- purge: remove the tasks still queued in the WorkQueue
     WorkQueue::instance().cancelGroup(this);
 }
 
@@ -168,14 +163,20 @@ void TaskGroup::waitForTasks() {
     waiting_ = false;
     done_    = true;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
+}
+
+TaskReport TaskGroup::report() {
+    std::lock_guard<std::mutex> lock(m_);
+    ASSERT(done_);
 
     MetricsManager::instance().set("count_tasks", tasks_.size());
     MetricsManager::instance().set("count_failed_tasks", errors_.size());
     MetricsManager::instance().set("count_cancelled_tasks", nCancelledTasks_);
-
     if (errors_.size() > 0) {
         MetricsManager::instance().set("first_error", errors_[0]);
     }
+
+    return TaskReport(std::move(errors_));
 }
 
 std::optional<size_t> TaskGroup::popCompleted() {
@@ -200,9 +201,10 @@ void TaskGroup::releaseOutstanding(size_t bytes) {
     bool underBudget;
     {
         std::lock_guard<std::mutex> lock(m_);
-        size_t before = outstandingBytes_.fetch_sub(bytes);
+        size_t before = outstandingBytes_;
         ASSERT(before >= bytes);
-        underBudget = (before - bytes) <= byteThreshold_;
+        outstandingBytes_ = before - bytes;
+        underBudget       = (before - bytes) <= byteThreshold_;
         if (underBudget) {
             budgetCv_.notify_all();  // wake a task paused in waitIfOverBudget()
         }

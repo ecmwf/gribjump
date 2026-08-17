@@ -255,6 +255,7 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     std::vector<std::unique_ptr<ExtractionResult>> owned;  // keeps batch results alive until flush
     std::vector<std::pair<size_t, const ExtractionResult*>> batch;
     size_t batchBytes = 0;
+    size_t totalBytes = 0;  // running total of result bytes streamed (for metrics)
 
     const auto flush = [&]() {
         if (batch.empty()) {
@@ -277,6 +278,7 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
                 batch.emplace_back(indexOf.at(item->request()), res.get());
                 owned.push_back(std::move(res));
                 batchBytes += bytes;
+                totalBytes += bytes;
                 if (batchBytes >= flushBytes) {
                     flush();
                 }
@@ -285,13 +287,20 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         flush();
     }
     catch (...) {
-        // A mid-stream failure (e.g. client disconnect). The result can no longer be delivered, so cancel the whole group.
+        // A mid-stream failure (e.g. client disconnect). The result can no longer be delivered, so cancel the whole
+        // group and drain the tasks still in flight.
         taskGroup.cancel();
         drainRemaining(taskGroup);
+        MetricsManager::instance().set("client_disconnected", true);
+        MetricsManager::instance().set("count_cancelled_tasks", taskGroup.nCancelled());
+        MetricsManager::instance().set("count_bytes_streamed", totalBytes);
+        MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
         throw;
     }
 
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+    MetricsManager::instance().set("count_bytes_streamed", totalBytes);
+    MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
     timer.reset("Gribjump Engine: All tasks streamed");
 
     return taskGroup.report();
@@ -303,8 +312,7 @@ void Engine::drainRemaining(TaskGroup& taskGroup) {
     // and only the tasks already in flight remain. Block until those finish, so
     // the (stack-allocated) TaskGroup outlives the workers still referencing it.
     try {
-        while (taskGroup.popCompleted()) {
-        }
+        while (taskGroup.popCompleted()) {}
     }
     catch (...) {
         // Best-effort barrier; never mask the original exception being unwound.
