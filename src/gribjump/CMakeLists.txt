@@ -105,8 +105,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     jumper/JumperFactory.h
     jumper/JumperFactory.cc
 
-    remote/Request.h
-    remote/Request.cc
+    remote/RequestHandler.h
+    remote/RequestHandler.cc
     remote/ResultSink.h
     remote/GribJumpServer.h
     remote/GribJumpService.h

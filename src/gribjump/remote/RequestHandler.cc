@@ -11,8 +11,9 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
-#include "gribjump/remote/Request.h"
+#include "gribjump/remote/RequestHandler.h"
 #include <cstddef>
+#include "eckit/log/Timer.h"
 #include "gribjump/Engine.h"
 #include "gribjump/remote/Protocol.h"
 
@@ -28,50 +29,68 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // @todo: Lots of common behaviour between these classes, consider refactoring. Especially the interaction with metrics.
 
-Request::Request(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+RequestHandler::RequestHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
     client_(stream), engine_(engine), protocolVersion_(version) {
     id_ = requestid();
     MetricsManager::instance().set("gribjump_request_id", id_);
 }
 
-void Request::reportErrors() {
+void RequestHandler::process() {
+    eckit::Timer timer("GribJumpUser::processRequest");
+
+    receive();
+    MetricsManager::instance().set("elapsed_receive", timer.elapsed());
+    timer.reset("Request received");
+
+    info();
+
+    execute();
+    MetricsManager::instance().set("elapsed_execute", timer.elapsed());
+    timer.reset("Request executed");
+
+    reportErrors();
+    replyToClient();
+    MetricsManager::instance().set("elapsed_reply", timer.elapsed());
+    timer.reset("Request replied");
+}
+
+void RequestHandler::reportErrors() {
     report_.reportErrors(client_);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
-    Request(stream, engine, version) {
+ScanHandler::ScanHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    RequestHandler(stream, engine, version) {}
+
+void ScanHandler::receive() {
     MetricsManager::instance().set("action", "scan");
 
     requests_ = Protocol::decodeScanRequest(client_, byfiles_);
 
-    LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: byfiles=" << byfiles_ << std::endl;
-    LOG_DEBUG_LIB(LibGribJump) << "ScanRequest: numRequests=" << requests_.size() << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "ScanHandler: byfiles=" << byfiles_ << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "ScanHandler: numRequests=" << requests_.size() << std::endl;
 
     MetricsManager::instance().set("count_scan_requests", requests_.size());
 }
 
-void ScanRequest::execute() {
+void ScanHandler::execute() {
     auto [nfields, report] = engine_.scan(requests_, byfiles_);
     nFields_               = nfields;
     report_                = std::move(report);
 }
 
-void ScanRequest::replyToClient() {
+void ScanHandler::replyToClient() {
     Protocol::encodeScanReply(client_, nFields_);
 }
 
-void ScanRequest::info() const {
-    eckit::Log::status() << "New ScanRequest: nRequests=" << requests_.size() << std::endl;
+void ScanHandler::info() const {
+    eckit::Log::status() << "New ScanHandler: nRequests=" << requests_.size() << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-
-
-//----------------------------------------------------------------------------------------------------------------------
 // EXTRACT reply strategies: one implementation per protocol version, selected
-// at construction so ExtractRequest itself carries no version branching.
+// at construction so ExtractHandler itself carries no version branching.
 
 class ExtractReplyStrategy {
 public:
@@ -185,8 +204,12 @@ std::unique_ptr<ExtractReplyStrategy> makeExtractReplyStrategy(ProtocolVersion v
 
 }  // namespace
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
-    Request(stream, engine, version), replyStrategy_(makeExtractReplyStrategy(version)) {
+ExtractHandler::ExtractHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    RequestHandler(stream, engine, version), replyStrategy_(makeExtractReplyStrategy(version)) {}
+
+ExtractHandler::~ExtractHandler() = default;
+
+void ExtractHandler::receive() {
     MetricsManager::instance().set("action", "extract");
 
     requests_ = Protocol::decodeExtractRequest(client_);
@@ -194,30 +217,30 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine, Proto
     MetricsManager::instance().set("count_extraction_requests", requests_.size());
 }
 
-ExtractRequest::~ExtractRequest() = default;
-
-void ExtractRequest::execute() {
+void ExtractHandler::execute() {
     replyStrategy_->execute(client_, engine_, requests_, report_);
 }
 
-void ExtractRequest::reportErrors() {
+void ExtractHandler::reportErrors() {
     if (replyStrategy_->emitsLeadingErrorBlock()) {
-        Request::reportErrors();
+        RequestHandler::reportErrors();
     }
 }
 
-void ExtractRequest::replyToClient() {
+void ExtractHandler::replyToClient() {
     replyStrategy_->reply(client_, requests_, report_);
 }
 
-void ExtractRequest::info() const {
-    eckit::Log::status() << "New ExtractRequest: nRequests=" << requests_.size() << std::endl;
+void ExtractHandler::info() const {
+    eckit::Log::status() << "New ExtractHandler: nRequests=" << requests_.size() << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
-    Request(stream, engine, version) {
+ForwardedExtractHandler::ForwardedExtractHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    RequestHandler(stream, engine, version) {}
+
+void ForwardedExtractHandler::receive() {
     MetricsManager::instance().set("action", "forwarded-extract");
 
     auto data = Protocol::decodeForwardExtractRequest(client_);
@@ -228,32 +251,34 @@ ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIf
     for (const auto& [fname, extractionItems] : filemap_) {
         count += extractionItems.size();
     }
-    LOG_DEBUG_LIB(LibGribJump) << "ForwardedExtractRequest: nFiles=" << filemap_.size() << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "ForwardedExtractHandler: nFiles=" << filemap_.size() << std::endl;
     MetricsManager::instance().set("count_extraction_requests", count);
 
     ASSERT(count > 0);  // We should not be talking to this server if we have no requests.
 }
 
-void ForwardedExtractRequest::execute() {
+void ForwardedExtractHandler::execute() {
     report_ = engine_.scheduleExtractionTasks(filemap_);
 }
 
-void ForwardedExtractRequest::replyToClient() {
+void ForwardedExtractHandler::replyToClient() {
     Protocol::encodeForwardExtractReply(client_, filemap_);
 }
 
-void ForwardedExtractRequest::info() const {
-    eckit::Log::status() << "New ForwardedExtractRequest: nItems=" << items_.size() << std::endl;
+void ForwardedExtractHandler::info() const {
+    eckit::Log::status() << "New ForwardedExtractHandler: nItems=" << items_.size() << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
-    Request(stream, engine, version) {
+ForwardedScanHandler::ForwardedScanHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    RequestHandler(stream, engine, version) {}
+
+void ForwardedScanHandler::receive() {
     MetricsManager::instance().set("action", "forwarded-scan");
 
     scanmap_ = Protocol::decodeForwardScanRequest(client_);
-    LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanRequest: nFiles=" << scanmap_.size() << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "ForwardedScanHandler: nFiles=" << scanmap_.size() << std::endl;
 
     size_t count = 0;
     for (const auto& [fname, offsets] : scanmap_) {
@@ -263,33 +288,36 @@ ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface& e
     MetricsManager::instance().set("count_received_offsets", count);
 }
 
-void ForwardedScanRequest::execute() {
+void ForwardedScanHandler::execute() {
     auto [nfields, report] = engine_.scheduleScanTasks(scanmap_);
     nfields_               = nfields;
     report_                = std::move(report);
 }
 
-void ForwardedScanRequest::replyToClient() {
+void ForwardedScanHandler::replyToClient() {
     Protocol::encodeScanReply(client_, nfields_);
 }
 
-void ForwardedScanRequest::info() const {
-    eckit::Log::status() << "New ForwardedScanRequest: nfiles=" << scanmap_.size() << std::endl;
+void ForwardedScanHandler::info() const {
+    eckit::Log::status() << "New ForwardedScanHandler: nfiles=" << scanmap_.size() << std::endl;
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
-    Request(stream, engine, version) {
+AxesHandler::AxesHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    RequestHandler(stream, engine, version) {}
+
+void AxesHandler::receive() {
     MetricsManager::instance().set("action", "axes");
     Protocol::decodeAxesRequest(client_, request_, level_);
     ASSERT(request_.size() > 0);
 }
 
-void AxesRequest::execute() {
+void AxesHandler::execute() {
     axes_ = engine_.axes(request_, level_);
 }
 
-void AxesRequest::replyToClient() {
+void AxesHandler::replyToClient() {
 
     // print the axes we are sending
     for (auto& pair : axes_) {
@@ -303,8 +331,8 @@ void AxesRequest::replyToClient() {
     Protocol::encodeAxesReply(client_, axes_);
 }
 
-void AxesRequest::info() const {
-    eckit::Log::status() << "New AxesRequest: " << request_ << ", level=" << level_ << std::endl;
+void AxesHandler::info() const {
+    eckit::Log::status() << "New AxesHandler: " << request_ << ", level=" << level_ << std::endl;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
