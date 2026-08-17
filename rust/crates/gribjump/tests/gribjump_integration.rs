@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use std::collections::BTreeSet;
 
-use fdb::{Fdb, Request};
+use fdb::Fdb;
 use gribjump::{ExtractionRequest, FileExtraction, GribJump, Range};
 
 /// Get the path to test fixtures directory.
@@ -45,7 +45,17 @@ spaces:
 /// This file contains 3 messages with `step=1,2,3`.
 fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
     let config = create_test_config(tmpdir);
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+
+    // SAFETY: Single-threaded test environment, setting FDB config before use
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
+
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
 
     // Read extract_ranges.grib - contains 3 messages with step=1,2,3
     let grib_path = fixtures_dir().join("extract_ranges.grib");
@@ -63,7 +73,17 @@ fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
 /// This file contains 6 messages with different dates and steps.
 fn setup_test_fdb_axes(tmpdir: &std::path::Path) -> String {
     let config = create_test_config(tmpdir);
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+
+    // SAFETY: Single-threaded test environment
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
+
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
 
     // Read axes.grib - contains messages for axes testing
     let grib_path = fixtures_dir().join("axes.grib");
@@ -510,7 +530,11 @@ fn test_gribjump_api_extract_multi_request() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -598,7 +622,11 @@ fn test_gribjump_api_extract_mars_expanded() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -664,7 +692,11 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -672,7 +704,7 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
     fdb.flush().expect("FDB flush failed");
 
     // --- FDB: list field locations to discover file paths and offsets ---
-    let list_request = Request::new()
+    let list_request = metkit::MarsRequestBuilder::new("list")
         .with("class", "rd")
         .with("date", "20230508")
         .with("domain", "g")
@@ -682,7 +714,8 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
         .with_values("step", &["2", "1", "3"])
         .with("stream", "oper")
         .with("time", "1200")
-        .with("type", "fc");
+        .with("type", "fc")
+        .build();
 
     let list_iter = fdb
         .list(

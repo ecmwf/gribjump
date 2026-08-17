@@ -17,18 +17,20 @@ gribjump-sys = { path = "crates/gribjump-sys" }
 gribjump = { path = "crates/gribjump" }
 
 # FDB dependency
-fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings", default-features = false }
-fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings", default-features = false }
+fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-v1", default-features = false }
+fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-v1", default-features = false }
 
 # Foundation crates
-eckit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
-eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
-metkit-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false }
+eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "rust-bindings", default-features = false }
+eckit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
+metkit-sys = { git = "ssh://git@github.com/ecmwf/metkit.git", branch = "rust-bindings", default-features = false }
+metkit = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git" }
+eccodes-sys = { git = "ssh://git@github.com/ecmwf/rust-wrappers-playground.git", default-features = false, features = ["vendored", "eccodes-threads", "aec"] }
 
 # Build tools
-bindman = { git = "ssh://git@github.com/ecmwf/bindman.git" }
-bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git" }
-bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git" }
+bindman = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
+bindman-build = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
+bindman-utils = { git = "ssh://git@github.com/ecmwf/bindman.git", rev = "47edf68" }
 
 # External
 thiserror = "2"

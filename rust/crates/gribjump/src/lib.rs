@@ -45,11 +45,11 @@ pub use result::{ExtractionResult, RangeResult, RangeView};
 /// Get the gribjump library version.
 #[must_use]
 pub fn version() -> String {
-    gribjump_sys::gribjump_version()
+    gribjump_sys::Library::version()
 }
 
 /// Get the gribjump git SHA1.
 #[must_use]
 pub fn git_sha1() -> String {
-    gribjump_sys::gribjump_git_sha1()
+    gribjump_sys::Library::git_sha1()
 }
