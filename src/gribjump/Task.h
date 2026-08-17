@@ -64,9 +64,10 @@ public:
     /// Write description of task to eckit::Log::status() for monitoring
     virtual void info() const = 0;
 
-    /// The extraction items this task produced results into, for the streaming
-    /// (v4) harvest path to send and free. Returns nullptr for tasks that do not
-    /// produce streamable extraction results (e.g. scan/forward tasks).
+    /// The ExtractionItems this task produced results into, for the streaming path to send and free. Returns nullptr
+    /// for tasks that do not produce streamable results (e.g. scan/forward tasks).
+    /// @todo: It is not very nice that this ExtractionTask-specific interface has to be exposed on the parent Task
+    /// class.
     virtual const ExtractionItems* streamableItems() const { return nullptr; }
 
 protected:
@@ -95,8 +96,7 @@ public:
     void reportErrors(eckit::Stream& client) const;
     void raiseErrors() const;
 
-    /// The collected error messages (empty if none). Used by the v4 streaming
-    /// reply path to build the END-chunk error trailer.
+    /// The collected error messages (empty if none).
     const std::vector<std::string>& errors() const { return errors_; }
 
 private:
@@ -129,17 +129,15 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
-    /// Streaming harvest (v4 reply path): block until the next successfully
-    /// completed task is available and return its id, or return nullopt once
-    /// every task has completed and the completed-queue is drained. Mutually
-    /// exclusive with waitForTasks() -- a TaskGroup uses one or the other.
+    /// Streaming harvest: block until the next successfully completed task is
+    /// available and return its id, or return nullopt once every task has
+    /// completed and the completed-queue is drained. Mutually exclusive with
+    /// waitForTasks().
     std::optional<size_t> popCompleted();
 
     // -- Backpressure: bound produced-but-not-yet-sent result bytes ------------
-    // The threshold defaults to unlimited, so these are inert (overBudget() is
-    // always false, waitIfOverBudget() returns immediately, and the WorkQueue
-    // serves this group exactly as before) unless a streaming consumer opts in
-    // via setByteThreshold(). The buffered (local) path is therefore unaffected.
+    // The threshold defaults to unlimited, so these are inert unless a streaming
+    // consumer opts in via setByteThreshold(); the buffered path is unaffected.
 
     void setByteThreshold(size_t bytes) { byteThreshold_ = bytes; }
 
@@ -147,21 +145,17 @@ public:
     void addOutstanding(size_t bytes) { outstandingBytes_.fetch_add(bytes); }
 
     /// Account for result bytes that have been sent and freed. Wakes any task
-    /// paused in waitIfOverBudget() and lets the WorkQueue reconsider this group
-    /// once it drops back to/under budget.
+    /// paused in waitIfOverBudget() and lets the WorkQueue reconsider this group.
     void releaseOutstanding(size_t bytes);
 
     /// True while more result bytes are outstanding than the configured budget.
-    /// Lock-free; used by the WorkQueue to skip an over-budget group.
     bool overBudget() const { return outstandingBytes_.load() > byteThreshold_; }
 
     /// True when a finite byte budget has been set (streaming path), so tasks
-    /// know to account for produced bytes. Unlimited by default, so the buffered
-    /// (local) path skips all byte accounting and is byte-identical.
+    /// know to account for produced bytes. Unlimited by default.
     bool backpressureEnabled() const { return byteThreshold_ != std::numeric_limits<size_t>::max(); }
 
-    /// The streamable extraction items of a completed task (by id), for the
-    /// streaming harvest to send and free. id is the task index within the group.
+    /// The streamable extraction items of a completed task (by id).
     const ExtractionItems* streamableItems(size_t id) {
         std::lock_guard<std::mutex> lock(m_);
         return tasks_.at(id)->streamableItems();

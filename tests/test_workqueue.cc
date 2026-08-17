@@ -194,7 +194,7 @@ CASE("round_robin_large_does_not_block_small") {
         EXPECT_EQUAL(log.entries[i].second, expected[i].second);
     }
 
-    // Headline property: the small group must finish before the large group.
+    // The small group must finish before the large group.
     auto lastIndexOf = [&](const std::string& label) {
         size_t idx = 0;
         for (size_t i = 0; i < log.entries.size(); ++i) {
@@ -331,7 +331,7 @@ CASE("group_drains_and_is_readmitted") {
 }
 
 //-----------------------------------------------------------------------------
-// Phase 2: streaming harvest queue + byte-budget backpressure
+// Streaming harvest queue + byte-budget backpressure
 
 CASE("harvest_popCompleted_drains_all_completed_tasks") {
     // popCompleted() lets a consumer drain results incrementally as each task
@@ -372,12 +372,12 @@ CASE("harvest_single_error_yields_no_completed_and_reports_error") {
 }
 
 CASE("harvest_error_cancels_siblings_and_still_terminates") {
-    // Regression: a task erroring with cancelOnFirstError cancels its still
-    // PENDING siblings. Those cancelled tasks must still be counted towards
-    // completion (via Task::execute -> notifyCancelled), otherwise popCompleted()
-    // never reaches its terminal condition and hangs. The WorkerGate holds the
-    // single worker until every task is enqueued, so id 0 (throwing) runs first
-    // and finds all siblings still PENDING to cancel.
+    // Regression: A task erroring with cancelOnFirstError cancels its still-PENDING
+    //  siblings. Those cancelled tasks must still be counted towards completion
+    //  (via Task::execute -> notifyCancelled), otherwise popCompleted() never
+    //  reaches its terminal condition and hangs. The WorkerGate holds the single
+    //  worker until every task is enqueued, so 0th task (throwing) runs first and
+    //  finds all siblings still PENDING to cancel.
     TaskGroup group;
     DispatchLog log;
     const size_t nSiblings = 4;
@@ -405,7 +405,7 @@ CASE("harvest_error_cancels_siblings_and_still_terminates") {
 }
 
 CASE("waitForTasks_terminates_when_error_cancels_siblings") {
-    // Same regression on the buffered barrier: waitForTasks() shares the
+    // Same regression test on the buffered barrier: waitForTasks() shares the
     // nComplete_ == tasks_.size() terminal condition, so it too would hang if
     // cancelled siblings were not counted.
     TaskGroup group;

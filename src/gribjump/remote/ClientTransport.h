@@ -30,10 +30,8 @@ public:
     virtual eckit::Stream& stream() = 0;
 };
 
-/// Factory for client connections. RemoteGribJump opens one connection per
-/// request via connect(). Production uses a TCP transport; tests inject a fake
-/// (e.g. a socketpair driving a mock server) to exercise the real client code
-/// path without a live TCP server.
+/// Factory for client connections. Production uses a TCP transport; tests inject a fake
+/// to exercise the client without a live TCP server.
 class ClientTransport {
 public:
 

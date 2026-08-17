@@ -45,13 +45,12 @@ protected:  // members
     TaskReport report_;
     uint64_t id_;
 
-    /// The negotiated protocol version for this connection, injected at
-    /// construction by the dispatch. Used by EXTRACT to select v3 buffered vs.
-    /// v4 streaming reply framing.
+    /// The negotiated protocol version for this connection. Used by EXTRACT to
+    /// select v3 buffered vs. v4 streaming reply framing.
     ProtocolVersion protocolVersion_;
 
-    /// Emit the leading error block. A phase of process() (see below); exposed
-    /// here so a subclass override can still chain to the default behaviour.
+    /// Emit the leading error block. A phase of process(); exposed here so a
+    /// subclass override can still chain to the default behaviour.
     virtual void reportErrors();
 
 private:  // lifecycle phases (run by process())
@@ -93,8 +92,7 @@ private:
 
 /// Strategy encapsulating one protocol version's EXTRACT reply framing (v3
 /// buffered vs. v4 streaming). ExtractHandler picks one at construction and
-/// delegates to it, so the per-version branching lives in one implementation
-/// each instead of interleaved if/else across execute/reportErrors/replyToClient.
+/// delegates to it.
 class ExtractReplyStrategy;
 
 class ExtractHandler : public RequestHandler {

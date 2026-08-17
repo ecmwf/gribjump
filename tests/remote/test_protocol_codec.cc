@@ -99,10 +99,8 @@ static metkit::mars::MarsRequest fixtureMarsRequest() {
 // updates below.
 
 CASE("Remote protocol version is pinned") {
-    // Advertised version stays 3 until the client is switched to v4 framing.
     EXPECT_EQUAL(remoteProtocolVersion, 3);
     EXPECT_EQUAL(streamingProtocolVersion, 4);
-    // Accept-set for the v3->v4 migration window.
     EXPECT_EQUAL(supportedProtocolVersions.size(), 2ul);
     EXPECT(isSupportedProtocolVersion(3));
     EXPECT(isSupportedProtocolVersion(4));
@@ -289,8 +287,6 @@ CASE("EXTRACT reply frame matches golden") {
 //-----------------------------------------------------------------------------
 // EXTRACT reply, v4 streaming framing: RESULTS chunks (each a batch of
 // (requestIndex, result) pairs) terminated by an END chunk + error trailer.
-// The v3 golden above is retained deliberately as the migration compatibility
-// guard; these pin the new v4 bytes alongside it.
 
 CASE("EXTRACT v4 reply (single chunk) round-trips and matches golden") {
     ExtractionResult res0                                         = fixtureResult();

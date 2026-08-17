@@ -63,22 +63,18 @@ enum class ReplyChunkTag : uint16_t {
     END     = 1
 };
 
-/// The protocol version the client advertises in every request header. During
-/// the v3->v4 migration this stays at 3 (buffered reply) until the client is
-/// switched to emit/consume the v4 streaming reply framing (at which point it
-/// becomes streamingProtocolVersion); the server already accepts both, see
-/// supportedProtocolVersions.
+/// The protocol version the client advertises in every request header. Kept at
+/// 3 (buffered reply) until the client is switched to the v4 streaming framing;
+/// the server accepts both, see supportedProtocolVersions.
 /// @todo: I don't really like bare lowercase constants like this.
 constexpr uint16_t remoteProtocolVersion = 3;
 
 /// The streaming protocol version (v4): EXTRACT/FORWARD_EXTRACT replies are sent
 /// as batched result chunks + an error trailer instead of a single buffered
-/// block. Named so the server can branch its reply framing on the negotiated
-/// version.
+/// block.
 constexpr uint16_t streamingProtocolVersion = 4;
 
-/// Protocol versions the server accepts. A v4-capable server keeps serving v3
-/// clients for the duration of the migration window.
+/// Protocol versions the server accepts.
 inline constexpr std::array<uint16_t, 2> supportedProtocolVersions{remoteProtocolVersion, streamingProtocolVersion};
 
 inline bool isSupportedProtocolVersion(uint16_t version) {
@@ -107,17 +103,13 @@ public:
     // -- Request header: [protocol version][log context][request type] ------------------------------------------------
 
     /// The decoded request header: the negotiated protocol version (validated
-    /// against supportedProtocolVersions) plus the request type. The server
-    /// uses the version to select v3 (buffered) vs. v4 (streaming) reply framing.
+    /// against supportedProtocolVersions) plus the request type.
     struct RequestHeader {
         ProtocolVersion version;
         RequestType type;
     };
 
     /// Write the request header the client sends at the start of every request.
-    /// The advertised version must be passed explicitly -- there is no default,
-    /// so a caller can never silently fall back to a different version than the
-    /// one it intends to speak.
     static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
                                    uint16_t version);
 
@@ -147,8 +139,7 @@ public:
     // A sequence of RESULTS chunks terminated by an END chunk + error trailer.
     // The encoders are batch-composable so the server can flush chunks as work
     // completes (in any order); decodeExtractReplyStreaming reassembles results
-    // by requestIndex into an nRequests-sized vector, then reads the trailer
-    // (same error semantics as decodeErrors: raise=true throws, false logs).
+    // by requestIndex into an nRequests-sized vector, then reads the trailer.
 
     static void encodeExtractResultChunk(eckit::Stream& stream,
                                          const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);

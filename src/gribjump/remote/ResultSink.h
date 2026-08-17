@@ -12,8 +12,8 @@
 /// available the engine hands batches to a ResultSink, which encodes and sends
 /// one RESULTS chunk per batch. The engine owns the batching/byte-budget policy
 /// and frees results after a batch is sent; the sink only encodes. This keeps
-/// the sink trivially mockable (tests can record batches) while the same
-/// production code path runs over a real socket via StreamResultSink.
+/// the sink mockable while the same code path runs over a real socket via
+/// StreamResultSink.
 
 #pragma once
 

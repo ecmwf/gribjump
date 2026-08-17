@@ -45,9 +45,7 @@ public:
 
     /// Streaming (v4) extraction: schedule the work and hand results to the sink
     /// in byte-budgeted batches as tasks complete, freeing them after send, to
-    /// bound server-side peak memory. Returns the task report (errors) for the
-    /// reply trailer. Only the remote server uses this; the local API keeps the
-    /// buffered extract() above.
+    /// bound peak memory. Returns the task report (errors) for the reply trailer.
     virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
 
     // byfiles: scan entire file, not just fields matching request

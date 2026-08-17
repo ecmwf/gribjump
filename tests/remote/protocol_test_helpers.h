@@ -62,9 +62,8 @@ public:
         return {std::move(map), makeReport()};
     }
 
-    // Stream one canned result per request. To exercise the client's
-    // reassembly-by-index and multi-chunk handling, results are emitted in two
-    // chunks in reverse index order rather than one in-order chunk.
+    // Stream one canned result per request, one result per chunk in reverse
+    // index order, to exercise the client's reassembly-by-index.
     TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override {
         lastExtractRequests = requests.size();
 
@@ -74,8 +73,6 @@ public:
             owned.push_back(std::make_unique<ExtractionResult>(cannedResult()));
         }
 
-        // Emit in reverse order, one result per chunk, to prove ordering and
-        // chunk count don't matter to the decoder.
         for (size_t i = requests.size(); i-- > 0;) {
             std::vector<std::pair<size_t, const ExtractionResult*>> batch{{i, owned[i].get()}};
             sink.writeResults(batch);
@@ -197,8 +194,8 @@ inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& c
 }
 
 /// Write a request header advertising an explicit protocol version (writeHeader
-/// advertises remoteProtocolVersion). Used to drive the server's v4 streaming
-/// reply path from tests. Byte layout must match Protocol::writeRequestHeader.
+/// advertises remoteProtocolVersion). Byte layout must match
+/// Protocol::writeRequestHeader.
 inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType type, const std::string& ctx = "{}") {
     Protocol::writeRequestHeader(s, type, LogContext(ctx), version);
 }
@@ -206,8 +203,7 @@ inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType t
 //-----------------------------------------------------------------------------
 // Wraps an already-connected file descriptor (e.g. from socketpair) in an
 // eckit::net::TCPSocket so it can be driven by InstantTCPStream. The base
-// class's socket_ member is protected, so a thin subclass is the simplest way
-// to adopt a raw fd.
+// class's socket_ member is protected, so a thin subclass adopts a raw fd.
 
 class FdSocket : public eckit::net::TCPSocket {
 public:

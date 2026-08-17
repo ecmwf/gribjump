@@ -65,8 +65,6 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 
 namespace {
 
-/// Construct the handler for a decoded request type. The dispatch's only real
-/// decision is type -> handler; running it is a uniform handler->process().
 std::unique_ptr<RequestHandler> makeRequestHandler(RequestType type, eckit::Stream& s, EngineIface& engine,
                                                    ProtocolVersion version) {
     switch (type) {

@@ -33,10 +33,6 @@ ProtocolVersion configuredClientVersion() {
     return validatedProtocolVersion(static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion()));
 }
 
-// A single TCP request/reply exchange. Owns the socket (TCPClient) and the
-// stream wrapping it; declaration order matters -- InstantTCPStream holds a
-// reference to the socket, so client_ must outlive (be declared before)
-// stream_.
 class TcpConnection : public ClientConnection {
 public:
 
@@ -50,8 +46,6 @@ private:
     eckit::net::InstantTCPStream stream_;
 };
 
-// Opens a fresh TCP connection per request, exactly as the client did inline
-// before the transport seam was introduced.
 class TcpTransport : public ClientTransport {
 public:
 

@@ -62,9 +62,7 @@ public:
 
     std::unique_ptr<ExtractionResult> result() { return std::move(result_); }
 
-    /// Byte size of the held result, used for the streaming byte budget. Routes
-    /// through ExtractionResult::nbytes() so the producer's charge matches the
-    /// harvest loop's release exactly.
+    /// Byte size of the held result, used for the streaming byte budget.
     size_t resultBytes() const { return result_ ? result_->nbytes() : 0; }
 
     /// @note alternatively we could store the offset directly instead of the uri.

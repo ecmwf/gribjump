@@ -79,7 +79,7 @@ void Task::cancel() {
 void TaskGroup::notify(size_t taskid) {
     std::lock_guard<std::mutex> lock(m_);
     nComplete_++;
-    completed_.push_back(taskid);  //< harvestable by popCompleted() (streaming path)
+    completed_.push_back(taskid);  //< harvestable by popCompleted()
 
     // Logging progress
     if (waiting_) {
@@ -176,7 +176,6 @@ std::optional<size_t> TaskGroup::popCompleted() {
         return id;
     }
 
-    // All tasks accounted for and nothing left to harvest.
     done_ = true;
     return std::nullopt;
 }
@@ -193,7 +192,9 @@ void TaskGroup::releaseOutstanding(size_t bytes) {
         }
     }
     // Let the WorkQueue re-evaluate dispatching this group's tasks. Done outside
-    // m_ to keep the lock order m_ -> WorkQueue mutex (never nested).
+    // m_ to keep the lock order m_ -> WorkQueue mutex.
+    ///@todo: It seems there is some coupling between these two mutexes, which is not necessarily very easy to reason
+    ///about.
     if (underBudget) {
         WorkQueue::instance().reconsider();
     }
@@ -283,10 +284,8 @@ void FileExtractionTask::extract() {
         jumper->extract(fh, offsets[i], info, *extractionItem);
     }
 
-    // Streaming path only: account for the result bytes this task produced so
-    // the group's byte budget can gate further dispatch (releaseOutstanding is
-    // called by the harvest loop once these results are sent). No-op (and no
-    // extra work) on the buffered path, where no byte budget is set.
+    // Streaming path only: account for the result bytes this task produced.
+    // No-op on the buffered path, where no byte budget is set.
     if (taskGroup_.backpressureEnabled()) {
         size_t producedBytes = 0;
         for (const auto* extractionItem : extractionItems_) {

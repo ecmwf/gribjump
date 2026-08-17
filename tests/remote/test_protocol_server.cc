@@ -236,7 +236,7 @@ CASE("Server reports engine errors in the error block") {
 }
 
 //-----------------------------------------------------------------------------
-// v4 streaming reply path (Direction A: the same server serves v3 and v4).
+// v4 streaming reply path: the same server serves v3 and v4.
 
 CASE("Server EXTRACT v4: streams results, reassembled by index") {
     std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2), fixtureRequest(3)};
@@ -288,7 +288,7 @@ CASE("Server EXTRACT v4: engine errors surface in the END-chunk trailer") {
 
 CASE("Server EXTRACT v3 client still gets the buffered reply") {
     // A v3-pinned client against the v4-capable server: leading error block +
-    // buffered per-request results, byte-for-byte the pre-streaming framing.
+    // buffered per-request results.
     std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2)};
     size_t n                                = requests.size();
 

@@ -8,14 +8,13 @@
  * nor does it submit to any jurisdiction.
  */
 
-/// Client tests. Unlike the loopback test -- which drives the
-/// Protocol codecs directly -- these exercise the *real* RemoteGribJump client:
-/// its version negotiation (advertised protocol version) and its reply-decode
-/// branch (v4 streaming vs v3 buffered). This is possible because the client's
-/// transport is injectable: we hand it a socketpair-backed transport whose peer
-/// runs the real server dispatch against a mock engine. So a single
+/// Client tests. Unlike the loopback test -- which drives the Protocol codecs
+/// directly -- these exercise the real RemoteGribJump client: its version
+/// negotiation and its reply-decode branch (v4 streaming vs v3 buffered). The
+/// client's transport is injectable, so we hand it a socketpair-backed transport
+/// whose peer runs the real server dispatch against a mock engine. A single
 /// remote.extract(...) call drives header write -> server parse+execute -> reply
-/// -> client decode, over a genuine kernel socket, with no live TCP server.
+/// -> client decode over a genuine kernel socket, with no live TCP server.
 
 #include <sys/socket.h>
 #include <thread>
@@ -59,9 +58,9 @@ private:
 };
 
 // Injectable transport whose peer runs the real server dispatch against a mock
-// engine on its own thread, exactly as the production NetUser would. connect()
-// is expected to be called once per exchange (RemoteGribJump opens one
-// connection per request); the server thread is joined on teardown.
+// engine on its own thread. connect() is called once per exchange
+// (RemoteGribJump opens one connection per request); the server thread is
+// joined on teardown.
 
 class SocketpairTransport : public ClientTransport {
 public:
@@ -141,9 +140,6 @@ CASE("Client: v3-pinned client gets the buffered reply end-to-end") {
 }
 
 CASE("Client: scan() round-trips end-to-end (non-EXTRACT verb over a real socket)") {
-    // SCAN is version-agnostic (error-first framing regardless of version), so
-    // this also stands in for the old socketpair SCAN smoke test: a real client
-    // verb other than EXTRACT surviving a genuine kernel socket.
     MockEngine engine;
     engine.scanNFields = 7;
     RemoteGribJump remote(std::make_unique<SocketpairTransport>(engine), streamingProtocolVersion);
