@@ -63,11 +63,10 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 }
 
 template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface& engine, uint16_t version) {
+static void processRequest(eckit::Stream& s, EngineIface& engine, ProtocolVersion version) {
     eckit::Timer timer("GribJumpUser::processRequest");
 
-    RequestT request(s, engine);
-    request.protocolVersion(version);
+    RequestT request(s, engine, version);
     MetricsManager::instance().set("elapsed_receive", timer.elapsed());
     timer.reset("Request received");
     request.info();
@@ -85,7 +84,7 @@ static void processRequest(eckit::Stream& s, EngineIface& engine, uint16_t versi
 void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     const Protocol::RequestHeader header = Protocol::readRequestHeader(s);
     const RequestType requestType        = header.type;
-    const uint16_t version               = header.version;
+    const ProtocolVersion version        = header.version;
 
     // By default we create an engine, though tests are allowed to
     // inject one (e.g. a MockEngine) for unit testing.

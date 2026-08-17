@@ -37,7 +37,7 @@ CASE("Loopback: EXTRACT round-trips through codec and server") {
 
     // Client-side encode: header + payload, exactly as RemoteGribJump sends.
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeExtractRequest(s, requests);
     });
 
@@ -71,7 +71,7 @@ CASE("Loopback: SCAN round-trips through codec and server") {
     bool byfiles                                    = true;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeScanRequest(s, requests, byfiles);
     });
 
@@ -92,7 +92,7 @@ CASE("Loopback: AXES round-trips through codec and server") {
     int level           = 3;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeAxesRequest(s, request, level);
     });
 
@@ -118,7 +118,7 @@ CASE("Loopback: server errors propagate to the client as an exception") {
     std::vector<metkit::mars::MarsRequest> requests = {metkit::mars::MarsRequest("retrieve")};
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeScanRequest(s, requests, false);
     });
 

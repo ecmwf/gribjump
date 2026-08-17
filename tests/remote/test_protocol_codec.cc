@@ -181,7 +181,7 @@ CASE("EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeExtractRequest(s, requests);
         },
         buffer);
@@ -196,7 +196,7 @@ CASE("AXES request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeAxesRequest(s, request, level);
         },
         buffer);
@@ -211,7 +211,7 @@ CASE("SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeScanRequest(s, requests, byfiles);
         },
         buffer);
@@ -227,7 +227,7 @@ CASE("FORWARD_SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeForwardScanRequest(s, scanmap);
         },
         buffer);
@@ -248,7 +248,7 @@ CASE("FORWARD_EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeForwardExtractRequest(s, filemap);
         },
         buffer);

@@ -51,7 +51,7 @@ Protocol::RequestHeader Protocol::readRequestHeader(eckit::Stream& stream) {
 
     uint16_t i_requestType;
     stream >> i_requestType;
-    return RequestHeader{version, static_cast<RequestType>(i_requestType)};
+    return RequestHeader{ProtocolVersion{version}, static_cast<RequestType>(i_requestType)};
 }
 
 //----------------------------------------------------------------------------------------------------------------------

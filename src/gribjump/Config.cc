@@ -138,9 +138,9 @@ bool ConfigOptions::forwardScan() const {
 }
 
 size_t ConfigOptions::streamingFlushBytes() const {
-    static size_t value = eckit::Resource<size_t>(
-        "$GRIBJUMP_STREAMING_FLUSH_BYTES",
-        LibGribJump::instance().config().getUnsigned("streaming.flushBytes", 8 * 1024 * 1024));
+    static size_t value =
+        eckit::Resource<size_t>("$GRIBJUMP_STREAMING_FLUSH_BYTES",
+                                LibGribJump::instance().config().getUnsigned("streaming.flushBytes", 8 * 1024 * 1024));
     return value;
 }
 

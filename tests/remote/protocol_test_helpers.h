@@ -193,13 +193,12 @@ inline std::vector<char> encodeRequest(EncodeFn&& encode) {
 
 /// Write the request header exactly as the client does.
 inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& ctx = "{}") {
-    Protocol::writeRequestHeader(s, type, LogContext(ctx));
+    Protocol::writeRequestHeader(s, type, LogContext(ctx), remoteProtocolVersion);
 }
 
-/// Write a request header advertising an explicit protocol version (the
-/// production writeRequestHeader always advertises remoteProtocolVersion). Used
-/// to drive the server's v4 streaming reply path from tests. Byte layout must
-/// match Protocol::writeRequestHeader.
+/// Write a request header advertising an explicit protocol version (writeHeader
+/// advertises remoteProtocolVersion). Used to drive the server's v4 streaming
+/// reply path from tests. Byte layout must match Protocol::writeRequestHeader.
 inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType type, const std::string& ctx = "{}") {
     Protocol::writeRequestHeader(s, type, LogContext(ctx), version);
 }

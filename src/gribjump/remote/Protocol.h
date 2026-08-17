@@ -68,6 +68,7 @@ enum class ReplyChunkTag : uint16_t {
 /// switched to emit/consume the v4 streaming reply framing (at which point it
 /// becomes streamingProtocolVersion); the server already accepts both, see
 /// supportedProtocolVersions.
+/// @todo: I don't really like bare lowercase constants like this.
 constexpr uint16_t remoteProtocolVersion = 3;
 
 /// The streaming protocol version (v4): EXTRACT/FORWARD_EXTRACT replies are sent
@@ -89,6 +90,15 @@ inline bool isSupportedProtocolVersion(uint16_t version) {
     return false;
 }
 
+
+struct ProtocolVersion {
+    uint16_t value = remoteProtocolVersion;
+
+    /// v4+ replies stream results as chunks + an error trailer; v3 buffers a
+    /// single reply block.
+    bool streaming() const { return value >= streamingProtocolVersion; }
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class Protocol {
@@ -100,16 +110,16 @@ public:
     /// against supportedProtocolVersions) plus the request type. The server
     /// uses the version to select v3 (buffered) vs. v4 (streaming) reply framing.
     struct RequestHeader {
-        uint16_t version;
+        ProtocolVersion version;
         RequestType type;
     };
 
     /// Write the request header the client sends at the start of every request.
-    /// The advertised protocol version defaults to remoteProtocolVersion (v3);
-    /// a v4-capable client passes streamingProtocolVersion to opt into the
-    /// streaming reply framing.
+    /// The advertised version must be passed explicitly -- there is no default,
+    /// so a caller can never silently fall back to a different version than the
+    /// one it intends to speak.
     static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
-                                   uint16_t version = remoteProtocolVersion);
+                                   uint16_t version);
 
     /// Read and validate the request header. Throws on an unsupported protocol
     /// version, installs the received log context into the ContextManager, and

@@ -28,7 +28,8 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // @todo: Lots of common behaviour between these classes, consider refactoring. Especially the interaction with metrics.
 
-Request::Request(eckit::Stream& stream, EngineIface& engine) : client_(stream), engine_(engine) {
+Request::Request(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    client_(stream), engine_(engine), protocolVersion_(version) {
     id_ = requestid();
     MetricsManager::instance().set("gribjump_request_id", id_);
 }
@@ -39,7 +40,8 @@ void Request::reportErrors() {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
+ScanRequest::ScanRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    Request(stream, engine, version) {
     MetricsManager::instance().set("action", "scan");
 
     requests_ = Protocol::decodeScanRequest(client_, byfiles_);
@@ -67,7 +69,124 @@ void ScanRequest::info() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 
-ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
+//----------------------------------------------------------------------------------------------------------------------
+// EXTRACT reply strategies: one implementation per protocol version, selected
+// at construction so ExtractRequest itself carries no version branching.
+
+class ExtractReplyStrategy {
+public:
+
+    virtual ~ExtractReplyStrategy() = default;
+
+    /// Run the extraction. v4 streams results to the client here; v3 buffers
+    /// them for replyToClient(). Fills @p report with the task report.
+    virtual void execute(eckit::Stream& client, EngineIface& engine, std::vector<ExtractionRequest>& requests,
+                         TaskReport& report) = 0;
+
+    /// Whether the base class should emit the leading error block. v3 does; v4
+    /// folds errors into its END-chunk trailer instead.
+    virtual bool emitsLeadingErrorBlock() const = 0;
+
+    /// Finalise the reply on the wire.
+    virtual void reply(eckit::Stream& client, std::vector<ExtractionRequest>& requests, TaskReport& report) = 0;
+};
+
+namespace {
+
+/// v3: buffer the full reply, then send one in-order block (leading errors +
+/// results).
+class BufferedExtractReply : public ExtractReplyStrategy {
+public:
+
+    void execute(eckit::Stream& /*client*/, EngineIface& engine, std::vector<ExtractionRequest>& requests,
+                 TaskReport& report) override {
+        auto [results, rep] = engine.extract(requests);
+        results_            = std::move(results);
+        report              = std::move(rep);
+
+        if (LibGribJump::instance().debug()) {
+            for (auto& pair : results_) {
+                LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
+                pair.second->debug_print();
+                LOG_DEBUG_LIB(LibGribJump) << std::endl;
+            }
+        }
+    }
+
+    bool emitsLeadingErrorBlock() const override { return true; }
+
+    void reply(eckit::Stream& client, std::vector<ExtractionRequest>& requests, TaskReport& report) override {
+        size_t nRequests = requests.size();
+        LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
+
+        // Assemble the results in request order; encodeExtractReply frames each.
+        std::vector<std::unique_ptr<ExtractionResult>> ordered;
+        std::vector<const ExtractionResult*> results;
+        ordered.reserve(nRequests);
+        results.reserve(nRequests);
+        for (size_t i = 0; i < nRequests; i++) {
+            auto it = results_.find(requests[i].requestString());
+            ASSERT(it != results_.end());
+
+            // *Move* result into ordered vector.
+            ordered.push_back(it->second->result());
+            results.push_back(ordered.back().get());
+        }
+
+        Protocol::encodeExtractReply(client, results);
+
+        LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+    }
+
+private:
+
+    ResultsMap results_;
+};
+
+/// v4: stream results to the client as tasks complete, then terminate with the
+/// END chunk followed by the error trailer.
+class StreamingExtractReply : public ExtractReplyStrategy {
+public:
+
+    void execute(eckit::Stream& client, EngineIface& engine, std::vector<ExtractionRequest>& requests,
+                 TaskReport& report) override {
+        // Any exception is captured so reply() can still emit the END chunk +
+        // error trailer -- chunks already on the wire cannot be unsent.
+        StreamResultSink sink(client);
+        try {
+            report = engine.extractStreaming(requests, sink);
+        }
+        catch (std::exception& e) {
+            streamError_ = e.what();
+        }
+    }
+
+    bool emitsLeadingErrorBlock() const override { return false; }
+
+    void reply(eckit::Stream& client, std::vector<ExtractionRequest>& requests, TaskReport& report) override {
+        std::vector<std::string> errors = report.errors();
+        if (!streamError_.empty()) {
+            errors.push_back(streamError_);
+        }
+        Protocol::encodeExtractReplyEnd(client, errors);
+    }
+
+private:
+
+    std::string streamError_;  //< set if the streaming pass threw mid-reply
+};
+
+std::unique_ptr<ExtractReplyStrategy> makeExtractReplyStrategy(ProtocolVersion version) {
+    if (version.streaming()) {
+        return std::make_unique<StreamingExtractReply>();
+    }
+    return std::make_unique<BufferedExtractReply>();
+}
+
+}  // namespace
+
+ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    Request(stream, engine, version), replyStrategy_(makeExtractReplyStrategy(version)) {
     MetricsManager::instance().set("action", "extract");
 
     requests_ = Protocol::decodeExtractRequest(client_);
@@ -75,75 +194,20 @@ ExtractRequest::ExtractRequest(eckit::Stream& stream, EngineIface& engine) : Req
     MetricsManager::instance().set("count_extraction_requests", requests_.size());
 }
 
+ExtractRequest::~ExtractRequest() = default;
+
 void ExtractRequest::execute() {
-
-    if (streaming()) {
-        // v4: stream results to the client as tasks complete. Any exception is
-        // captured so replyToClient() can still emit the END chunk + error
-        // trailer -- chunks already on the wire cannot be unsent.
-        StreamResultSink sink(client_);
-        try {
-            report_ = engine_.extractStreaming(requests_, sink);
-        }
-        catch (std::exception& e) {
-            streamError_ = e.what();
-        }
-        return;
-    }
-
-    auto [results, report] = engine_.extract(requests_);
-    results_               = std::move(results);
-    report_                = std::move(report);
-
-    if (LibGribJump::instance().debug()) {
-        for (auto& pair : results_) {
-            LOG_DEBUG_LIB(LibGribJump) << pair.first << ": ";
-            pair.second->debug_print();
-            LOG_DEBUG_LIB(LibGribJump) << std::endl;
-        }
-    }
+    replyStrategy_->execute(client_, engine_, requests_, report_);
 }
 
 void ExtractRequest::reportErrors() {
-    if (streaming()) {
-        return;  // errors go in the v4 END-chunk trailer, written by replyToClient()
+    if (replyStrategy_->emitsLeadingErrorBlock()) {
+        Request::reportErrors();
     }
-    Request::reportErrors();
 }
 
 void ExtractRequest::replyToClient() {
-
-    if (streaming()) {
-        // Results were already streamed during execute(); terminate the reply
-        // with the END chunk followed by the error trailer.
-        std::vector<std::string> errors = report_.errors();
-        if (!streamError_.empty()) {
-            errors.push_back(streamError_);
-        }
-        Protocol::encodeExtractReplyEnd(client_, errors);
-        return;
-    }
-
-    size_t nRequests = requests_.size();
-    LOG_DEBUG_LIB(LibGribJump) << "Sending " << nRequests << " results to client" << std::endl;
-
-    // Assemble the results in request order; encodeExtractReply frames each.
-    std::vector<std::unique_ptr<ExtractionResult>> ordered;
-    std::vector<const ExtractionResult*> results;
-    ordered.reserve(nRequests);
-    results.reserve(nRequests);
-    for (size_t i = 0; i < nRequests; i++) {
-        auto it = results_.find(requests_[i].requestString());
-        ASSERT(it != results_.end());
-
-        // *Move* result into ordered vector.
-        ordered.push_back(it->second->result());
-        results.push_back(ordered.back().get());
-    }
-
-    Protocol::encodeExtractReply(client_, results);
-
-    LOG_DEBUG_LIB(LibGribJump) << "Sent " << nRequests << " results to client" << std::endl;
+    replyStrategy_->reply(client_, requests_, report_);
 }
 
 void ExtractRequest::info() const {
@@ -152,7 +216,8 @@ void ExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
+ForwardedExtractRequest::ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    Request(stream, engine, version) {
     MetricsManager::instance().set("action", "forwarded-extract");
 
     auto data = Protocol::decodeForwardExtractRequest(client_);
@@ -183,7 +248,8 @@ void ForwardedExtractRequest::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
+ForwardedScanRequest::ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    Request(stream, engine, version) {
     MetricsManager::instance().set("action", "forwarded-scan");
 
     scanmap_ = Protocol::decodeForwardScanRequest(client_);
@@ -212,7 +278,8 @@ void ForwardedScanRequest::info() const {
 }
 //----------------------------------------------------------------------------------------------------------------------
 
-AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface& engine) : Request(stream, engine) {
+AxesRequest::AxesRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
+    Request(stream, engine, version) {
     MetricsManager::instance().set("action", "axes");
     Protocol::decodeAxesRequest(client_, request_, level_);
     ASSERT(request_.size() > 0);

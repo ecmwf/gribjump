@@ -22,14 +22,14 @@ namespace gribjump {
 
 namespace {
 
-uint16_t validatedProtocolVersion(uint16_t version) {
+ProtocolVersion validatedProtocolVersion(uint16_t version) {
     if (!isSupportedProtocolVersion(version)) {
         throw eckit::UserError("Unsupported client protocol version: " + std::to_string(version), Here());
     }
-    return version;
+    return ProtocolVersion{version};
 }
 
-uint16_t configuredClientVersion() {
+ProtocolVersion configuredClientVersion() {
     return validatedProtocolVersion(static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion()));
 }
 
@@ -57,9 +57,7 @@ public:
 
     TcpTransport(std::string host, int port) : host_(std::move(host)), port_(port) {}
 
-    std::unique_ptr<ClientConnection> connect() override {
-        return std::make_unique<TcpConnection>(host_, port_);
-    }
+    std::unique_ptr<ClientConnection> connect() override { return std::make_unique<TcpConnection>(host_, port_); }
 
 private:
 
@@ -96,14 +94,14 @@ RemoteGribJump::RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint1
 RemoteGribJump::~RemoteGribJump() {}
 
 void RemoteGribJump::sendHeader(eckit::Stream& stream, RequestType type) {
-    Protocol::writeRequestHeader(stream, type, ContextManager::instance().context(), protocolVersion_);
+    Protocol::writeRequestHeader(stream, type, ContextManager::instance().context(), protocolVersion_.value);
 }
 
 size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& requests, bool byfiles) {
     eckit::Timer timer("RemoteGribJump::scan()", LogRouter::instance().get("timer"));
 
     // connect to server
-    auto connection = transport_->connect();
+    auto connection       = transport_->connect();
     eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
@@ -128,7 +126,7 @@ size_t RemoteGribJump::scan(const std::vector<metkit::mars::MarsRequest>& reques
 size_t RemoteGribJump::forwardScan(const std::map<eckit::PathName, eckit::OffsetList>& map) {
     ///@todo we could probably do the connection logic in the ctor
     eckit::Timer timer("RemoteGribJump::scan()", LogRouter::instance().get("timer"));
-    auto connection = transport_->connect();
+    auto connection       = transport_->connect();
     eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
@@ -151,7 +149,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     std::vector<std::unique_ptr<ExtractionResult>> result;
 
     // connect to server
-    auto connection = transport_->connect();
+    auto connection       = transport_->connect();
     eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
@@ -166,7 +164,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 
     // receive response
 
-    if (protocolVersion_ >= streamingProtocolVersion) {
+    if (protocolVersion_.streaming()) {
         // v4: results arrive as out-of-order RESULTS chunks terminated by END,
         // followed by the error trailer (which raises on server-side errors).
         result = Protocol::decodeExtractReplyStreaming(stream, nRequests);
@@ -190,7 +188,7 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
     eckit::Timer timer("RemoteGribJump::forwardExtract()", LogRouter::instance().get("timer"));
 
     ///@todo we could probably do the connection logic in the ctor
-    auto connection = transport_->connect();
+    auto connection       = transport_->connect();
     eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 
@@ -214,7 +212,7 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     std::map<std::string, std::unordered_set<std::string>> result;
 
     // connect to server
-    auto connection = transport_->connect();
+    auto connection       = transport_->connect();
     eckit::Stream& stream = connection->stream();
     timer.report("Connection established");
 

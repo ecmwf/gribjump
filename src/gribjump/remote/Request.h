@@ -31,7 +31,7 @@ namespace gribjump {
 class Request {
 public:
 
-    Request(eckit::Stream& stream, EngineIface& engine);
+    Request(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
     virtual ~Request() = default;
 
@@ -43,11 +43,6 @@ public:
 
     virtual void reportErrors();
 
-    /// The negotiated protocol version for this connection. Set by the dispatch
-    /// before execute(); used by EXTRACT to select v3 buffered vs. v4 streaming
-    /// reply framing.
-    void protocolVersion(uint16_t version) { protocolVersion_ = version; }
-
     /// Print information about the request to status(), for monitoring
     virtual void info() const = 0;
 
@@ -57,7 +52,11 @@ protected:  // members
     EngineIface& engine_;
     TaskReport report_;
     uint64_t id_;
-    uint16_t protocolVersion_ = remoteProtocolVersion;
+
+    /// The negotiated protocol version for this connection, injected at
+    /// construction by the dispatch. Used by EXTRACT to select v3 buffered vs.
+    /// v4 streaming reply framing.
+    ProtocolVersion protocolVersion_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -65,7 +64,7 @@ protected:  // members
 class ScanRequest : public Request {
 public:
 
-    ScanRequest(eckit::Stream& stream, EngineIface& engine);
+    ScanRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
     ~ScanRequest() = default;
 
@@ -85,12 +84,18 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// Strategy encapsulating one protocol version's EXTRACT reply framing (v3
+/// buffered vs. v4 streaming). ExtractRequest picks one at construction and
+/// delegates to it, so the per-version branching lives in one implementation
+/// each instead of interleaved if/else across execute/reportErrors/replyToClient.
+class ExtractReplyStrategy;
+
 class ExtractRequest : public Request {
 public:
 
-    ExtractRequest(eckit::Stream& stream, EngineIface& engine);
+    ExtractRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
-    ~ExtractRequest() = default;
+    ~ExtractRequest() override;
 
     void execute() override;
 
@@ -104,13 +109,9 @@ public:
 
 private:
 
-    bool streaming() const { return protocolVersion_ >= streamingProtocolVersion; }
-
     std::vector<ExtractionRequest> requests_;
 
-    ResultsMap results_;
-
-    std::string streamError_;  //< set if the streaming pass threw mid-reply
+    std::unique_ptr<ExtractReplyStrategy> replyStrategy_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -118,7 +119,7 @@ private:
 class ForwardedExtractRequest : public Request {
 public:
 
-    ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine);
+    ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
     ~ForwardedExtractRequest() = default;
 
@@ -142,7 +143,7 @@ private:
 class ForwardedScanRequest : public Request {
 public:
 
-    ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine);
+    ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
     ~ForwardedScanRequest() = default;
 
@@ -166,7 +167,7 @@ private:
 class AxesRequest : public Request {
 public:
 
-    AxesRequest(eckit::Stream& stream, EngineIface& engine);
+    AxesRequest(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
     ~AxesRequest() = default;
 
