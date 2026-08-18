@@ -224,7 +224,7 @@ private:
     bool waiting_        = false;  //< true if waiting for tasks to complete
     bool done_           = false;  //< true if all tasks have completed
 
-    mutable std::mutex m_;
+    mutable std::mutex m_;  //< rule of thumb: do not hold at the same time as WorkQueue::mtx_
     std::condition_variable cv_;
 
     std::vector<std::shared_ptr<Task>> tasks_;
