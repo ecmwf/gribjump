@@ -165,8 +165,8 @@ public:
         return peakOutstandingBytes_;
     }
 
-    /// Account for result bytes that have been sent and freed. Wakes any task
-    /// paused in waitIfOverBudget() and lets the WorkQueue reconsider this group.
+    /// Account for result bytes that have been sent and freed. Lets the WorkQueue
+    /// reconsider this group once it drops back under budget.
     void releaseOutstanding(size_t bytes);
 
     /// True while more result bytes are outstanding than the configured budget.
@@ -185,10 +185,6 @@ public:
         std::lock_guard<std::mutex> lock(m_);
         return tasks_.at(id)->streamableItems();
     }
-
-    /// Block while this group is over its byte budget. Used to pause a running
-    /// task between items so a single large file cannot outrun the consumer.
-    void waitIfOverBudget();
 
     /// Report on errors and other status information about executed tasks.
     /// Calling code may use this to report to a client or raise an exception.
@@ -239,7 +235,6 @@ private:
     std::atomic<size_t> outstandingBytes_{0};  //< produced-but-not-yet-sent bytes
     size_t peakOutstandingBytes_ = 0;          //< high-water mark of outstandingBytes_ (guarded by m_)
     size_t byteThreshold_        = std::numeric_limits<size_t>::max();  //< unlimited by default (no backpressure)
-    std::condition_variable budgetCv_;                                  //< signalled when outstandingBytes_ drops
 
     const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
 };

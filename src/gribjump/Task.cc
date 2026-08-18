@@ -201,29 +201,16 @@ void TaskGroup::releaseOutstanding(size_t bytes) {
     bool underBudget;
     {
         std::lock_guard<std::mutex> lock(m_);
-        size_t before = outstandingBytes_;
+        size_t before     = outstandingBytes_;
         ASSERT(before >= bytes);
         outstandingBytes_ = before - bytes;
         underBudget       = (before - bytes) <= byteThreshold_;
-        if (underBudget) {
-            budgetCv_.notify_all();  // wake a task paused in waitIfOverBudget()
-        }
     }
-    // Let the WorkQueue re-evaluate dispatching this group's tasks. Done outside
-    // m_ to keep the lock order m_ -> WorkQueue mutex.
-    ///@todo: It seems there is some coupling between these two mutexes, which is not necessarily very easy to reason
-    /// about.
+    // If the group has dropped back under budget, let the WorkQueue re-evaluate
+    // dispatching its tasks.
     if (underBudget) {
         WorkQueue::instance().reconsider();
     }
-}
-
-void TaskGroup::waitIfOverBudget() {
-    if (byteThreshold_ == std::numeric_limits<size_t>::max()) {
-        return;  // fast path: backpressure disabled
-    }
-    std::unique_lock<std::mutex> lock(m_);
-    budgetCv_.wait(lock, [&] { return !overBudget(); });
 }
 
 //----------------------------------------------------------------------------------------------------------------------
