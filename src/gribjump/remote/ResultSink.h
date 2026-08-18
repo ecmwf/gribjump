@@ -44,7 +44,7 @@ public:
 //----------------------------------------------------------------------------------------------------------------------
 
 /// The production sink: encodes each batch as a v4 RESULTS chunk straight onto
-/// the client stream. The terminating END chunk + error trailer are written by
+/// the client stream. The terminating END chunk + error footer are written by
 /// the request handler once the stream is drained, not here.
 class StreamResultSink : public ResultSink {
 public:

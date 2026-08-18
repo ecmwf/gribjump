@@ -78,7 +78,7 @@ private:
 
 private:
 
-    mutable std::mutex mtx_;  //< rule of thumb: do not hold at the same time as TaskGroup::m_
+    mutable std::mutex mtx_;      //< rule of thumb: do not hold at the same time as TaskGroup::m_
     std::condition_variable cv_;  //< signalled when tasks become available or the queue is closed
     bool closed_ = false;
 

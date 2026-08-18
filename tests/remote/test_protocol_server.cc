@@ -253,7 +253,7 @@ CASE("Server EXTRACT v4: streams results, reassembled by index") {
 
     EXPECT_EQUAL(engine.lastExtractRequests, n);
 
-    // Decode as a v4 client would: RESULTS chunks (any order) then END + trailer.
+    // Decode as a v4 client would: RESULTS chunks (any order) then END + footer.
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
     auto results = Protocol::decodeExtractReplyStreaming(reply, n);
     EXPECT_EQUAL(results.size(), n);
@@ -266,7 +266,7 @@ CASE("Server EXTRACT v4: streams results, reassembled by index") {
     }
 }
 
-CASE("Server EXTRACT v4: engine errors surface in the END-chunk trailer") {
+CASE("Server EXTRACT v4: engine errors surface in the END-chunk footer") {
     std::vector<ExtractionRequest> requests = {fixtureRequest(1)};
     size_t n                                = requests.size();
 
@@ -280,7 +280,7 @@ CASE("Server EXTRACT v4: engine errors surface in the END-chunk trailer") {
     engine.errors = {"boom: streaming failed"};
     dispatchRequest(stream, &engine);
 
-    // No leading error block in v4: the reply starts with chunks and the trailer
+    // No leading error block in v4: the reply starts with chunks and the footer
     // (raise=true) throws the collected errors.
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
     EXPECT_THROWS_AS(Protocol::decodeExtractReplyStreaming(reply, n), eckit::RemoteException);

@@ -286,7 +286,7 @@ CASE("EXTRACT reply frame matches golden") {
 
 //-----------------------------------------------------------------------------
 // EXTRACT reply, v4 streaming framing: RESULTS chunks (each a batch of
-// (requestIndex, result) pairs) terminated by an END chunk + error trailer.
+// (requestIndex, result) pairs) terminated by an END chunk + error footer.
 
 CASE("EXTRACT v4 reply (single chunk) round-trips and matches golden") {
     ExtractionResult res0                                         = fixtureResult();
@@ -356,7 +356,7 @@ CASE("EXTRACT v4 reply (empty) round-trips and matches golden") {
     expectGolden(hash, "c519ce71fd6991e837163772fc44b0ac", "EXTRACT v4 reply empty");
 }
 
-CASE("EXTRACT v4 reply (error trailer after partial results) matches golden and throws") {
+CASE("EXTRACT v4 reply (error footer after partial results) matches golden and throws") {
     ExtractionResult res0                                         = fixtureResult();
     std::vector<std::pair<size_t, const ExtractionResult*>> batch = {{0, &res0}};
     std::vector<std::string> errors                               = {"boom: something failed"};
@@ -369,7 +369,7 @@ CASE("EXTRACT v4 reply (error trailer after partial results) matches golden and 
         },
         buffer);
 
-    // Default raise=true: the trailer errors throw, exactly like the v3 leading
+    // Default raise=true: the footer errors throw, exactly like the v3 leading
     // error block.
     eckit::ResizableMemoryStream in(buffer);
     in.rewind();
@@ -382,7 +382,7 @@ CASE("EXTRACT v4 reply (error trailer after partial results) matches golden and 
     EXPECT(results[0] != nullptr);
     EXPECT(results[1] == nullptr);
 
-    expectGolden(hash, "6a708b11665a886671f7618fddcd9144", "EXTRACT v4 reply error trailer");
+    expectGolden(hash, "6a708b11665a886671f7618fddcd9144", "EXTRACT v4 reply error footer");
 }
 
 CASE("AXES reply frame matches golden") {

@@ -160,7 +160,7 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 
     if (protocolVersion_.streaming()) {
         // v4: results arrive as out-of-order RESULTS chunks terminated by END,
-        // followed by the error trailer (which raises on server-side errors).
+        // followed by the error footer (which raises on server-side errors).
         result = Protocol::decodeExtractReplyStreaming(stream, nRequests);
     }
     else {

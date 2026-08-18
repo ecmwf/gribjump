@@ -176,7 +176,7 @@ CASE("Loopback: EXTRACT v4 with no requests yields an empty reply") {
     EXPECT_EQUAL(results.size(), 0);
 }
 
-CASE("Loopback: EXTRACT v4 surfaces server errors from the END-chunk trailer") {
+CASE("Loopback: EXTRACT v4 surfaces server errors from the END-chunk footer") {
     std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2)};
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
@@ -189,7 +189,7 @@ CASE("Loopback: EXTRACT v4 surfaces server errors from the END-chunk trailer") {
     engine.errors = {"deliberate streaming failure"};
     dispatchRequest(stream, &engine);
 
-    // v4 reply has no leading error block: chunks stream first, then the trailer
+    // v4 reply has no leading error block: chunks stream first, then the footer
     // (raise=true) throws the collected errors even though results were sent.
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
     EXPECT_THROWS_AS(Protocol::decodeExtractReplyStreaming(reply, requests.size()), eckit::RemoteException);

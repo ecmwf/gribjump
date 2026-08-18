@@ -45,7 +45,7 @@ public:
 
     /// Streaming (v4) extraction: schedule the work and hand results to the sink
     /// in byte-budgeted batches as tasks complete, freeing them after send, to
-    /// bound peak memory. Returns the task report (errors) for the reply trailer.
+    /// bound peak memory. Returns the task report (errors) for the reply footer.
     virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
 
     // byfiles: scan entire file, not just fields matching request

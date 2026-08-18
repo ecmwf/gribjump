@@ -103,7 +103,7 @@ public:
                          TaskReport& report) = 0;
 
     /// Whether the base class should emit the leading error block. v3 does; v4
-    /// folds errors into its END-chunk trailer instead.
+    /// folds errors into its END-chunk footer instead.
     virtual bool emitsLeadingErrorBlock() const = 0;
 
     /// Finalise the reply on the wire.
@@ -163,14 +163,14 @@ private:
 };
 
 /// v4: stream results to the client as tasks complete, then terminate with the
-/// END chunk followed by the error trailer.
+/// END chunk followed by the error footer.
 class StreamingExtractReply : public ExtractReplyStrategy {
 public:
 
     void execute(eckit::Stream& client, EngineIface& engine, std::vector<ExtractionRequest>& requests,
                  TaskReport& report) override {
         // Any exception is captured so reply() can still emit the END chunk +
-        // error trailer -- chunks already on the wire cannot be unsent.
+        // error footer -- chunks already on the wire cannot be unsent.
         StreamResultSink sink(client);
         try {
             report = engine.extractStreaming(requests, sink);

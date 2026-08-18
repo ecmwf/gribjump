@@ -358,7 +358,7 @@ CASE("harvest_popCompleted_drains_all_completed_tasks") {
 
 CASE("harvest_single_error_yields_no_completed_and_reports_error") {
     // A failed task is not harvestable (produced no result); popCompleted()
-    // still terminates and the error is surfaced for the trailer.
+    // still terminates and the error is surfaced for the footer.
     TaskGroup group;
     group.enqueueTask<ThrowingTask>();
 

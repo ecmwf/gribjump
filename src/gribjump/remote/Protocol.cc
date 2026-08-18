@@ -143,7 +143,7 @@ void Protocol::encodeExtractResultChunk(eckit::Stream& stream,
 
 void Protocol::encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors) {
     stream << static_cast<uint16_t>(ReplyChunkTag::END);
-    // The error trailer has the same layout as the leading v3 error block.
+    // The error footer has the same layout as the leading v3 error block.
     encodeErrors(stream, errors);
 }
 
@@ -167,7 +167,7 @@ std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReplyStrea
             results[index] = std::make_unique<ExtractionResult>(stream);
         }
     }
-    // Error trailer: identical layout + semantics to the leading v3 error block.
+    // Error footer: identical layout + semantics to the leading v3 error block.
     decodeErrors(stream, raise);
     return results;
 }

@@ -56,7 +56,7 @@ enum class RequestType : uint16_t {
 
 /// v4 reply framing: an EXTRACT/FORWARD_EXTRACT reply is a sequence of tagged
 /// chunks. A RESULTS chunk carries a batch of (requestIndex, ExtractionResult)
-/// pairs; a terminal END chunk is followed by the error trailer (identical
+/// pairs; a terminal END chunk is followed by the error footer (identical
 /// layout to the leading error block used by v3).
 enum class ReplyChunkTag : uint16_t {
     RESULTS = 0,
@@ -70,7 +70,7 @@ enum class ReplyChunkTag : uint16_t {
 constexpr uint16_t remoteProtocolVersion = 3;
 
 /// The streaming protocol version (v4): EXTRACT/FORWARD_EXTRACT replies are sent
-/// as batched result chunks + an error trailer instead of a single buffered
+/// as batched result chunks + an error footer instead of a single buffered
 /// block.
 constexpr uint16_t streamingProtocolVersion = 4;
 
@@ -90,7 +90,7 @@ inline bool isSupportedProtocolVersion(uint16_t version) {
 struct ProtocolVersion {
     uint16_t value = remoteProtocolVersion;
 
-    /// v4+ replies stream results as chunks + an error trailer; v3 buffers a
+    /// v4+ replies stream results as chunks + an error footer; v3 buffers a
     /// single reply block.
     bool streaming() const { return value >= streamingProtocolVersion; }
 };
@@ -136,10 +136,10 @@ public:
     static std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReply(eckit::Stream& stream, size_t nRequests);
 
     // -- EXTRACT reply, v4 streaming framing --------------------------------------------------------------------------
-    // A sequence of RESULTS chunks terminated by an END chunk + error trailer.
+    // A sequence of RESULTS chunks terminated by an END chunk + error footer.
     // The encoders are batch-composable so the server can flush chunks as work
     // completes (in any order); decodeExtractReplyStreaming reassembles results
-    // by requestIndex into an nRequests-sized vector, then reads the trailer.
+    // by requestIndex into an nRequests-sized vector, then reads the footer.
 
     static void encodeExtractResultChunk(eckit::Stream& stream,
                                          const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);

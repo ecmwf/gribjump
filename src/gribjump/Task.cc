@@ -201,7 +201,7 @@ void TaskGroup::releaseOutstanding(size_t bytes) {
     bool underBudget;
     {
         std::lock_guard<std::mutex> lock(m_);
-        size_t before     = outstandingBytes_;
+        size_t before = outstandingBytes_;
         ASSERT(before >= bytes);
         outstandingBytes_ = before - bytes;
         underBudget       = (before - bytes) <= byteThreshold_;

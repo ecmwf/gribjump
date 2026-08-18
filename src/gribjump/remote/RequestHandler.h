@@ -108,7 +108,7 @@ private:
     void execute() override;
     void replyToClient() override;
 
-    /// v4 streaming replies carry errors in the END-chunk trailer, so the
+    /// v4 streaming replies carry errors in the END-chunk footer, so the
     /// leading error block written by the base is suppressed.
     void reportErrors() override;
 
