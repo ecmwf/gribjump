@@ -77,17 +77,31 @@ void WorkQueue::workerLoop() {
 
 bool WorkQueue::popNext(WorkItem& item) {
     std::unique_lock<std::mutex> lock(mtx_);
-    cv_.wait(lock, [&] { return closed_ || !rrOrder_.empty(); });
 
-    if (rrOrder_.empty()) {
-        // closed_ must be true here
+    const auto firstServable = [this] {
+        // First group in round-robin order that has queued tasks and is not over its byte budget.
+        for (auto it = rrOrder_.begin(); it != rrOrder_.end(); ++it) {
+            if (!(*it)->overBudget()) {
+                return it;
+            }
+        }
+        return rrOrder_.end();  //< No servable group found.
+    };
+
+    std::list<TaskGroup*>::iterator rrIt;
+    cv_.wait(lock, [&] {  //@todo who else is setting this lock? i.e. what wakes us up?
+        rrIt = firstServable();
+        return closed_ || rrIt != rrOrder_.end();
+    });
+
+    if (rrIt == rrOrder_.end()) {
+        // Implies closed_ is true, because the wait predicate returned true.
         return false;
     }
 
-    // Round-robin: serve the group at the front, then rotate it to the back
-    // (if it still has tasks) or remove it (if drained).
-    TaskGroup* group = rrOrder_.front();
-    rrOrder_.pop_front();
+    // Serve the first servable group, then rotate it to the back (if it still has tasks) or remove it (if drained).
+    TaskGroup* group = *rrIt;
+    rrOrder_.erase(rrIt);
 
     auto it = groupQueues_.find(group);
     ASSERT(it != groupQueues_.end());
@@ -105,6 +119,31 @@ bool WorkQueue::popNext(WorkItem& item) {
 
     item = WorkItem(task);
     return true;
+}
+
+void WorkQueue::reconsider() {
+    std::lock_guard<std::mutex> lock(mtx_);
+    cv_.notify_all();
+}
+
+void WorkQueue::cancelGroup(TaskGroup* group) {
+    ASSERT(group != nullptr);
+
+    std::deque<Task*> removed;
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto it = groupQueues_.find(group);
+        if (it != groupQueues_.end()) {
+            removed = std::move(it->second);
+            groupQueues_.erase(it);
+            rrOrder_.remove(group);
+        }
+    }
+
+    // Notify group that removed tasks are now cancelled.
+    for (Task* task : removed) {
+        task->notifyCancelled();
+    }
 }
 
 void WorkQueue::push(TaskGroup* group, Task* task) {

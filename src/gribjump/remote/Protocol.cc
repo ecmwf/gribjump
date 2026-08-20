@@ -27,19 +27,23 @@ namespace gribjump {
 //----------------------------------------------------------------------------------------------------------------------
 // Request header
 
-void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context) {
-    stream << remoteProtocolVersion;
+void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
+                                  uint16_t version) {
+    stream << version;
     stream << context;
     stream << static_cast<uint16_t>(type);
 }
 
-RequestType Protocol::readRequestHeader(eckit::Stream& stream) {
+Protocol::RequestHeader Protocol::readRequestHeader(eckit::Stream& stream) {
     uint16_t version;
     stream >> version;
-    if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug(
-            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
-            ", Clientside version: " + std::to_string(version));
+    if (!isSupportedProtocolVersion(version)) {
+        std::stringstream supported;
+        for (size_t i = 0; i < supportedProtocolVersions.size(); i++) {
+            supported << (i == 0 ? "" : ", ") << supportedProtocolVersions[i];
+        }
+        throw eckit::SeriousBug("Gribjump remote-protocol mismatch: Serverside supports version(s): " +
+                                supported.str() + ", Clientside version: " + std::to_string(version));
     }
 
     LogContext ctx(stream);
@@ -47,7 +51,7 @@ RequestType Protocol::readRequestHeader(eckit::Stream& stream) {
 
     uint16_t i_requestType;
     stream >> i_requestType;
-    return static_cast<RequestType>(i_requestType);
+    return RequestHeader{ProtocolVersion{version}, static_cast<RequestType>(i_requestType)};
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -121,6 +125,49 @@ std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReply(ecki
         ASSERT(nfields == 1);  // temporary; see encodeExtractReply
         results.push_back(std::make_unique<ExtractionResult>(stream));
     }
+    return results;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// EXTRACT reply, v4 streaming
+
+void Protocol::encodeExtractResultChunk(eckit::Stream& stream,
+                                        const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) {
+    stream << static_cast<uint16_t>(ReplyChunkTag::RESULT_CHUNK);
+    stream << batch.size();
+    for (const auto& [index, result] : batch) {
+        stream << index;
+        stream << *result;
+    }
+}
+
+void Protocol::encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors) {
+    stream << static_cast<uint16_t>(ReplyChunkTag::END_OF_RESULTS);
+    encodeErrors(stream, errors);
+}
+
+std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReplyStreaming(eckit::Stream& stream,
+                                                                                     size_t nRequests, bool raise) {
+    std::vector<std::unique_ptr<ExtractionResult>> results(nRequests);
+    for (;;) {
+        uint16_t itag;
+        stream >> itag;
+        const ReplyChunkTag tag = static_cast<ReplyChunkTag>(itag);
+        if (tag == ReplyChunkTag::END_OF_RESULTS) {
+            break;
+        }
+        ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
+        size_t count;
+        stream >> count;
+        for (size_t i = 0; i < count; i++) {
+            size_t index;
+            stream >> index;
+            ASSERT(index < nRequests);
+            results[index] = std::make_unique<ExtractionResult>(stream);
+        }
+    }
+    // Error footer: identical layout + semantics to the leading v3 error block.
+    decodeErrors(stream, raise);
     return results;
 }
 
