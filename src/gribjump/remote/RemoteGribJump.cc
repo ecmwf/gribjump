@@ -33,10 +33,10 @@ ProtocolVersion configuredClientVersion() {
     return validatedProtocolVersion(static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion()));
 }
 
-class TcpConnection : public ClientConnection {
+class TCPConnection : public ClientConnection {
 public:
 
-    TcpConnection(const std::string& host, int port) : stream_(client_.connect(host, port)) {}
+    TCPConnection(const std::string& host, int port) : stream_(client_.connect(host, port)) {}
 
     eckit::Stream& stream() override { return stream_; }
 
@@ -46,12 +46,12 @@ private:
     eckit::net::InstantTCPStream stream_;
 };
 
-class TcpTransport : public ClientTransport {
+class TCPTransport : public ClientTransport {
 public:
 
-    TcpTransport(std::string host, int port) : host_(std::move(host)), port_(port) {}
+    TCPTransport(std::string host, int port) : host_(std::move(host)), port_(port) {}
 
-    std::unique_ptr<ClientConnection> connect() override { return std::make_unique<TcpConnection>(host_, port_); }
+    std::unique_ptr<ClientConnection> connect() override { return std::make_unique<TCPConnection>(host_, port_); }
 
 private:
 
@@ -70,13 +70,13 @@ RemoteGribJump::RemoteGribJump() : protocolVersion_(configuredClientVersion()) {
     eckit::net::Endpoint endpoint(uri);
     host_      = endpoint.host();
     port_      = endpoint.port();
-    transport_ = std::make_unique<TcpTransport>(host_, port_);
+    transport_ = std::make_unique<TCPTransport>(host_, port_);
 }
 
 RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) :
     host_(endpoint.host()),
     port_(endpoint.port()),
-    transport_(std::make_unique<TcpTransport>(endpoint.host(), endpoint.port())),
+    transport_(std::make_unique<TCPTransport>(endpoint.host(), endpoint.port())),
     protocolVersion_(configuredClientVersion()) {}
 
 RemoteGribJump::RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint16_t protocolVersion) :
@@ -159,12 +159,11 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
     // receive response
 
     if (protocolVersion_.streaming()) {
-        // v4: results arrive as out-of-order RESULTS chunks terminated by END,
-        // followed by the error footer (which raises on server-side errors).
+        // v4+. Errors terminate the stream, arriving after the results.
         result = Protocol::decodeExtractReplyStreaming(stream, nRequests);
     }
     else {
-        // v3: leading error block, then the buffered in-order reply.
+        // v3 pre-streaming: errors reported before results.
         Protocol::decodeErrors(stream);
         result = Protocol::decodeExtractReply(stream, nRequests);
     }

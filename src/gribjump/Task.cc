@@ -81,6 +81,7 @@ void TaskGroup::notify(size_t taskid) {
     nComplete_++;
     completed_.push_back(taskid);  //< harvestable by popCompleted()
 
+    /// @todo: some of this is a bit of a mess, we can do better.
     // Logging progress
     if (waiting_) {
         if (nComplete_ == logcounter_) {
@@ -128,12 +129,12 @@ void TaskGroup::cancelTasks() {
 
 void TaskGroup::cancel() {
     {
+        // Mark every still-PENDING task cancelled.
         std::lock_guard<std::mutex> lock(m_);
-        // Step 1 -- flag: mark every still-PENDING task cancelled.
         cancelTasks();
     }
 
-    // Step 2 -- purge: remove the tasks still queued in the WorkQueue
+    // Remove the tasks still queued from the WorkQueue
     WorkQueue::instance().cancelGroup(this);
 }
 
@@ -179,12 +180,13 @@ TaskReport TaskGroup::report() {
     return TaskReport(std::move(errors_));
 }
 
+/// @todo: Note, there is some overlap here with waitForTasks, though this is used for streaming.
+/// Perhaps we can refactor.
 std::optional<size_t> TaskGroup::popCompleted() {
     std::unique_lock<std::mutex> lock(m_);
     ASSERT(tasks_.size() > 0);
 
-    // Wait until there is a completed task to harvest, or every task has been
-    // accounted for (same terminal condition as waitForTasks()).
+    // Wait until there is a completed task to harvest, or every task has been accounted for.
     cv_.wait(lock, [&] { return !completed_.empty() || nComplete_ == tasks_.size(); });
 
     if (!completed_.empty()) {
@@ -289,8 +291,7 @@ void FileExtractionTask::extract() {
         jumper->extract(fh, offsets[i], info, *extractionItem);
     }
 
-    // Streaming path only: account for the result bytes this task produced.
-    // No-op on the buffered path, where no byte budget is set.
+    // Account for the result bytes this task produced when backpressure is enabled.
     if (taskGroup_.backpressureEnabled()) {
         size_t producedBytes = 0;
         for (const auto* extractionItem : extractionItems_) {

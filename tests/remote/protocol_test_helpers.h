@@ -202,8 +202,7 @@ inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType t
 
 //-----------------------------------------------------------------------------
 // Wraps an already-connected file descriptor (e.g. from socketpair) in an
-// eckit::net::TCPSocket so it can be driven by InstantTCPStream. The base
-// class's socket_ member is protected, so a thin subclass adopts a raw fd.
+// eckit::net::TCPSocket so it can be driven by InstantTCPStream.
 
 class FdSocket : public eckit::net::TCPSocket {
 public:

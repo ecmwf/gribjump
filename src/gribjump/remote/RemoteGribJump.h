@@ -28,9 +28,7 @@ public:  // methods
     RemoteGribJump();
     RemoteGribJump(eckit::net::Endpoint endpoint);
 
-    /// Inject a transport and advertised protocol version directly. A test seam:
-    /// lets the client run over a fake transport without a live TCP server. The
-    /// version is validated against isSupportedProtocolVersion.
+    /// Inject a transport and advertised protocol version directly. Useful for tests.
     RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint16_t protocolVersion);
 
     ~RemoteGribJump();
@@ -64,8 +62,7 @@ private:  // members
 
     std::unique_ptr<ClientTransport> transport_;
 
-    /// Protocol version this client advertises to the server. Defaults to v4
-    /// (streaming) but can be pinned to v3 via config.
+    /// Protocol version this client advertises to the server.
     ProtocolVersion protocolVersion_;
 };
 

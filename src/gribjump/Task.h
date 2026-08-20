@@ -129,28 +129,19 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
-    /// Abandon the whole group: flag every not-yet-started task as cancelled and
-    /// purge the still-queued ones from the WorkQueue so they never start. Used
-    /// when a request is given up on (e.g. the client disconnected).
-    /// Tasks already in flight are left to finish; callers still
-    /// drain the group afterwards to wait for those. Cancelled tasks are
-    /// accounted towards completion, so waitForTasks()/popCompleted() terminate.
+    /// Flag every remaining task as cancelled and purge from WorkQueue.
     void cancel();
 
-    /// Streaming harvest: block until the next successfully completed task is
-    /// available and return its id, or return nullopt once every task has
-    /// completed and the completed-queue is drained. Mutually exclusive with
-    /// waitForTasks().
+    /// Block until the next successfully completed task is available and return its
+    /// id, or return nullopt once every task has completed.
+    /// Used by Streaming path instead of waitForTasks().
     std::optional<size_t> popCompleted();
 
     // -- Backpressure: bound produced-but-not-yet-sent result bytes ------------
-    // The threshold defaults to unlimited, so these are inert unless a streaming
-    // consumer opts in via setByteThreshold(); the buffered path is unaffected.
 
     void setByteThreshold(size_t bytes) { byteThreshold_ = bytes; }
 
-    /// Account for result bytes produced but not yet sent to the client, and
-    /// track the high-water mark.
+    /// Account for result bytes produced but not yet sent to the client, and track the high-water mark.
     void addOutstanding(size_t bytes) {
         std::lock_guard<std::mutex> lock(m_);
         size_t updated = (outstandingBytes_ += bytes);
@@ -159,25 +150,19 @@ public:
         }
     }
 
-    /// High-water mark of outstanding (produced-but-not-yet-sent) result bytes.
+    /// High-water mark of outstanding result bytes.
     size_t peakOutstandingBytes() const {
         std::lock_guard<std::mutex> lock(m_);
         return peakOutstandingBytes_;
     }
 
-    /// Account for result bytes that have been sent and freed. Lets the WorkQueue
-    /// reconsider this group once it drops back under budget.
+    /// Account for result bytes that have been sent and freed.
     void releaseOutstanding(size_t bytes);
 
     /// True while more result bytes are outstanding than the configured budget.
-    /// Reads outstandingBytes_ without locking m_ on purpose: this is called from
-    /// WorkQueue::popNext() while the WorkQueue mutex is held, and taking m_ here
-    /// would invert the lock order (m_ -> WorkQueue mutex) and risk deadlock. That
-    /// is the sole reason outstandingBytes_ is atomic; all its writes hold m_.
     bool overBudget() const { return outstandingBytes_.load() > byteThreshold_; }
 
-    /// True when a finite byte budget has been set (streaming path), so tasks
-    /// know to account for produced bytes. Unlimited by default.
+    /// True when a finite byte budget has been set (streaming path).
     bool backpressureEnabled() const { return byteThreshold_ != std::numeric_limits<size_t>::max(); }
 
     /// The streamable extraction items of a completed task (by id).

@@ -44,6 +44,8 @@ public:  // methods
 
     size_t nrange() const { return values_.size(); }
     size_t nvalues(size_t i) const { return values_[i].size(); }
+
+    /// @todo: Might be better to just count the number of values based on the ranges, rather than the vector's size.
     size_t total_values() const {
         size_t total = 0;
         for (auto& v : values_) {

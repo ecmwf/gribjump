@@ -129,11 +129,11 @@ std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReply(ecki
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// EXTRACT reply, v4 streaming framing
+// EXTRACT reply, v4 streaming
 
 void Protocol::encodeExtractResultChunk(eckit::Stream& stream,
                                         const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) {
-    stream << static_cast<uint16_t>(ReplyChunkTag::RESULTS);
+    stream << static_cast<uint16_t>(ReplyChunkTag::RESULT_CHUNK);
     stream << batch.size();
     for (const auto& [index, result] : batch) {
         stream << index;
@@ -142,8 +142,7 @@ void Protocol::encodeExtractResultChunk(eckit::Stream& stream,
 }
 
 void Protocol::encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors) {
-    stream << static_cast<uint16_t>(ReplyChunkTag::END);
-    // The error footer has the same layout as the leading v3 error block.
+    stream << static_cast<uint16_t>(ReplyChunkTag::END_OF_RESULTS);
     encodeErrors(stream, errors);
 }
 
@@ -154,10 +153,10 @@ std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReplyStrea
         uint16_t itag;
         stream >> itag;
         const ReplyChunkTag tag = static_cast<ReplyChunkTag>(itag);
-        if (tag == ReplyChunkTag::END) {
+        if (tag == ReplyChunkTag::END_OF_RESULTS) {
             break;
         }
-        ASSERT(tag == ReplyChunkTag::RESULTS);
+        ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
         size_t count;
         stream >> count;
         for (size_t i = 0; i < count; i++) {

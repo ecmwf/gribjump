@@ -54,24 +54,20 @@ enum class RequestType : uint16_t {
     FORWARD_SCAN
 };
 
-/// v4 reply framing: an EXTRACT/FORWARD_EXTRACT reply is a sequence of tagged
-/// chunks. A RESULTS chunk carries a batch of (requestIndex, ExtractionResult)
-/// pairs; a terminal END chunk is followed by the error footer (identical
-/// layout to the leading error block used by v3).
+/// v4+: Streamed results are chunked, each chunk tagged with a type.
+///   RESULT_CHUNK: carries a batch of (requestIndex, ExtractionResult) pairs.
+///   END_OF_RESULTS: signals end of results. The error footer follows.
 enum class ReplyChunkTag : uint16_t {
-    RESULTS = 0,
-    END     = 1
+    RESULT_CHUNK   = 0,
+    END_OF_RESULTS = 1
 };
 
 /// The protocol version the client advertises in every request header. Kept at
 /// 3 (buffered reply) until the client is switched to the v4 streaming framing;
 /// the server accepts both, see supportedProtocolVersions.
-/// @todo: I don't really like bare lowercase constants like this.
 constexpr uint16_t remoteProtocolVersion = 3;
 
-/// The streaming protocol version (v4): EXTRACT/FORWARD_EXTRACT replies are sent
-/// as batched result chunks + an error footer instead of a single buffered
-/// block.
+/// Protocol version which introduced streaming.
 constexpr uint16_t streamingProtocolVersion = 4;
 
 /// Protocol versions the server accepts.

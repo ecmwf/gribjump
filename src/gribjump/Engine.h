@@ -43,9 +43,7 @@ public:
 
     virtual TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) = 0;
 
-    /// Streaming (v4) extraction: schedule the work and hand results to the sink
-    /// in byte-budgeted batches as tasks complete, freeing them after send, to
-    /// bound peak memory. Returns the task report (errors) for the reply footer.
+    /// Streaming extraction: schedule the work and hand results to the sink in batches as tasks complete.
     virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
 
     // byfiles: scan entire file, not just fields matching request
@@ -85,7 +83,6 @@ private:
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
-    void drainRemaining(TaskGroup& taskGroup);
     void streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
                                ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);

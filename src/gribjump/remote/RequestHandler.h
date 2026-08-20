@@ -28,7 +28,7 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Server-side handler for a client request.
+/// Server-side handler for requests
 class RequestHandler {
 public:
 
@@ -46,14 +46,13 @@ protected:  // members
     uint64_t id_;
 
     /// The negotiated protocol version for this connection. Used by EXTRACT to
-    /// select v3 buffered vs. v4 streaming reply framing.
+    /// select between buffered vs. streaming.
     ProtocolVersion protocolVersion_;
 
-    /// Emit the leading error block. A phase of process(); exposed here so a
-    /// subclass override can still chain to the default behaviour.
+    /// Emit errors.
     virtual void reportErrors();
 
-private:  // lifecycle phases (run by process())
+private:
 
     /// Decode the request from the client stream.
     virtual void receive() = 0;
@@ -90,9 +89,7 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// Strategy encapsulating one protocol version's EXTRACT reply framing (v3
-/// buffered vs. v4 streaming). ExtractHandler picks one at construction and
-/// delegates to it.
+/// Abstraction for buffered vs streamed replies.
 class ExtractReplyStrategy;
 
 class ExtractHandler : public RequestHandler {
@@ -108,8 +105,6 @@ private:
     void execute() override;
     void replyToClient() override;
 
-    /// v4 streaming replies carry errors in the END-chunk footer, so the
-    /// leading error block written by the base is suppressed.
     void reportErrors() override;
 
     void info() const override;

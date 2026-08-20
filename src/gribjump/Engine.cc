@@ -212,11 +212,8 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
 //----------------------------------------------------------------------------------------------------------------------
 // Streaming (v4) extraction.
-//
-// Peak memory is bounded: results are harvested as each task completes, handed
-// to the sink in batches, and freed after sending. The per-group
-// byte budget also gates task dispatch (WorkQueue skips an over-budget group).
-
+// Peak memory is bounded: results are harvested as each task completes, handed to the sink in batches, and freed after
+// sending.
 
 TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& sink) {
 
@@ -287,14 +284,22 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         flush();
     }
     catch (...) {
-        // A mid-stream failure (e.g. client disconnect). The result can no longer be delivered, so cancel the whole
-        // group and drain the tasks still in flight.
+        // A mid-stream failure (e.g. client disconnect). Cancel and drain the remaining tasks.
         taskGroup.cancel();
-        drainRemaining(taskGroup);
+
+        try {
+            // drain...
+            while (taskGroup.popCompleted()) {}
+        }
+        catch (...) {
+            // Do not mask the original exception being unwound...
+        }
+
         MetricsManager::instance().set("client_disconnected", true);
         MetricsManager::instance().set("count_cancelled_tasks", taskGroup.nCancelled());
         MetricsManager::instance().set("count_bytes_streamed", totalBytes);
         MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
+
         throw;
     }
 
@@ -303,20 +308,10 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
     timer.reset("Gribjump Engine: All tasks streamed");
 
-    return taskGroup.report();
-}
+    ///@todo: we still reach here if there is a non-disconnect error right? Is it clear from the serverside that there
+    /// was an error?
 
-///@todo: i think just roll this into the above function. Remember to avoid the double exception.
-void Engine::drainRemaining(TaskGroup& taskGroup) {
-    // The caller has already cancelled the group, so its queued tasks are purged
-    // and only the tasks already in flight remain. Block until those finish, so
-    // the (stack-allocated) TaskGroup outlives the workers still referencing it.
-    try {
-        while (taskGroup.popCompleted()) {}
-    }
-    catch (...) {
-        // Best-effort barrier; never mask the original exception being unwound.
-    }
+    return taskGroup.report();
 }
 
 void Engine::streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,

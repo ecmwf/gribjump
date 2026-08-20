@@ -8,12 +8,6 @@
  * does it submit to any jurisdiction.
  */
 
-/// The seam between the streaming (v4) engine and the wire: as results become
-/// available the engine hands batches to a ResultSink, which encodes and sends
-/// one RESULTS chunk per batch. The engine owns the batching/byte-budget policy
-/// and frees results after a batch is sent; the sink only encodes. This keeps
-/// the sink mockable while the same code path runs over a real socket via
-/// StreamResultSink.
 
 #pragma once
 
@@ -30,22 +24,19 @@ namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// The seam between engine and the wire used for streaming results. Abstracted to make it mockable by tests.
 class ResultSink {
 public:
 
     virtual ~ResultSink() = default;
 
-    /// Encode and send one RESULTS chunk carrying a batch of
-    /// (requestIndex, result) pairs. Called once per batch, possibly many times
-    /// per request and in any completion order.
+    /// Encode and send one chunk carrying a batch of (requestIndex, result) pairs.
     virtual void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-/// The production sink: encodes each batch as a v4 RESULTS chunk straight onto
-/// the client stream. The terminating END chunk + error footer are written by
-/// the request handler once the stream is drained, not here.
+/// The production sink: encodes each batch as a v4 RESULTS chunk straight onto the client stream.
 class StreamResultSink : public ResultSink {
 public:
 

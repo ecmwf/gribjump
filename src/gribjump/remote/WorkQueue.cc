@@ -79,31 +79,27 @@ bool WorkQueue::popNext(WorkItem& item) {
     std::unique_lock<std::mutex> lock(mtx_);
 
     const auto firstServable = [this] {
-        // First group in round-robin order that has queued tasks and is not
-        // over its byte budget. end() if none is currently servable.
+        // First group in round-robin order that has queued tasks and is not over its byte budget.
         for (auto it = rrOrder_.begin(); it != rrOrder_.end(); ++it) {
             if (!(*it)->overBudget()) {
                 return it;
             }
         }
-        return rrOrder_.end();
+        return rrOrder_.end();  //< No servable group found.
     };
 
     std::list<TaskGroup*>::iterator rrIt;
-    cv_.wait(lock, [&] {
+    cv_.wait(lock, [&] {  //@todo who else is setting this lock? i.e. what wakes us up?
         rrIt = firstServable();
         return closed_ || rrIt != rrOrder_.end();
     });
 
     if (rrIt == rrOrder_.end()) {
-        // closed_ must be true here (no servable group and told to stop). Any
-        // remaining groups are over budget and will not be drained.
+        // Implies closed_ is true, because the wait predicate returned true.
         return false;
     }
 
-    // Serve the first servable group, then rotate it to the back (if it still
-    // has tasks) or remove it (if drained). Over-budget groups earlier in the
-    // rotation keep their position and are retried on a later pop.
+    // Serve the first servable group, then rotate it to the back (if it still has tasks) or remove it (if drained).
     TaskGroup* group = *rrIt;
     rrOrder_.erase(rrIt);
 

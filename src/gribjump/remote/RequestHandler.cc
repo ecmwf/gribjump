@@ -89,31 +89,27 @@ void ScanHandler::info() const {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// EXTRACT reply strategies: one implementation per protocol version, selected
-// at construction so ExtractHandler itself carries no version branching.
+// EXTRACT reply strategies
 
 class ExtractReplyStrategy {
 public:
 
     virtual ~ExtractReplyStrategy() = default;
 
-    /// Run the extraction. v4 streams results to the client here; v3 buffers
-    /// them for replyToClient(). Fills @p report with the task report.
+    /// Run the extraction. v4 streams results to the client here; v3 buffers them for replyToClient().
     virtual void execute(eckit::Stream& client, EngineIface& engine, std::vector<ExtractionRequest>& requests,
                          TaskReport& report) = 0;
 
-    /// Whether the base class should emit the leading error block. v3 does; v4
-    /// folds errors into its END-chunk footer instead.
+    /// Whether the base class should emit the leading error block.
     virtual bool emitsLeadingErrorBlock() const = 0;
 
-    /// Finalise the reply on the wire.
+    /// Reply on the wire.
     virtual void reply(eckit::Stream& client, std::vector<ExtractionRequest>& requests, TaskReport& report) = 0;
 };
 
 namespace {
 
-/// v3: buffer the full reply, then send one in-order block (leading errors +
-/// results).
+/// v3: buffer the full reply, then send one in-order block
 class BufferedExtractReply : public ExtractReplyStrategy {
 public:
 
@@ -162,15 +158,13 @@ private:
     ResultsMap results_;
 };
 
-/// v4: stream results to the client as tasks complete, then terminate with the
-/// END chunk followed by the error footer.
+/// v4: stream results to the client as tasks complete, then send an error footer.
 class StreamingExtractReply : public ExtractReplyStrategy {
 public:
 
     void execute(eckit::Stream& client, EngineIface& engine, std::vector<ExtractionRequest>& requests,
                  TaskReport& report) override {
-        // Any exception is captured so reply() can still emit the END chunk +
-        // error footer -- chunks already on the wire cannot be unsent.
+
         StreamResultSink sink(client);
         try {
             report = engine.extractStreaming(requests, sink);

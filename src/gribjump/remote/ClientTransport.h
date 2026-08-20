@@ -18,26 +18,21 @@ class Stream;
 
 namespace gribjump {
 
-/// One request/reply exchange's transport. A ClientConnection owns whatever
-/// backs the stream (socket + stream wrapper) and keeps it alive for the
-/// duration of the exchange; destroying it tears the connection down.
+/// Owns eckit::Stream used by client in comms to server.
 class ClientConnection {
 public:
 
     virtual ~ClientConnection() = default;
 
-    /// The stream the client encodes the request into and decodes the reply from.
     virtual eckit::Stream& stream() = 0;
 };
 
-/// Factory for client connections. Production uses a TCP transport; tests inject a fake
-/// to exercise the client without a live TCP server.
+/// Factory for client connections. Production uses TCP, tests can inject a fake stream.
 class ClientTransport {
 public:
 
     virtual ~ClientTransport() = default;
 
-    /// Open a fresh connection for a single request/reply exchange.
     virtual std::unique_ptr<ClientConnection> connect() = 0;
 };
 
