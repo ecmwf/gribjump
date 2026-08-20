@@ -100,6 +100,12 @@ static metkit::mars::MarsRequest fixtureMarsRequest() {
 
 CASE("Remote protocol version is pinned") {
     EXPECT_EQUAL(remoteProtocolVersion, 3);
+    EXPECT_EQUAL(streamingProtocolVersion, 4);
+    EXPECT_EQUAL(supportedProtocolVersions.size(), 2ul);
+    EXPECT(isSupportedProtocolVersion(3));
+    EXPECT(isSupportedProtocolVersion(4));
+    EXPECT(!isSupportedProtocolVersion(2));
+    EXPECT(!isSupportedProtocolVersion(5));
 }
 
 //-----------------------------------------------------------------------------
@@ -173,7 +179,7 @@ CASE("EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeExtractRequest(s, requests);
         },
         buffer);
@@ -188,7 +194,7 @@ CASE("AXES request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeAxesRequest(s, request, level);
         },
         buffer);
@@ -203,7 +209,7 @@ CASE("SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeScanRequest(s, requests, byfiles);
         },
         buffer);
@@ -219,7 +225,7 @@ CASE("FORWARD_SCAN request frame matches golden") {
     eckit::Buffer buffer(4096);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::FORWARD_SCAN, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeForwardScanRequest(s, scanmap);
         },
         buffer);
@@ -240,7 +246,7 @@ CASE("FORWARD_EXTRACT request frame matches golden") {
     eckit::Buffer buffer(8192);
     std::string hash = hashOfEncoded(
         [&](eckit::Stream& s) {
-            Protocol::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"));
+            Protocol::writeRequestHeader(s, RequestType::FORWARD_EXTRACT, LogContext("{}"), remoteProtocolVersion);
             Protocol::encodeForwardExtractRequest(s, filemap);
         },
         buffer);
@@ -276,6 +282,107 @@ CASE("EXTRACT reply frame matches golden") {
         buffer);
 
     expectGolden(hash, "fbd78b1b117de6d51ddfc515f2bc8cdf", "EXTRACT reply");
+}
+
+//-----------------------------------------------------------------------------
+// EXTRACT reply, v4 streaming framing: RESULTS chunks (each a batch of
+// (requestIndex, result) pairs) terminated by an END chunk + error footer.
+
+CASE("EXTRACT v4 reply (single chunk) round-trips and matches golden") {
+    ExtractionResult res0                                         = fixtureResult();
+    ExtractionResult res1                                         = fixtureResult();
+    std::vector<std::pair<size_t, const ExtractionResult*>> batch = {{0, &res0}, {1, &res1}};
+
+    eckit::Buffer buffer(8192);
+    std::string hash = hashOfEncoded(
+        [&](eckit::Stream& s) {
+            Protocol::encodeExtractResultChunk(s, batch);
+            Protocol::encodeExtractReplyEnd(s, {});
+        },
+        buffer);
+
+    // Round-trip: results reassembled by index into an nRequests-sized vector.
+    eckit::ResizableMemoryStream in(buffer);
+    in.rewind();
+    auto results = Protocol::decodeExtractReplyStreaming(in, 2);
+    EXPECT_EQUAL(results.size(), 2ul);
+    EXPECT(results[0] != nullptr);
+    EXPECT(results[1] != nullptr);
+    EXPECT_EQUAL(results[0]->nrange(), 2ul);
+    EXPECT_EQUAL(results[1]->values()[1][1], 5.0);
+
+    expectGolden(hash, "00f6ac451a792479d092d78ac151a900", "EXTRACT v4 reply single chunk");
+}
+
+CASE("EXTRACT v4 reply (multi-chunk, out of order) round-trips and matches golden") {
+    ExtractionResult res0 = fixtureResult();
+    ExtractionResult res1 = fixtureResult();
+    ExtractionResult res2 = fixtureResult();
+
+    // Deliver index 2 first, then indices 0 and 1 in a second chunk: the
+    // streaming server flushes batches in completion order, not request order.
+    std::vector<std::pair<size_t, const ExtractionResult*>> batchA = {{2, &res2}};
+    std::vector<std::pair<size_t, const ExtractionResult*>> batchB = {{0, &res0}, {1, &res1}};
+
+    eckit::Buffer buffer(8192);
+    std::string hash = hashOfEncoded(
+        [&](eckit::Stream& s) {
+            Protocol::encodeExtractResultChunk(s, batchA);
+            Protocol::encodeExtractResultChunk(s, batchB);
+            Protocol::encodeExtractReplyEnd(s, {});
+        },
+        buffer);
+
+    eckit::ResizableMemoryStream in(buffer);
+    in.rewind();
+    auto results = Protocol::decodeExtractReplyStreaming(in, 3);
+    EXPECT_EQUAL(results.size(), 3ul);
+    EXPECT(results[0] != nullptr);
+    EXPECT(results[1] != nullptr);
+    EXPECT(results[2] != nullptr);
+
+    expectGolden(hash, "c8fb500cdcbf9ee7c55e4314ebf03a30", "EXTRACT v4 reply multi chunk");
+}
+
+CASE("EXTRACT v4 reply (empty) round-trips and matches golden") {
+    eckit::Buffer buffer(1024);
+    std::string hash = hashOfEncoded([&](eckit::Stream& s) { Protocol::encodeExtractReplyEnd(s, {}); }, buffer);
+
+    eckit::ResizableMemoryStream in(buffer);
+    in.rewind();
+    auto results = Protocol::decodeExtractReplyStreaming(in, 0);
+    EXPECT_EQUAL(results.size(), 0ul);
+
+    expectGolden(hash, "c519ce71fd6991e837163772fc44b0ac", "EXTRACT v4 reply empty");
+}
+
+CASE("EXTRACT v4 reply (error footer after partial results) matches golden and throws") {
+    ExtractionResult res0                                         = fixtureResult();
+    std::vector<std::pair<size_t, const ExtractionResult*>> batch = {{0, &res0}};
+    std::vector<std::string> errors                               = {"boom: something failed"};
+
+    eckit::Buffer buffer(8192);
+    std::string hash = hashOfEncoded(
+        [&](eckit::Stream& s) {
+            Protocol::encodeExtractResultChunk(s, batch);
+            Protocol::encodeExtractReplyEnd(s, errors);
+        },
+        buffer);
+
+    // Default raise=true: the footer errors throw, exactly like the v3 leading
+    // error block.
+    eckit::ResizableMemoryStream in(buffer);
+    in.rewind();
+    EXPECT_THROWS_AS(Protocol::decodeExtractReplyStreaming(in, 2), eckit::RemoteException);
+
+    // raise=false: partial results returned, missing indices left null.
+    eckit::ResizableMemoryStream in2(buffer);
+    in2.rewind();
+    auto results = Protocol::decodeExtractReplyStreaming(in2, 2, false);
+    EXPECT(results[0] != nullptr);
+    EXPECT(results[1] == nullptr);
+
+    expectGolden(hash, "6a708b11665a886671f7618fddcd9144", "EXTRACT v4 reply error footer");
 }
 
 CASE("AXES reply frame matches golden") {

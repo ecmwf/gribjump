@@ -23,11 +23,13 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "eckit/serialisation/Stream.h"
@@ -52,7 +54,42 @@ enum class RequestType : uint16_t {
     FORWARD_SCAN
 };
 
+/// v4+: Streamed results are chunked, each chunk tagged with a type.
+///   RESULT_CHUNK: carries a batch of (requestIndex, ExtractionResult) pairs.
+///   END_OF_RESULTS: signals end of results. The error footer follows.
+enum class ReplyChunkTag : uint16_t {
+    RESULT_CHUNK   = 0,
+    END_OF_RESULTS = 1
+};
+
+/// The protocol version the client advertises in every request header. Kept at
+/// 3 (buffered reply) until the client is switched to the v4 streaming framing;
+/// the server accepts both, see supportedProtocolVersions.
 constexpr uint16_t remoteProtocolVersion = 3;
+
+/// Protocol version which introduced streaming.
+constexpr uint16_t streamingProtocolVersion = 4;
+
+/// Protocol versions the server accepts.
+inline constexpr std::array<uint16_t, 2> supportedProtocolVersions{remoteProtocolVersion, streamingProtocolVersion};
+
+inline bool isSupportedProtocolVersion(uint16_t version) {
+    for (uint16_t supported : supportedProtocolVersions) {
+        if (supported == version) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+struct ProtocolVersion {
+    uint16_t value = remoteProtocolVersion;
+
+    /// v4+ replies stream results as chunks + an error footer; v3 buffers a
+    /// single reply block.
+    bool streaming() const { return value >= streamingProtocolVersion; }
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -61,13 +98,21 @@ public:
 
     // -- Request header: [protocol version][log context][request type] ------------------------------------------------
 
-    /// Write the request header the client sends at the start of every request.
-    static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context);
+    /// The decoded request header: the negotiated protocol version (validated
+    /// against supportedProtocolVersions) plus the request type.
+    struct RequestHeader {
+        ProtocolVersion version;
+        RequestType type;
+    };
 
-    /// Read and validate the request header. Throws on protocol version
-    /// mismatch, installs the received log context into the ContextManager, and
-    /// returns the request type.
-    static RequestType readRequestHeader(eckit::Stream& stream);
+    /// Write the request header the client sends at the start of every request.
+    static void writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
+                                   uint16_t version);
+
+    /// Read and validate the request header. Throws on an unsupported protocol
+    /// version, installs the received log context into the ContextManager, and
+    /// returns the negotiated version + request type.
+    static RequestHeader readRequestHeader(eckit::Stream& stream);
 
     // -- Error block: [nErrors][error string]* (precedes every reply) -------------------------------------------------
 
@@ -85,6 +130,19 @@ public:
 
     static void encodeExtractReply(eckit::Stream& stream, const std::vector<const ExtractionResult*>& results);
     static std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReply(eckit::Stream& stream, size_t nRequests);
+
+    // -- EXTRACT reply, v4 streaming framing --------------------------------------------------------------------------
+    // A sequence of RESULTS chunks terminated by an END chunk + error footer.
+    // The encoders are batch-composable so the server can flush chunks as work
+    // completes (in any order); decodeExtractReplyStreaming reassembles results
+    // by requestIndex into an nRequests-sized vector, then reads the footer.
+
+    static void encodeExtractResultChunk(eckit::Stream& stream,
+                                         const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);
+    static void encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors);
+    static std::vector<std::unique_ptr<ExtractionResult>> decodeExtractReplyStreaming(eckit::Stream& stream,
+                                                                                      size_t nRequests,
+                                                                                      bool raise = true);
 
     // -- SCAN ---------------------------------------------------------------------------------------------------------
 

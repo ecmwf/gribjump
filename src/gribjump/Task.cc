@@ -58,6 +58,9 @@ void Task::execute() {
     // atomically set status to executing, but only if it is currently pending (i.e. not cancelled)
     Status expected = Status::PENDING;
     if (!status_.compare_exchange_strong(expected, Status::EXECUTING)) {
+        if (expected == Status::CANCELLED) {
+            notifyCancelled();
+        }
         return;
     }
     info();
@@ -76,7 +79,9 @@ void Task::cancel() {
 void TaskGroup::notify(size_t taskid) {
     std::lock_guard<std::mutex> lock(m_);
     nComplete_++;
+    completed_.push_back(taskid);  //< harvestable by popCompleted()
 
+    /// @todo: some of this is a bit of a mess, we can do better.
     // Logging progress
     if (waiting_) {
         if (nComplete_ == logcounter_) {
@@ -122,6 +127,17 @@ void TaskGroup::cancelTasks() {
     }
 }
 
+void TaskGroup::cancel() {
+    {
+        // Mark every still-PENDING task cancelled.
+        std::lock_guard<std::mutex> lock(m_);
+        cancelTasks();
+    }
+
+    // Remove the tasks still queued from the WorkQueue
+    WorkQueue::instance().cancelGroup(this);
+}
+
 void TaskGroup::enqueueTask(Task* task) {
     {
         std::lock_guard<std::mutex> lock(m_);
@@ -148,13 +164,54 @@ void TaskGroup::waitForTasks() {
     waiting_ = false;
     done_    = true;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
+}
+
+TaskReport TaskGroup::report() {
+    std::lock_guard<std::mutex> lock(m_);
+    ASSERT(done_);
 
     MetricsManager::instance().set("count_tasks", tasks_.size());
     MetricsManager::instance().set("count_failed_tasks", errors_.size());
     MetricsManager::instance().set("count_cancelled_tasks", nCancelledTasks_);
-
     if (errors_.size() > 0) {
         MetricsManager::instance().set("first_error", errors_[0]);
+    }
+
+    return TaskReport(std::move(errors_));
+}
+
+/// @todo: Note, there is some overlap here with waitForTasks, though this is used for streaming.
+/// Perhaps we can refactor.
+std::optional<size_t> TaskGroup::popCompleted() {
+    std::unique_lock<std::mutex> lock(m_);
+    ASSERT(tasks_.size() > 0);
+
+    // Wait until there is a completed task to harvest, or every task has been accounted for.
+    cv_.wait(lock, [&] { return !completed_.empty() || nComplete_ == tasks_.size(); });
+
+    if (!completed_.empty()) {
+        size_t id = completed_.front();
+        completed_.pop_front();
+        return id;
+    }
+
+    done_ = true;
+    return std::nullopt;
+}
+
+void TaskGroup::releaseOutstanding(size_t bytes) {
+    bool underBudget;
+    {
+        std::lock_guard<std::mutex> lock(m_);
+        size_t before = outstandingBytes_;
+        ASSERT(before >= bytes);
+        outstandingBytes_ = before - bytes;
+        underBudget       = (before - bytes) <= byteThreshold_;
+    }
+    // If the group has dropped back under budget, let the WorkQueue re-evaluate
+    // dispatching its tasks.
+    if (underBudget) {
+        WorkQueue::instance().reconsider();
     }
 }
 
@@ -232,6 +289,15 @@ void FileExtractionTask::extract() {
         std::unique_ptr<Jumper> jumper(
             JumperFactory::instance().build(info));  // todo, dont build a new jumper for each info.
         jumper->extract(fh, offsets[i], info, *extractionItem);
+    }
+
+    // Account for the result bytes this task produced when backpressure is enabled.
+    if (taskGroup_.backpressureEnabled()) {
+        size_t producedBytes = 0;
+        for (const auto* extractionItem : extractionItems_) {
+            producedBytes += extractionItem->resultBytes();
+        }
+        taskGroup_.addOutstanding(producedBytes);
     }
 }
 

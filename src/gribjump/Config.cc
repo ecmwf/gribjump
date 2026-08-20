@@ -16,27 +16,9 @@
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
-
-// Config options:
-// - type          // Whether GribJump will work locally or forward work to a remote server. Allowed values are `local`
-// or `remote`.
-// - server        // Configuration for gribjump-server.
-//   - port        // The port to listen on for incoming work.
-// - uri           // host:port of remote server to forward work to (requires type:remote)
-// - threads       // The number of worker threads for gribjump.extract. Default is 1.
-// - cache         // Configuration of the cache.
-//   - shadowfdb   // If true, the cache files will be stored in the same directory as data files. DEFAULT=true
-//   - directory   // The directory where the cache will be stored, instead of shadowing the FDB.
-//   - enable      // Whether to look at the cache at all. DEFAULT=true
-// - plugin        // Configuration for using GribJump as a plugin to FDB, which generates jumpinfos on the fly for
-// fdb.archive()
-//                 // NOTE Plugin cannot be enabled from config, one must set the envar FDB_ENABLE_GRIBJUMP
-//                 // NOTE Setting env FDB_DISABLE_GRIBJUMP will override this setting and disable the plugin.
-//   - select      // Defines regex for selecting which FDB keys to generate jumpinfo for. If unset, no jumpinfos will
-//   be generated.
-//                 // example `select: date=(20*),stream=(oper|test)`.
 
 Config::Config() {}
 
@@ -58,8 +40,18 @@ Config::ServerMap Config::loadServerMap() const {
     eckit::LocalConfiguration conf                    = getSubConfiguration("servermap");
     std::vector<eckit::LocalConfiguration> serverList = conf.getSubConfigurations();
 
+    // @todo: handling of the servermap in general could be improved, especially now with the addition of mars.
     for (const auto& server : serverList) {
-        map[server.getString("fdb")] = server.getString("gribjump");
+        // src can now be 'fdb' or 'mars'
+        auto src_uri = server.getString("fdb", "");
+        if (src_uri.empty()) {
+            src_uri = server.getString("mars", "");
+        }
+        if (src_uri.empty()) {
+            throw eckit::SeriousBug("Invalid servermap config: each entry must have either 'fdb' or 'mars' key");
+        }
+        auto gj_uri = server.getString("gribjump");
+        map[src_uri] = gj_uri;
     }
 
     return map;
@@ -80,6 +72,13 @@ std::string ConfigOptions::configType() const {
 
 std::string ConfigOptions::remoteURI() const {
     return LibGribJump::instance().config().getString("uri", "");
+}
+
+size_t ConfigOptions::clientProtocolVersion() const {
+    static size_t value = eckit::Resource<size_t>(
+        "$GRIBJUMP_CLIENT_PROTOCOL_VERSION",
+        LibGribJump::instance().config().getInt("clientProtocolVersion", streamingProtocolVersion));
+    return value;
 }
 
 int ConfigOptions::serverPort() const {
@@ -127,6 +126,20 @@ bool ConfigOptions::forwardExtraction() const {
 
 bool ConfigOptions::forwardScan() const {
     return LibGribJump::instance().config().getBool("forwardScan", false);
+}
+
+size_t ConfigOptions::streamingFlushBytes() const {
+    static size_t value =
+        eckit::Resource<size_t>("$GRIBJUMP_STREAMING_FLUSH_BYTES",
+                                LibGribJump::instance().config().getUnsigned("streaming.flushBytes", 8 * 1024 * 1024));
+    return value;
+}
+
+size_t ConfigOptions::streamingByteBudget() const {
+    static size_t value = eckit::Resource<size_t>(
+        "$GRIBJUMP_STREAMING_BYTE_BUDGET",
+        LibGribJump::instance().config().getUnsigned("streaming.byteBudget", 128 * 1024 * 1024));
+    return value;
 }
 
 bool ConfigOptions::cacheEnabled() const {
