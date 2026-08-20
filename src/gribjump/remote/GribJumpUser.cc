@@ -11,13 +11,17 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
+#include <memory>
+#include <optional>
+
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
 #include "gribjump/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
-#include "gribjump/remote/Request.h"
+#include "gribjump/remote/RequestHandler.h"
 
 #include "gribjump/Engine.h"
 
@@ -35,7 +39,7 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
 
     try {
         eckit::Timer timer("Connection served");
-        handle_client(s, timer);
+        dispatchRequest(s);
     }
     catch (std::exception& e) {
         eckit::Log::error() << "** " << e.what() << " Caught in " << Here() << std::endl;
@@ -59,61 +63,41 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     MetricsManager::instance().report();
 }
 
-void GribJumpUser::handle_client(eckit::Stream& s, eckit::Timer& timer) {
-    uint16_t version;
-    uint16_t i_requestType;
+namespace {
 
-    s >> version;
-    if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug(
-            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
-            ", Clientside version: " + std::to_string(version));
-    }
-
-    LogContext ctx(s);
-    ContextManager::instance().set(ctx);
-
-    s >> i_requestType;
-    RequestType requestType = static_cast<RequestType>(i_requestType);
-
-    switch (requestType) {
+std::unique_ptr<RequestHandler> makeRequestHandler(RequestType type, eckit::Stream& s, EngineIface& engine,
+                                                   ProtocolVersion version) {
+    switch (type) {
         case RequestType::EXTRACT:
-            processRequest<ExtractRequest>(s);
-            break;
+            return std::make_unique<ExtractHandler>(s, engine, version);
         case RequestType::AXES:
-            processRequest<AxesRequest>(s);
-            break;
+            return std::make_unique<AxesHandler>(s, engine, version);
         case RequestType::SCAN:
-            processRequest<ScanRequest>(s);
-            break;
+            return std::make_unique<ScanHandler>(s, engine, version);
         case RequestType::FORWARD_EXTRACT:
-            processRequest<ForwardedExtractRequest>(s);
-            break;
+            return std::make_unique<ForwardedExtractHandler>(s, engine, version);
         case RequestType::FORWARD_SCAN:
-            processRequest<ForwardedScanRequest>(s);
-            break;
+            return std::make_unique<ForwardedScanHandler>(s, engine, version);
         default:
-            throw eckit::SeriousBug("Unknown request type: " + std::to_string(i_requestType));
+            throw eckit::SeriousBug("Unknown request type: " + std::to_string(static_cast<uint16_t>(type)));
     }
 }
 
-template <typename RequestType>
-void GribJumpUser::processRequest(eckit::Stream& s) {
-    eckit::Timer timer("GribJumpUser::processRequest");
+}  // namespace
 
-    RequestType request(s);
-    MetricsManager::instance().set("elapsed_receive", timer.elapsed());
-    timer.reset("Request received");
-    request.info();
+void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
+    const Protocol::RequestHeader header = Protocol::readRequestHeader(s);
 
-    request.execute();
-    MetricsManager::instance().set("elapsed_execute", timer.elapsed());
-    timer.reset("Request executed");
+    // By default we create an engine, though tests are allowed to
+    // inject one (e.g. a MockEngine) for unit testing.
+    std::optional<Engine> ownedEngine;
+    if (!injectedEngine) {
+        ownedEngine.emplace();
+    }
+    EngineIface& engine = injectedEngine ? *injectedEngine : *ownedEngine;
 
-    request.reportErrors();
-    request.replyToClient();
-    MetricsManager::instance().set("elapsed_reply", timer.elapsed());
-    timer.reset("Request replied");
+    makeRequestHandler(header.type, s, engine, header.version)->process();
 }
+
 
 }  // namespace gribjump

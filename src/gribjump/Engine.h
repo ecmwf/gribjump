@@ -18,7 +18,10 @@
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
 #include "gribjump/Types.h"
+#include "gribjump/remote/ResultSink.h"
 #include "metkit/mars/MarsRequest.h"
+
+#include <unordered_map>
 
 namespace gribjump {
 
@@ -29,28 +32,59 @@ struct TaskOutcome {
     TaskReport report;
 };
 
-class Engine {
+//----------------------------------------------------------------------------------------------------------------------
+// Abstract interface exposing only the operations the remote Request classes
+// need from the engine. This is used to inject a mock engine in remote tests.
+
+class EngineIface {
+public:
+
+    virtual ~EngineIface() = default;
+
+    virtual TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) = 0;
+
+    /// Streaming extraction: schedule the work and hand results to the sink in batches as tasks complete.
+    virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
+
+    // byfiles: scan entire file, not just fields matching request
+    virtual TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) = 0;
+
+    virtual TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap) = 0;
+
+    virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3) = 0;
+
+    virtual TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false) = 0;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
+class Engine : public EngineIface {
 public:
 
     Engine();
     ~Engine();
 
-    TaskOutcome<ResultsMap> extract(ExtractionRequests& requests);
+    TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) override;
     TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
+    TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override;
+
     // byfiles: scan entire file, not just fields matching request
-    TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false);
+    TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) override;
     TaskOutcome<size_t> scan(std::vector<eckit::PathName> files);
-    TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap);
+    TaskOutcome<size_t> scheduleScanTasks(const scanmap_t& scanmap) override;
 
-    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3);
+    std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level = 3) override;
 
-    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false);
+    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward = false) override;
 
 private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
+    void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
+    void streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
+                               ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);

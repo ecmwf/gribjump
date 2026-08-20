@@ -44,12 +44,23 @@ public:  // methods
 
     size_t nrange() const { return values_.size(); }
     size_t nvalues(size_t i) const { return values_[i].size(); }
+
+    /// @todo: Might be better to just count the number of values based on the ranges, rather than the vector's size.
     size_t total_values() const {
         size_t total = 0;
         for (auto& v : values_) {
             total += v.size();
         }
         return total;
+    }
+
+    /// Approximate in-memory byte size of this result (values + mask). Used for streaming backpressure accounting.
+    size_t nbytes() const {
+        size_t bytes = total_values() * sizeof(double);
+        for (const auto& m : mask_) {
+            bytes += m.size() * sizeof(std::bitset<64>);
+        }
+        return bytes;
     }
 
 private:  // methods

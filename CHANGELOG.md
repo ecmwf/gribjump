@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- GJ-64 Refactor protocol code to facilitate mocking.
+
+## [0.13.0] - 2026-08-12
+
 - Replace FIFO job queue with Round Robin queue, to prevent large requests starving small requests.
+- Read the docs integration (`https://sites.ecmwf.int/docs/gribjump/`)
 
 ## [0.12.0] - 2026-05-07
 
@@ -117,7 +122,7 @@ All notable changes to this project will be documented in this file.
 
 ## [0.4.1] - 2024-07-25
 
--  No changes documented.
+- No changes documented.
 
 ## [0.4.0] - 2024-05-17
 
@@ -135,7 +140,8 @@ All notable changes to this project will be documented in this file.
 
 - Migrate GribJump from Metkit.
 
-[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.13.0...HEAD
+[0.13.0]: https://github.com/ecmwf/gribjump/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/ecmwf/gribjump/compare/0.11.1...0.12.0
 [0.11.1]: https://github.com/ecmwf/gribjump/compare/0.11.0...0.11.1
 [0.11.0]: https://github.com/ecmwf/gribjump/compare/0.10.4...0.11.0

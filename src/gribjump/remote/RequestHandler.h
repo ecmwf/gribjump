@@ -21,54 +21,65 @@
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/Metrics.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/WorkQueue.h"
 
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class Request {
+/// Server-side handler for requests
+class RequestHandler {
 public:
 
-    Request(eckit::Stream& stream);
+    RequestHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
-    virtual ~Request() = default;
+    virtual ~RequestHandler() = default;
 
-    // Have engine execute the request
-    virtual void execute() = 0;
-
-    /// Reply to the client with the results of the request
-    virtual void replyToClient() = 0;
-
-    void reportErrors();
-
-    /// Print information about the request to status(), for monitoring
-    virtual void info() const = 0;
+    void process();
 
 protected:  // members
 
     eckit::Stream& client_;
-    Engine engine_;
+    EngineIface& engine_;
     TaskReport report_;
     uint64_t id_;
+
+    /// The negotiated protocol version for this connection. Used by EXTRACT to
+    /// select between buffered vs. streaming.
+    ProtocolVersion protocolVersion_;
+
+    /// Emit errors.
+    virtual void reportErrors();
+
+private:
+
+    /// Decode the request from the client stream.
+    virtual void receive() = 0;
+
+    /// Execute the request against the engine.
+    virtual void execute() = 0;
+
+    /// Write the reply to the client.
+    virtual void replyToClient() = 0;
+
+    /// Log a one-line status summary of the request, for monitoring.
+    virtual void info() const = 0;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ScanRequest : public Request {
+class ScanHandler : public RequestHandler {
 public:
 
-    ScanRequest(eckit::Stream& stream);
-
-    ~ScanRequest() = default;
-
-    void execute() override;
-
-    void replyToClient() override;
-
-    void info() const override;
+    ScanHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
 private:
+
+    void receive() override;
+    void execute() override;
+    void replyToClient() override;
+    void info() const override;
 
     std::vector<metkit::mars::MarsRequest> requests_;
     bool byfiles_;
@@ -78,42 +89,44 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ExtractRequest : public Request {
+/// Abstraction for buffered vs streamed replies.
+class ExtractReplyStrategy;
+
+class ExtractHandler : public RequestHandler {
 public:
 
-    ExtractRequest(eckit::Stream& stream);
+    ExtractHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
-    ~ExtractRequest() = default;
-
-    void execute() override;
-
-    void replyToClient() override;
-
-    void info() const override;
+    ~ExtractHandler() override;
 
 private:
 
+    void receive() override;
+    void execute() override;
+    void replyToClient() override;
+
+    void reportErrors() override;
+
+    void info() const override;
+
     std::vector<ExtractionRequest> requests_;
 
-    ResultsMap results_;
+    std::unique_ptr<ExtractReplyStrategy> replyStrategy_;
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ForwardedExtractRequest : public Request {
+class ForwardedExtractHandler : public RequestHandler {
 public:
 
-    ForwardedExtractRequest(eckit::Stream& stream);
-
-    ~ForwardedExtractRequest() = default;
-
-    void execute() override;
-
-    void replyToClient() override;
-
-    void info() const override;
+    ForwardedExtractHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
 private:
+
+    void receive() override;
+    void execute() override;
+    void replyToClient() override;
+    void info() const override;
 
     std::vector<std::unique_ptr<ExtractionItem>> items_;
     filemap_t filemap_;
@@ -124,20 +137,17 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class ForwardedScanRequest : public Request {
+class ForwardedScanHandler : public RequestHandler {
 public:
 
-    ForwardedScanRequest(eckit::Stream& stream);
-
-    ~ForwardedScanRequest() = default;
-
-    void execute() override;
-
-    void replyToClient() override;
-
-    void info() const override;
+    ForwardedScanHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
 private:
+
+    void receive() override;
+    void execute() override;
+    void replyToClient() override;
+    void info() const override;
 
     std::vector<std::unique_ptr<ExtractionItem>> items_;
     scanmap_t scanmap_;
@@ -148,20 +158,17 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
-class AxesRequest : public Request {
+class AxesHandler : public RequestHandler {
 public:
 
-    AxesRequest(eckit::Stream& stream);
-
-    ~AxesRequest() = default;
-
-    void execute() override;
-
-    void replyToClient() override;
-
-    void info() const override;
+    AxesHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
 
 private:
+
+    void receive() override;
+    void execute() override;
+    void replyToClient() override;
+    void info() const override;
 
     std::string request_;  /// @todo why is this a string?
     int level_;

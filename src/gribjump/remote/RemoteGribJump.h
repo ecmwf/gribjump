@@ -16,18 +16,10 @@
 #include "eckit/net/TCPStream.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
+#include "gribjump/remote/ClientTransport.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
-
-enum class RequestType : uint16_t {
-    EXTRACT = 0,
-    AXES,
-    SCAN,
-    FORWARD_EXTRACT,
-    FORWARD_SCAN
-};
-
-constexpr static uint16_t remoteProtocolVersion = 3;
 
 class RemoteGribJump : public GribJumpBase {
 
@@ -35,6 +27,10 @@ public:  // methods
 
     RemoteGribJump();
     RemoteGribJump(eckit::net::Endpoint endpoint);
+
+    /// Inject a transport and advertised protocol version directly. Useful for tests.
+    RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint16_t protocolVersion);
+
     ~RemoteGribJump();
 
     size_t scan(const std::vector<eckit::PathName>& path) override { NOTIMP; }
@@ -57,13 +53,17 @@ public:  // methods
 
 private:  // methods
 
-    bool receiveErrors(eckit::Stream& stream, bool raise = true);
-    void sendHeader(eckit::net::InstantTCPStream& stream, RequestType type);
+    void sendHeader(eckit::Stream& stream, RequestType type);
 
 private:  // members
 
     std::string host_;
     int port_;
+
+    std::unique_ptr<ClientTransport> transport_;
+
+    /// Protocol version this client advertises to the server.
+    ProtocolVersion protocolVersion_;
 };
 
 
