@@ -22,6 +22,7 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 
+#include "gribjump/LibGribJump.h"
 #include "gribjump/remote/ForwardExtractIndex.h"
 
 namespace gribjump {
@@ -151,6 +152,10 @@ void Protocol::encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<st
 std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReplyStreaming(eckit::Stream& stream,
                                                                                      size_t nRequests, bool raise) {
     std::vector<std::unique_ptr<ExtractionResult>> results(nRequests);
+    LOG_DEBUG_LIB(LibGribJump) << "decodeExtractReplyStreaming: expecting up to " << nRequests << " results"
+                               << std::endl;
+    size_t received = 0;
+    size_t nChunks  = 0;
     for (;;) {
         uint16_t itag;
         stream >> itag;
@@ -161,13 +166,19 @@ std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReplyStrea
         ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
         size_t count;
         stream >> count;
+        LOG_DEBUG_LIB(LibGribJump) << "decodeExtractReplyStreaming: chunk " << nChunks << " with " << count
+                                   << " results" << std::endl;
+        nChunks++;
         for (size_t i = 0; i < count; i++) {
             size_t index;
             stream >> index;
             ASSERT(index < nRequests);
             results[index] = std::make_unique<ExtractionResult>(stream);
+            received++;
         }
     }
+    LOG_DEBUG_LIB(LibGribJump) << "decodeExtractReplyStreaming: received " << received << " results in " << nChunks
+                               << " chunks" << std::endl;
     // Error footer: identical layout + semantics to the leading v3 error block.
     decodeErrors(stream, raise);
     return results;
@@ -370,6 +381,10 @@ void Protocol::decodeForwardExtractReplyStreaming(eckit::Stream& stream, filemap
     // index -> item, derived identically to the leaf's outgoing labelling (see
     // ForwardExtractIndex.h), so out-of-order chunks slot into the right item.
     std::vector<ExtractionItem*> byIndex = flattenFilemap(filemap);
+    LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: expecting up to " << byIndex.size()
+                               << " results" << std::endl;
+    size_t received = 0;
+    size_t nChunks  = 0;
     for (;;) {
         uint16_t itag;
         stream >> itag;
@@ -380,13 +395,19 @@ void Protocol::decodeForwardExtractReplyStreaming(eckit::Stream& stream, filemap
         ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
         size_t count;
         stream >> count;
+        LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: chunk " << nChunks << " with " << count
+                                   << " results" << std::endl;
+        nChunks++;
         for (size_t i = 0; i < count; i++) {
             size_t index;
             stream >> index;
             ASSERT(index < byIndex.size());
             byIndex[index]->result(std::make_unique<ExtractionResult>(stream));
+            received++;
         }
     }
+    LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: received " << received << " results in "
+                               << nChunks << " chunks" << std::endl;
     // Error footer: identical layout + semantics to the leading v3 error block.
     decodeErrors(stream, raise);
 }

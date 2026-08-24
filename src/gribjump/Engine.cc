@@ -12,6 +12,8 @@
 
 #include "eckit/utils/StringTools.h"
 
+#include "eckit/log/Log.h"
+#include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
 #include "metkit/mars/MarsParser.h"
 
@@ -217,6 +219,8 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
 
     eckit::Timer timer("Engine::extractStreaming", LogRouter::instance().get("timer"));
 
+    LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): " << requests.size() << " requests" << std::endl;
+
     ExItemMap keyToExtractionItem;
     metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
 
@@ -227,6 +231,9 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     // Forwarding aggregates remote buffered replies, so there is nothing to
     // stream incrementally.
     if (ConfigOptions::instance().forwardExtraction()) {
+        LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): forwarding enabled, aggregating buffered replies "
+                                      "from "
+                                   << filemap.size() << " files" << std::endl;
         TaskReport report  = scheduleExtractionTasks(filemap, true);
         ResultsMap results = collectResults(keyToExtractionItem);
         streamBufferedResults(results, sink);
@@ -254,6 +261,13 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
 
     eckit::Timer timer("Engine::extractStreaming(filemap)", LogRouter::instance().get("timer"));
 
+    size_t nItems = 0;
+    for (const auto& [fname, items] : filemap) {
+        nItems += items.size();
+    }
+    LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (forwarded leaf): " << filemap.size() << " files, " << nItems
+                               << " items" << std::endl;
+
     TaskGroup taskGroup;
     taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
@@ -280,15 +294,22 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
 
     std::vector<std::unique_ptr<ExtractionResult>> owned;  // keeps batch results alive until flush
     std::vector<std::pair<size_t, const ExtractionResult*>> batch;
-    size_t batchBytes = 0;
-    size_t totalBytes = 0;  // running total of result bytes streamed (for metrics)
+    size_t batchBytes    = 0;
+    size_t totalBytes    = 0;  // running total of result bytes streamed (for metrics)
+    size_t totalResults  = 0;  // running total of results streamed (for logging)
+    size_t chunksFlushed = 0;  // number of chunks handed to the sink (for logging)
+
+    LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: begin (flush threshold " << flushBytes << " bytes)" << std::endl;
 
     const auto flush = [&]() {
         if (batch.empty()) {
             return;
         }
+        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: flushing chunk " << chunksFlushed << " (" << batch.size()
+                                   << " results, " << batchBytes << " bytes)" << std::endl;
         sink.writeResults(batch);
         taskGroup.releaseOutstanding(batchBytes);
+        chunksFlushed++;
         batch.clear();
         owned.clear();
         batchBytes = 0;
@@ -298,6 +319,8 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
         while (std::optional<size_t> id = taskGroup.popCompleted()) {
             const ExtractionItems* items = taskGroup.streamableItems(*id);
             ASSERT(items);
+            LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: task " << *id << " completed with " << items->size()
+                                       << " results" << std::endl;
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();
                 size_t bytes                          = res->nbytes();
@@ -305,6 +328,7 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
                 owned.push_back(std::move(res));
                 batchBytes += bytes;
                 totalBytes += bytes;
+                totalResults++;
                 if (batchBytes >= flushBytes) {
                     flush();
                 }
@@ -314,6 +338,9 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
     }
     catch (...) {
         // A mid-stream failure (e.g. client disconnect). Cancel and drain the remaining tasks.
+        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: mid-stream failure after " << totalResults << " results ("
+                                   << totalBytes << " bytes) in " << chunksFlushed
+                                   << " chunks; cancelling and draining group" << std::endl;
         taskGroup.cancel();
 
         try {
@@ -324,6 +351,9 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
             // Do not mask the original exception being unwound...
         }
 
+        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: drained; " << taskGroup.nCancelled()
+                                   << " tasks cancelled (wasted work avoided)" << std::endl;
+
         MetricsManager::instance().set("client_disconnected", true);
         MetricsManager::instance().set("count_cancelled_tasks", taskGroup.nCancelled());
         MetricsManager::instance().set("count_bytes_streamed", totalBytes);
@@ -331,6 +361,10 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
 
         throw;
     }
+
+    LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: complete, streamed " << totalResults << " results in "
+                               << chunksFlushed << " chunks (" << totalBytes << " bytes), peak outstanding "
+                               << taskGroup.peakOutstandingBytes() << " bytes" << std::endl;
 
     MetricsManager::instance().set("count_bytes_streamed", totalBytes);
     MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());

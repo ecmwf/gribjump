@@ -127,10 +127,10 @@ public:
     /// If true, the info cache is enabled. YAML: cache.enabled. Default: true.
     bool cacheEnabled() const;
 
-    /// Directory for persisting cache files. YAML: cache.directory. Default: "" (empty).
+    /// Directory for persisting Index Files. YAML: cache.directory. Default: "" (empty).
     std::string cacheDirectory() const;
 
-    /// If true, cache files are stored alongside the data files in FDB. YAML: cache.shadowfdb.
+    /// If true, Index Files are stored alongside the data files in FDB. YAML: cache.shadowfdb.
     /// Default: true when cache.directory is empty.
     bool cacheShadowFdb() const;
 
