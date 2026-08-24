@@ -22,6 +22,8 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 
+#include "gribjump/remote/ForwardExtractIndex.h"
+
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -340,6 +342,43 @@ void Protocol::decodeForwardExtractReply(eckit::Stream& stream, filemap_t& filem
             filemap[fname][j]->result(std::make_unique<ExtractionResult>(stream));
         }
     }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// FORWARD_EXTRACT reply, v4 streaming framing
+
+void Protocol::encodeForwardExtractResultChunk(eckit::Stream& stream,
+                                               const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) {
+    encodeExtractResultChunk(stream, batch);
+}
+
+void Protocol::encodeForwardExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors) {
+    encodeExtractReplyEnd(stream, errors);
+}
+
+void Protocol::decodeForwardExtractReplyStreaming(eckit::Stream& stream, filemap_t& filemap, bool raise) {
+    // index -> item, derived identically to the leaf's outgoing labelling (see
+    // ForwardExtractIndex.h), so out-of-order chunks slot into the right item.
+    std::vector<ExtractionItem*> byIndex = flattenFilemap(filemap);
+    for (;;) {
+        uint16_t itag;
+        stream >> itag;
+        const ReplyChunkTag tag = static_cast<ReplyChunkTag>(itag);
+        if (tag == ReplyChunkTag::END_OF_RESULTS) {
+            break;
+        }
+        ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
+        size_t count;
+        stream >> count;
+        for (size_t i = 0; i < count; i++) {
+            size_t index;
+            stream >> index;
+            ASSERT(index < byIndex.size());
+            byIndex[index]->result(std::make_unique<ExtractionResult>(stream));
+        }
+    }
+    // Error footer: identical layout + semantics to the leading v3 error block.
+    decodeErrors(stream, raise);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

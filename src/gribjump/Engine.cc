@@ -22,6 +22,7 @@
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Forwarder.h"
+#include "gribjump/remote/ForwardExtractIndex.h"
 
 
 namespace gribjump {
@@ -247,6 +248,47 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
 
+    // Map a completed item back to its original client request index. buildRequestMap
+    // canonicalises each request string in place, so item->request() is the key.
+    TaskReport report = streamHarvest(taskGroup, sink, [&](ExtractionItem* item) { return indexOf.at(item->request()); });
+
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+    timer.reset("Gribjump Engine: All tasks streamed");
+
+    return report;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Streaming from a prebuilt filemap.
+
+TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
+
+    eckit::Timer timer("Engine::extractStreaming(filemap)", LogRouter::instance().get("timer"));
+
+    TaskGroup taskGroup;
+    taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
+    enqueueFileExtractionTasks(taskGroup, filemap);
+
+    // item -> enumeration index. A completed FileExtractionTask hands back item
+    // pointers, so we map those to the index the wire chunk is keyed by.
+    std::unordered_map<ExtractionItem*, size_t> indexOf = filemapItemIndex(filemap);
+
+    TaskReport report = streamHarvest(taskGroup, sink, [&](ExtractionItem* item) { return indexOf.at(item); });
+
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+    timer.reset("Gribjump Engine: All tasks streamed");
+
+    return report;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Shared harvest loop for both streaming paths. Blocks on popCompleted(), batches results by byte budget, hands each
+// batch to the sink, and frees results after sending. On a mid-stream failure (e.g. client
+// disconnect) it cancels and drains the group, then rethrows.
+
+TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
+                                 const std::function<size_t(ExtractionItem*)>& indexFor) {
+
     const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
 
     std::vector<std::unique_ptr<ExtractionResult>> owned;  // keeps batch results alive until flush
@@ -272,7 +314,7 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();
                 size_t bytes                          = res->nbytes();
-                batch.emplace_back(indexOf.at(item->request()), res.get());
+                batch.emplace_back(indexFor(item), res.get());
                 owned.push_back(std::move(res));
                 batchBytes += bytes;
                 totalBytes += bytes;
@@ -303,13 +345,8 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         throw;
     }
 
-    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     MetricsManager::instance().set("count_bytes_streamed", totalBytes);
     MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
-    timer.reset("Gribjump Engine: All tasks streamed");
-
-    ///@todo: we still reach here if there is a non-disconnect error right? Is it clear from the serverside that there
-    /// was an error?
 
     return taskGroup.report();
 }

@@ -16,6 +16,7 @@
 #include "eckit/log/Timer.h"
 #include "gribjump/Engine.h"
 #include "gribjump/remote/Protocol.h"
+#include "gribjump/remote/ResultSink.h"
 
 namespace {
 static std::atomic<uint64_t> requestid_{0};
@@ -231,8 +232,84 @@ void ExtractHandler::info() const {
 
 //----------------------------------------------------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------------------------------------------------
+// FORWARD_EXTRACT reply strategies v3 buffers the whole
+// filemap reply, v4 streams result chunks to the proxy as tasks complete.
+
+class ForwardExtractReplyStrategy {
+public:
+
+    virtual ~ForwardExtractReplyStrategy() = default;
+
+    /// Run the extraction. v4 streams results to the proxy here; v3 buffers them for replyToClient().
+    virtual void execute(eckit::Stream& client, EngineIface& engine, filemap_t& filemap, TaskReport& report) = 0;
+
+    /// Whether the base class should emit the leading error block.
+    virtual bool emitsLeadingErrorBlock() const = 0;
+
+    /// Reply on the wire.
+    virtual void reply(eckit::Stream& client, filemap_t& filemap, TaskReport& report) = 0;
+};
+
+namespace {
+
+/// v3: buffer the full reply, then send one filemap-ordered block.
+class BufferedForwardExtractReply : public ForwardExtractReplyStrategy {
+public:
+
+    void execute(eckit::Stream& /*client*/, EngineIface& engine, filemap_t& filemap, TaskReport& report) override {
+        report = engine.scheduleExtractionTasks(filemap);
+    }
+
+    bool emitsLeadingErrorBlock() const override { return true; }
+
+    void reply(eckit::Stream& client, filemap_t& filemap, TaskReport& /*report*/) override {
+        Protocol::encodeForwardExtractReply(client, filemap);
+    }
+};
+
+/// v4: stream result chunks to the proxy as tasks complete, then send an error footer.
+class StreamingForwardExtractReply : public ForwardExtractReplyStrategy {
+public:
+
+    void execute(eckit::Stream& client, EngineIface& engine, filemap_t& filemap, TaskReport& report) override {
+        ForwardStreamResultSink sink(client);
+        try {
+            report = engine.extractStreaming(filemap, sink);
+        }
+        catch (std::exception& e) {
+            streamError_ = e.what();
+        }
+    }
+
+    bool emitsLeadingErrorBlock() const override { return false; }
+
+    void reply(eckit::Stream& client, filemap_t& /*filemap*/, TaskReport& report) override {
+        std::vector<std::string> errors = report.errors();
+        if (!streamError_.empty()) {
+            errors.push_back(streamError_);
+        }
+        Protocol::encodeForwardExtractReplyEnd(client, errors);
+    }
+
+private:
+
+    std::string streamError_;  //< set if the streaming pass threw mid-reply
+};
+
+std::unique_ptr<ForwardExtractReplyStrategy> makeForwardExtractReplyStrategy(ProtocolVersion version) {
+    if (version.streaming()) {
+        return std::make_unique<StreamingForwardExtractReply>();
+    }
+    return std::make_unique<BufferedForwardExtractReply>();
+}
+
+}  // namespace
+
 ForwardedExtractHandler::ForwardedExtractHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
-    RequestHandler(stream, engine, version) {}
+    RequestHandler(stream, engine, version), replyStrategy_(makeForwardExtractReplyStrategy(version)) {}
+
+ForwardedExtractHandler::~ForwardedExtractHandler() = default;
 
 void ForwardedExtractHandler::receive() {
     MetricsManager::instance().set("action", "forwarded-extract");
@@ -252,11 +329,17 @@ void ForwardedExtractHandler::receive() {
 }
 
 void ForwardedExtractHandler::execute() {
-    report_ = engine_.scheduleExtractionTasks(filemap_);
+    replyStrategy_->execute(client_, engine_, filemap_, report_);
+}
+
+void ForwardedExtractHandler::reportErrors() {
+    if (replyStrategy_->emitsLeadingErrorBlock()) {
+        RequestHandler::reportErrors();
+    }
 }
 
 void ForwardedExtractHandler::replyToClient() {
-    Protocol::encodeForwardExtractReply(client_, filemap_);
+    replyStrategy_->reply(client_, filemap_, report_);
 }
 
 void ForwardedExtractHandler::info() const {

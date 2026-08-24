@@ -26,6 +26,19 @@ namespace gribjump {
 // An object for grouping request, uri and result information together.
 /// @todo: Recently reworked. Code which uses this object could be refactored to have less moving of vectors to and from
 /// this object.
+///
+/// @todo (streaming cleanup, deferred): stamp the originating client request index onto this item and drop the
+/// separate `indexOf` map in Engine::extractStreaming.
+///   The v4 streaming reply is keyed by the client's request-vector position, but the server scrambles that order:
+///   requests are canonicalised, stored in a std::map sorted by canonical string, then grouped by file, and results
+///   finally arrive in task-completion order. A completed item only knows its request string, so extractStreaming
+///   rebuilds a canonical-string -> client-index map (`indexOf`) and does a string hash per result to recover the
+///   index. That index is already known at build time (the loop variable in buildRequestMap), so storing it here
+///   (e.g. a `size_t requestIndex_`) would let the harvest loop read it directly: one fewer container, no per-result
+///   string hashing, and no reliance on request() returning the exact canonical key. Duplicates are not a concern:
+///   buildRequestMap enforces a strict 1-to-1 request<->item mapping and throws on canonicalisation clashes.
+///   (For comparison, the forwarded-extract path needs no such map: its identity is the shared, deterministic filemap
+///   enumeration, which both sides derive from the ordered std::map for free.)
 class ExtractionItem {
 
 public:

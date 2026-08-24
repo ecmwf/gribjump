@@ -56,4 +56,29 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// The leaf-side sink for the streaming (v4) FORWARD_EXTRACT reply: encodes each
+/// batch as a forward result chunk onto the proxy's stream. Identical in shape
+/// to StreamResultSink; only the framing helper differs (the batch indices are
+/// filemap enumeration indices rather than client request indices). The
+/// terminating END chunk + error footer are written by the request handler once
+/// the stream is drained, not here.
+class ForwardStreamResultSink : public ResultSink {
+public:
+
+    explicit ForwardStreamResultSink(eckit::Stream& stream) : stream_(stream) {}
+
+    void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) override {
+        if (batch.empty()) {
+            return;
+        }
+        Protocol::encodeForwardExtractResultChunk(stream_, batch);
+    }
+
+private:
+
+    eckit::Stream& stream_;
+};
+
+//----------------------------------------------------------------------------------------------------------------------
+
 }  // namespace gribjump

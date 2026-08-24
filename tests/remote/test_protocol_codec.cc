@@ -450,6 +450,89 @@ CASE("FORWARD_EXTRACT reply frame matches golden") {
     expectGolden(hash, "2e7c0a83cbc4090adc5b0d8f1149a377", "FORWARD_EXTRACT reply");
 }
 
+//-----------------------------------------------------------------------------
+// FORWARD_EXTRACT reply, v4 streaming framing (leaf -> proxy): RESULT chunks
+// keyed by the shared filemap enumeration index, terminated by END + footer.
+// Reuses the EXTRACT v4 chunk framing, so identical batches hash identically.
+
+/// Build a two-file filemap with three items, plus the flattened index order
+/// (files in std::map order, items in vector order) the wire is keyed by.
+static filemap_t makeForwardReplyFilemap(std::vector<std::unique_ptr<ExtractionItem>>& items) {
+    auto make = [&](const ExtractionRequest& req, const std::string& path) {
+        auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(req));
+        item->URI(eckit::URI("file", eckit::PathName(path)));
+        items.push_back(std::move(item));
+        return items.back().get();
+    };
+
+    // Map order: "/data/a.grib" < "/data/b.grib" -> index 0, {1, 2}.
+    ExtractionItem* a0 = make(fixtureRequest0(), "/data/a.grib");
+    ExtractionItem* b0 = make(fixtureRequest1(), "/data/b.grib");
+    ExtractionItem* b1 = make(fixtureRequest0(), "/data/b.grib");
+
+    filemap_t filemap;
+    filemap["/data/a.grib"] = {a0};
+    filemap["/data/b.grib"] = {b0, b1};
+    return filemap;
+}
+
+CASE("FORWARD_EXTRACT v4 reply (multi-chunk, out of order) round-trips and matches golden") {
+    ExtractionResult res0 = fixtureResult();
+    ExtractionResult res1 = fixtureResult();
+    ExtractionResult res2 = fixtureResult();
+
+    // Deliver index 2 first, then indices 0 and 1: streaming sends in completion
+    // order, not filemap order.
+    std::vector<std::pair<size_t, const ExtractionResult*>> batchA = {{2, &res2}};
+    std::vector<std::pair<size_t, const ExtractionResult*>> batchB = {{0, &res0}, {1, &res1}};
+
+    eckit::Buffer buffer(8192);
+    std::string hash = hashOfEncoded(
+        [&](eckit::Stream& s) {
+            Protocol::encodeForwardExtractResultChunk(s, batchA);
+            Protocol::encodeForwardExtractResultChunk(s, batchB);
+            Protocol::encodeForwardExtractReplyEnd(s, {});
+        },
+        buffer);
+
+    // Round-trip: results are slotted back into the filemap items by index.
+    std::vector<std::unique_ptr<ExtractionItem>> items;
+    filemap_t filemap = makeForwardReplyFilemap(items);
+
+    eckit::ResizableMemoryStream in(buffer);
+    in.rewind();
+    Protocol::decodeForwardExtractReplyStreaming(in, filemap);
+
+    for (auto& item : items) {
+        EXPECT(item->result() != nullptr);
+    }
+
+    // Byte-identical to the EXTRACT v4 multi-chunk golden (shared framing).
+    expectGolden(hash, "c8fb500cdcbf9ee7c55e4314ebf03a30", "FORWARD_EXTRACT v4 reply multi chunk");
+}
+
+CASE("FORWARD_EXTRACT v4 reply (error footer after partial results) throws") {
+    ExtractionResult res0                                         = fixtureResult();
+    std::vector<std::pair<size_t, const ExtractionResult*>> batch = {{0, &res0}};
+    std::vector<std::string> errors                               = {"boom: leaf failed"};
+
+    eckit::Buffer buffer(8192);
+    hashOfEncoded(
+        [&](eckit::Stream& s) {
+            Protocol::encodeForwardExtractResultChunk(s, batch);
+            Protocol::encodeForwardExtractReplyEnd(s, errors);
+        },
+        buffer);
+
+    // Default raise=true: the footer errors throw, exactly like the v3 path.
+    std::vector<std::unique_ptr<ExtractionItem>> items;
+    filemap_t filemap = makeForwardReplyFilemap(items);
+
+    eckit::ResizableMemoryStream in(buffer);
+    in.rewind();
+    EXPECT_THROWS_AS(Protocol::decodeForwardExtractReplyStreaming(in, filemap), eckit::RemoteException);
+}
+
 CASE("Error reply block matches golden") {
     // The failure path: server encodes nErrors followed by the messages.
     std::vector<std::string> errors = {"boom: something failed", "and another"};

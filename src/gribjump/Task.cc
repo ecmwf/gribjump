@@ -308,6 +308,7 @@ void FileExtractionTask::info() const {
 //----------------------------------------------------------------------------------------------------------------------
 
 // Forward the work to a remote server, and wait for the results.
+///@todo This forward extract logic all needs to be consolidated.
 ForwardExtractionTask::ForwardExtractionTask(TaskGroup& taskgroup, const size_t id, eckit::net::Endpoint endpoint,
                                              filemap_t& filemap) :
     Task(taskgroup, id), endpoint_(endpoint), filemap_(filemap) {}

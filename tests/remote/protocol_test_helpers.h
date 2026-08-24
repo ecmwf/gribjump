@@ -32,6 +32,7 @@
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
+#include "gribjump/remote/ForwardExtractIndex.h"
 #include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
@@ -74,6 +75,26 @@ public:
         }
 
         for (size_t i = requests.size(); i-- > 0;) {
+            std::vector<std::pair<size_t, const ExtractionResult*>> batch{{i, owned[i].get()}};
+            sink.writeResults(batch);
+        }
+        return makeReport();
+    }
+
+    // Stream one canned result per filemap item, one result per chunk in reverse
+    // enumeration-index order, to exercise the proxy's reassembly-by-index.
+    TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) override {
+        std::vector<ExtractionItem*> byIndex = flattenFilemap(filemap);
+        lastFilemapFiles                     = filemap.size();
+        lastFilemapItems                     = byIndex.size();
+
+        std::vector<std::unique_ptr<ExtractionResult>> owned;
+        owned.reserve(byIndex.size());
+        for (size_t i = 0; i < byIndex.size(); i++) {
+            owned.push_back(std::make_unique<ExtractionResult>(cannedResult()));
+        }
+
+        for (size_t i = byIndex.size(); i-- > 0;) {
             std::vector<std::pair<size_t, const ExtractionResult*>> batch{{i, owned[i].get()}};
             sink.writeResults(batch);
         }
