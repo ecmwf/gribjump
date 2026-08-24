@@ -97,12 +97,34 @@ metrics are streaming-only.
 
 ## Forwarded extract (`action = forwarded-extract`)
 
-Emitted by a forwarding node that aggregates buffered replies from downstream
-servers.
+Emitted by a **downstream (leaf) node** serving a `FORWARD_EXTRACT` request from
+a forwarding node. The leaf reads the actual files and replies either buffered
+(v3) or streaming (v4).
 
-| Metric | Type | Description | Source |
-|---|---|---|---|
-| `count_extraction_requests` | uint | Number of extraction requests forwarded. | `ForwardedExtractHandler::receive()` |
+| Metric | Type | Description | Source | Path |
+|---|---|---|---|---|
+| `count_extraction_requests` | uint | Number of extraction requests forwarded to this leaf. | `ForwardedExtractHandler::receive()` | both |
+| `elapsed_tasks` | seconds | Time for all extraction tasks to complete/stream. | `Engine::extractStreaming(filemap)` | streaming only |
+| `count_tasks` | uint | Number of tasks in the group. | `TaskGroup::report()` | streaming only |
+| `count_failed_tasks` | uint | Number of tasks that errored. | `TaskGroup::report()` | streaming only |
+| `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set on disconnect | streaming only |
+| `first_error` | string | First error message (only if any errors). | `TaskGroup::report()` | streaming only |
+| `count_bytes_streamed` | uint | Total result bytes streamed to the forwarding node (partial on disconnect). | `Engine::streamHarvest()` | streaming only |
+| `peak_outstanding_bytes` | uint | High-water mark of produced-but-not-yet-sent bytes (the ceiling the byte budget enforces). | `Engine::streamHarvest()` | streaming only |
+| `client_disconnected` | bool | `true` if a mid-stream failure (e.g. the forwarding node disconnects) aborted streaming. | `Engine::streamHarvest()` catch | streaming only |
+
+> The **v4 streaming** leaf reply shares `Engine::streamHarvest()` with the local
+> streaming extract path, so it emits the same task/byte/disconnect metrics as a
+> direct `extract`. The **v3 buffered** leaf reply
+> (`BufferedForwardExtractReply`) does not harvest a `TaskGroup` incrementally
+> and emits only `count_extraction_requests`.
+>
+> Note: a **forwarding node** (the one aggregating leaf replies) serves the
+> client under `action = extract` with `forwardExtraction` enabled. That path
+> streams to its client via `streamBufferedResults()` and currently records only
+> `elapsed_build_filemap` for the streaming leg (no `count_bytes_streamed` /
+> `peak_outstanding_bytes`), because it aggregates buffered downstream replies
+> rather than harvesting a `TaskGroup`.
 
 ## Forwarded scan (`action = forwarded-scan`)
 
