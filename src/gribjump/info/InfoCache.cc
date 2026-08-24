@@ -342,7 +342,7 @@ void IndexFile::decode(eckit::Stream& s) {
         map_.insert(std::make_pair(offset, std::move(info)));
         count++;
     }
-    LOG_DEBUG_LIB(LibGribJump) << "Loaded " << count << " entries from stream" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "IndexFile::decode -- Loaded " << count << " entries from stream" << std::endl;
 }
 
 void IndexFile::toNewFile(const eckit::PathName& path) const {
