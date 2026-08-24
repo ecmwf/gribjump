@@ -94,8 +94,7 @@ private:
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
     TaskReport streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
                              const std::function<size_t(ExtractionItem*)>& indexFor);
-    void streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
-                               ResultSink& sink);
+    void streamBufferedResults(ResultsMap& results, ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);

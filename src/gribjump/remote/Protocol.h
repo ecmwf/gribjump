@@ -55,7 +55,7 @@ enum class RequestType : uint16_t {
 };
 
 /// v4+: Streamed results are chunked, each chunk tagged with a type.
-///   RESULT_CHUNK: carries a batch of (requestIndex, ExtractionResult) pairs.
+///   RESULT_CHUNK: carries a batch of (streamIndex, ExtractionResult) pairs.
 ///   END_OF_RESULTS: signals end of results. The error footer follows.
 enum class ReplyChunkTag : uint16_t {
     RESULT_CHUNK   = 0,
@@ -135,7 +135,7 @@ public:
     // A sequence of RESULTS chunks terminated by an END chunk + error footer.
     // The encoders are batch-composable so the server can flush chunks as work
     // completes (in any order); decodeExtractReplyStreaming reassembles results
-    // by requestIndex into an nRequests-sized vector, then reads the footer.
+    // by streamIndex into an nRequests-sized vector, then reads the footer.
 
     static void encodeExtractResultChunk(eckit::Stream& stream,
                                          const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);

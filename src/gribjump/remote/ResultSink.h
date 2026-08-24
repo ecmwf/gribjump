@@ -30,7 +30,7 @@ public:
 
     virtual ~ResultSink() = default;
 
-    /// Encode and send one chunk carrying a batch of (requestIndex, result) pairs.
+    /// Encode and send one chunk carrying a batch of (streamIndex, result) pairs.
     virtual void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) = 0;
 };
 

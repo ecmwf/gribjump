@@ -317,6 +317,16 @@ Protocol::ForwardExtractRequest Protocol::decodeForwardExtractRequest(eckit::Str
             out.items.push_back(std::move(extractionItem));
         }
     }
+
+    // Stamp each item with its enumeration index (filemap order), which keys the
+    // v4 streaming reply chunk. Matches the proxy's flattenFilemap ordering, so
+    // out-of-order chunks slot back into the right item.
+    size_t index = 0;
+    for (const auto& [fname, extractionItems] : out.filemap) {
+        for (ExtractionItem* item : extractionItems) {
+            item->streamIndex(index++);
+        }
+    }
     return out;
 }
 

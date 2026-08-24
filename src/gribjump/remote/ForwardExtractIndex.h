@@ -19,11 +19,16 @@
 /// decodeForwardExtractRequest reconstructs them in that received order -- so
 /// the proxy (post-sort) and the leaf agree without transmitting anything
 /// beyond the index itself.
+///
+/// The leaf stamps this index onto each item at decode time
+/// (Protocol::decodeForwardExtractRequest) and reads it back via
+/// ExtractionItem::streamIndex(). The proxy still needs the inverse mapping
+/// (index -> item) to slot each incoming chunk into place, which flattenFilemap
+/// provides below.
 
 #pragma once
 
 #include <cstddef>
-#include <unordered_map>
 #include <vector>
 
 #include "gribjump/ExtractionItem.h"
@@ -32,9 +37,6 @@
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
-
-///@todo: Bake this info into extraction items, then remove all this logic. (v4)
-
 
 /// Flatten a filemap into index -> item order (the shared streaming index).
 /// Used by the proxy decode to slot each incoming (index, result) chunk back
@@ -47,20 +49,6 @@ inline std::vector<ExtractionItem*> flattenFilemap(const filemap_t& filemap) {
         }
     }
     return byIndex;
-}
-
-/// Inverse of flattenFilemap: item -> index. Used by the leaf sink to label
-/// each harvested item (which arrives as a pointer, not an index) with its
-/// enumeration index for the outgoing chunk.
-inline std::unordered_map<ExtractionItem*, size_t> filemapItemIndex(const filemap_t& filemap) {
-    std::unordered_map<ExtractionItem*, size_t> indexOf;
-    size_t index = 0;
-    for (const auto& [fname, extractionItems] : filemap) {
-        for (ExtractionItem* item : extractionItems) {
-            indexOf.emplace(item, index++);
-        }
-    }
-    return indexOf;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
