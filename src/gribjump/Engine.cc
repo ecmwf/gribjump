@@ -42,6 +42,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     static bool ignoreYearMonth = ConfigOptions::instance().ignoreYearMonth();
     std::map<std::string, std::set<std::string>> keyValues;
     bool dropYearMonth = false;
+    size_t streamIndex = 0;
     for (auto& r : requests) {
         const std::string& s = r.requestString();
 
@@ -88,6 +89,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
         r.requestString(canonicalised);
 
         auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));
+        extractionItem->streamIndex(streamIndex++);  // client's request-vector position (v4 streaming reply key)
         keyToExtractionItem.emplace(canonicalised, std::move(extractionItem));  // 1-to-1-map
     }
 
@@ -218,14 +220,6 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     ExItemMap keyToExtractionItem;
     metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
 
-    // buildRequestMap canonicalises each request string in place, so it maps a
-    // completed item back to its original request index.
-    std::unordered_map<std::string, size_t> indexOf;
-    indexOf.reserve(requests.size());
-    for (size_t i = 0; i < requests.size(); i++) {
-        indexOf.emplace(requests[i].requestString(), i);
-    }
-
     filemap_t filemap = buildFileMap(unionreq, keyToExtractionItem);
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
@@ -235,13 +229,52 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     if (ConfigOptions::instance().forwardExtraction()) {
         TaskReport report  = scheduleExtractionTasks(filemap, true);
         ResultsMap results = collectResults(keyToExtractionItem);
-        streamBufferedResults(results, indexOf, sink);
+        streamBufferedResults(results, sink);
         return report;
     }
 
     TaskGroup taskGroup;
     taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
+
+    // Each item carries its client request-vector position, stamped at build time,
+    // which keys the v4 streaming reply chunk.
+    TaskReport report = streamHarvest(taskGroup, sink, [](ExtractionItem* item) { return item->streamIndex(); });
+
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+    timer.reset("Gribjump Engine: All tasks streamed");
+
+    return report;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Streaming from a prebuilt filemap.
+
+TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
+
+    eckit::Timer timer("Engine::extractStreaming(filemap)", LogRouter::instance().get("timer"));
+
+    TaskGroup taskGroup;
+    taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
+    enqueueFileExtractionTasks(taskGroup, filemap);
+
+    // Each item is stamped (at decode time) with the shared filemap enumeration
+    // index the wire chunk is keyed by.
+    TaskReport report = streamHarvest(taskGroup, sink, [](ExtractionItem* item) { return item->streamIndex(); });
+
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+    timer.reset("Gribjump Engine: All tasks streamed");
+
+    return report;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Shared harvest loop for both streaming paths. Blocks on popCompleted(), batches results by byte budget, hands each
+// batch to the sink, and frees results after sending. On a mid-stream failure (e.g. client
+// disconnect) it cancels and drains the group, then rethrows.
+
+TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
+                                 const std::function<size_t(ExtractionItem*)>& indexFor) {
 
     const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
 
@@ -268,7 +301,7 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();
                 size_t bytes                          = res->nbytes();
-                batch.emplace_back(indexOf.at(item->request()), res.get());
+                batch.emplace_back(indexFor(item), res.get());
                 owned.push_back(std::move(res));
                 batchBytes += bytes;
                 totalBytes += bytes;
@@ -299,19 +332,13 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         throw;
     }
 
-    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     MetricsManager::instance().set("count_bytes_streamed", totalBytes);
     MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
-    timer.reset("Gribjump Engine: All tasks streamed");
-
-    ///@todo: we still reach here if there is a non-disconnect error right? Is it clear from the serverside that there
-    /// was an error?
 
     return taskGroup.report();
 }
 
-void Engine::streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
-                                   ResultSink& sink) {
+void Engine::streamBufferedResults(ResultsMap& results, ResultSink& sink) {
     const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
     std::vector<std::unique_ptr<ExtractionResult>> owned;
     std::vector<std::pair<size_t, const ExtractionResult*>> batch;
@@ -330,7 +357,7 @@ void Engine::streamBufferedResults(ResultsMap& results, const std::unordered_map
     for (auto& [request, item] : results) {
         std::unique_ptr<ExtractionResult> res = item->result();
         size_t bytes                          = res->nbytes();
-        batch.emplace_back(indexOf.at(request), res.get());
+        batch.emplace_back(item->streamIndex(), res.get());
         owned.push_back(std::move(res));
         batchBytes += bytes;
         if (batchBytes >= flushBytes) {

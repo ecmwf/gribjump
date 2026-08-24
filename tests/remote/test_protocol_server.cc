@@ -310,6 +310,74 @@ CASE("Server EXTRACT v3 client still gets the buffered reply") {
     }
 }
 
+//-----------------------------------------------------------------------------
+// v4 streaming reply path for the leaf (FORWARD_EXTRACT) handler.
+
+CASE("Server FORWARD_EXTRACT v4: streams results, reassembled by filemap index") {
+    // Two files, three items -> shared enumeration indices 0, {1, 2}.
+    std::vector<std::unique_ptr<ExtractionItem>> items;
+    auto make = [&](int step, const std::string& path, long long offset) {
+        auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(fixtureRequest(step)));
+        eckit::URI uri("file", eckit::PathName(path));
+        uri.fragment(std::to_string(offset));
+        item->URI(uri);
+        items.push_back(std::move(item));
+        return items.back().get();
+    };
+    ExtractionItem* a0 = make(1, "/data/a.grib", 0);
+    ExtractionItem* b0 = make(2, "/data/b.grib", 100);
+    ExtractionItem* b1 = make(3, "/data/b.grib", 200);
+
+    filemap_t filemap;
+    filemap["/data/a.grib"] = {a0};
+    filemap["/data/b.grib"] = {b0, b1};
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        writeHeaderVersion(s, streamingProtocolVersion, RequestType::FORWARD_EXTRACT);
+        Protocol::encodeForwardExtractRequest(s, filemap);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    dispatchRequest(stream, &engine);
+
+    EXPECT_EQUAL(engine.lastFilemapFiles, 2);
+    EXPECT_EQUAL(engine.lastFilemapItems, 3);
+
+    // Decode as the proxy would: RESULT chunks (reverse order) then END + footer,
+    // slotted back into the filemap items by index.
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    Protocol::decodeForwardExtractReplyStreaming(reply, filemap);
+
+    for (auto& item : items) {
+        auto res = item->result();
+        EXPECT(res != nullptr);  // every index filled despite reverse-order chunks
+        EXPECT_EQUAL(res->nrange(), 2);
+    }
+}
+
+CASE("Server FORWARD_EXTRACT v4: engine errors surface in the END-chunk footer") {
+    auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(fixtureRequest(1)));
+    item->URI(eckit::URI("file", eckit::PathName("/data/file.grib")));
+
+    filemap_t filemap;
+    filemap["/data/file.grib"] = {item.get()};
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        writeHeaderVersion(s, streamingProtocolVersion, RequestType::FORWARD_EXTRACT);
+        Protocol::encodeForwardExtractRequest(s, filemap);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    engine.errors = {"boom: leaf streaming failed"};
+    dispatchRequest(stream, &engine);
+
+    // No leading error block in v4: reply starts with chunks; the footer throws.
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    EXPECT_THROWS_AS(Protocol::decodeForwardExtractReplyStreaming(reply, filemap), eckit::RemoteException);
+}
+
 }  // namespace test
 }  // namespace gribjump
 

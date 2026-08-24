@@ -55,7 +55,7 @@ enum class RequestType : uint16_t {
 };
 
 /// v4+: Streamed results are chunked, each chunk tagged with a type.
-///   RESULT_CHUNK: carries a batch of (requestIndex, ExtractionResult) pairs.
+///   RESULT_CHUNK: carries a batch of (streamIndex, ExtractionResult) pairs.
 ///   END_OF_RESULTS: signals end of results. The error footer follows.
 enum class ReplyChunkTag : uint16_t {
     RESULT_CHUNK   = 0,
@@ -135,7 +135,7 @@ public:
     // A sequence of RESULTS chunks terminated by an END chunk + error footer.
     // The encoders are batch-composable so the server can flush chunks as work
     // completes (in any order); decodeExtractReplyStreaming reassembles results
-    // by requestIndex into an nRequests-sized vector, then reads the footer.
+    // by streamIndex into an nRequests-sized vector, then reads the footer.
 
     static void encodeExtractResultChunk(eckit::Stream& stream,
                                          const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);
@@ -187,6 +187,18 @@ public:
     /// Reads the results back into the caller's filemap in place, asserting the
     /// per-file item counts match what was sent.
     static void decodeForwardExtractReply(eckit::Stream& stream, filemap_t& filemap);
+
+    // -- FORWARD_EXTRACT reply, v4 streaming framing ------------------------------------------------------------------
+    // Same chunk framing as the EXTRACT v4 reply (RESULTS chunks + END + error
+    // footer), but keyed by the shared filemap enumeration index (see
+    // ForwardExtractIndex.h) rather than a client request index, since forwarded
+    // items have no request-vector position. decodeForwardExtractReplyStreaming
+    // reassembles results in place into the caller's filemap by that index.
+
+    static void encodeForwardExtractResultChunk(eckit::Stream& stream,
+                                                const std::vector<std::pair<size_t, const ExtractionResult*>>& batch);
+    static void encodeForwardExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors);
+    static void decodeForwardExtractReplyStreaming(eckit::Stream& stream, filemap_t& filemap, bool raise = true);
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -116,10 +116,15 @@ private:
 
 //----------------------------------------------------------------------------------------------------------------------
 
+/// Abstraction for buffered vs streamed forwarded replies.
+class ForwardExtractReplyStrategy;
+
 class ForwardedExtractHandler : public RequestHandler {
 public:
 
     ForwardedExtractHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version);
+
+    ~ForwardedExtractHandler() override;
 
 private:
 
@@ -128,10 +133,12 @@ private:
     void replyToClient() override;
     void info() const override;
 
+    void reportErrors() override;
+
     std::vector<std::unique_ptr<ExtractionItem>> items_;
     filemap_t filemap_;
 
-    ResultsMap results_;
+    std::unique_ptr<ForwardExtractReplyStrategy> replyStrategy_;
 };
 
 

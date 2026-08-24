@@ -190,10 +190,16 @@ void RemoteGribJump::forwardExtract(filemap_t& filemap) {
     Protocol::encodeForwardExtractRequest(stream, filemap);
 
     timer.report("Request sent");
-    Protocol::decodeErrors(stream);
 
-    // receive results
-    Protocol::decodeForwardExtractReply(stream, filemap);
+    if (protocolVersion_.streaming()) {
+        // v4+. Result chunks stream back keyed by filemap index; errors terminate the stream after the results.
+        Protocol::decodeForwardExtractReplyStreaming(stream, filemap);
+    }
+    else {
+        // v3 pre-streaming: errors reported before the buffered, filemap-ordered results.
+        Protocol::decodeErrors(stream);
+        Protocol::decodeForwardExtractReply(stream, filemap);
+    }
 
     timer.report("Results received");
 

@@ -21,6 +21,7 @@
 #include "gribjump/remote/ResultSink.h"
 #include "metkit/mars/MarsRequest.h"
 
+#include <functional>
 #include <unordered_map>
 
 namespace gribjump {
@@ -46,6 +47,13 @@ public:
     /// Streaming extraction: schedule the work and hand results to the sink in batches as tasks complete.
     virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
 
+    /// Streaming extraction from a prebuilt filemap.
+    /// Results are keyed by the shared filemap enumeration index (see
+    /// ForwardExtractIndex.h) rather than a client request index.
+    /// @todo: is filemap_t not already ordered byt *string* value? Why the need for another index?
+    ///        unless its the order inside the vector of ExtractionItems, but aren't they always in the same batch?
+    virtual TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) = 0;
+
     // byfiles: scan entire file, not just fields matching request
     virtual TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) = 0;
 
@@ -68,6 +76,7 @@ public:
     TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
     TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override;
+    TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) override;
 
     // byfiles: scan entire file, not just fields matching request
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) override;
@@ -83,8 +92,9 @@ private:
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
-    void streamBufferedResults(ResultsMap& results, const std::unordered_map<std::string, size_t>& indexOf,
-                               ResultSink& sink);
+    TaskReport streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
+                             const std::function<size_t(ExtractionItem*)>& indexFor);
+    void streamBufferedResults(ResultsMap& results, ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);

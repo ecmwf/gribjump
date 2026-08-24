@@ -39,7 +39,7 @@ list( APPEND gribjump_srcs
     remote/ClientTransport.h
     remote/Protocol.cc
     remote/Protocol.h
-
+    remote/ForwardExtractIndex.h
     GribJump.cc
     GribJump.h
     GribJumpBase.h
