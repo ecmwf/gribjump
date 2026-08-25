@@ -37,7 +37,7 @@ CASE("Loopback: EXTRACT round-trips through codec and server") {
 
     // Client-side encode: header + payload, exactly as RemoteGribJump sends.
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeExtractRequest(s, requests);
     });
 
@@ -71,7 +71,7 @@ CASE("Loopback: SCAN round-trips through codec and server") {
     bool byfiles                                    = true;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeScanRequest(s, requests, byfiles);
     });
 
@@ -92,7 +92,7 @@ CASE("Loopback: AXES round-trips through codec and server") {
     int level           = 3;
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::AXES, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeAxesRequest(s, request, level);
     });
 
@@ -118,7 +118,7 @@ CASE("Loopback: server errors propagate to the client as an exception") {
     std::vector<metkit::mars::MarsRequest> requests = {metkit::mars::MarsRequest("retrieve")};
 
     auto reqBytes = encodeRequest([&](eckit::Stream& s) {
-        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"));
+        Protocol::writeRequestHeader(s, RequestType::SCAN, LogContext("{}"), remoteProtocolVersion);
         Protocol::encodeScanRequest(s, requests, false);
     });
 
@@ -129,6 +129,93 @@ CASE("Loopback: server errors propagate to the client as an exception") {
 
     eckit::MemoryStream reply(stream.written().data(), stream.written().size());
     EXPECT_THROWS_AS(Protocol::decodeErrors(reply), eckit::RemoteException);
+}
+
+CASE("Loopback: EXTRACT v4 streams and reassembles out-of-order results by index") {
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2), fixtureRequest(3)};
+
+    // v4-capable client: advertise the streaming version in the header.
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), streamingProtocolVersion);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;  // streams one result per chunk, in reverse index order
+    dispatchRequest(stream, &engine);
+    EXPECT_EQUAL(engine.lastExtractRequests, 3);
+
+    // Client-side decode, exactly as RemoteGribJump does for v4.
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    auto results = Protocol::decodeExtractReplyStreaming(reply, requests.size());
+
+    EXPECT_EQUAL(results.size(), 3);
+    for (auto& r : results) {
+        EXPECT(r != nullptr);  // every index filled despite reverse-order chunks
+        EXPECT_EQUAL(r->nrange(), 2);
+        EXPECT_EQUAL(r->values()[0][0], 10.0);
+        EXPECT_EQUAL(r->values()[1][0], 30.0);
+    }
+}
+
+CASE("Loopback: EXTRACT v4 with no requests yields an empty reply") {
+    std::vector<ExtractionRequest> requests;  // empty
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), streamingProtocolVersion);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    dispatchRequest(stream, &engine);
+    EXPECT_EQUAL(engine.lastExtractRequests, 0);
+
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    auto results = Protocol::decodeExtractReplyStreaming(reply, requests.size());
+    EXPECT_EQUAL(results.size(), 0);
+}
+
+CASE("Loopback: EXTRACT v4 surfaces server errors from the END-chunk footer") {
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2)};
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), streamingProtocolVersion);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    engine.errors = {"deliberate streaming failure"};
+    dispatchRequest(stream, &engine);
+
+    // v4 reply has no leading error block: chunks stream first, then the footer
+    // (raise=true) throws the collected errors even though results were sent.
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    EXPECT_THROWS_AS(Protocol::decodeExtractReplyStreaming(reply, requests.size()), eckit::RemoteException);
+}
+
+CASE("Loopback: EXTRACT v3-pinned client gets the buffered reply") {
+    // A client pinned to v3 (clientProtocolVersion=3) against the v4-capable
+    // server: leading error block + buffered in-order results.
+    std::vector<ExtractionRequest> requests = {fixtureRequest(1), fixtureRequest(2)};
+
+    auto reqBytes = encodeRequest([&](eckit::Stream& s) {
+        Protocol::writeRequestHeader(s, RequestType::EXTRACT, LogContext("{}"), remoteProtocolVersion);
+        Protocol::encodeExtractRequest(s, requests);
+    });
+
+    DuplexTestStream stream(reqBytes);
+    MockEngine engine;
+    dispatchRequest(stream, &engine);
+
+    eckit::MemoryStream reply(stream.written().data(), stream.written().size());
+    EXPECT(!Protocol::decodeErrors(reply));
+    auto results = Protocol::decodeExtractReply(reply, requests.size());
+    EXPECT_EQUAL(results.size(), 2);
+    for (auto& r : results) {
+        EXPECT_EQUAL(r->nrange(), 2);
+    }
 }
 
 }  // namespace test

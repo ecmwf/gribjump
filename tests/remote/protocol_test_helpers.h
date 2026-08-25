@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "eckit/io/Buffer.h"
+#include "eckit/net/TCPSocket.h"
 #include "eckit/serialisation/ResizableMemoryStream.h"
 #include "eckit/serialisation/Stream.h"
 #include "eckit/utils/Literals.h"
@@ -31,6 +32,7 @@
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
+#include "gribjump/remote/ForwardExtractIndex.h"
 #include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
@@ -59,6 +61,44 @@ public:
             map.emplace(req.requestString(), std::move(item));
         }
         return {std::move(map), makeReport()};
+    }
+
+    // Stream one canned result per request, one result per chunk in reverse
+    // index order, to exercise the client's reassembly-by-index.
+    TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override {
+        lastExtractRequests = requests.size();
+
+        std::vector<std::unique_ptr<ExtractionResult>> owned;
+        owned.reserve(requests.size());
+        for (size_t i = 0; i < requests.size(); i++) {
+            owned.push_back(std::make_unique<ExtractionResult>(cannedResult()));
+        }
+
+        for (size_t i = requests.size(); i-- > 0;) {
+            std::vector<std::pair<size_t, const ExtractionResult*>> batch{{i, owned[i].get()}};
+            sink.writeResults(batch);
+        }
+        return makeReport();
+    }
+
+    // Stream one canned result per filemap item, one result per chunk in reverse
+    // enumeration-index order, to exercise the proxy's reassembly-by-index.
+    TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) override {
+        std::vector<ExtractionItem*> byIndex = flattenFilemap(filemap);
+        lastFilemapFiles                     = filemap.size();
+        lastFilemapItems                     = byIndex.size();
+
+        std::vector<std::unique_ptr<ExtractionResult>> owned;
+        owned.reserve(byIndex.size());
+        for (size_t i = 0; i < byIndex.size(); i++) {
+            owned.push_back(std::make_unique<ExtractionResult>(cannedResult()));
+        }
+
+        for (size_t i = byIndex.size(); i-- > 0;) {
+            std::vector<std::pair<size_t, const ExtractionResult*>> batch{{i, owned[i].get()}};
+            sink.writeResults(batch);
+        }
+        return makeReport();
     }
 
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles) override {
@@ -171,8 +211,25 @@ inline std::vector<char> encodeRequest(EncodeFn&& encode) {
 
 /// Write the request header exactly as the client does.
 inline void writeHeader(eckit::Stream& s, RequestType type, const std::string& ctx = "{}") {
-    Protocol::writeRequestHeader(s, type, LogContext(ctx));
+    Protocol::writeRequestHeader(s, type, LogContext(ctx), remoteProtocolVersion);
 }
+
+/// Write a request header advertising an explicit protocol version (writeHeader
+/// advertises remoteProtocolVersion). Byte layout must match
+/// Protocol::writeRequestHeader.
+inline void writeHeaderVersion(eckit::Stream& s, uint16_t version, RequestType type, const std::string& ctx = "{}") {
+    Protocol::writeRequestHeader(s, type, LogContext(ctx), version);
+}
+
+//-----------------------------------------------------------------------------
+// Wraps an already-connected file descriptor (e.g. from socketpair) in an
+// eckit::net::TCPSocket so it can be driven by InstantTCPStream.
+
+class FdSocket : public eckit::net::TCPSocket {
+public:
+
+    explicit FdSocket(int fd) { socket_ = fd; }
+};
 
 inline ExtractionRequest fixtureRequest(int step) {
     return ExtractionRequest("class=rd,expver=xxxx,step=" + std::to_string(step), {{0, 2}, {5, 6}},

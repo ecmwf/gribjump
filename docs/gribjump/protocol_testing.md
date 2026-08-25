@@ -10,7 +10,7 @@ code change which alters the bytes on the wire is caught.
 | `gribjump_test_protocol_codec`      | Byte-exact golden hashes of each payload and framed request/reply. Catches whether the protocol changed.                                                                       |
 | `gribjump_test_protocol_server`     | Real `Request` subclasses + real server `dispatchRequest` parse and reply correctly, driven by a `MockEngine` (no FDB).                                                        |
 | `gribjump_test_protocol_loopback`   | Real client codec wired back-to-back to real server dispatch over an in-memory stream — client and server agree on the format.                                                 |
-| `gribjump_test_protocol_socketpair` | Same as loopback but over a genuine connected kernel socket (`AF_UNIX` `socketpair`), server on its own thread. Proves framing survives a real blocking full-duplex transport. |
+| `gribjump_test_protocol_client`     | The real `RemoteGribJump` client (its version negotiation and reply-decode branch) driven over an injected socketpair transport whose peer runs the real server `dispatchRequest`. Covers v3 buffered, v4 streaming, errors and empty replies. |
 
 Every framed golden in `gribjump_test_protocol_codec` is produced by calling the
 **production** `Protocol::encode*` methods.
