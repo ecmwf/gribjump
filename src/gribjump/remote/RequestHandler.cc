@@ -34,6 +34,7 @@ RequestHandler::RequestHandler(eckit::Stream& stream, EngineIface& engine, Proto
     client_(stream), engine_(engine), protocolVersion_(version) {
     id_ = requestid();
     MetricsManager::instance().set("gribjump_request_id", id_);
+    MetricsManager::instance().set("protocol_version", static_cast<size_t>(protocolVersion_.value));
 }
 
 void RequestHandler::process() {

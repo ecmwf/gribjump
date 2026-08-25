@@ -51,6 +51,7 @@ Set by `RequestHandler` for every remote request, regardless of action.
 | Metric | Type | Description | Source |
 |---|---|---|---|
 | `gribjump_request_id` | uint | Unique id assigned to the request. | `RequestHandler` ctor |
+| `protocol_version` | uint | Negotiated remote protocol version in use (`3` = buffered, `4` = streaming). | `RequestHandler` ctor |
 | `action` | string | `scan`, `extract`, `forwarded-extract`, `forwarded-scan`, or `axes`. | each handler's `receive()` |
 | `elapsed_receive` | seconds | Time to decode/receive the request. | `RequestHandler::process()` |
 | `elapsed_execute` | seconds | Time to execute the request. | `RequestHandler::process()` |
