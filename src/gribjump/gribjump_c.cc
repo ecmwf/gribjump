@@ -60,9 +60,10 @@ template <typename FN>
 }
 
 metkit::mars::MarsRequest parseMarsRequest(const char* request) {
+    // static to cache the (expensive to build) MARS language
+    thread_local metkit::mars::MarsExpansion expand(false, true);
     std::istringstream in(request);
     metkit::mars::MarsParser parser(in);
-    metkit::mars::MarsExpansion expand(false, true);
     auto v = expand.expand(parser.parse());
     ASSERT(v.size() == 1);
     return v[0];
