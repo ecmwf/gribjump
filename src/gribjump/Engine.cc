@@ -12,6 +12,7 @@
 
 #include "eckit/utils/StringTools.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/log/Log.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
@@ -295,6 +296,13 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
                                  const std::function<size_t(ExtractionItem*)>& indexFor) {
 
     const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
+    const size_t byteBudget = ConfigOptions::instance().streamingByteBudget();
+
+    /// @todo: could we centralise config sanity checks like this some place?
+    if (flushBytes > byteBudget) {
+        throw eckit::BadValue("Configuration error: streaming.flushBytes (" + std::to_string(flushBytes) +
+                              ") must not exceed streaming.byteBudget (" + std::to_string(byteBudget) + ")");
+    }
 
     std::vector<std::unique_ptr<ExtractionResult>> owned;  // keeps batch results alive until flush
     std::vector<std::pair<size_t, const ExtractionResult*>> batch;

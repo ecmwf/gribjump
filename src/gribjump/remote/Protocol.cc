@@ -381,8 +381,8 @@ void Protocol::decodeForwardExtractReplyStreaming(eckit::Stream& stream, filemap
     // index -> item, derived identically to the leaf's outgoing labelling (see
     // ForwardExtractIndex.h), so out-of-order chunks slot into the right item.
     std::vector<ExtractionItem*> byIndex = flattenFilemap(filemap);
-    LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: expecting up to " << byIndex.size()
-                               << " results" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: expecting up to " << byIndex.size() << " results"
+                               << std::endl;
     size_t received = 0;
     size_t nChunks  = 0;
     for (;;) {
