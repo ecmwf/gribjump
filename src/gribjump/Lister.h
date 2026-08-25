@@ -33,12 +33,10 @@ public:
     /// Determined by config key "lister" ("fdb" by default, or "marslister").
     static Lister& instance();
 
-    virtual std::vector<eckit::URI> list(
-        const std::vector<metkit::mars::MarsRequest> requests) = 0;
+    virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests)                 = 0;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0;
 
-    virtual filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest,
-                              const ExItemMap& reqToExtractionItem) = 0;
+    virtual filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) = 0;
 
     filemap_t fileMap(const ExItemMap& reqToExtractionItem);
 
@@ -67,8 +65,7 @@ public:
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request,
                                                                          int level);
 
-    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest,
-                      const ExItemMap& reqToXRR) override;
+    filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToXRR) override;
 
     std::map<eckit::PathName, eckit::OffsetList> filesOffsets(
         const std::vector<metkit::mars::MarsRequest>& requests);  // Used during scan

@@ -27,7 +27,7 @@ namespace gribjump {
 // @todo: move this configure logic into ConfigOptions.
 Lister& Lister::instance() {
     static std::string type = LibGribJump::instance().config().getString("lister.type", "fdb");
-    
+
     if (type == "fdb") {
         // @todo
         // std::string config_path = LibGribJump::instance().config().getString("lister.config", "");
@@ -38,12 +38,14 @@ Lister& Lister::instance() {
     else if (type == "mars") {
         std::string uri = LibGribJump::instance().config().getString("lister.uri", "");
         if (uri.empty()) {
-            throw eckit::SeriousBug("Lister type is set to 'mars' but no URI provided in config. Please set 'lister.uri' to the host:port of the MarsLister server.");
+            throw eckit::SeriousBug(
+                "Lister type is set to 'mars' but no URI provided in config. Please set 'lister.uri' to the host:port "
+                "of the MarsLister server.");
         }
         eckit::net::Endpoint endpoint(uri);
         static MarsListerClient inst(endpoint.host(), endpoint.port());
         return inst;
-    } 
+    }
     else {
         throw eckit::SeriousBug("Unknown lister type: " + type);
     }
@@ -57,7 +59,7 @@ filemap_t Lister::fileMap(const ExItemMap& reqToExtractionItem) {
     filemap_t filemap;
     for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
         ExtractionItem* extractionItem = extractionItemPtr.get();
-        eckit::PathName fname = extractionItem->URI().path();
+        eckit::PathName fname          = extractionItem->URI().path();
         insertFileMap(filemap, fname, extractionItem);
     }
 

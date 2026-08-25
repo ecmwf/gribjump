@@ -50,7 +50,7 @@ Config::ServerMap Config::loadServerMap() const {
         if (src_uri.empty()) {
             throw eckit::SeriousBug("Invalid servermap config: each entry must have either 'fdb' or 'mars' key");
         }
-        auto gj_uri = server.getString("gribjump");
+        auto gj_uri  = server.getString("gribjump");
         map[src_uri] = gj_uri;
     }
 
