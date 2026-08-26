@@ -22,24 +22,31 @@
 #include "eckit/log/Log.h"
 #include "eckit/log/Plural.h"
 
+#include "gribjump/LibGribJump.h"
+#include "gribjump/remote/ForwardExtractIndex.h"
+
 namespace gribjump {
 
 //----------------------------------------------------------------------------------------------------------------------
 // Request header
 
-void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context) {
-    stream << remoteProtocolVersion;
+void Protocol::writeRequestHeader(eckit::Stream& stream, RequestType type, const LogContext& context,
+                                  uint16_t version) {
+    stream << version;
     stream << context;
     stream << static_cast<uint16_t>(type);
 }
 
-RequestType Protocol::readRequestHeader(eckit::Stream& stream) {
+Protocol::RequestHeader Protocol::readRequestHeader(eckit::Stream& stream) {
     uint16_t version;
     stream >> version;
-    if (version != remoteProtocolVersion) {
-        throw eckit::SeriousBug(
-            "Gribjump remote-protocol mismatch: Serverside version: " + std::to_string(remoteProtocolVersion) +
-            ", Clientside version: " + std::to_string(version));
+    if (!isSupportedProtocolVersion(version)) {
+        std::stringstream supported;
+        for (size_t i = 0; i < supportedProtocolVersions.size(); i++) {
+            supported << (i == 0 ? "" : ", ") << supportedProtocolVersions[i];
+        }
+        throw eckit::SeriousBug("Gribjump remote-protocol mismatch: Serverside supports version(s): " +
+                                supported.str() + ", Clientside version: " + std::to_string(version));
     }
 
     LogContext ctx(stream);
@@ -47,7 +54,7 @@ RequestType Protocol::readRequestHeader(eckit::Stream& stream) {
 
     uint16_t i_requestType;
     stream >> i_requestType;
-    return static_cast<RequestType>(i_requestType);
+    return RequestHeader{ProtocolVersion{version}, static_cast<RequestType>(i_requestType)};
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -121,6 +128,59 @@ std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReply(ecki
         ASSERT(nfields == 1);  // temporary; see encodeExtractReply
         results.push_back(std::make_unique<ExtractionResult>(stream));
     }
+    return results;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// EXTRACT reply, v4 streaming
+
+void Protocol::encodeExtractResultChunk(eckit::Stream& stream,
+                                        const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) {
+    stream << static_cast<uint16_t>(ReplyChunkTag::RESULT_CHUNK);
+    stream << batch.size();
+    for (const auto& [index, result] : batch) {
+        stream << index;
+        stream << *result;
+    }
+}
+
+void Protocol::encodeExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors) {
+    stream << static_cast<uint16_t>(ReplyChunkTag::END_OF_RESULTS);
+    encodeErrors(stream, errors);
+}
+
+std::vector<std::unique_ptr<ExtractionResult>> Protocol::decodeExtractReplyStreaming(eckit::Stream& stream,
+                                                                                     size_t nRequests, bool raise) {
+    std::vector<std::unique_ptr<ExtractionResult>> results(nRequests);
+    LOG_DEBUG_LIB(LibGribJump) << "decodeExtractReplyStreaming: expecting up to " << nRequests << " results"
+                               << std::endl;
+    size_t received = 0;
+    size_t nChunks  = 0;
+    for (;;) {
+        uint16_t itag;
+        stream >> itag;
+        const ReplyChunkTag tag = static_cast<ReplyChunkTag>(itag);
+        if (tag == ReplyChunkTag::END_OF_RESULTS) {
+            break;
+        }
+        ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
+        size_t count;
+        stream >> count;
+        LOG_DEBUG_LIB(LibGribJump) << "decodeExtractReplyStreaming: chunk " << nChunks << " with " << count
+                                   << " results" << std::endl;
+        nChunks++;
+        for (size_t i = 0; i < count; i++) {
+            size_t index;
+            stream >> index;
+            ASSERT(index < nRequests);
+            results[index] = std::make_unique<ExtractionResult>(stream);
+            received++;
+        }
+    }
+    LOG_DEBUG_LIB(LibGribJump) << "decodeExtractReplyStreaming: received " << received << " results in " << nChunks
+                               << " chunks" << std::endl;
+    // Error footer: identical layout + semantics to the leading v3 error block.
+    decodeErrors(stream, raise);
     return results;
 }
 
@@ -268,6 +328,16 @@ Protocol::ForwardExtractRequest Protocol::decodeForwardExtractRequest(eckit::Str
             out.items.push_back(std::move(extractionItem));
         }
     }
+
+    // Stamp each item with its enumeration index (filemap order), which keys the
+    // v4 streaming reply chunk. Matches the proxy's flattenFilemap ordering, so
+    // out-of-order chunks slot back into the right item.
+    size_t index = 0;
+    for (const auto& [fname, extractionItems] : out.filemap) {
+        for (ExtractionItem* item : extractionItems) {
+            item->streamIndex(index++);
+        }
+    }
     return out;
 }
 
@@ -293,6 +363,53 @@ void Protocol::decodeForwardExtractReply(eckit::Stream& stream, filemap_t& filem
             filemap[fname][j]->result(std::make_unique<ExtractionResult>(stream));
         }
     }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// FORWARD_EXTRACT reply, v4 streaming framing
+
+void Protocol::encodeForwardExtractResultChunk(eckit::Stream& stream,
+                                               const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) {
+    encodeExtractResultChunk(stream, batch);
+}
+
+void Protocol::encodeForwardExtractReplyEnd(eckit::Stream& stream, const std::vector<std::string>& errors) {
+    encodeExtractReplyEnd(stream, errors);
+}
+
+void Protocol::decodeForwardExtractReplyStreaming(eckit::Stream& stream, filemap_t& filemap, bool raise) {
+    // index -> item, derived identically to the leaf's outgoing labelling (see
+    // ForwardExtractIndex.h), so out-of-order chunks slot into the right item.
+    std::vector<ExtractionItem*> byIndex = flattenFilemap(filemap);
+    LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: expecting up to " << byIndex.size() << " results"
+                               << std::endl;
+    size_t received = 0;
+    size_t nChunks  = 0;
+    for (;;) {
+        uint16_t itag;
+        stream >> itag;
+        const ReplyChunkTag tag = static_cast<ReplyChunkTag>(itag);
+        if (tag == ReplyChunkTag::END_OF_RESULTS) {
+            break;
+        }
+        ASSERT(tag == ReplyChunkTag::RESULT_CHUNK);
+        size_t count;
+        stream >> count;
+        LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: chunk " << nChunks << " with " << count
+                                   << " results" << std::endl;
+        nChunks++;
+        for (size_t i = 0; i < count; i++) {
+            size_t index;
+            stream >> index;
+            ASSERT(index < byIndex.size());
+            byIndex[index]->result(std::make_unique<ExtractionResult>(stream));
+            received++;
+        }
+    }
+    LOG_DEBUG_LIB(LibGribJump) << "decodeForwardExtractReplyStreaming: received " << received << " results in "
+                               << nChunks << " chunks" << std::endl;
+    // Error footer: identical layout + semantics to the leading v3 error block.
+    decodeErrors(stream, raise);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

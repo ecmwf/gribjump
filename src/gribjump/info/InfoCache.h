@@ -44,8 +44,8 @@ public:
     /// @param offsets list of offsets to at which GribInfo should be extracted
     size_t scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
 
-    // if merge is true, we only generate jumpinfos for offsets that are not already in the cache file
-    // if merge is false, we generate an entirely new cache file
+    // if merge is true, we only generate jumpinfos for offsets that are not already in the Index File
+    // if merge is false, we generate an entirely new Index File
     size_t scan(const eckit::PathName& path, bool merge = true);  // < scan all fields in a file
 
 
@@ -96,7 +96,7 @@ private:  // members
 
     bool lazy_;  //< if true, cache.get may construct JumpInfo on the fly
 
-    bool shadowCache_ = false;  //< if true, cache files are persisted next to the original data files (e.g. in FDB)
+    bool shadowCache_ = false;  //< if true, Index Files are persisted next to the original data files (e.g. in FDB)
                                 //  This takes precedence over cacheDir_.
 };
 
