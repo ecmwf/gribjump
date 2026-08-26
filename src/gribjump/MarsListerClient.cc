@@ -225,7 +225,7 @@ filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest
     metkit::mars::MarsExpansion expand(false, true);
     for (const auto& field : aggregation) {
         const std::string key = marsRequestToKey(field.request, expand);
-        std::cout << "Searching for key: " << key << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "Searching for key: " << key << std::endl;
 
         auto it = reqToExtractionItem.find(key);
         if (it == reqToExtractionItem.end()) {
