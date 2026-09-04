@@ -130,6 +130,15 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
+    TARGET "gribjump_test_config"
+    SOURCES "test_config.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+ecbuild_add_test(
     TARGET "gribjump_test_workqueue"
     SOURCES "test_workqueue.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
