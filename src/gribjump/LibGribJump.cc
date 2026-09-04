@@ -61,6 +61,12 @@ const Config& LibGribJump::config() {
     return config_;
 }
 
+void LibGribJump::setConfig(Config cfg) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    config_       = std::move(cfg);
+    configLoaded_ = true;
+}
+
 std::string LibGribJump::version() const {
     return gribjump_version_str();
 }
