@@ -17,6 +17,7 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribJumpFactory.h"
+#include "gribjump/LibGribJump.h"
 #include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/tools/ToolUtils.h"
@@ -25,6 +26,11 @@
 namespace gribjump {
 
 GribJump::GribJump() {
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build());
+}
+
+GribJump::GribJump(const Config& cfg) {
+    LibGribJump::instance().setConfig(cfg);
     impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build());
 }
 
