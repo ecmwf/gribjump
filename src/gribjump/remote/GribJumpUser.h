@@ -20,6 +20,18 @@
 #include "gribjump/GribJump.h"
 namespace gribjump {
 
+class EngineIface;
+
+//----------------------------------------------------------------------------------------------------------------------
+
+/// Server-side dispatch of a single client request. Reads the request header
+/// (protocol version, log context, request type) from the stream and executes
+/// the matching Request, replying on the same stream. Throws on protocol
+/// version mismatch or unknown request type.
+///
+/// Factored out of GribJumpUser so the server protocol logic can unit tested.
+void dispatchRequest(eckit::Stream& s, EngineIface* engine = nullptr);
+
 //----------------------------------------------------------------------------------------------------------------------
 
 class GribJumpUser : public eckit::net::NetUser {
@@ -32,11 +44,6 @@ public:
 private:  // methods
 
     virtual void serve(eckit::Stream& s, std::istream& in, std::ostream& out);
-
-    void handle_client(eckit::Stream& s, eckit::Timer& timer);
-
-    template <typename RequestType>
-    void processRequest(eckit::Stream& s);
 
 private:  // members
 };

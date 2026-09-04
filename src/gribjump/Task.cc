@@ -25,6 +25,7 @@
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
+#include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/WorkQueue.h"
 
@@ -164,10 +165,7 @@ TaskReport::TaskReport() {}
 TaskReport::TaskReport(std::vector<std::string>&& errors) : errors_(std::move(errors)) {}
 
 void TaskReport::reportErrors(eckit::Stream& client) const {
-    client << errors_.size();
-    for (const auto& s : errors_) {
-        client << s;
-    }
+    Protocol::encodeErrors(client, errors_);
 }
 
 void TaskReport::raiseErrors() const {

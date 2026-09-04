@@ -1,8 +1,8 @@
 dependencies: |
   ecmwf/ecbuild
-  MathisRosenhauer/libaec@refs/tags/v1.1.3
-  ecmwf/eccodes
+  Deutsches-Klimarechenzentrum/libaec@refs/tags/v1.1.6
   ecmwf/eckit@develop
+  ecmwf/eccodes
   ecmwf/metkit
   ecmwf/fdb
   ecmwf/gribjump

@@ -30,7 +30,7 @@ namespace gribjump {
 class Request {
 public:
 
-    Request(eckit::Stream& stream);
+    Request(eckit::Stream& stream, EngineIface& engine);
 
     virtual ~Request() = default;
 
@@ -48,7 +48,7 @@ public:
 protected:  // members
 
     eckit::Stream& client_;
-    Engine engine_;
+    EngineIface& engine_;
     TaskReport report_;
     uint64_t id_;
 };
@@ -58,7 +58,7 @@ protected:  // members
 class ScanRequest : public Request {
 public:
 
-    ScanRequest(eckit::Stream& stream);
+    ScanRequest(eckit::Stream& stream, EngineIface& engine);
 
     ~ScanRequest() = default;
 
@@ -81,7 +81,7 @@ private:
 class ExtractRequest : public Request {
 public:
 
-    ExtractRequest(eckit::Stream& stream);
+    ExtractRequest(eckit::Stream& stream, EngineIface& engine);
 
     ~ExtractRequest() = default;
 
@@ -103,7 +103,7 @@ private:
 class ForwardedExtractRequest : public Request {
 public:
 
-    ForwardedExtractRequest(eckit::Stream& stream);
+    ForwardedExtractRequest(eckit::Stream& stream, EngineIface& engine);
 
     ~ForwardedExtractRequest() = default;
 
@@ -127,7 +127,7 @@ private:
 class ForwardedScanRequest : public Request {
 public:
 
-    ForwardedScanRequest(eckit::Stream& stream);
+    ForwardedScanRequest(eckit::Stream& stream, EngineIface& engine);
 
     ~ForwardedScanRequest() = default;
 
@@ -151,7 +151,7 @@ private:
 class AxesRequest : public Request {
 public:
 
-    AxesRequest(eckit::Stream& stream);
+    AxesRequest(eckit::Stream& stream, EngineIface& engine);
 
     ~AxesRequest() = default;
 

@@ -138,6 +138,52 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+# Wire-format / codec regression tests for the remote protocol.
+# FDB-free and socket-free: runs as a normal fast unit test (unlike the live
+# server tests under remote/, which require FDB build tools) so protocol
+# regressions are caught on every build.
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_codec"
+    SOURCES "remote/test_protocol_codec.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+# Server-side protocol tests: drive the real Request classes and dispatch
+# against an in-memory stream with a mock engine (FDB-free, socket-free).
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_server"
+    SOURCES "remote/test_protocol_server.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+# Full client<->server loopback: real client codec wired to real server
+# dispatch over an in-memory stream with a mock engine (FDB-free, socket-free).
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_loopback"
+    SOURCES "remote/test_protocol_loopback.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+# Socketpair smoke test: real client codec and real server dispatch exchanged
+# over a genuine kernel socket (AF_UNIX socketpair), mock engine (FDB-free).
+ecbuild_add_test(
+    TARGET "gribjump_test_protocol_socketpair"
+    SOURCES "remote/test_protocol_socketpair.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    ENVIRONMENT "${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
 # c compiler test
 ecbuild_add_test(
     TARGET "gribjump_test_c_compile"
