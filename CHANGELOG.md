@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- No recorded changes.
+
+## [0.13.1] - 2026-09-04
+
 - GJ-64 Refactor protocol code to facilitate mocking.
 
 ## [0.13.0] - 2026-08-12
@@ -140,7 +144,8 @@ All notable changes to this project will be documented in this file.
 
 - Migrate GribJump from Metkit.
 
-[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.13.0...HEAD
+[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.13.1...HEAD
+[0.13.1]: https://github.com/ecmwf/gribjump/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/ecmwf/gribjump/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/ecmwf/gribjump/compare/0.11.1...0.12.0
 [0.11.1]: https://github.com/ecmwf/gribjump/compare/0.11.0...0.11.1

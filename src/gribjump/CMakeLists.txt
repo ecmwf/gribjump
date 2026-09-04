@@ -28,6 +28,7 @@ list( APPEND gribjump_srcs
     Config.h
     Stats.cc
     Stats.h
+    Types.h
 
     tools/GribJumpTool.h
     tools/GribJumpTool.cc
