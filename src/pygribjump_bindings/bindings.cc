@@ -105,7 +105,9 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
     py::register_local_exception<eckit::Exception>(m, "GribJumpException", PyExc_RuntimeError);
 
     m.def("init_bindings", []() {
-        const char* args[] = {"pygribjump", ""};
+        // eckit::Main keeps a pointer to argv, so it must outlive the call
+        // (hence static), and follow the argv convention of argv[argc] == nullptr.
+        static const char* args[] = {"pygribjump", nullptr};
         eckit::Main::initialise(1, const_cast<char**>(args));
     });
 

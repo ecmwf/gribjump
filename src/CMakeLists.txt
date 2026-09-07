@@ -48,6 +48,7 @@ if (HAVE_PYTHON_GRIBJUMP_INTERFACE)
     add_subdirectory(pygribjump_bindings)
     file(GLOB_RECURSE
         _pygribjump_package_files
+        CONFIGURE_DEPENDS
         "pygribjump/*.py"
         "pygribjump/_internal/*.py"
     )
@@ -60,7 +61,11 @@ if (HAVE_PYTHON_GRIBJUMP_INTERFACE)
         COMMAND ${Python_EXECUTABLE} -m build --wheel ${PYGRIBJUMP_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch pygribjump.wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        DEPENDS ${_pygribjump_package_files} pygribjump_bindings
+        # Target-level dependency (build ordering) on the bindings target, plus a
+        # file-level dependency on its output so the wheel is rebuilt when the
+        # compiled extension changes.
+        DEPENDS ${_pygribjump_package_files}
+                pygribjump_bindings $<TARGET_FILE:pygribjump_bindings>
                 ${PYGRIBJUMP_STAGING}/README.md ${PYGRIBJUMP_STAGING}/LICENSE
         COMMENT "Building Python wheel for pygribjump..."
     )

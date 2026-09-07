@@ -144,7 +144,11 @@ jobs:
       - name: Get gribjump
         uses: actions/checkout@v5
         with:
-          repository: ecmwf/gribjump
+          # For pull_request_target the default checkout is the base branch, so
+          # explicitly check out the PR head (gated by the 'approved-for-ci'
+          # label, see the job 'if' condition). For all other events the
+          # expression is empty and the event's own SHA is checked out.
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || '' }}
           path: gribjump-src
       - name: Display Python version
         run: python --version
