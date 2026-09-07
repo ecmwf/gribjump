@@ -410,6 +410,8 @@ class GribJump:
     """This is the main container class for accessing GribJump"""
 
     def __init__(self):
+        raise RuntimeError("I am `gribjump/python/pygribjump/src/pygribjump/pygribjump.py` (CFFI) and I am an error!")
+        
         gribjump = ffi.new('gribjump_handle_t**')
         lib.gribjump_new_handle(gribjump)
 

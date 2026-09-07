@@ -57,6 +57,7 @@ class GribJump:
     def __init__(self) -> None:
         init_bindings()
         self.logger = logging.getLogger(__name__ + ".GribJump")
+        raise RuntimeError("I am gribjump/src/pygribjump/pygribjump.py and I am an error!")
         self.gribjump = _GribJump()
 
     def __enter__(self) -> "GribJump":
