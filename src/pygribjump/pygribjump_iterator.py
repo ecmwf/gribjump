@@ -151,13 +151,14 @@ class ExtractionIterator:
         This exists for backwards compatibility with the old cffi based pygribjump
         interface, but it is not recommended and will be removed in the future.
 
-        Original dimensions:
-        [i]          : ith request
-        [i][j]       : jth field from this request. This is always a single element now,
-                       making this dimension pointless.
-        [i][j][k]    : kth range requested from this field.
-        [i][j][k][0] : the list of values extracted for this range
-        [i][j][k][1] : the mask (list of uint64) extracted for this range
+        Original dimensions::
+
+            [i]          : ith request
+            [i][j]       : jth field from this request. This is always a single element
+                           now, making this dimension pointless.
+            [i][j][k]    : kth range requested from this field.
+            [i][j][k][0] : the list of values extracted for this range
+            [i][j][k][1] : the mask (list of uint64) extracted for this range
         """
         res = []  # of size nrequests
 

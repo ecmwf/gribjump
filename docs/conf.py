@@ -34,7 +34,10 @@ extensions = [
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "_internal", "README.rst", "DOCS_SETUP_TODO.md"]
 
-autoapi_dirs = ["../python/pygribjump/src/pygribjump"]
+# The python API reference is generated from the pybind11 based pygribjump.
+# The legacy cffi implementation (python/pygribjump) is deprecated and is
+# documented by docs/pygribjump/migration.rst only.
+autoapi_dirs = ["../src/pygribjump"]
 autoapi_type = "python"
 autoapi_generate_api_docs = True
 autoapi_add_toctree_entry = False
@@ -42,6 +45,9 @@ autoapi_python_class_content = "both"
 autoapi_ignore = [
     "*/_internal/*",
 ]
+# The (documented) internals are deliberately not part of the API reference, so
+# autoapi cannot resolve imports from them. Those reports are not actionable.
+suppress_warnings = ["autoapi.python_import_resolution"]
 add_module_names = False
 autoapi_keep_files = False
 
