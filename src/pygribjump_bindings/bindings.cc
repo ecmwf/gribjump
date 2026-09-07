@@ -136,8 +136,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
              }),
              py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{})
         .def("ranges", &gj::ExtractionRequest::ranges)
-        .def("request_string",
-             [](const gj::ExtractionRequest& request) { return request.requestString(); })
+        .def("request_string", [](const gj::ExtractionRequest& request) { return request.requestString(); })
         .def("grid_hash", &gj::ExtractionRequest::gridHash)
         .def("__repr__", [](const gj::ExtractionRequest& request) {
             std::stringstream buf;
@@ -150,8 +149,8 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                          const std::string& host, int port, const gj::Ranges& ranges, const std::string& grid_hash) {
                  return gj::PathExtractionRequest(path, scheme, offset, host, port, ranges, grid_hash);
              }),
-             py::arg("path"), py::arg("scheme"), py::arg("offset"), py::arg("host"), py::arg("port"),
-             py::arg("ranges"), py::arg("grid_hash") = std::string{})
+             py::arg("path"), py::arg("scheme"), py::arg("offset"), py::arg("host"), py::arg("port"), py::arg("ranges"),
+             py::arg("grid_hash") = std::string{})
         .def("path", &gj::PathExtractionRequest::path)
         .def("scheme", &gj::PathExtractionRequest::scheme)
         .def("offset", [](const gj::PathExtractionRequest& request) { return request.offset(); })
@@ -167,8 +166,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
     // @brief Result class
     //--------------------------------------------------
 
-    py::class_<gj::ExtractionResult, py::smart_holder>(m, "ExtractionResult",
-                                                       py::release_gil_before_calling_cpp_dtor())
+    py::class_<gj::ExtractionResult, py::smart_holder>(m, "ExtractionResult", py::release_gil_before_calling_cpp_dtor())
         .def("nrange", &gj::ExtractionResult::nrange)
         .def("nvalues", &gj::ExtractionResult::nvalues)
         .def("total_values", &gj::ExtractionResult::total_values)
@@ -259,8 +257,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                 py::gil_scoped_release gil;
                 return gribjump.extract(mars_request, ranges, grid_hash, log_context(ctx));
             },
-            py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{},
-            py::arg("ctx") = std::string{})
+            py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{}, py::arg("ctx") = std::string{})
         .def(
             "axes",
             [](gj::GribJump& gribjump, const std::string& request, int level, const std::string& ctx) {
