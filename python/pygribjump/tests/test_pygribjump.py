@@ -42,6 +42,17 @@ context = {
 explicitly_enabled = os.getenv("PYGRIBJUMP_TEST_ENABLE_FDB") == "1"
 SKIP_FDB = not explicitly_enabled
 
+def test_construct_gribjump():
+    """
+    Smoke test: constructing a GribJump object must work.
+
+    Deliberately not guarded by SKIP_FDB: it requires no FDB setup, and it ensures
+    that the constructor (and underlying library loading) is exercised even when
+    the FDB-backed tests are skipped, as is the case on the downstream CI.
+    """
+    GribJump()
+
+
 def compare_synthetic_data(values, expected):
     """
     Compare the synthetic data with the expected data.
