@@ -39,7 +39,7 @@ if os.environ.get("PYGRIBJUMP_SUPPRESS_LEGACY_WARNING", "") not in ("1", "true",
     warnings.warn(
         "You are using the legacy cffi based pygribjump interface. It is deprecated and "
         "will be removed in a future release, in favour of the pybind11 based interface, "
-        "which is a drop-in replacement for almost all users. "
+        "which is a drop-in replacement. "
         f"See the migration guide at {MIGRATION_GUIDE_URL}. "
         "Set PYGRIBJUMP_SUPPRESS_LEGACY_WARNING=1 to silence this warning.",
         FutureWarning,

@@ -70,6 +70,23 @@ def test_extraction_request_from_indices() -> None:
     np.testing.assert_array_equal(request.indices(), np.array(points, dtype=int))
 
 
+def test_extraction_request_from_indices_rejects_non_integer_points() -> None:
+    with pytest.raises(TypeError, match="integer bounds"):
+        ExtractionRequest.from_indices(BASE_REQUEST, [2.7, 5.2])
+
+    with pytest.raises(ValueError, match="non-negative"):
+        ExtractionRequest.from_indices(BASE_REQUEST, [-5, -3])
+
+
+def test_extraction_request_from_indices_accepts_numpy_integers() -> None:
+    points = np.array([10, 20, 30], dtype=np.int64)
+
+    request = ExtractionRequest.from_indices(BASE_REQUEST, points)
+
+    assert request.ranges == [(10, 11), (20, 21), (30, 31)]
+    assert request.indices().dtype == np.int64
+
+
 def test_extraction_request_repr_holds_the_request() -> None:
     request = ExtractionRequest({"class": "od", "step": [0, 1]}, [(0, 10)])
 
