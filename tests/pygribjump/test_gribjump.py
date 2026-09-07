@@ -59,6 +59,8 @@ def test_extract_from_paths_rejects_bad_input() -> None:
 def test_polyrequest_tuples_are_unpacked() -> None:
     gribjump = GribJump()
 
+    # The tuple syntax is deprecated (see test_cffi_compat.py) but still supported,
+    # so this emits a DeprecationWarning before rejecting the malformed tuple.
     with pytest.raises(ValueError, match="length 2 or 3"):
         gribjump.extract([(BASE_REQUEST, [(0, 1)], "hash", "too-much")], ctx=CONTEXT)
 

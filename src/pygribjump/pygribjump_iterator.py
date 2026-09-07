@@ -138,33 +138,11 @@ class ExtractionIterator:
     def dump_values(self) -> list[list[np.ndarray]]:
         """
         Dump the values of all results, one list of arrays per field.
+
+        Note
+        ----
+        The arrays are the views owned by the individual results; they stay valid
+        after the iterator has been exhausted. Use `copy_values()` per result if you
+        need arrays which are independent of each other.
         """
-        return [result.copy_values() for result in self]
-
-    def dump_legacy(self):
-        """
-        Dump the iterator into its unwieldy legacy format.
-
-        This exists for backwards compatibility with the old cffi based pygribjump
-        interface, but it is not recommended and will be removed in the future.
-
-        Original dimensions::
-
-            [i]          : ith request
-            [i][j]       : jth field from this request. This is always a single element
-                           now, making this dimension pointless.
-            [i][j][k]    : kth range requested from this field.
-            [i][j][k][0] : the list of values extracted for this range
-            [i][j][k][1] : the mask (list of uint64) extracted for this range
-        """
-        res = []
-
-        for result in self:
-            values = result.copy_values()
-            masks = result.copy_masks()
-            li = [[]]
-            for value, mask in zip(values, masks):
-                li[0].append((value, mask))
-            res.append(li)
-
-        return res
+        return [result.values for result in self]

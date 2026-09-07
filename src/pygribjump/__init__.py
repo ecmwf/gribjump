@@ -20,8 +20,6 @@ from pygribjump.pygribjump import (
     GribJump,
     dic_to_request,
     library_version,
-    list_to_rangestr,
-    rangestr_to_list,
     version,
 )
 from pygribjump.pygribjump_iterator import (
@@ -42,6 +40,4 @@ __all__ = [
     "version",
     "library_version",
     "dic_to_request",
-    "rangestr_to_list",
-    "list_to_rangestr",
 ]

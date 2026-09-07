@@ -94,6 +94,7 @@ def test_extract(read_only_fdb_setup) -> None:
         request["step"] = str(step)
         requests.append(request)
 
+    # list of tuples api: deprecated (see test_cffi_compat.py), still supported for now
     polyrequest = list(zip(requests, ranges))
     results = list(gribjump.extract(polyrequest, ctx=CONTEXT))
     assert len(results) == len(ranges)
