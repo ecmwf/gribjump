@@ -1,7 +1,6 @@
 name: Build and Test PyGribJump
 
 on:
-  # Trigger the workflow on push to master or develop, except tag creation
   push:
     branches:
       - 'master'
@@ -9,14 +8,11 @@ on:
     tags-ignore:
       - '**'
 
-  # Trigger the workflow on pull request (skips draft PRs)
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
-  # Trigger the workflow manually
   workflow_dispatch: ~
 
-  # Trigger after public PR approved for CI
   pull_request_target:
     types: [labeled]
 
@@ -127,8 +123,8 @@ jobs:
     if: ${{ !github.event.pull_request.draft && (success() || failure()) && (!github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci') }}
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13'] # eccodes does not yet support 3.14
-      fail-fast: false  # Continue running other versions if one fails
+        python-version: ['3.11', '3.12', '3.13']
+      fail-fast: false
 
     steps:
       - name: Set up Python ${{ matrix.python-version }}
@@ -144,10 +140,6 @@ jobs:
       - name: Get gribjump
         uses: actions/checkout@v5
         with:
-          # For pull_request_target the default checkout is the base branch, so
-          # explicitly check out the PR head (gated by the 'approved-for-ci'
-          # label, see the job 'if' condition). For all other events the
-          # expression is empty and the event's own SHA is checked out.
           ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || '' }}
           path: gribjump-src
       - name: Display Python version
@@ -179,4 +171,4 @@ jobs:
           name: pygribjump-wheel-py${{ matrix.python-version }}
           path: "gribjump-build/pygribjump-*.whl"
           retention-days: 10
-          if-no-files-found: error # 'warn' or 'ignore' are also available, defaults to `warn`
+          if-no-files-found: error

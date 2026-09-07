@@ -12,8 +12,6 @@ Data and helpers shared by the pygribjump (pybind11) API tests.
 
 import numpy as np
 
-# The synthetic data encoded in `data/synth11.grib`: the values 0..99 with an
-# increasing number of missing values interleaved.
 SYNTHETIC_DATA = [
     0.0, np.nan, np.nan, 3.0, 4.0, np.nan, np.nan, np.nan, 8.0, 9.0,
     10.0, np.nan, np.nan, np.nan, np.nan, 15.0, 16.0, 17.0, 18.0, np.nan,
@@ -27,12 +25,10 @@ SYNTHETIC_DATA = [
     np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, 99.0,
 ]
 
-# For completeness: the log context handed over to the library.
 CONTEXT = {
     "source": "pytest",
 }
 
-# A MARS selection matching the single field stored in `data/synth11.grib`.
 BASE_REQUEST = {
     "domain": "g",
     "levtype": "sfc",
@@ -80,5 +76,4 @@ def validate_masks(result) -> None:
             else:
                 assert np.isnan(val)
 
-    # Check that the flattened mask matches the concatenated per-range masks
     assert np.array_equal(np.concatenate(result.masks), result.masks_flat)

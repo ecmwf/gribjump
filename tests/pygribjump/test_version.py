@@ -20,7 +20,6 @@ def test_version_is_exposed() -> None:
 
 
 def test_library_version_matches_build_version() -> None:
-    # pygribjump warns (see _internal) if these differ, in the build tree they must not
     assert pygribjump.library_version() == pygribjump.version()
 
 
@@ -45,5 +44,4 @@ def test_public_api_is_exported() -> None:
 def test_bindings_are_the_pybind11_ones() -> None:
     from pygribjump._internal import _GribJump
 
-    # The pybind11 extension module, not the cffi wrapper
     assert _GribJump.__module__ == "pygribjump_bindings.pygribjump_bindings"

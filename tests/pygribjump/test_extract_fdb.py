@@ -94,7 +94,6 @@ def test_extract(read_only_fdb_setup) -> None:
         request["step"] = str(step)
         requests.append(request)
 
-    # list of tuples api
     polyrequest = list(zip(requests, ranges))
     results = list(gribjump.extract(polyrequest, ctx=CONTEXT))
     assert len(results) == len(ranges)
@@ -102,7 +101,6 @@ def test_extract(read_only_fdb_setup) -> None:
         compare_synthetic_data(result.values, expected_values(request_ranges))
         validate_masks(result)
 
-    # list of ExtractionRequest api
     polyrequest = [ExtractionRequest(r, rng) for r, rng in zip(requests, ranges)]
     results = list(gribjump.extract(polyrequest, ctx=CONTEXT))
     assert len(results) == len(ranges)

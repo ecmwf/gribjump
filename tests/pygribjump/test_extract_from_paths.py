@@ -64,8 +64,6 @@ def test_extract_from_paths_multiple_requests(grib_file: pathlib.Path, tmp_path:
         [(0, 1), (1, 2), (92, 93)],
     ]
 
-    # Build a file holding the same field three times, so that every request
-    # addresses a distinct (path, offset) pair.
     message = grib_file.read_bytes()
     multi_field_file = tmp_path / "multi.grib"
     multi_field_file.write_bytes(message * len(ranges))
@@ -98,7 +96,6 @@ def test_extract_from_paths_values_are_numpy_arrays(grib_file: pathlib.Path) -> 
     for values in result.values:
         assert isinstance(values, np.ndarray)
 
-    # The values are copies owned by python, they may outlive the result
     copied = result.copy_values()
     del result
     compare_synthetic_data(copied, expected_values([(0, 10)]))
@@ -116,14 +113,12 @@ def test_extract_from_paths_dump_values(grib_file: pathlib.Path) -> None:
 def test_extract_from_paths_dump_legacy(grib_file: pathlib.Path) -> None:
     gribjump = GribJump()
 
-    # Old (cffi era) output format: [request][field][range][values|mask]
     dumped = gribjump.extract_from_paths([path_request(grib_file, [(0, 6)])], ctx=CONTEXT).dump_legacy()
 
     assert np.array_equal(dumped[0][0][0][0], SYNTHETIC_DATA[0:6], equal_nan=True)
 
 
 def test_extract_from_paths_without_context(grib_file: pathlib.Path) -> None:
-    # The default context is filled in by pygribjump itself
     gribjump = GribJump()
 
     result = next(iter(gribjump.extract_from_paths([path_request(grib_file, [(3, 5)])])))

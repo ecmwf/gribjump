@@ -47,10 +47,6 @@ namespace gj = gribjump;
 
 namespace {
 
-//--------------------------------------------------------------------------------------------------
-// @brief Helpers
-//--------------------------------------------------------------------------------------------------
-
 metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
     std::istringstream in(request);
     metkit::mars::MarsParser parser(in);
@@ -122,12 +118,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
         return dependencyInformation;
     });
 
-    // Compile-time gribjump version
-    m.attr("__gribjump_build_version__") = gribjump_VERSION_STR;
-
-    //--------------------------------------------------
-    // @brief Request classes
-    //--------------------------------------------------
+        m.attr("__gribjump_build_version__") = gribjump_VERSION_STR;
 
     py::class_<gj::ExtractionRequest>(m, "ExtractionRequest")
         .def(py::init())
@@ -162,10 +153,6 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
             buf << request;
             return buf.str();
         });
-
-    //--------------------------------------------------
-    // @brief Result class
-    //--------------------------------------------------
 
     py::class_<gj::ExtractionResult, py::smart_holder>(m, "ExtractionResult",
                                                        py::release_gil_before_calling_cpp_dtor())
@@ -213,10 +200,6 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
             return buf.str();
         });
 
-    //--------------------------------------------------
-    // @brief Iterator class
-    //--------------------------------------------------
-
     py::class_<gj::ExtractionIterator, py::smart_holder>(m, "ExtractionIterator",
                                                          py::release_gil_before_calling_cpp_dtor())
         .def("__iter__", [](gj::ExtractionIterator& self) -> gj::ExtractionIterator& { return self; })
@@ -232,10 +215,6 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
             },
             py::call_guard<py::gil_scoped_release>())
         .def("has_next", &gj::ExtractionIterator::hasNext, py::call_guard<py::gil_scoped_release>());
-
-    //--------------------------------------------------
-    // @brief GribJump class
-    //--------------------------------------------------
 
     py::class_<gj::GribJump, py::smart_holder>(m, "GribJump", py::release_gil_before_calling_cpp_dtor())
         .def(py::init(), py::call_guard<py::gil_scoped_release>())

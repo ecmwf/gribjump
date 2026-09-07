@@ -28,9 +28,6 @@ Range = tuple[int, int]
 A single range to be extracted, resembling the half-open interval [lo, hi).
 """
 
-# `GribJumpException` is created by the bindings (see src/pygribjump_bindings) and
-# re-exported here: it is raised for every error reported by the gribjump library and
-# derives from `RuntimeError`.
 __all__ = [
     "GribJumpException",
     "ExtractionRequest",

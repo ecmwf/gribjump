@@ -49,7 +49,6 @@ class GribJump:
     Or leveraging the context manager:
 
     >>> with pygribjump.GribJump() as gribjump:
-    ...     # Call methods of gribjump
     ...     pass
     """
 
@@ -318,9 +317,6 @@ def library_version() -> str:
             return lib_version
     raise RuntimeError("Could not determine the version of the loaded libgribjump.")
 
-
-# --------------------------------------------------------------------------------------
-# utils
 
 
 def rangestr_to_list(rangestr: str) -> list[Range]:

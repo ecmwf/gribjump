@@ -5,9 +5,9 @@ from pathlib import Path
 
 from setuptools import setup
 
-try:  # setuptools >= 70.1 ships bdist_wheel itself
+try:
     from setuptools.command.bdist_wheel import bdist_wheel
-except ImportError:  # pragma: no cover - older setuptools
+except ImportError:  # pragma: no cover
     from wheel.bdist_wheel import bdist_wheel
 
 # NOTE this we need to correctly link with gribjumplib version on cd. For local builds feel free to ignore
@@ -15,14 +15,9 @@ version_suffix = os.environ.get("VERSION_SUFFIX", "")
 if version_suffix:
     version_suffix = f".{version_suffix}"
     requires_extra = [f"gribjumplib==@gribjump_VERSION_STR@{version_suffix}"]
-    # Published wheels are binary and platform/version specific, but pip already
-    # enforces this via the wheel's compiled tag, so keep a broad requirement here.
     python_requires = ">3.10"
 else:
     requires_extra = []
-    # This project is only meant to be installed editably from the build tree
-    # that generated it, so pin it to the exact Python version cmake was run
-    # with (the one the compiled extension modules were built against).
     python_requires = "==@Python_VERSION_MAJOR@.@Python_VERSION_MINOR@.*"
 
 

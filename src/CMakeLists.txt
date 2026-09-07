@@ -7,18 +7,12 @@ add_subdirectory( gribjump )
 add_subdirectory( tools )
 
 if (HAVE_PYTHON_GRIBJUMP_INTERFACE)
-    # We create the complete python package layout at this location.
-    # This allows us to run python wheel creation at this path and
-    # to put this path on the PYTHONPATH to allow direct use of
-    # pygribjump, e.g. for testing or local exploration.
     set(PYGRIBJUMP_STAGING "${CMAKE_BINARY_DIR}/pygribjump-python-package-staging")
     file(MAKE_DIRECTORY "${PYGRIBJUMP_STAGING}")
     file(CREATE_LINK
         "${CMAKE_CURRENT_SOURCE_DIR}/pygribjump"
         "${PYGRIBJUMP_STAGING}/pygribjump" SYMBOLIC
     )
-    # Copy README.md and LICENSE at build time so changes are picked up
-    # without needing to re-run cmake configure
     add_custom_command(
         OUTPUT ${PYGRIBJUMP_STAGING}/README.md
         COMMAND ${CMAKE_COMMAND} -E copy
@@ -61,9 +55,6 @@ if (HAVE_PYTHON_GRIBJUMP_INTERFACE)
         COMMAND ${Python_EXECUTABLE} -m build --wheel ${PYGRIBJUMP_STAGING} -o .
         COMMAND ${CMAKE_COMMAND} -E touch pygribjump.wheel.stamp
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        # Target-level dependency (build ordering) on the bindings target, plus a
-        # file-level dependency on its output so the wheel is rebuilt when the
-        # compiled extension changes.
         DEPENDS ${_pygribjump_package_files}
                 pygribjump_bindings $<TARGET_FILE:pygribjump_bindings>
                 ${PYGRIBJUMP_STAGING}/README.md ${PYGRIBJUMP_STAGING}/LICENSE

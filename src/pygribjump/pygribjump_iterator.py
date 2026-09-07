@@ -35,9 +35,6 @@ class ExtractionResult:
         self._result: _ExtractionResult = result
         self._shape: list[int] | None = None
 
-        # Lazily created, then cached: `values`/`masks` are views into the flat
-        # arrays, so all accessors of one result share their memory (as they did
-        # in the cffi based pygribjump).
         self._values_flat: np.ndarray | None = None
         self._masks_flat: np.ndarray | None = None
         self._values: list[np.ndarray] | None = None
@@ -160,12 +157,12 @@ class ExtractionIterator:
             [i][j][k][0] : the list of values extracted for this range
             [i][j][k][1] : the mask (list of uint64) extracted for this range
         """
-        res = []  # of size nrequests
+        res = []
 
         for result in self:
             values = result.copy_values()
             masks = result.copy_masks()
-            li = [[]]  # pointless outer dimension for legacy reasons.
+            li = [[]]
             for value, mask in zip(values, masks):
                 li[0].append((value, mask))
             res.append(li)

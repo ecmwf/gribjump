@@ -66,5 +66,4 @@ def test_polyrequest_tuples_are_unpacked() -> None:
 def test_scan_of_a_grib_file(grib_file: pathlib.Path) -> None:
     gribjump = GribJump()
 
-    # A single field is stored in the test file
     assert gribjump.scan([str(grib_file)], ctx=CONTEXT) == 1

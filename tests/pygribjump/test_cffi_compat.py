@@ -32,7 +32,6 @@ def test_library_errors_raise_gribjump_exception(tmp_path: pathlib.Path) -> None
     with pytest.raises(GribJumpException, match="no_such_file.grib"):
         list(gribjump.extract_from_paths([request]))
 
-    # ... and are still caught by code written against the cffi interface
     with pytest.raises(RuntimeError):
         list(gribjump.extract_from_paths([request]))
 
@@ -63,7 +62,6 @@ def test_deprecated_req_alias() -> None:
 def test_deprecated_polyrequest_alias() -> None:
     gribjump = GribJump()
 
-    # The deprecation is reported before the (empty) request is rejected
     with pytest.deprecated_call(match="polyrequest"), pytest.raises(ValueError):
         gribjump.extract(polyrequest=[], ctx=CONTEXT)
 
@@ -79,16 +77,13 @@ def test_results_share_memory_between_accessors(grib_file: pathlib.Path) -> None
 
     result = next(iter(gribjump.extract_from_paths([request], ctx=CONTEXT)))
 
-    # Repeated access returns the same arrays, as it did with the cffi views
     assert result.values[0] is result.values[0]
     assert result.masks[0] is result.masks[0]
 
-    # ... and the per-range arrays are views into the flat arrays
     result.values[0][0] = 999.0
     assert result.values_flat[0] == 999.0
     assert result.values[0][0] == 999.0
 
-    # ... while the copies are independent
     copied = result.copy_values()
     copied[0][0] = -1.0
     assert result.values[0][0] == 999.0

@@ -16,7 +16,6 @@ from typing import Any, Callable, Optional
 
 from pygribjump_bindings import pygribjump_bindings as pygribjump_internal
 
-# Initial setup of binding via eckit main
 pygribjump_internal.init_bindings()
 
 
