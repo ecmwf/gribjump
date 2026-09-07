@@ -16,7 +16,6 @@ from pygribjump._internal import (
     _PathExtractionRequest,
 )
 from pygribjump._internal.pygribjump_internal import RequestMapper, deprecated_aliases
-
 MarsSelection = Mapping[str, str | int | float | Collection[str | int | float]]
 """
 Selection part of a MARS request.
@@ -29,14 +28,16 @@ Range = tuple[int, int]
 A single range to be extracted, resembling the half-open interval [lo, hi).
 """
 
-
-GribJumpException = GribJumpException
-"""
-Exception raised by the gribjump library.
-
-This is the exception type created by the bindings; it derives from `RuntimeError`,
-so code catching either keeps working.
-"""
+# `GribJumpException` is created by the bindings (see src/pygribjump_bindings) and
+# re-exported here: it is raised for every error reported by the gribjump library and
+# derives from `RuntimeError`.
+__all__ = [
+    "GribJumpException",
+    "ExtractionRequest",
+    "PathExtractionRequest",
+    "MarsSelection",
+    "Range",
+]
 
 
 class ExtractionRequest:

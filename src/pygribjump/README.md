@@ -69,7 +69,9 @@ public API is unchanged for typical use: `GribJump()`, `extract`, `extract_singl
 and the `values`/`masks`/`values_flat`/`masks_flat`/`compute_bool_masks` accessors of
 the results (including `dump_values` and `dump_legacy`) all keep working as before.
 
-The following differences are worth knowing about:
+**The full migration guide is published at
+<https://sites.ecmwf.int/docs/gribjump/pygribjump/migration.html>** (source:
+`docs/pygribjump/migration.rst`). In short:
 
 - **Keyword arguments were renamed to snake_case**: `gridHash` -> `grid_hash`,
   `req` -> `request`, `polyrequest` -> `requests`. The old names are still accepted
