@@ -10,8 +10,12 @@ from collections.abc import Collection, Mapping
 
 import numpy as np
 
-from pygribjump._internal import _ExtractionRequest, _PathExtractionRequest
-from pygribjump._internal.pygribjump_internal import RequestMapper
+from pygribjump._internal import (
+    GribJumpException,
+    _ExtractionRequest,
+    _PathExtractionRequest,
+)
+from pygribjump._internal.pygribjump_internal import RequestMapper, deprecated_aliases
 
 MarsSelection = Mapping[str, str | int | float | Collection[str | int | float]]
 """
@@ -26,10 +30,13 @@ A single range to be extracted, resembling the half-open interval [lo, hi).
 """
 
 
-class GribJumpException(RuntimeError):
-    """Exception raised by the gribjump library."""
+GribJumpException = GribJumpException
+"""
+Exception raised by the gribjump library.
 
-    pass
+This is the exception type created by the bindings; it derives from `RuntimeError`,
+so code catching either keeps working.
+"""
 
 
 class ExtractionRequest:
@@ -46,11 +53,17 @@ class ExtractionRequest:
         Hash of the grid the values are expected to be defined on. Extraction fails if it
         does not match the grid of the field.
 
+    Note
+    ----
+    The keyword arguments `req` and `gridHash` of the cffi based pygribjump are still
+    accepted, but deprecated.
+
     Examples
     --------
     >>> request = ExtractionRequest({"class": "od", "expver": "0001"}, [(0, 10), (20, 30)])
     """
 
+    @deprecated_aliases(req="request", gridHash="grid_hash")
     def __init__(
         self,
         request: MarsSelection | str,
@@ -66,6 +79,7 @@ class ExtractionRequest:
         )
 
     @classmethod
+    @deprecated_aliases(req="request", gridHash="grid_hash")
     def from_mask(
         cls,
         request: MarsSelection | str,
@@ -91,6 +105,7 @@ class ExtractionRequest:
         return cls(request, ranges, grid_hash)
 
     @classmethod
+    @deprecated_aliases(req="request", gridHash="grid_hash")
     def from_indices(
         cls,
         request: MarsSelection | str,
@@ -144,8 +159,14 @@ class PathExtractionRequest:
         The ranges to extract, each resembling the half-open interval [lo, hi).
     `grid_hash`: `str`, *optional*
         Hash of the grid the values are expected to be defined on.
+
+    Note
+    ----
+    The keyword argument `gridHash` of the cffi based pygribjump is still accepted,
+    but deprecated.
     """
 
+    @deprecated_aliases(gridHash="grid_hash")
     def __init__(
         self,
         path: str,

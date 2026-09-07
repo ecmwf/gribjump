@@ -99,6 +99,11 @@ py::array_t<std::uint64_t> to_array(const std::vector<std::bitset<64>>& mask) {
 }  // namespace
 
 PYBIND11_MODULE(pygribjump_bindings, m) {
+    // Errors raised by the gribjump library (and its dependencies) are eckit exceptions.
+    // They are translated into a dedicated python exception, which derives from RuntimeError
+    // so that code catching either keeps working.
+    py::register_local_exception<eckit::Exception>(m, "GribJumpException", PyExc_RuntimeError);
+
     m.def("init_bindings", []() {
         const char* args[] = {"pygribjump", ""};
         eckit::Main::initialise(1, const_cast<char**>(args));

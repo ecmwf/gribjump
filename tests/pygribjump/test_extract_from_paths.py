@@ -24,7 +24,13 @@ from helpers import (
     validate_masks,
 )
 
-from pygribjump import ExtractionIterator, ExtractionResult, GribJump, PathExtractionRequest
+from pygribjump import (
+    ExtractionIterator,
+    ExtractionResult,
+    GribJump,
+    GribJumpException,
+    PathExtractionRequest,
+)
 
 
 def path_request(grib_file: pathlib.Path, ranges) -> PathExtractionRequest:
@@ -128,5 +134,5 @@ def test_extract_from_paths_without_context(grib_file: pathlib.Path) -> None:
 def test_extract_from_paths_missing_file_raises(tmp_path: pathlib.Path) -> None:
     gribjump = GribJump()
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(GribJumpException):
         list(gribjump.extract_from_paths([path_request(tmp_path / "no_such_file.grib", [(0, 1)])]))
