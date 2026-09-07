@@ -208,3 +208,7 @@ if (ENABLE_FDB_BUILD_TOOLS)
     add_subdirectory(tools)
     add_subdirectory(remote)
 endif()
+
+if (HAVE_PYTHON_GRIBJUMP_INTERFACE)
+    add_subdirectory(pygribjump)
+endif()
