@@ -28,6 +28,25 @@ from socket import gethostname
 ffi = cffi.FFI()
 CData = ffi.CData
 
+# --------------------------------------------------------------------------------------
+# Deprecation of this (cffi based) implementation.
+#
+# pygribjump is now implemented with pybind11 on top of the GribJump C++ API. This
+# module is kept around for a transition period only.
+MIGRATION_GUIDE_URL = "https://sites.ecmwf.int/docs/gribjump/pygribjump/migration.html"
+
+if os.environ.get("PYGRIBJUMP_SUPPRESS_LEGACY_WARNING", "") not in ("1", "true", "yes"):
+    warnings.warn(
+        "You are using the legacy cffi based pygribjump interface. It is deprecated and "
+        "will be removed in a future release, in favour of the pybind11 based interface, "
+        "which is a drop-in replacement."
+        f"See the migration guide at {MIGRATION_GUIDE_URL}. "
+        "Set PYGRIBJUMP_SUPPRESS_LEGACY_WARNING=1 to silence this warning.",
+        FutureWarning,
+        stacklevel=2,
+    )
+# --------------------------------------------------------------------------------------
+
 
 class GribJumpException(RuntimeError):
     pass
@@ -391,6 +410,8 @@ class GribJump:
     """This is the main container class for accessing GribJump"""
 
     def __init__(self):
+        raise RuntimeError("I am `gribjump/python/pygribjump/src/pygribjump/pygribjump.py` (CFFI) and I am an error!")
+        
         gribjump = ffi.new('gribjump_handle_t**')
         lib.gribjump_new_handle(gribjump)
 

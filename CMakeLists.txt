@@ -47,6 +47,15 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
 endif()
 
+if(ENABLE_PYTHON_GRIBJUMP_INTERFACE)
+    find_package(Python 3.11 COMPONENTS Interpreter Development REQUIRED)
+endif()
+
+ecbuild_add_option( FEATURE PYTHON_GRIBJUMP_INTERFACE
+                    DESCRIPTION "Build python GribJump interface layer"
+                    DEFAULT OFF
+                    REQUIRED_PACKAGES "NAME pybind11 VERSION 3.0.1" )
+
 # python api test are currently by default disabled because we cannot run them in the ci
 ecbuild_add_option(
     FEATURE PYTHON_API_TESTS

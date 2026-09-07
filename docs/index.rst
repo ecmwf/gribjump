@@ -26,3 +26,8 @@ values (or ranges of values) can be read and decoded on demand.
 :ref:`pygribjump <PyGribJump_Introduction>` is the Python interface to GribJump,
 providing a thin, idiomatic Python layer over the GribJump client library
 installed on your system.
+
+.. note::
+
+   ``pygribjump`` is now built on pybind11. The previous cffi based
+   implementation is deprecated; see the :ref:`PyGribJump_Migration`.
