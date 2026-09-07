@@ -60,10 +60,10 @@ def main():
         if dependency_path is None:
             msg = f"\t{lib} [Optional]" if optional else f"\t{lib}"
             msg += ": not found by findlibs"
-            missing.append(lib)
             if optional:
                 logging.info(msg)
             else:
+                missing.append(lib)
                 logging.error(msg)
         else:
             msg = f"\t{lib} [Optional]" if optional else f"\t{lib}"

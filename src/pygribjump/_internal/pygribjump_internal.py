@@ -8,6 +8,7 @@
 
 import functools
 import json
+import operator
 import warnings
 from collections.abc import Collection
 from getpass import getuser
@@ -15,9 +16,6 @@ from socket import gethostname
 from typing import Any, Callable, Optional
 
 from pygribjump_bindings import pygribjump_bindings as pygribjump_internal
-
-# Initial setup of binding via eckit main
-pygribjump_internal.init_bindings()
 
 
 def deprecated_aliases(**aliases: str) -> Callable:
@@ -135,9 +133,18 @@ class RequestMapper:
         result = []
         for r in ranges:
             lo, hi = r
+            try:
+                lo = operator.index(lo)
+                hi = operator.index(hi)
+            except TypeError as error:
+                raise TypeError(
+                    f"Found invalid range {r}: Expected integer bounds for ranges [lo, hi)."
+                ) from error
+            if lo < 0:
+                raise ValueError(f"Found invalid range {r}: Expected non-negative bounds.")
             if not lo < hi:
                 raise ValueError(f"Found invalid range {r}: Expected lo < hi for ranges [lo, hi).")
-            result.append((int(lo), int(hi)))
+            result.append((lo, hi))
 
         return result
 

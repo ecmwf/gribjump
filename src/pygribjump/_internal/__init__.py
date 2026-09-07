@@ -44,6 +44,8 @@ from pygribjump_bindings.pygribjump_bindings import (
     version_info,
 )
 
+init_bindings()
+
 
 def _check_gribjump_version_compatibility(build_version, runtime_info):
     matches = [version for name, version, _, _ in runtime_info if name == "gribjump"]

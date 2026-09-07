@@ -134,7 +134,8 @@ class ExtractionRequest:
         """
         total = sum(self._shape)
         idx_iter = (idx for (low, high) in self.ranges for idx in range(low, high))
-        return np.fromiter(idx_iter, int, count=total)
+        # Use an explicit dtype: plain `int` maps to a platform-dependent width.
+        return np.fromiter(idx_iter, np.int64, count=total)
 
     def __repr__(self) -> str:
         return repr(self._request)

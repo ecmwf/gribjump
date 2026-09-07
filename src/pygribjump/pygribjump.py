@@ -7,6 +7,7 @@
 # does it submit to any jurisdiction.
 
 import logging
+import warnings
 from collections.abc import Collection
 from typing import Any, Optional
 
@@ -15,7 +16,6 @@ import numpy as np
 from pygribjump._internal import (
     _GribJump,
     _gribjump_build_version,
-    init_bindings,
     version_info,
 )
 from pygribjump._internal.pygribjump_internal import ContextMapper, RequestMapper, deprecated_aliases
@@ -54,7 +54,6 @@ class GribJump:
     """
 
     def __init__(self) -> None:
-        init_bindings()
         self.logger = logging.getLogger(__name__ + ".GribJump")
         self.gribjump = _GribJump()
 
@@ -75,9 +74,12 @@ class GribJump:
 
         Parameters
         ----------
-        `requests`: `list[ExtractionRequest]` | `list[tuple]`
-            Either a list of `ExtractionRequest` objects, or a list of tuples of the form
-            `(request, ranges)` or `(request, ranges, grid_hash)`.
+        `requests`: `list[ExtractionRequest]`
+            The requests to extract.
+
+            A list of tuples of the form `(request, ranges)` or
+            `(request, ranges, grid_hash)` is also accepted, but deprecated: build
+            `ExtractionRequest` objects instead.
         `ctx`: `dict`, *optional*
             Additional log context handed over to the gribjump library.
 
@@ -89,6 +91,12 @@ class GribJump:
         ----
         Every request in the list must have cardinality 1. Use `extract_single` for a
         request of arbitrary cardinality.
+
+        Examples
+        --------
+        >>> requests = [ExtractionRequest(request, [(0, 10), (20, 30)])]
+        >>> for result in gribjump.extract(requests):
+        ...     print(result.values)
         """
 
         if not isinstance(requests, list):
@@ -97,10 +105,21 @@ class GribJump:
         if len(requests) == 0:
             raise ValueError("Requests should not be empty")
 
-        if isinstance(requests[0], tuple):
+        if all(isinstance(request, tuple) for request in requests):
+            warnings.warn(
+                "Passing (request, ranges[, grid_hash]) tuples to extract() is deprecated "
+                "and will be removed in a future release. Pass ExtractionRequest objects "
+                "instead, e.g. [ExtractionRequest(request, ranges) for request, ranges in ...], "
+                "or use extract_from_ranges().",
+                DeprecationWarning,
+                stacklevel=3,
+            )
             requests = self._unpack_polyrequest(requests)
-        elif not isinstance(requests[0], ExtractionRequest):
-            raise ValueError("Requests should be a list of tuples or ExtractionRequest objects")
+        elif not all(isinstance(request, ExtractionRequest) for request in requests):
+            raise ValueError(
+                "Requests should be a list of tuples or ExtractionRequest objects, "
+                "not a mixture of types"
+            )
 
         return ExtractionIterator(
             self.gribjump.extract(
@@ -120,6 +139,9 @@ class GribJump:
         """
         if not isinstance(requests, list):
             raise ValueError("Requests should be a list of PathExtractionRequest objects")
+
+        if len(requests) == 0:
+            raise ValueError("Requests should not be empty")
 
         return ExtractionIterator(
             self.gribjump.extract_from_paths(
@@ -323,26 +345,14 @@ def library_version() -> str:
 # utils
 
 
-def rangestr_to_list(rangestr: str) -> list[Range]:
-    """
-    Convert a range string to a list of ranges.
-
-    e.g. "0-6,7-12" -> [(0, 6), (7, 12)]
-    """
-    return [tuple(map(int, r.split("-"))) for r in rangestr.split(",")]
-
-
-def list_to_rangestr(ranges: Collection[Range]) -> str:
-    """
-    Convert a list of ranges to a range string.
-    """
-    return ",".join(["-".join(map(str, r)) for r in ranges])
-
-
 def dic_to_request(dic: MarsSelection) -> str:
     """
     Convert a MARS selection to its request string.
 
     e.g. {"class":"od", "expver":"0001", "levtype":"pl"} -> "class=od,expver=0001,levtype=pl"
+
+    Values may be single values or collections of values:
+
+    e.g. {"class":"od", "step":[1, 2, 3]} -> "class=od,step=1/2/3"
     """
     return RequestMapper.to_request_string(dic)

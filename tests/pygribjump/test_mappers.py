@@ -52,6 +52,12 @@ def test_request_mapper_validates_ranges() -> None:
     with pytest.raises(ValueError, match="invalid range"):
         RequestMapper.to_ranges([(6, 0)])
 
+    with pytest.raises(ValueError, match="non-negative"):
+        RequestMapper.to_ranges([(-5, -4)])
+
+    with pytest.raises(TypeError, match="integer bounds"):
+        RequestMapper.to_ranges([(2.7, 5.2)])
+
 
 def test_context_mapper_provides_defaults() -> None:
     ctx = json.loads(ContextMapper.to_json(None, "pytest_action", "1.2.3", "1.2.3"))
@@ -77,12 +83,6 @@ def test_context_mapper_rejects_unknown_types() -> None:
         ContextMapper.to_json("not-a-dict", "act", "1.2.3", "1.2.3")
 
 
-def test_range_utils_roundtrip() -> None:
-    ranges = [(0, 6), (7, 12)]
-
-    assert pygribjump.list_to_rangestr(ranges) == "0-6,7-12"
-    assert pygribjump.rangestr_to_list("0-6,7-12") == ranges
-
-
 def test_dic_to_request() -> None:
     assert pygribjump.dic_to_request({"class": "od", "levtype": "pl"}) == "class=od,levtype=pl"
+    assert pygribjump.dic_to_request({"class": "od", "step": [1, 2, 3]}) == "class=od,step=1/2/3"
