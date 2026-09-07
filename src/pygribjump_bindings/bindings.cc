@@ -129,7 +129,8 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
              }),
              py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{})
         .def("ranges", &gj::ExtractionRequest::ranges)
-        .def("request_string", &gj::ExtractionRequest::requestString)
+        .def("request_string",
+             [](const gj::ExtractionRequest& request) { return request.requestString(); })
         .def("grid_hash", &gj::ExtractionRequest::gridHash)
         .def("__repr__", [](const gj::ExtractionRequest& request) {
             std::stringstream buf;

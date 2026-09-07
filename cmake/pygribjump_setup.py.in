@@ -4,7 +4,11 @@ import sys
 from pathlib import Path
 
 from setuptools import setup
-from wheel.bdist_wheel import bdist_wheel
+
+try:  # setuptools >= 70.1 ships bdist_wheel itself
+    from setuptools.command.bdist_wheel import bdist_wheel
+except ImportError:  # pragma: no cover - older setuptools
+    from wheel.bdist_wheel import bdist_wheel
 
 # NOTE this we need to correctly link with gribjumplib version on cd. For local builds feel free to ignore
 version_suffix = os.environ.get("VERSION_SUFFIX", "")
