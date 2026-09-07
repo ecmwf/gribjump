@@ -11,10 +11,11 @@ Tests for the compatibility with the cffi based pygribjump (<= 0.13).
 """
 
 import pathlib
+import warnings
 
 import numpy as np
 import pytest
-from helpers import BASE_REQUEST, CONTEXT
+from helpers import BASE_REQUEST, CONTEXT, SYNTHETIC_DATA
 
 import pygribjump
 from pygribjump import ExtractionRequest, GribJump, GribJumpException, PathExtractionRequest
@@ -100,6 +101,62 @@ def test_cffi_internals_are_gone() -> None:
 
     assert not hasattr(GribJump, "ctype")
     assert not hasattr(ExtractionRequest, "ctype")
+
+
+def test_range_string_helpers_are_not_ported() -> None:
+    """
+    The "0-6,7-12" range string format is not used anywhere in gribjump.
+    """
+    for name in ["rangestr_to_list", "list_to_rangestr"]:
+        assert not hasattr(pygribjump, name)
+        assert name not in pygribjump.__all__
+
+
+def test_polyrequest_tuples_are_deprecated() -> None:
+    """
+    Passing (request, ranges) tuples to extract() still works, but warns.
+
+    The extraction itself needs an FDB, so only the call is exercised here.
+    """
+    gribjump = GribJump()
+
+    def extract(requests) -> list[warnings.WarningMessage]:
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            try:
+                list(gribjump.extract(requests, ctx=CONTEXT))
+            except Exception:  # no FDB in this test setup
+                pass
+        return [w for w in caught if issubclass(w.category, DeprecationWarning)]
+
+    deprecations = extract([(BASE_REQUEST, [(0, 4)])])
+    assert len(deprecations) == 1
+    assert "tuples to extract() is deprecated" in str(deprecations[0].message)
+    # The warning must point at the caller, not at pygribjump's own frames
+    assert deprecations[0].filename == __file__, (
+        f"warning was attributed to {deprecations[0].filename}, not to the caller"
+    )
+
+    # Building the requests explicitly does not warn
+    assert extract([ExtractionRequest(BASE_REQUEST, [(0, 4)])]) == []
+
+
+def test_dump_legacy_is_not_ported(grib_file: pathlib.Path) -> None:
+    """
+    The pre-0.11 nested list layout is deliberately not part of the new interface.
+
+    Iterate the results, or use `dump_values()`, instead.
+    """
+    gribjump = GribJump()
+    request = PathExtractionRequest(str(grib_file), "file", 0, "", 0, [(0, 6)])
+
+    iterator = gribjump.extract_from_paths([request], ctx=CONTEXT)
+
+    assert not hasattr(iterator, "dump_legacy")
+
+    dumped = iterator.dump_values()
+    assert len(dumped) == 1
+    assert np.array_equal(dumped[0][0], SYNTHETIC_DATA[0:6], equal_nan=True)
 
 
 def test_dic_to_request_supersedes_multivalued_dic_to_request() -> None:

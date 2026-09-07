@@ -67,12 +67,22 @@ public API is unchanged for typical use: `GribJump()`, `extract`, `extract_singl
 `extract_from_paths`, `extract_from_mask`, `extract_from_indices`,
 `extract_from_ranges`, `axes`, the `ExtractionRequest`/`PathExtractionRequest` types
 and the `values`/`masks`/`values_flat`/`masks_flat`/`compute_bool_masks` accessors of
-the results (including `dump_values` and `dump_legacy`) all keep working as before.
+the results (including `dump_values`) all keep working as before.
 
 **The full migration guide is published at
 <https://sites.ecmwf.int/docs/gribjump/pygribjump/migration.html>** (source:
 `docs/pygribjump/migration.rst`). In short:
 
+- **`dump_legacy()` has not been ported.** It reproduced the pre-0.11
+  `result[request][field][range]` layout, whose field dimension has been a hardcoded
+  single element since extraction became an iterator. Iterate the results, or use
+  `dump_values()`.
+- **The polyrequest tuple syntax is deprecated.** `extract()` still accepts
+  `(request, ranges[, grid_hash])` tuples, but warns; pass `ExtractionRequest` objects.
+- **`rangestr_to_list()` / `list_to_rangestr()` have not been ported.** The
+  `"0-6,7-12"` range string format is not used anywhere in GribJump.
+- **`dump_values()` no longer copies** the arrays; they are owned by Python now and
+  stay valid after the iterator is exhausted.
 - **Keyword arguments were renamed to snake_case**: `gridHash` -> `grid_hash`,
   `req` -> `request`, `polyrequest` -> `requests`. The old names are still accepted
   and raise a `DeprecationWarning`; they will be removed in a future release.

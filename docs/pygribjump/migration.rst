@@ -37,9 +37,10 @@ What is unchanged
 * Iterating the returned ``ExtractionIterator``, and the result accessors
   ``values``, ``masks``, ``values_flat``, ``masks_flat``,
   ``compute_bool_masks()``, ``copy_values()`` and ``copy_masks()``.
-* ``dump_values()`` and ``dump_legacy()`` on the iterator.
-* The helper functions ``version()``, ``library_version()``,
-  ``dic_to_request()``, ``rangestr_to_list()`` and ``list_to_rangestr()``.
+* ``dump_values()`` on the iterator, though it now returns the arrays owned by the
+  results rather than copies of them (see below).
+* The helper functions ``version()``, ``library_version()`` and
+  ``dic_to_request()``.
 * The log context (``ctx=...``) semantics: user-supplied entries take
   precedence over the defaults filled in by ``pygribjump``.
 * Values and bitmasks are still ``numpy`` arrays, and the per-range arrays are
@@ -99,6 +100,85 @@ both of these keep working:
 
    except RuntimeError:  # also catches GribJumpException
        ...
+
+``dump_legacy()`` has been removed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``ExtractionIterator.dump_legacy()`` reproduced the return value of ``extract()``
+as it was before GribJump 0.11, when a single request could match several fields
+and extraction returned a nested ``result[request][field][range]`` list. Since
+extraction yields one result per field, the field dimension of that layout has
+been a hardcoded single element ever since, and the shape is only faithful for
+``extract()`` (whose requests must have cardinality 1), not for
+``extract_single()``. It has therefore not been ported to the pybind11
+interface.
+
+Iterate the results, or use ``dump_values()``:
+
+.. code-block:: python
+
+   # before
+   legacy = gribjump.extract(polyrequest).dump_legacy()
+   values = legacy[i][0][k][0]   # ith field, kth range
+   mask = legacy[i][0][k][1]
+
+   # now
+   results = list(gribjump.extract(requests))
+   values = results[i].values[k]
+   mask = results[i].masks[k]
+
+   # or, for the values of every field
+   values_per_field = gribjump.extract(requests).dump_values()
+
+If you cannot migrate yet, ``dump_legacy()`` is still available in the legacy
+cffi interface for as long as that ships.
+
+The polyrequest tuple syntax is deprecated
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``extract()`` still accepts a list of ``(request, ranges)`` or
+``(request, ranges, grid_hash)`` tuples, but it now raises a
+``DeprecationWarning``. Build ``ExtractionRequest`` objects instead — they carry
+the same information explicitly, and are what the other ``extract_*`` methods
+build internally:
+
+.. code-block:: python
+
+   # deprecated
+   polyrequest = [(request, ranges) for request, ranges in zip(requests, all_ranges)]
+   iterator = gribjump.extract(polyrequest)
+
+   # now
+   iterator = gribjump.extract(
+       [pygribjump.ExtractionRequest(request, ranges)
+        for request, ranges in zip(requests, all_ranges)]
+   )
+
+   # or, when every request uses the same ranges
+   iterator = gribjump.extract_from_ranges(requests, ranges)
+
+``rangestr_to_list()`` and ``list_to_rangestr()`` have been removed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These converted between ``[(0, 6), (7, 12)]`` and the string ``"0-6,7-12"``. That
+format is not produced or consumed anywhere in GribJump — not by the C++ API, the
+C API, the command line tools or the bindings — so the helpers have not been
+ported. If you rely on the format, it is a one-liner:
+
+.. code-block:: python
+
+   ranges = [tuple(map(int, r.split("-"))) for r in rangestr.split(",")]
+   rangestr = ",".join("-".join(map(str, r)) for r in ranges)
+
+``dump_values()`` no longer copies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+``ExtractionIterator.dump_values()`` used to copy every array, because the cffi
+arrays were views into a buffer owned by the result, which died with it. The
+arrays are now owned by Python and stay valid once the iterator is exhausted, so
+the copy has been dropped and ``dump_values()`` uses half the memory. Use
+``copy_values()`` on an individual result if you need arrays which are
+independent of the result's flat buffer.
 
 The cffi internals are gone
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

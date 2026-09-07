@@ -113,15 +113,6 @@ def test_extract_from_paths_dump_values(grib_file: pathlib.Path) -> None:
     compare_synthetic_data(dumped[0], expected_values([(0, 6)]))
 
 
-def test_extract_from_paths_dump_legacy(grib_file: pathlib.Path) -> None:
-    gribjump = GribJump()
-
-    # Old (cffi era) output format: [request][field][range][values|mask]
-    dumped = gribjump.extract_from_paths([path_request(grib_file, [(0, 6)])], ctx=CONTEXT).dump_legacy()
-
-    assert np.array_equal(dumped[0][0][0][0], SYNTHETIC_DATA[0:6], equal_nan=True)
-
-
 def test_extract_from_paths_without_context(grib_file: pathlib.Path) -> None:
     # The default context is filled in by pygribjump itself
     gribjump = GribJump()
