@@ -18,7 +18,7 @@ from pygribjump._internal import (
     init_bindings,
     version_info,
 )
-from pygribjump._internal.pygribjump_internal import ContextMapper, RequestMapper
+from pygribjump._internal.pygribjump_internal import ContextMapper, RequestMapper, deprecated_aliases
 from pygribjump.pygribjump_iterator import ExtractionIterator
 from pygribjump.pygribjump_type import (
     ExtractionRequest,
@@ -64,6 +64,7 @@ class GribJump:
     def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
         pass
 
+    @deprecated_aliases(polyrequest="requests")
     def extract(
         self,
         requests: list[ExtractionRequest] | list[tuple],
@@ -128,6 +129,7 @@ class GribJump:
             _internal=True,
         )
 
+    @deprecated_aliases(gridHash="grid_hash")
     def extract_single(
         self,
         request: MarsSelection | str,
@@ -159,6 +161,7 @@ class GribJump:
             _internal=True,
         )
 
+    @deprecated_aliases(gridHash="grid_hash")
     def extract_from_mask(
         self,
         requests: list[MarsSelection],
@@ -179,6 +182,7 @@ class GribJump:
             ctx,
         )
 
+    @deprecated_aliases(gridHash="grid_hash")
     def extract_from_indices(
         self,
         requests: list[MarsSelection],
@@ -199,6 +203,7 @@ class GribJump:
             ctx,
         )
 
+    @deprecated_aliases(gridHash="grid_hash")
     def extract_from_ranges(
         self,
         requests: list[MarsSelection],
@@ -219,6 +224,7 @@ class GribJump:
             ctx,
         )
 
+    @deprecated_aliases(req="request")
     def axes(
         self,
         request: MarsSelection | str,

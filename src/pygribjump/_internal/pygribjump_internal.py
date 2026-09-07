@@ -6,7 +6,9 @@
 # granted to it by virtue of its status as an intergovernmental organisation
 # nor does it submit to any jurisdiction.
 
+import functools
 import json
+import warnings
 from collections.abc import Collection
 from getpass import getuser
 from socket import gethostname
@@ -16,6 +18,45 @@ from pygribjump_bindings import pygribjump_bindings as pygribjump_internal
 
 # Initial setup of binding via eckit main
 pygribjump_internal.init_bindings()
+
+
+def deprecated_aliases(**aliases: str) -> Callable:
+    """
+    Decorator accepting the keyword argument names of the (cffi based) pygribjump <= 0.13.
+
+    Parameters
+    ----------
+    `**aliases`
+        Mapping of the deprecated keyword argument name to its current name.
+
+    Examples
+    --------
+    >>> @deprecated_aliases(gridHash="grid_hash")
+    ... def extract(request, grid_hash=None): ...
+    """
+
+    def decorator(function: Callable) -> Callable:
+        @functools.wraps(function)
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            for deprecated, current in aliases.items():
+                if deprecated not in kwargs:
+                    continue
+                if current in kwargs:
+                    raise TypeError(
+                        f"{function.__name__}() got both '{current}' and its deprecated alias '{deprecated}'"
+                    )
+                warnings.warn(
+                    f"'{deprecated}' is deprecated and will be removed in a future release, "
+                    f"use '{current}' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                kwargs[current] = kwargs.pop(deprecated)
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 InternalMarsSelection = dict[str, str | Collection[str]]
 """

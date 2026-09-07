@@ -8,6 +8,7 @@
 
 import logging
 from collections.abc import Iterator
+from itertools import accumulate
 
 import numpy as np
 
@@ -32,13 +33,29 @@ class ExtractionResult:
         if not _internal:
             raise TypeError("Creating an ExtractionResult from user code is not supported.")
         self._result: _ExtractionResult = result
+        self._shape: list[int] | None = None
+
+        # Lazily created, then cached: `values`/`masks` are views into the flat
+        # arrays, so all accessors of one result share their memory (as they did
+        # in the cffi based pygribjump).
+        self._values_flat: np.ndarray | None = None
+        self._masks_flat: np.ndarray | None = None
+        self._values: list[np.ndarray] | None = None
+        self._masks: list[np.ndarray] | None = None
 
     @property
     def values(self) -> list[np.ndarray]:
         """
         The extracted values, one array per requested range.
+
+        Note
+        ----
+        The arrays are views into `values_flat`, they are not copies.
         """
-        return self._result.values()
+        if self._values is None:
+            indices = list(accumulate(self.shape))[:-1]
+            self._values = np.split(self.values_flat, indices)
+        return self._values
 
     @property
     def masks(self) -> list[np.ndarray]:
@@ -48,30 +65,40 @@ class ExtractionResult:
         Note
         ----
         The mask is encoded as 64-bit unsigned integers. If N values were extracted in a
-        range, the mask array contains ceil(N / 64) elements.
+        range, the mask array contains ceil(N / 64) elements. The arrays are views into
+        `masks_flat`, they are not copies.
         """
-        return self._result.mask()
+        if self._masks is None:
+            indices = list(accumulate((n + 63) // 64 for n in self.shape))[:-1]
+            self._masks = np.split(self.masks_flat, indices)
+        return self._masks
 
     @property
     def values_flat(self) -> np.ndarray:
         """
         The extracted values of all ranges, as a single flat array.
         """
-        return self._result.values_flat()
+        if self._values_flat is None:
+            self._values_flat = self._result.values_flat()
+        return self._values_flat
 
     @property
     def masks_flat(self) -> np.ndarray:
         """
         The bitmasks of all ranges, as a single flat array of `uint64`.
         """
-        return self._result.mask_flat()
+        if self._masks_flat is None:
+            self._masks_flat = self._result.mask_flat()
+        return self._masks_flat
 
     @property
     def shape(self) -> list[int]:
         """
         Number of values extracted per range.
         """
-        return [self._result.nvalues(i) for i in range(self._result.nrange())]
+        if self._shape is None:
+            self._shape = [self._result.nvalues(i) for i in range(self._result.nrange())]
+        return self._shape
 
     def compute_bool_masks(self) -> list[np.ndarray]:
         """

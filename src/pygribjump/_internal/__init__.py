@@ -16,9 +16,13 @@ findlibs.load("gribjump")
 from pygribjump._internal.pygribjump_internal import (
     ContextMapper,
     RequestMapper,
+    deprecated_aliases,
 )
 from pygribjump_bindings.pygribjump_bindings import (
     ExtractionRequest as _ExtractionRequest,
+)
+from pygribjump_bindings.pygribjump_bindings import (
+    GribJumpException,
 )
 from pygribjump_bindings.pygribjump_bindings import (
     ExtractionResult as _ExtractionResult,
@@ -67,6 +71,7 @@ _check_gribjump_version_compatibility(_gribjump_build_version, version_info())
 __all__ = [
     "init_bindings",
     "version_info",
+    "GribJumpException",
     "_ExtractionRequest",
     "_PathExtractionRequest",
     "_ExtractionResult",
@@ -74,4 +79,5 @@ __all__ = [
     "_GribJump",
     "ContextMapper",
     "RequestMapper",
+    "deprecated_aliases",
 ]

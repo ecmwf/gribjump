@@ -50,6 +50,7 @@ set(test_files
     test_extraction_request.py
     test_gribjump.py
     test_extract_from_paths.py
+    test_cffi_compat.py
     # Only run if pyfdb is built alongside, see PYGRIBJUMP_TEST_ENABLE_FDB above
     test_extract_fdb.py
 )
