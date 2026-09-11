@@ -9,7 +9,7 @@ readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 description = "Safe Rust wrapper for ECMWF gribjump library"
-links = "gribjump_rpath"
+links = "gribjump_rs"
 build = "build.rs"
 
 [features]
@@ -22,12 +22,14 @@ bindman-utils.workspace = true
 
 [dependencies]
 gribjump-sys.workspace = true
+eckit.workspace = true
 parking_lot.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
 fdb.workspace = true
+metkit.workspace = true
 tempfile.workspace = true
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 

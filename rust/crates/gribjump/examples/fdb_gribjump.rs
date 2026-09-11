@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use fdb::{Fdb, ListOptions, Request};
+use fdb::{Fdb, ListOptions};
 use gribjump::{ExtractionRequest, ExtractionResult, FileExtraction, GribJump, Range};
 
 const GRID_HASH: &str = "33c7d6025995e1b4913811e77d38ec50";
@@ -74,7 +74,7 @@ spaces:
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None)?;
+    let fdb = Fdb::open(Some(&config.parse::<eckit::Config>()?), None)?;
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))?;
     println!(
         "Archiving {} bytes from extract_ranges.grib...",
@@ -142,7 +142,7 @@ fn demo_path_and_offset(fdb: &Fdb, gj: &GribJump) -> Result<(), Box<dyn std::err
     println!("--- Demo 3: Path + offset extraction via FDB list ---");
     println!("Use fdb.list() to discover field locations, then extract by path/offset.\n");
 
-    let list_request = Request::new()
+    let list_request = metkit::MarsRequestBuilder::new("list")
         .with("class", "rd")
         .with("date", "20230508")
         .with("domain", "g")
@@ -152,7 +152,8 @@ fn demo_path_and_offset(fdb: &Fdb, gj: &GribJump) -> Result<(), Box<dyn std::err
         .with_values("step", &["2", "1", "3"])
         .with("stream", "oper")
         .with("time", "1200")
-        .with("type", "fc");
+        .with("type", "fc")
+        .build();
 
     let list_iter = fdb.list(
         &list_request,
