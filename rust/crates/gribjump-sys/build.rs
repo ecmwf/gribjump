@@ -141,6 +141,49 @@ fn build_system() {
     unreachable!("build_system called without system feature");
 }
 
+/// Locate the gribjump C++ sources: prefer the in-tree checkout when the
+/// crate lives inside the gribjump repository (path or git dependency),
+/// falling back to cloning the release tag (packaged crates.io case).
+#[cfg(feature = "vendored")]
+fn resolve_gribjump_src(src_dir: &std::path::Path) -> PathBuf {
+    const GRIBJUMP_REPO: &str = "https://github.com/ecmwf/gribjump.git";
+    const GRIBJUMP_TAG: &str = env!("CARGO_PKG_VERSION");
+
+    let manifest_dir =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
+    if let Some(root) = manifest_dir.ancestors().nth(3)
+        && root.join("CMakeLists.txt").exists()
+        && root.join("VERSION").exists()
+        && root.join("src/gribjump").is_dir()
+    {
+        eprintln!(
+            "gribjump-sys: building in-tree sources at {}",
+            root.display()
+        );
+
+        // Retrigger on C++ source edits.
+        println!("cargo:rerun-if-changed={}", root.join("src").display());
+        println!(
+            "cargo:rerun-if-changed={}",
+            root.join("CMakeLists.txt").display()
+        );
+        println!("cargo:rerun-if-changed={}", root.join("VERSION").display());
+
+        // Diverging is fine mid-development, but should never go unnoticed.
+        let tree_version = std::fs::read_to_string(root.join("VERSION"))
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+        if tree_version != GRIBJUMP_TAG {
+            println!(
+                "cargo:warning=gribjump-sys {GRIBJUMP_TAG} is building in-tree gribjump {tree_version} (versions differ)"
+            );
+        }
+
+        return root.to_path_buf();
+    }
+    bindman_utils::git_clone(GRIBJUMP_REPO, GRIBJUMP_TAG, &src_dir.join("gribjump"))
+}
+
 /// Build gribjump from source using ecbuild
 #[cfg(feature = "vendored")]
 fn build_vendored() {
@@ -149,10 +192,6 @@ fn build_vendored() {
 
     const ECBUILD_REPO: &str = "https://github.com/ecmwf/ecbuild.git";
     const ECBUILD_TAG: &str = "3.13.1";
-
-    const GRIBJUMP_REPO: &str = "https://github.com/ecmwf/gribjump.git";
-    // The vendored build clones exactly the release matching the crate version.
-    const GRIBJUMP_TAG: &str = env!("CARGO_PKG_VERSION");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let src_dir = out_dir.join("src");
@@ -174,10 +213,21 @@ fn build_vendored() {
     let fdb_root = env::var("DEP_FDB_SYS_ROOT")
         .expect("DEP_FDB_SYS_ROOT not set - fdb-sys must be a dependency");
 
-    // Clone sources
     let ecbuild_src = bindman_utils::git_clone(ECBUILD_REPO, ECBUILD_TAG, &src_dir.join("ecbuild"));
-    let gribjump_src =
-        bindman_utils::git_clone(GRIBJUMP_REPO, GRIBJUMP_TAG, &src_dir.join("gribjump"));
+    let gribjump_src = resolve_gribjump_src(&src_dir);
+
+    // cmake hard-errors if the source path recorded in CMakeCache.txt changes
+    // (e.g. cloned <-> in-tree); wipe the build dir when it is stale.
+    if let Ok(cache) = fs::read_to_string(build_dir.join("CMakeCache.txt")) {
+        let cached_src = cache
+            .lines()
+            .find_map(|l| l.strip_prefix("CMAKE_HOME_DIRECTORY:INTERNAL="));
+        if cached_src != gribjump_src.to_str() {
+            fs::remove_dir_all(&build_dir)
+                .expect("Failed to remove stale gribjump build directory");
+            fs::create_dir_all(&build_dir).expect("Failed to create build directory");
+        }
+    }
 
     let ecbuild_bin = ecbuild_src.join("bin/ecbuild");
     let num_jobs = bindman_utils::build_parallelism();
