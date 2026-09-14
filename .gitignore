@@ -19,6 +19,7 @@ docs/doc-build/
 .clangd
 *.swp
 todo*.md
+.pi/
 
 docs/examples/walkthrough_files/etc/fdb/root
 ignore/

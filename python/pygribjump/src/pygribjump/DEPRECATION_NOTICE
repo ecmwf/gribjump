@@ -1,0 +1,2 @@
+Herein lies the legacy cffi based pygribjump interface, which will be removed in a future release, in favour of the pybind11 based interface.
+See the migration guide at https://sites.ecmwf.int/docs/gribjump/pygribjump/migration.html.

@@ -6,6 +6,12 @@ testpaths = [
 ]
 
 # pyproject.toml
+#
+# NOTE: This packages the cffi-based pygribjump implementation located in
+# python/pygribjump/src. The pybind11-based bindings (src/pygribjump,
+# src/pygribjump_bindings) are built via CMake using the templates in
+# cmake/pygribjump_setup.{cfg,py}.in. Both implementations are 
+# maintained in parallel for the time being.
 
 [build-system]
 requires = ["setuptools>=77.0.3"]
