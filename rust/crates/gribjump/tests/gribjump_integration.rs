@@ -213,8 +213,10 @@ fn test_gribjump_api_extract_hash_validation() {
     assert!(total > 0, "expected some values");
     println!("Extract with correct hash: {total} values");
 
-    // Test 3: Request with empty hash should fail (core validates, respects ignoreGridHash config)
-    let request_empty_hash = ExtractionRequest::new(request_str, ranges.clone(), "");
+    // Test 3: Request with empty hash should fail. The ignoreGridHash bypass
+    // lives in gribjump_ignore_grid.rs — the config is latched per process, so
+    // it cannot be tested alongside the validation cases here.
+    let request_empty_hash = ExtractionRequest::new(request_str, ranges, "");
     let result = gj.extract(&[request_empty_hash]);
     match result {
         Err(err) => {
@@ -226,24 +228,6 @@ fn test_gribjump_api_extract_hash_validation() {
             println!("Extract with empty hash: error as expected - {err_msg}");
         }
         Ok(_) => panic!("expected error with empty hash"),
-    }
-
-    // Test 4: With GRIBJUMP_IGNORE_GRID=1, empty hash should succeed
-    unsafe {
-        env::set_var("GRIBJUMP_IGNORE_GRID", "1");
-    }
-    let request_empty_hash_ignored = ExtractionRequest::new(request_str, ranges, "");
-    let result = gj.extract(&[request_empty_hash_ignored]);
-    assert!(
-        result.is_ok(),
-        "expected success with empty hash when ignoreGridHash is set"
-    );
-    let results: Vec<_> = result.expect("extraction should succeed").collect();
-    assert_eq!(results.len(), 1);
-    assert!(results[0].is_ok());
-    println!("Extract with empty hash (ignoreGridHash=true): success");
-    unsafe {
-        env::remove_var("GRIBJUMP_IGNORE_GRID");
     }
 
     println!("test_gribjump_api_extract_hash_validation completed");
