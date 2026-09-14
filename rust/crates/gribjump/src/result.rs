@@ -188,7 +188,7 @@ impl<'a> RangeView<'a> {
     /// `true` if the value is valid (bit is set), `false` otherwise.
     /// Returns `true` if no mask is available (all values assumed valid).
     #[must_use]
-    pub fn is_valid(&self, index: usize) -> bool {
+    pub const fn is_valid(&self, index: usize) -> bool {
         if self.masks.is_empty() {
             return true;
         }
