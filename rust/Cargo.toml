@@ -17,8 +17,8 @@ gribjump-sys = { path = "crates/gribjump-sys" }
 gribjump = { path = "crates/gribjump" }
 
 # FDB dependency
-fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-v1", default-features = false }
-fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "rust-bindings-v1", default-features = false }
+fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "develop", default-features = false }
+fdb-sys = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "develop", default-features = false }
 
 # Foundation crates
 eckit-sys = { git = "ssh://git@github.com/ecmwf/eckit.git", branch = "develop", default-features = false }
@@ -38,8 +38,3 @@ cxx = "1.0"
 cxx-build = "1.0"
 parking_lot = "0.12"
 tempfile = "3"
-
-# Local fdb changes not pushed yet — remove once rust-bindings-v1 is up to date on GitHub
-[patch."ssh://git@github.com/ecmwf/fdb.git"]
-fdb = { path = "../../fdb/rust/crates/fdb" }
-fdb-sys = { path = "../../fdb/rust/crates/fdb-sys" }
