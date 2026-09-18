@@ -40,6 +40,9 @@ jobs:
     with:
       manifest-path: rust/Cargo.toml
       features: --features gribjump-sys/vendored
+      # Single-threaded: GribJump::new() takes no config parameter and reads
+      # FDB5_CONFIG from the environment, so parallel tests clobber it mid-flight
+      # and trip catalogue->open() assertions inside FDB.
       test-args: --workspace -- --test-threads=1
     secrets:
       private_repos_token: ${{ secrets.GH_REPO_READ_TOKEN }}

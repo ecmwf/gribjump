@@ -1,8 +1,9 @@
 //! Integration tests for `GribJump` safe wrapper.
 //!
-//! Run with `cargo test --test gribjump_integration`. Each test
-//! spins up its own temp FDB + `GribJump` config so they're
-//! self-contained.
+//! Run with `cargo test --test gribjump_integration -- --test-threads=1`. Each
+//! test spins up its own temp FDB + `GribJump` config so they're self-contained,
+//! but `GribJump::new()` reads `FDB5_CONFIG` from the environment, so tests
+//! running in parallel clobber each other's config.
 
 use std::env;
 use std::fs;
