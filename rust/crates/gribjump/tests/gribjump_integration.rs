@@ -363,22 +363,27 @@ fn test_gribjump_extract_from_paths() {
 /// Test `scan_requests` API
 #[test]
 fn test_gribjump_scan_requests() {
-    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let config = setup_test_fdb_extract_ranges(tmpdir.path());
-    unsafe {
-        env::set_var("FDB5_CONFIG", &config);
+    // A fresh FDB per mode: scanning writes an index next to the data, so a
+    // second scan of the same file reports nothing left to do.
+    for by_files in [false, true] {
+        let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+        let config = setup_test_fdb_extract_ranges(tmpdir.path());
+        unsafe {
+            env::set_var("FDB5_CONFIG", &config);
+        }
+
+        let gj = GribJump::new().expect("failed to create GribJump handle");
+
+        let requests = vec!["retrieve,class=rd,expver=xxxx"];
+        let count = gj
+            .scan_requests(&requests, by_files)
+            .unwrap_or_else(|e| panic!("scan_requests(by_files={by_files}) failed: {e}"));
+
+        assert_eq!(
+            count, 3,
+            "by_files={by_files}: expected the 3 fields of extract_ranges.grib"
+        );
     }
-
-    let gj = GribJump::new().expect("failed to create GribJump handle");
-
-    // Scan by MARS request
-    let requests = vec!["class=rd,expver=xxxx"];
-    let result = gj.scan_requests(&requests, false);
-    println!("scan_requests result: {result:?}");
-
-    // Also test with by_files=true
-    let result2 = gj.scan_requests(&requests, true);
-    println!("scan_requests (by_files=true) result: {result2:?}");
 }
 
 /// Test `ExtractionResult` helper methods

@@ -208,7 +208,8 @@ impl GribJump {
     ///
     /// # Arguments
     ///
-    /// * `requests` - MARS request strings to scan
+    /// * `requests` - MARS request strings to scan, each including the verb
+    ///   (e.g. `"retrieve,class=rd,expver=xxxx"`)
     /// * `by_files` - If true, scan by files rather than by messages
     ///
     /// # Returns

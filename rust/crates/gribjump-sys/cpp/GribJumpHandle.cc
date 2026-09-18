@@ -8,9 +8,13 @@
 
 #include "gribjump/ExtractionData.h"
 
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
+#include "metkit/mars/MarsExpansion.h"
+#include "metkit/mars/MarsParser.h"
 #include "metkit/mars/MarsRequest.h"
 
+#include <sstream>
 #include <vector>
 
 namespace gribjump_bridge {
@@ -18,6 +22,17 @@ namespace gribjump_bridge {
 //----------------------------------------------------------------------------------------------------------------------
 
 namespace {
+
+// Mirrors pygribjump's mars_request_from_string: expansion must not inherit
+// defaults, which would narrow a partial request.
+metkit::mars::MarsRequest to_mars_request(const std::string& request) {
+    std::istringstream in(request);
+    metkit::mars::MarsParser parser(in);
+    metkit::mars::MarsExpansion expand(/* inherit */ false, /* strict */ true);
+    auto expanded = expand.expand(parser.parse());
+    ASSERT(expanded.size() == 1);
+    return expanded[0];
+}
 
 std::vector<gribjump::Range> to_cpp_ranges(const rust::Vec<Range>& ranges) {
     std::vector<gribjump::Range> result;
@@ -72,8 +87,7 @@ std::unique_ptr<ExtractionIteratorHandle> GribJumpHandle::extract_from_paths(
 std::unique_ptr<ExtractionIteratorHandle> GribJumpHandle::extract_mars(rust::Str request,
                                                                        const rust::Vec<Range>& ranges,
                                                                        rust::Str grid_hash) {
-    std::string request_str{request};
-    auto mars_request = metkit::mars::MarsRequest::parse(request_str);
+    auto mars_request = to_mars_request(std::string(request));
     auto cpp_ranges   = to_cpp_ranges(ranges);
     std::string hash{grid_hash};
     auto it = impl_.extract(mars_request, cpp_ranges, hash);
@@ -147,7 +161,7 @@ size_t GribJumpHandle::scan_requests(const rust::Vec<rust::String>& requests, bo
     std::vector<metkit::mars::MarsRequest> cpp_requests;
     cpp_requests.reserve(requests.size());
     for (const auto& r : requests) {
-        cpp_requests.emplace_back(std::string(r));
+        cpp_requests.push_back(to_mars_request(std::string(r)));
     }
     return impl_.scan(cpp_requests, by_files);
 }
