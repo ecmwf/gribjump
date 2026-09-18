@@ -8,7 +8,7 @@
 //! ```no_run
 //! use gribjump::{GribJump, ExtractionRequest, Range};
 //!
-//! let mut gj = GribJump::new().expect("failed to create GribJump handle");
+//! let gj = GribJump::new().expect("failed to create GribJump handle");
 //!
 //! // Create a request for specific data
 //! let ranges = vec![
@@ -45,11 +45,11 @@ pub use result::{ExtractionResult, RangeResult, RangeView};
 /// Get the gribjump library version.
 #[must_use]
 pub fn version() -> String {
-    gribjump_sys::gribjump_version()
+    gribjump_sys::Library::version()
 }
 
 /// Get the gribjump git SHA1.
 #[must_use]
 pub fn git_sha1() -> String {
-    gribjump_sys::gribjump_git_sha1()
+    gribjump_sys::Library::git_sha1()
 }
