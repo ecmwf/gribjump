@@ -77,8 +77,7 @@ fn test_gribjump_api_extract_empty_hash_ignored() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let ranges = vec![
         Range::new(0, 6).expect("valid range"),

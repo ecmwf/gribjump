@@ -86,7 +86,7 @@ fn test_gribjump_is_sync() {
     assert_sync::<GribJump>();
 }
 
-/// Test: `GribJump` is Clone (with thread-safe feature)
+/// Test: `GribJump` is Clone
 #[test]
 fn test_gribjump_is_clone() {
     fn assert_clone<T: Clone>() {}

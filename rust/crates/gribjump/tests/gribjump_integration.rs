@@ -166,10 +166,6 @@ fn test_extraction_request_creation() {
 // The extract_ranges.grib from ECMWF test server has limited data points.
 // C++ tests use ecbuild_get_test_multidata which may provide different data.
 
-// TODO: test_gribjump_api_extract_mars - requires MarsParser support in bridge
-// Currently the bridge uses MarsRequest constructor which doesn't parse MARS language.
-// Need to modify gribjump_bridge.cpp to use metkit::mars::MarsParser.
-
 //----------------------------------------------------------------------------------------------------------------------
 // test_api.cc: Test 1.b - Grid hash validation
 //----------------------------------------------------------------------------------------------------------------------
@@ -183,8 +179,7 @@ fn test_gribjump_api_extract_hash_validation() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let ranges = vec![
         Range::new(0, 6).expect("valid range"),
@@ -245,8 +240,7 @@ fn test_gribjump_api_axes() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     // Query axes matching C++ test_api_axes.cc
     let axes = gj
@@ -304,8 +298,7 @@ fn test_gribjump_api_axes() {
 /// Test `scan_paths` API
 #[test]
 fn test_gribjump_scan_paths() {
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let grib_path = fixtures_dir().join("extract_ranges.grib");
     let paths = vec![grib_path.to_string_lossy().to_string()];
@@ -321,8 +314,7 @@ fn test_gribjump_scan_paths() {
 /// Test `print_stats` API
 #[test]
 fn test_gribjump_print_stats() {
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     // Just verify it doesn't crash
     gj.print_stats().expect("print_stats failed");

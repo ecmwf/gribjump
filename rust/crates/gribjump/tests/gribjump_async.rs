@@ -79,7 +79,7 @@ async fn test_gribjump_concurrent_extract() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    // With thread-safe feature, GribJump is Clone (shares internal Arc<Mutex>)
+    // GribJump is Clone: clones share the internal Arc<Mutex>
     let gj = GribJump::new().expect("failed to create GribJump");
 
     let mut tasks = JoinSet::new();
@@ -96,7 +96,7 @@ async fn test_gribjump_concurrent_extract() {
 
             let request = ExtractionRequest::new(&request_str, ranges, GRID_HASH);
 
-            // With thread-safe feature, extract takes &self and uses internal locking
+            // extract takes &self and uses internal locking
             let results: Vec<_> = gj.extract(&[request]).expect("extract failed").collect();
 
             let total_values: usize = results

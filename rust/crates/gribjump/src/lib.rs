@@ -8,7 +8,7 @@
 //! ```no_run
 //! use gribjump::{GribJump, ExtractionRequest, Range};
 //!
-//! let mut gj = GribJump::new().expect("failed to create GribJump handle");
+//! let gj = GribJump::new().expect("failed to create GribJump handle");
 //!
 //! // Create a request for specific data
 //! let ranges = vec![
