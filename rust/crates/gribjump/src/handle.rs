@@ -11,7 +11,7 @@ use crate::iterator::ExtractionIterator;
 use crate::request::{ExtractionRequest, FileExtraction, PathExtractionRequest, Range};
 
 // Private wrapper to make UniquePtr Send-safe for use with Arc<Mutex<...>>
-struct HandleInner(UniquePtr<gribjump_sys::GribJumpHandle>);
+pub struct HandleInner(UniquePtr<gribjump_sys::GribJumpHandle>);
 
 // SAFETY: HandleInner is only accessed through Mutex which provides synchronization.
 // The underlying C++ GribJump handle is protected by the Mutex.
@@ -79,7 +79,7 @@ impl GribJump {
         let mut guard = self.inner.lock();
         let it = guard.0.pin_mut().extract(&cxx_requests)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Extract data from file paths.
@@ -99,7 +99,7 @@ impl GribJump {
         let mut guard = self.inner.lock();
         let it = guard.0.pin_mut().extract_from_paths(&cxx_requests)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Extract from a MARS request string.
@@ -129,7 +129,7 @@ impl GribJump {
             .pin_mut()
             .extract_mars(request, &cxx_ranges, grid_hash)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Extract from a file with specific message offsets.
@@ -146,7 +146,7 @@ impl GribJump {
         let mut guard = self.inner.lock();
         let it = guard.0.pin_mut().extract_from_file(&cxx_data)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Get axes information for a request.
