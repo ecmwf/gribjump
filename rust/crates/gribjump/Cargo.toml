@@ -30,6 +30,7 @@ thiserror.workspace = true
 criterion = { version = "0.5", features = ["html_reports"] }
 fdb.workspace = true
 metkit.workspace = true
+static_assertions = "1.1"
 tempfile.workspace = true
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 

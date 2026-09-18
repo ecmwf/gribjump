@@ -107,6 +107,9 @@ fn test_result_is_send() {
     assert_send::<ExtractionResult>();
 }
 
+// `ExtractionResult` must not be Sync: mask conversion is cached behind `&self`.
+static_assertions::assert_not_impl_any!(ExtractionResult: Sync);
+
 /// Test: `ExtractionRequest` is Send + Sync
 #[test]
 fn test_extraction_request_traits() {

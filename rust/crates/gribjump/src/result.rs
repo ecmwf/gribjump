@@ -23,11 +23,10 @@ impl fmt::Debug for ExtractionResult {
     }
 }
 
-// SAFETY: ExtractionResult can be safely sent between threads because:
-// 1. The C++ ExtractionResultHandle is uniquely owned (not shared)
-// 2. The underlying data (values/masks vectors) is immutable after creation
-// 3. There is no thread-local state in the C++ code
-// 4. The UniquePtr ensures exclusive ownership during transfer
+// SAFETY: the C++ ExtractionResultHandle is uniquely owned via UniquePtr and has
+// no thread-local state. It is deliberately not Sync: masks are converted from
+// std::bitset on first access and cached in `mutable` members, i.e. unsynchronised
+// interior mutability reached through `&self`.
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ExtractionResult {}
 
