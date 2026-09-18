@@ -1,8 +1,9 @@
 //! Integration tests for `GribJump` safe wrapper.
 //!
-//! Run with `cargo test --test gribjump_integration`. Each test
-//! spins up its own temp FDB + `GribJump` config so they're
-//! self-contained.
+//! Run with `cargo test --test gribjump_integration -- --test-threads=1`. Each
+//! test spins up its own temp FDB + `GribJump` config so they're self-contained,
+//! but `GribJump::new()` reads `FDB5_CONFIG` from the environment, so tests
+//! running in parallel clobber each other's config.
 
 use std::env;
 use std::fs;
@@ -10,7 +11,7 @@ use std::path::PathBuf;
 
 use std::collections::BTreeSet;
 
-use fdb::{Fdb, Request};
+use fdb::Fdb;
 use gribjump::{ExtractionRequest, FileExtraction, GribJump, Range};
 
 /// Get the path to test fixtures directory.
@@ -45,7 +46,17 @@ spaces:
 /// This file contains 3 messages with `step=1,2,3`.
 fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
     let config = create_test_config(tmpdir);
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+
+    // SAFETY: Single-threaded test environment, setting FDB config before use
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
+
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
 
     // Read extract_ranges.grib - contains 3 messages with step=1,2,3
     let grib_path = fixtures_dir().join("extract_ranges.grib");
@@ -63,7 +74,17 @@ fn setup_test_fdb_extract_ranges(tmpdir: &std::path::Path) -> String {
 /// This file contains 6 messages with different dates and steps.
 fn setup_test_fdb_axes(tmpdir: &std::path::Path) -> String {
     let config = create_test_config(tmpdir);
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+
+    // SAFETY: Single-threaded test environment
+    unsafe {
+        env::set_var("FDB5_CONFIG", &config);
+    }
+
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
 
     // Read axes.grib - contains messages for axes testing
     let grib_path = fixtures_dir().join("axes.grib");
@@ -146,10 +167,6 @@ fn test_extraction_request_creation() {
 // The extract_ranges.grib from ECMWF test server has limited data points.
 // C++ tests use ecbuild_get_test_multidata which may provide different data.
 
-// TODO: test_gribjump_api_extract_mars - requires MarsParser support in bridge
-// Currently the bridge uses MarsRequest constructor which doesn't parse MARS language.
-// Need to modify gribjump_bridge.cpp to use metkit::mars::MarsParser.
-
 //----------------------------------------------------------------------------------------------------------------------
 // test_api.cc: Test 1.b - Grid hash validation
 //----------------------------------------------------------------------------------------------------------------------
@@ -163,8 +180,7 @@ fn test_gribjump_api_extract_hash_validation() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let ranges = vec![
         Range::new(0, 6).expect("valid range"),
@@ -193,8 +209,10 @@ fn test_gribjump_api_extract_hash_validation() {
     assert!(total > 0, "expected some values");
     println!("Extract with correct hash: {total} values");
 
-    // Test 3: Request with empty hash should fail (core validates, respects ignoreGridHash config)
-    let request_empty_hash = ExtractionRequest::new(request_str, ranges.clone(), "");
+    // Test 3: Request with empty hash should fail. The ignoreGridHash bypass
+    // lives in gribjump_ignore_grid.rs — the config is latched per process, so
+    // it cannot be tested alongside the validation cases here.
+    let request_empty_hash = ExtractionRequest::new(request_str, ranges, "");
     let result = gj.extract(&[request_empty_hash]);
     match result {
         Err(err) => {
@@ -206,24 +224,6 @@ fn test_gribjump_api_extract_hash_validation() {
             println!("Extract with empty hash: error as expected - {err_msg}");
         }
         Ok(_) => panic!("expected error with empty hash"),
-    }
-
-    // Test 4: With GRIBJUMP_IGNORE_GRID=1, empty hash should succeed
-    unsafe {
-        env::set_var("GRIBJUMP_IGNORE_GRID", "1");
-    }
-    let request_empty_hash_ignored = ExtractionRequest::new(request_str, ranges, "");
-    let result = gj.extract(&[request_empty_hash_ignored]);
-    assert!(
-        result.is_ok(),
-        "expected success with empty hash when ignoreGridHash is set"
-    );
-    let results: Vec<_> = result.expect("extraction should succeed").collect();
-    assert_eq!(results.len(), 1);
-    assert!(results[0].is_ok());
-    println!("Extract with empty hash (ignoreGridHash=true): success");
-    unsafe {
-        env::remove_var("GRIBJUMP_IGNORE_GRID");
     }
 
     println!("test_gribjump_api_extract_hash_validation completed");
@@ -241,8 +241,7 @@ fn test_gribjump_api_axes() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     // Query axes matching C++ test_api_axes.cc
     let axes = gj
@@ -300,8 +299,7 @@ fn test_gribjump_api_axes() {
 /// Test `scan_paths` API
 #[test]
 fn test_gribjump_scan_paths() {
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     let grib_path = fixtures_dir().join("extract_ranges.grib");
     let paths = vec![grib_path.to_string_lossy().to_string()];
@@ -317,8 +315,7 @@ fn test_gribjump_scan_paths() {
 /// Test `print_stats` API
 #[test]
 fn test_gribjump_print_stats() {
-    #[allow(unused_mut)] // Methods take &mut self without thread-safe, &self with it
-    let mut gj = GribJump::new().expect("failed to create GribJump handle");
+    let gj = GribJump::new().expect("failed to create GribJump handle");
 
     // Just verify it doesn't crash
     gj.print_stats().expect("print_stats failed");
@@ -359,22 +356,27 @@ fn test_gribjump_extract_from_paths() {
 /// Test `scan_requests` API
 #[test]
 fn test_gribjump_scan_requests() {
-    let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
-    let config = setup_test_fdb_extract_ranges(tmpdir.path());
-    unsafe {
-        env::set_var("FDB5_CONFIG", &config);
+    // A fresh FDB per mode: scanning writes an index next to the data, so a
+    // second scan of the same file reports nothing left to do.
+    for by_files in [false, true] {
+        let tmpdir = tempfile::tempdir().expect("failed to create temp dir");
+        let config = setup_test_fdb_extract_ranges(tmpdir.path());
+        unsafe {
+            env::set_var("FDB5_CONFIG", &config);
+        }
+
+        let gj = GribJump::new().expect("failed to create GribJump handle");
+
+        let requests = vec!["retrieve,class=rd,expver=xxxx"];
+        let count = gj
+            .scan_requests(&requests, by_files)
+            .unwrap_or_else(|e| panic!("scan_requests(by_files={by_files}) failed: {e}"));
+
+        assert_eq!(
+            count, 3,
+            "by_files={by_files}: expected the 3 fields of extract_ranges.grib"
+        );
     }
-
-    let gj = GribJump::new().expect("failed to create GribJump handle");
-
-    // Scan by MARS request
-    let requests = vec!["class=rd,expver=xxxx"];
-    let result = gj.scan_requests(&requests, false);
-    println!("scan_requests result: {result:?}");
-
-    // Also test with by_files=true
-    let result2 = gj.scan_requests(&requests, true);
-    println!("scan_requests (by_files=true) result: {result2:?}");
 }
 
 /// Test `ExtractionResult` helper methods
@@ -510,7 +512,11 @@ fn test_gribjump_api_extract_multi_request() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -598,7 +604,11 @@ fn test_gribjump_api_extract_mars_expanded() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -664,7 +674,11 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("extract_ranges.grib"))
         .expect("failed to read extract_ranges.grib");
     fdb.archive_raw(&grib_data)
@@ -672,17 +686,17 @@ fn test_gribjump_api_extract_from_file_via_fdb_list() {
     fdb.flush().expect("FDB flush failed");
 
     // --- FDB: list field locations to discover file paths and offsets ---
-    let list_request = Request::new()
-        .with("class", "rd")
-        .with("date", "20230508")
-        .with("domain", "g")
-        .with("expver", "xxxx")
-        .with("levtype", "sfc")
-        .with("param", "151130")
-        .with_values("step", &["2", "1", "3"])
-        .with("stream", "oper")
-        .with("time", "1200")
-        .with("type", "fc");
+    let mut list_request = metkit::MarsRequest::new("list");
+    list_request.set("class", "rd");
+    list_request.set("date", "20230508");
+    list_request.set("domain", "g");
+    list_request.set("expver", "xxxx");
+    list_request.set("levtype", "sfc");
+    list_request.set("param", "151130");
+    list_request.set("step", ["2", "1", "3"]);
+    list_request.set("stream", "oper");
+    list_request.set("time", "1200");
+    list_request.set("type", "fc");
 
     let list_iter = fdb
         .list(

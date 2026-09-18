@@ -1,8 +1,12 @@
 //! Extraction iterator.
 
+use std::sync::Arc;
+
 use gribjump_sys::UniquePtr;
+use parking_lot::Mutex;
 
 use crate::error::{Error, Result};
+use crate::handle::HandleInner;
 use crate::result::ExtractionResult;
 
 /// Iterator over extraction results.
@@ -10,12 +14,20 @@ use crate::result::ExtractionResult;
 /// Yields `ExtractionResult` for each field extracted.
 pub struct ExtractionIterator {
     handle: UniquePtr<gribjump_sys::ExtractionIteratorHandle>,
+    // Declared after `handle` so the C++ iterator is destroyed first.
+    _owner: Arc<Mutex<HandleInner>>,
 }
 
 impl ExtractionIterator {
     /// Create a new extraction iterator from a cxx handle.
-    pub(crate) const fn new(handle: UniquePtr<gribjump_sys::ExtractionIteratorHandle>) -> Self {
-        Self { handle }
+    pub(crate) const fn new(
+        handle: UniquePtr<gribjump_sys::ExtractionIteratorHandle>,
+        owner: Arc<Mutex<HandleInner>>,
+    ) -> Self {
+        Self {
+            handle,
+            _owner: owner,
+        }
     }
 
     /// Check if there are more results available.
@@ -55,6 +67,9 @@ impl Iterator for ExtractionIterator {
 }
 
 // SAFETY: The underlying C++ iterator is not thread-safe, but we only allow
-// mutable access through &mut self, so this is safe.
+// mutable access through &mut self, so this is safe. GribJump::extract currently
+// materialises every result into a VectorSource, so next() touches nothing owned
+// by the handle; should that source become a queue fed by the engine, next() must
+// take the owner's lock as well.
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ExtractionIterator {}
