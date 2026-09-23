@@ -57,7 +57,7 @@ metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
 
     const bool inherit = false;
     const bool strict  = true;
-    metkit::mars::MarsExpansion expand(inherit, strict);
+    thread_local metkit::mars::MarsExpansion expand(inherit, strict);
 
     auto expanded = expand.expand(parser.parse());
     ASSERT(expanded.size() == 1);
