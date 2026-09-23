@@ -301,11 +301,11 @@ void IndexFile::load() {
         return;
 
     if (path_.exists()) {
-        LOG_DEBUG_LIB(LibGribJump) << "Loading file cache from " << path_ << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "Loading Index File from " << path_ << std::endl;
         fromFile(path_);
     }
     else {
-        LOG_DEBUG_LIB(LibGribJump) << "Cache file " << path_ << " does not exist" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "Index File " << path_ << " does not exist" << std::endl;
     }
 
     loaded_ = true;
@@ -342,7 +342,7 @@ void IndexFile::decode(eckit::Stream& s) {
         map_.insert(std::make_pair(offset, std::move(info)));
         count++;
     }
-    LOG_DEBUG_LIB(LibGribJump) << "Loaded " << count << " entries from stream" << std::endl;
+    LOG_DEBUG_LIB(LibGribJump) << "IndexFile::decode -- Loaded " << count << " entries from stream" << std::endl;
 }
 
 void IndexFile::toNewFile(const eckit::PathName& path) const {
@@ -391,7 +391,7 @@ void IndexFile::merge(IndexFile& other) {
 
 void IndexFile::write() {
 
-    // create a unique filename for the cache file before (atomically) moving it into place
+    // create a unique filename for the Index File before (atomically) moving it into place
     eckit::PathName uniqPath = eckit::PathName::unique(path_) + file_ext;
     toNewFile(uniqPath);
 

@@ -39,4 +39,6 @@ and the concepts behind its inner machinery.
 
    details
    round-robin-scheduling
+   streaming-extraction
    protocol_testing
+   metrics

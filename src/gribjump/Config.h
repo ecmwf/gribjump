@@ -46,9 +46,7 @@ private:
 
 /// @brief Centralised definition of all eckit::Resource-based configuration options.
 ///
-/// All environment variables and eckit resource names used by gribjump are defined here,
-/// providing a single place for developers to discover and manage the full set of
-/// configuration options. The underlying eckit::Resource mechanism is unchanged.
+/// All environment variables and eckit resource names used by gribjump are defined here.
 ///
 /// @note Some options (e.g. FDB_ENABLE_GRIBJUMP) can only be read after eckit::main
 ///       has finished initialising. Accessors that depend on the YAML config file
@@ -65,6 +63,11 @@ public:
 
     /// URI of remote server (host:port). Required when type is "remote". YAML: uri. Default: "" (empty).
     std::string remoteURI() const;
+
+    /// Protocol version the client advertises to the server.
+    /// Env: GRIBJUMP_CLIENT_PROTOCOL_VERSION. YAML: clientProtocolVersion.
+    /// Default: 4 (streaming). Pin to 3 to force the legacy buffered reply.
+    size_t clientProtocolVersion() const;
 
     // -- Server options --
 
@@ -107,15 +110,27 @@ public:
     /// If true, forward scan requests to remote servers. YAML: forwardScan. Default: false.
     bool forwardScan() const;
 
+    // -- Streaming (v4) options --
+
+    /// Server-side streaming: accumulate this many result bytes before flushing
+    /// one RESULTS chunk to the wire. Env: GRIBJUMP_STREAMING_FLUSH_BYTES. YAML:
+    /// streaming.flushBytes. Default: 8 MiB.
+    size_t streamingFlushBytes() const;
+
+    /// Server-side streaming: per-request produced-but-unsent byte budget before
+    /// task dispatch is throttled (backpressure). Env:
+    /// GRIBJUMP_STREAMING_BYTE_BUDGET. YAML: streaming.byteBudget. Default: 128 MiB.
+    size_t streamingByteBudget() const;
+
     // -- Cache options --
 
     /// If true, the info cache is enabled. YAML: cache.enabled. Default: true.
     bool cacheEnabled() const;
 
-    /// Directory for persisting cache files. YAML: cache.directory. Default: "" (empty).
+    /// Directory for persisting Index Files. YAML: cache.directory. Default: "" (empty).
     std::string cacheDirectory() const;
 
-    /// If true, cache files are stored alongside the data files in FDB. YAML: cache.shadowfdb.
+    /// If true, Index Files are stored alongside the data files in FDB. YAML: cache.shadowfdb.
     /// Default: true when cache.directory is empty.
     bool cacheShadowFdb() const;
 

@@ -12,7 +12,10 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <deque>
+#include <limits>
 #include <mutex>
+#include <optional>
 #include "eckit/serialisation/Stream.h"
 
 #include "gribjump/ExtractionItem.h"
@@ -61,6 +64,12 @@ public:
     /// Write description of task to eckit::Log::status() for monitoring
     virtual void info() const = 0;
 
+    /// The ExtractionItems this task produced results into, for the streaming path to send and free. Returns nullptr
+    /// for tasks that do not produce streamable results (e.g. scan/forward tasks).
+    /// @todo: It is not very nice that this ExtractionTask-specific interface has to be exposed on the parent Task
+    /// class.
+    virtual const ExtractionItems* streamableItems() const { return nullptr; }
+
 protected:
 
     virtual void executeImpl() = 0;
@@ -86,6 +95,9 @@ public:
 
     void reportErrors(eckit::Stream& client) const;
     void raiseErrors() const;
+
+    /// The collected error messages (empty if none).
+    const std::vector<std::string>& errors() const { return errors_; }
 
 private:
 
@@ -117,13 +129,51 @@ public:
     /// Wait for all queued tasks to be executed
     void waitForTasks();
 
+    /// Flag every remaining task as cancelled and purge from WorkQueue.
+    void cancel();
+
+    /// Block until the next successfully completed task is available and return its
+    /// id, or return nullopt once every task has completed.
+    /// Used by Streaming path instead of waitForTasks().
+    std::optional<size_t> popCompleted();
+
+    // -- Backpressure: bound produced-but-not-yet-sent result bytes ------------
+
+    void setByteThreshold(size_t bytes) { byteThreshold_ = bytes; }
+
+    /// Account for result bytes produced but not yet sent to the client, and track the high-water mark.
+    void addOutstanding(size_t bytes) {
+        std::lock_guard<std::mutex> lock(m_);
+        size_t updated = (outstandingBytes_ += bytes);
+        if (updated > peakOutstandingBytes_) {
+            peakOutstandingBytes_ = updated;
+        }
+    }
+
+    /// High-water mark of outstanding result bytes.
+    size_t peakOutstandingBytes() const {
+        std::lock_guard<std::mutex> lock(m_);
+        return peakOutstandingBytes_;
+    }
+
+    /// Account for result bytes that have been sent and freed.
+    void releaseOutstanding(size_t bytes);
+
+    /// True while more result bytes are outstanding than the configured budget.
+    bool overBudget() const { return outstandingBytes_.load() > byteThreshold_; }
+
+    /// True when a finite byte budget has been set (streaming path).
+    bool backpressureEnabled() const { return byteThreshold_ != std::numeric_limits<size_t>::max(); }
+
+    /// The streamable extraction items of a completed task (by id).
+    const ExtractionItems* streamableItems(size_t id) {
+        std::lock_guard<std::mutex> lock(m_);
+        return tasks_.at(id)->streamableItems();
+    }
+
     /// Report on errors and other status information about executed tasks.
     /// Calling code may use this to report to a client or raise an exception.
-    TaskReport report() {
-        std::lock_guard<std::mutex> lock(m_);
-        ASSERT(done_);
-        return TaskReport(std::move(errors_));
-    }
+    TaskReport report();
 
     size_t nTasks() const {
         std::lock_guard<std::mutex> lock(m_);
@@ -133,6 +183,11 @@ public:
     size_t nErrors() const {
         std::lock_guard<std::mutex> lock(m_);
         return errors_.size();
+    }
+
+    size_t nCancelled() const {
+        std::lock_guard<std::mutex> lock(m_);
+        return nCancelledTasks_;
     }
 
     void info() const;
@@ -154,11 +209,17 @@ private:
     bool waiting_        = false;  //< true if waiting for tasks to complete
     bool done_           = false;  //< true if all tasks have completed
 
-    mutable std::mutex m_;
+    mutable std::mutex m_;  //< rule of thumb: do not hold at the same time as WorkQueue::mtx_
     std::condition_variable cv_;
 
     std::vector<std::shared_ptr<Task>> tasks_;
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
+
+    std::deque<size_t> completed_;  //< ids of DONE tasks awaiting harvest (guarded by m_)
+
+    std::atomic<size_t> outstandingBytes_{0};  //< produced-but-not-yet-sent bytes
+    size_t peakOutstandingBytes_ = 0;          //< high-water mark of outstandingBytes_ (guarded by m_)
+    size_t byteThreshold_        = std::numeric_limits<size_t>::max();  //< unlimited by default (no backpressure)
 
     const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
 };
@@ -178,6 +239,8 @@ public:
     virtual void extract();
 
     virtual void info() const override;
+
+    const ExtractionItems* streamableItems() const override { return &extractionItems_; }
 
 protected:
 
