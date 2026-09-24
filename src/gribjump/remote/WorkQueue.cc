@@ -40,7 +40,7 @@ WorkQueue::~WorkQueue() {
 }
 
 WorkQueue::WorkQueue() {
-    int nthreads = ConfigOptions::instance().numThreads();
+    int nthreads = ProcessOptions::get().numThreads();
     eckit::Log::info() << "Starting " << eckit::Plural(nthreads, "thread") << " (round-robin work queue)" << std::endl;
     for (int i = 0; i < nthreads; ++i) {
         workers_.emplace_back([this] { workerLoop(); });

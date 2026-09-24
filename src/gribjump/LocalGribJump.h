@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "gribjump/ExecutionContext.h"
+#include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/info/InfoAggregator.h"
@@ -48,7 +48,7 @@ public:
 
 private:
 
-    std::shared_ptr<ExecutionContext> context_;
+    Engine engine_;
 };
 
 }  // namespace gribjump

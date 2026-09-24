@@ -29,8 +29,9 @@ GribJump::GribJump() {
 }
 
 GribJump::GribJump(const Config& cfg) {
-    ConfigOptions::validateInstanceConfig(cfg);
-    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(ConfigOptions(cfg)));
+    const ConfigOptions options(cfg);
+    ProcessOptions::configure(cfg);
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(options));
 }
 
 GribJump::~GribJump() {}

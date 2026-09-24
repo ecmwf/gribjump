@@ -28,11 +28,6 @@ Lister::~Lister() {}
 
 //  ------------------------------------------------------------------
 
-FDBLister& FDBLister::instance() {
-    static FDBLister instance;
-    return instance;
-}
-
 FDBLister::FDBLister(const ConfigOptions& options) :
     allowMissing_(options.allowMissing()), ignoreYearMonth_(options.ignoreYearMonth()) {}
 

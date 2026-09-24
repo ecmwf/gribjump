@@ -66,10 +66,10 @@ metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
 
 /// The request string handed over by the python layer is only parsed and expanded if the
 /// library has been configured to do so. Parsing is a bottleneck for large numbers of
-/// requests, hence it stays configurable (see gribjump::ConfigOptions::requestParsing()).
+/// requests, hence it stays configurable (see gribjump::ProcessOptions::requestParsing()).
 gj::ExtractionRequest make_extraction_request(const std::string& request, const gj::Ranges& ranges,
                                               const std::string& grid_hash) {
-    if (gj::ConfigOptions::instance().requestParsing()) {
+    if (gj::ProcessOptions::get().requestParsing()) {
         const auto mars_request = mars_request_from_string(request);
         return gj::ExtractionRequest(mars_request.asString(), ranges, grid_hash);
     }

@@ -25,7 +25,7 @@ namespace gribjump {
 std::vector<std::vector<std::vector<double>>> eccodesExtract(metkit::mars::MarsRequest request,
                                                              std::vector<Range> ranges) {
     // Potentially any cardinality.
-    std::map<eckit::PathName, eckit::OffsetList> map = FDBLister::instance().filesOffsets({request});
+    std::map<eckit::PathName, eckit::OffsetList> map = FDBLister().filesOffsets({request});
 
     std::vector<std::vector<std::vector<double>>> results;
     for (const auto& entry : map) {

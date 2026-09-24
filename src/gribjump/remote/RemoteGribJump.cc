@@ -20,7 +20,7 @@
 
 namespace gribjump {
 
-RemoteGribJump::RemoteGribJump() : RemoteGribJump(ConfigOptions::instance()) {}
+RemoteGribJump::RemoteGribJump() : RemoteGribJump(ConfigOptions::defaultOptions()) {}
 
 RemoteGribJump::RemoteGribJump(const ConfigOptions& options) {
     std::string uri = options.remoteURI();

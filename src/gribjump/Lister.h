@@ -47,8 +47,7 @@ protected:
 class FDBLister : public Lister {
 public:
 
-    static FDBLister& instance();
-    explicit FDBLister(const ConfigOptions& options = ConfigOptions::instance());
+    explicit FDBLister(const ConfigOptions& options = ConfigOptions::defaultOptions());
     ~FDBLister();
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
