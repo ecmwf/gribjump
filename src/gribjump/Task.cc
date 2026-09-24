@@ -185,7 +185,7 @@ FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, co
     Task(taskgroup, id),
     fname_(fname),
     extractionItems_(extractionItems),
-    ignoreGrid_(ConfigOptions::instance().ignoreGrid()) {}
+    ignoreGrid_(taskgroup.executionContext().options().ignoreGrid()) {}
 
 void FileExtractionTask::executeImpl() {
 
@@ -205,7 +205,7 @@ void FileExtractionTask::extract() {
         offsets.push_back(extractionItem->offset());
     }
 
-    std::vector<std::shared_ptr<JumpInfo>> infos = InfoCache::instance().get(fname_, offsets);
+    std::vector<std::shared_ptr<JumpInfo>> infos = taskGroup_.executionContext().cache().get(fname_, offsets);
 
     // Extract
     eckit::FileHandle fh(fname_);
@@ -341,11 +341,11 @@ void FileScanTask::executeImpl() {
 void FileScanTask::scan() {
 
     if (offsets_.size() == 0) {
-        nfields_ += InfoCache::instance().scan(fname_);
+        nfields_ += taskGroup_.executionContext().cache().scan(fname_);
         return;
     }
 
-    nfields_ += InfoCache::instance().scan(fname_, offsets_);
+    nfields_ += taskGroup_.executionContext().cache().scan(fname_, offsets_);
 }
 
 void FileScanTask::info() const {

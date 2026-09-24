@@ -65,6 +65,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     Engine.cc
     Engine.h
+    ExecutionContext.cc
+    ExecutionContext.h
     Lister.cc
     Lister.h
     Task.cc

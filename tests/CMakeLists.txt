@@ -133,7 +133,8 @@ ecbuild_add_test(
     TARGET "gribjump_test_config"
     SOURCES "test_config.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
-    ENVIRONMENT "${gribjump_env}"
+    ENVIRONMENT "GRIBJUMP_THREADS=2;${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
     LIBS gribjump
 )

@@ -88,7 +88,10 @@ void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     // inject one (e.g. a MockEngine) for unit testing.
     std::optional<Engine> ownedEngine;
     if (!injectedEngine) {
-        ownedEngine.emplace();
+        // The server has one process-default configuration. Retain its services
+        // across connections instead of discarding the in-memory cache per request.
+        static auto serverContext = std::make_shared<ExecutionContext>();
+        ownedEngine.emplace(serverContext);
     }
     EngineIface& engine = injectedEngine ? *injectedEngine : *ownedEngine;
 

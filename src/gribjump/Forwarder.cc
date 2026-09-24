@@ -20,7 +20,7 @@
 
 namespace gribjump {
 
-Forwarder::Forwarder() {}
+Forwarder::Forwarder(std::shared_ptr<ExecutionContext> context) : context_(std::move(context)) {}
 
 Forwarder::~Forwarder() {}
 
@@ -39,7 +39,7 @@ TaskOutcome<size_t> Forwarder::scan(const std::vector<eckit::URI>& uris) {
         serverfilemaps[server][fname].push_back(offset);
     }
 
-    TaskGroup taskGroup;
+    TaskGroup taskGroup(context_);
     std::atomic<size_t> nFields(0);
     for (auto& [endpoint, scanmap] : serverfilemaps) {
         taskGroup.enqueueTask<ForwardScanTask>(endpoint, scanmap, nFields);
@@ -52,7 +52,7 @@ TaskOutcome<size_t> Forwarder::scan(const std::vector<eckit::URI>& uris) {
 TaskReport Forwarder::extract(filemap_t& filemap) {
     std::unordered_map<eckit::net::Endpoint, filemap_t> serverfilemaps = serverFileMap(filemap);
 
-    TaskGroup taskGroup;
+    TaskGroup taskGroup(context_);
     for (auto& [endpoint, subfilemap] : serverfilemaps) {
         taskGroup.enqueueTask<ForwardExtractionTask>(endpoint, subfilemap);
     }
@@ -63,7 +63,7 @@ TaskReport Forwarder::extract(filemap_t& filemap) {
 
 
 const eckit::net::Endpoint& Forwarder::serverForURI(const eckit::URI& uri) const {
-    const Config::ServerMap& servermap = LibGribJump::instance().config().serverMap();
+    const Config::ServerMap& servermap = context_->options().serverMap();
 
     eckit::net::Endpoint fdbEndpoint(uri.host(), uri.port());
 
@@ -76,8 +76,6 @@ const eckit::net::Endpoint& Forwarder::serverForURI(const eckit::URI& uri) const
 
 // Splits a filemap into subfilemaps, each to be handled by a seperate remote server
 std::unordered_map<eckit::net::Endpoint, filemap_t> Forwarder::serverFileMap(filemap_t& filemap) {
-
-    Config::ServerMap servermap = LibGribJump::instance().config().serverMap();
 
     // Match servers with files
     std::unordered_map<eckit::net::Endpoint, std::vector<std::string>> serverfiles;

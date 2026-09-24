@@ -13,9 +13,9 @@
 #include "gribjump/Config.h"
 #include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
+#include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/LibGribJump.h"
-#include "gribjump/LogRouter.h"
 
 namespace gribjump {
 
@@ -29,7 +29,7 @@ namespace gribjump {
 // - cache         // Configuration of the cache.
 //   - shadowfdb   // If true, the cache files will be stored in the same directory as data files. DEFAULT=true
 //   - directory   // The directory where the cache will be stored, instead of shadowing the FDB.
-//   - enable      // Whether to look at the cache at all. DEFAULT=true
+//   - enabled     // Whether to look at the cache at all. DEFAULT=true
 // - plugin        // Configuration for using GribJump as a plugin to FDB, which generates jumpinfos on the fly for
 // fdb.archive()
 //                 // NOTE Plugin cannot be enabled from config, one must set the envar FDB_ENABLE_GRIBJUMP
@@ -40,10 +40,7 @@ namespace gribjump {
 
 Config::Config() {}
 
-Config::Config(const eckit::PathName path) :
-    eckit::LocalConfiguration(eckit::YAMLConfiguration(path)), serverMap_{loadServerMap()}, path_{path} {
-    LogRouter::instance().configure(*this);
-}
+Config::Config(const eckit::PathName path) : eckit::LocalConfiguration(eckit::YAMLConfiguration(path)), path_{path} {}
 
 Config::ServerMap Config::loadServerMap() const {
     // e.g. yaml
@@ -70,16 +67,38 @@ Config::ServerMap Config::loadServerMap() const {
 // --------------------------------------------------------------------------------------------------
 
 ConfigOptions& ConfigOptions::instance() {
-    static ConfigOptions instance;
+    static ConfigOptions instance(LibGribJump::instance().config());
     return instance;
 }
 
+ConfigOptions::ConfigOptions(const Config& config) :
+    config_(config),
+    serverMap_(config.serverMap()),
+    ignoreGrid_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID", config.getBool("ignoreGridHash", false))),
+    ignoreYearMonth_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", config.getBool("ignoreYearMonth", true))),
+    allowMissing_(eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING", config.getBool("allowMissing", false))),
+    cacheSize_(eckit::Resource<int>("gribjumpCacheSize", config.getInt("cache.size", 1024))),
+    cacheLazy_(eckit::Resource<bool>("gribjumpLazyInfo", config.getBool("cache.lazy", true))),
+    scanCorrupted_(eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", config.getBool("scanCorrupted", false))) {
+    if (cacheSize_ <= 0) {
+        throw eckit::BadValue("cache.size must be positive");
+    }
+}
+
+void ConfigOptions::validateInstanceConfig(const Config& config) {
+    for (const char* key : {"threads", "server", "logging", "plugin", "requestParsing"}) {
+        if (config.has(key)) {
+            throw eckit::BadValue(std::string("GribJump instance config cannot set process-wide option: ") + key);
+        }
+    }
+}
+
 std::string ConfigOptions::configType() const {
-    return LibGribJump::instance().config().getString("type", "local");
+    return config_.getString("type", "local");
 }
 
 std::string ConfigOptions::remoteURI() const {
-    return LibGribJump::instance().config().getString("uri", "");
+    return config_.getString("uri", "");
 }
 
 int ConfigOptions::serverPort() const {
@@ -95,14 +114,11 @@ size_t ConfigOptions::numThreads() const {
 }
 
 bool ConfigOptions::ignoreGrid() const {
-    static bool value = eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID",
-                                              LibGribJump::instance().config().getBool("ignoreGridHash", false));
-    return value;
+    return ignoreGrid_;
 }
 
 bool ConfigOptions::ignoreYearMonth() const {
-    static bool value = eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", true);
-    return value;
+    return ignoreYearMonth_;
 }
 
 bool ConfigOptions::requestParsing() const {
@@ -112,51 +128,44 @@ bool ConfigOptions::requestParsing() const {
 }
 
 bool ConfigOptions::allowMissing() const {
-    static bool value = eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING",
-                                              LibGribJump::instance().config().getBool("allowMissing", false));
-    return value;
+    return allowMissing_;
 }
 
 bool ConfigOptions::inefficientExtraction() const {
-    return LibGribJump::instance().config().getBool("inefficientExtraction", false);
+    return config_.getBool("inefficientExtraction", false);
 }
 
 bool ConfigOptions::forwardExtraction() const {
-    return LibGribJump::instance().config().getBool("forwardExtraction", false);
+    return config_.getBool("forwardExtraction", false);
 }
 
 bool ConfigOptions::forwardScan() const {
-    return LibGribJump::instance().config().getBool("forwardScan", false);
+    return config_.getBool("forwardScan", false);
 }
 
 bool ConfigOptions::cacheEnabled() const {
-    return LibGribJump::instance().config().getBool("cache.enabled", true);
+    return config_.getBool("cache.enabled", true);
 }
 
 std::string ConfigOptions::cacheDirectory() const {
-    return LibGribJump::instance().config().getString("cache.directory", "");
+    return config_.getString("cache.directory", "");
 }
 
 bool ConfigOptions::cacheShadowFdb() const {
     std::string cacheDir = cacheDirectory();
-    return LibGribJump::instance().config().getBool("cache.shadowfdb", cacheDir.empty());
+    return config_.getBool("cache.shadowfdb", cacheDir.empty());
 }
 
 int ConfigOptions::cacheSize() const {
-    static int value =
-        eckit::Resource<int>("gribjumpCacheSize", LibGribJump::instance().config().getInt("cache.size", 1024));
-    return value;
+    return cacheSize_;
 }
 
 bool ConfigOptions::cacheLazy() const {
-    static bool value =
-        eckit::Resource<bool>("gribjumpLazyInfo", LibGribJump::instance().config().getBool("cache.lazy", true));
-    return value;
+    return cacheLazy_;
 }
 
 bool ConfigOptions::scanCorrupted() const {
-    static bool value = eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", false);
-    return value;
+    return scanCorrupted_;
 }
 
 bool ConfigOptions::fdbEnableGribjump() const {

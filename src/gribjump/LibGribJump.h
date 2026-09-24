@@ -39,9 +39,6 @@ public:
 
     const Config& config();
 
-    /// Replace the active config. Subsequent ConfigOptions reads use this config.
-    void setConfig(Config cfg);
-
     virtual std::string version() const override;
 
     virtual std::string gitsha1(unsigned int count = 40u) const override;

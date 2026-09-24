@@ -13,6 +13,7 @@
 #pragma once
 
 #include "eckit/serialisation/Stream.h"
+#include "gribjump/ExecutionContext.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Lister.h"
 #include "gribjump/Metrics.h"
@@ -56,6 +57,7 @@ class Engine : public EngineIface {
 public:
 
     Engine();
+    explicit Engine(std::shared_ptr<ExecutionContext>);
     ~Engine();
 
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) override;
@@ -79,6 +81,8 @@ private:
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
+
+    std::shared_ptr<ExecutionContext> context_;
 };
 
 

@@ -42,18 +42,20 @@ using namespace metkit::mars;
 
 typedef std::chrono::high_resolution_clock Clock;
 
-LocalGribJump::LocalGribJump() {}
+LocalGribJump::LocalGribJump() : LocalGribJump(ConfigOptions::instance()) {}
+
+LocalGribJump::LocalGribJump(const ConfigOptions& options) : context_(std::make_shared<ExecutionContext>(options)) {}
 
 LocalGribJump::~LocalGribJump() {}
 
 size_t LocalGribJump::scan(const std::vector<eckit::PathName>& paths) {
-    auto [result, report] = Engine().scan(paths);
+    auto [result, report] = Engine(context_).scan(paths);
     report.raiseErrors();
     return result;
 }
 
 size_t LocalGribJump::scan(const std::vector<MarsRequest>& requests, bool byfiles) {
-    auto [result, report] = Engine().scan(requests, byfiles);
+    auto [result, report] = Engine(context_).scan(requests, byfiles);
     report.raiseErrors();
     return result;
 }
@@ -64,7 +66,7 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(const ecki
                                                                       const std::vector<std::vector<Range>>& ranges) {
     // Directly from file, no cache, no queue, no threads
 
-    InfoExtractor extractor;
+    InfoExtractor extractor(context_->options());
     std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(path, offsets);
 
     eckit::FileHandle fh(path);
@@ -120,7 +122,7 @@ std::vector<std::unique_ptr<ExtractionResult>> collect_results(PathExtractionReq
 
 std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(ExtractionRequests& requests) {
 
-    auto [results, report] = Engine().extract(requests);
+    auto [results, report] = Engine(context_).extract(requests);
     report.raiseErrors();
 
     std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
@@ -130,7 +132,7 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(Extraction
 
 std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(PathExtractionRequests& requests) {
 
-    auto [results, report] = Engine().extract(requests);
+    auto [results, report] = Engine(context_).extract(requests);
     report.raiseErrors();
 
     std::vector<std::unique_ptr<ExtractionResult>> extractionResults = collect_results(requests, results);
@@ -139,7 +141,7 @@ std::vector<std::unique_ptr<ExtractionResult>> LocalGribJump::extract(PathExtrac
 }
 
 std::map<std::string, std::unordered_set<std::string>> LocalGribJump::axes(const std::string& request, int level) {
-    return Engine().axes(request, level);
+    return Engine(context_).axes(request, level);
 }
 
 static GribJumpBuilder<LocalGribJump> builder("local");
