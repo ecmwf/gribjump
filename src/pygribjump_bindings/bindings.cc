@@ -38,6 +38,7 @@
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/Metrics.h"
+#include "gribjump/TaskWait.h"
 #include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/gribjump_version.h"
@@ -74,6 +75,13 @@ gj::ExtractionRequest make_extraction_request(const std::string& request, const 
         return gj::ExtractionRequest(mars_request.asString(), ranges, grid_hash);
     }
     return gj::ExtractionRequest(request, ranges, grid_hash);
+}
+
+void check_python_signals() {
+    py::gil_scoped_acquire gil;
+    if (PyErr_CheckSignals() != 0) {
+        throw py::error_already_set();
+    }
 }
 
 gj::LogContext log_context(const std::string& context) {
@@ -240,12 +248,14 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
         .def(
             "extract",
             [](gj::GribJump& gribjump, std::vector<gj::ExtractionRequest> requests, const std::string& ctx) {
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.extract(requests, log_context(ctx));
             },
             py::arg("requests"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
         .def(
             "extract_from_paths",
             [](gj::GribJump& gribjump, std::vector<gj::PathExtractionRequest> requests, const std::string& ctx) {
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.extract(requests, log_context(ctx));
             },
             py::arg("requests"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
@@ -255,6 +265,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                const std::string& grid_hash, const std::string& ctx) {
                 const auto mars_request = mars_request_from_string(request);
                 py::gil_scoped_release gil;
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.extract(mars_request, ranges, grid_hash, log_context(ctx));
             },
             py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{}, py::arg("ctx") = std::string{})
@@ -279,6 +290,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                 for (const auto& path : paths) {
                     path_names.emplace_back(path);
                 }
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.scan(path_names, log_context(ctx));
             },
             py::arg("paths"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
@@ -287,6 +299,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
             [](gj::GribJump& gribjump, const std::string& request, bool byfiles, const std::string& ctx) {
                 const auto mars_request = mars_request_from_string(request);
                 py::gil_scoped_release gil;
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.scan({mars_request}, byfiles, log_context(ctx));
             },
             py::arg("request"), py::arg("byfiles") = false, py::arg("ctx") = std::string{})

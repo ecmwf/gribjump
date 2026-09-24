@@ -138,6 +138,9 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+# Broken cancellation accounting must not leave the test suite waiting forever.
+set_tests_properties(gribjump_test_workqueue PROPERTIES TIMEOUT 10)
+
 # Wire-format / codec regression tests for the remote protocol.
 # FDB-free and socket-free: runs as a normal fast unit test (unlike the live
 # server tests under remote/, which require FDB build tools) so protocol

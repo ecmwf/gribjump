@@ -26,6 +26,8 @@ list( APPEND gribjump_srcs
 
     Config.cc
     Config.h
+    TaskWait.cc
+    TaskWait.h
     Stats.cc
     Stats.h
     Types.h
