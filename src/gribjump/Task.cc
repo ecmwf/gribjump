@@ -173,6 +173,7 @@ void TaskGroup::waitForTasks() {
             lock.lock();
         }
         cancelTasks();  // PENDING only; executing tasks finish normally
+        eckit::Log::info() << "Cancelling pending tasks; waiting for running tasks to finish..." << std::endl;
         // Do not check again while draining: workers still reference request state.
         cv_.wait(lock, complete);
         waiting_ = false;

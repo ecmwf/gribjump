@@ -80,6 +80,7 @@ print("RECOVERED", flush=True)
     log = "".join(output)
     assert sent.is_set(), log
     assert process.returncode == 0, log
+    assert "Cancelling pending tasks; waiting for running tasks to finish..." in log, log
     assert "INTERRUPTED" in log, log
     assert "RECOVERED" in log, log
     # The native wait must take its interruption path, not complete normally and
