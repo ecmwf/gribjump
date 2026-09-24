@@ -77,7 +77,6 @@ gj::ExtractionRequest make_extraction_request(const std::string& request, const 
     return gj::ExtractionRequest(request, ranges, grid_hash);
 }
 
-// Called only by the waiting caller, never by extraction workers.
 void check_python_signals() {
     py::gil_scoped_acquire gil;
     if (PyErr_CheckSignals() != 0) {

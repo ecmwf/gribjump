@@ -14,16 +14,16 @@
 
 namespace gribjump {
 
-/// Optional caller-side check for synchronous task waits. Throwing cancels pending
-/// tasks; active tasks are drained before the exception is rethrown. The scope is
-/// thread-local (not inherited by workers), and restores any previous check.
+/// Optional caller-side check for synchronous Task waits. Throwing cancels pending
+/// Tasks; active Tasks are drained before the exception is rethrown.
+/// Used on the pybind API.
 class TaskWaitScope {
 public:
 
     explicit TaskWaitScope(std::function<void()> check);
     ~TaskWaitScope();
 
-    TaskWaitScope(const TaskWaitScope&) = delete;
+    TaskWaitScope(const TaskWaitScope&)            = delete;
     TaskWaitScope& operator=(const TaskWaitScope&) = delete;
 
     static bool active();

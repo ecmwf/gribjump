@@ -115,7 +115,7 @@ public:
     }
 
     /// Wait for all tasks. A throwing TaskWaitScope check cancels pending tasks
-    /// and drains active tasks before rethrowing; request state stays alive.
+    /// and drains active tasks before rethrowing.
     void waitForTasks();
 
     /// Report on errors and other status information about executed tasks.
