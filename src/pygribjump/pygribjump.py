@@ -15,6 +15,7 @@ import numpy as np
 
 from pygribjump._internal import (
     _GribJump,
+    _configure_process,
     _gribjump_build_version,
     version_info,
 )
@@ -28,13 +29,33 @@ from pygribjump.pygribjump_type import (
 )
 
 
+def configure_process(config: dict[str, Any]) -> None:
+    """Establish shared cache, worker, logging, server and request-parsing settings.
+
+    Call before constructing GribJump clients or ExtractionRequest objects, or
+    using the FDB plugin. Later calls accept matching values; conflicts raise
+    GribJumpException. Omitted keys preserve the established settings.
+
+    ``config`` uses the same nested dictionaries as ``GribJump(config=...)``.
+    Per-object keys are ignored by this function. Environment/resource overrides
+    retain precedence over supplied values.
+    """
+    _configure_process(config)
+
+
 class GribJump:
     """
     This is the main container class for accessing GribJump.
 
     Parameters
     ----------
-    None
+    config : dict[str, Any], optional
+        Configuration as a nested dictionary. Per-object settings are copied at
+        construction. The first client or process service fixes shared settings
+        (including cache and threads); later conflicting values raise
+        GribJumpException. Environment/resource overrides retain precedence.
+        None uses the library's file defaults. An empty dictionary uses built-in
+        defaults for per-object settings. See the configuration guide for scopes.
 
     Returns
     -------
@@ -53,9 +74,9 @@ class GribJump:
     ...     pass
     """
 
-    def __init__(self) -> None:
+    def __init__(self, config: Optional[dict[str, Any]] = None) -> None:
         self.logger = logging.getLogger(__name__ + ".GribJump")
-        self.gribjump = _GribJump()
+        self.gribjump = _GribJump(config)
 
     def __enter__(self) -> "GribJump":
         return self

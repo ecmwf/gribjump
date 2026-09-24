@@ -60,6 +60,33 @@ To inspect which libraries have been picked up at runtime:
 python -m pygribjump --print-home-deps
 ```
 
+## Configuration (pybind11)
+
+Pass a nested dictionary to configure a client:
+
+```python
+checked = pygribjump.GribJump(config={"ignoreGridHash": False})
+unchecked = pygribjump.GribJump(config={"ignoreGridHash": True})
+```
+
+Per-object options are copied at construction. Cache, worker-pool, server,
+logging, plugin and standalone request-parsing settings are process-wide. Set
+these in the first client constructor, or at startup before creating clients
+or requests:
+
+```python
+pygribjump.configure_process({"threads": 4, "cache": {"size": 2048}})
+```
+
+Later matching process settings are accepted; conflicting settings raise
+`GribJumpException`. Environment/resource overrides retain precedence.
+`GribJump()` and `GribJump(config=None)` use file defaults; an explicit dictionary
+uses built-in defaults for omitted per-object options. The deprecated cffi API
+is unchanged.
+
+See the [configuration guide](https://sites.ecmwf.int/docs/gribjump/gribjump/list_of_configuration_options.html)
+for the options grouped by scope.
+
 ## Migrating from the cffi based pygribjump (<= 0.13)
 
 `PyGribJump` used to be implemented with `cffi`; it is now built on `pybind11`. The

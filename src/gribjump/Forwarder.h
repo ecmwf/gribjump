@@ -25,7 +25,7 @@ namespace gribjump {
 class Forwarder {
 public:
 
-    Forwarder();
+    explicit Forwarder(const ConfigOptions& options);
     ~Forwarder();
 
     TaskOutcome<size_t> scan(const std::vector<eckit::URI>& uris);
@@ -36,6 +36,7 @@ private:
     std::unordered_map<eckit::net::Endpoint, filemap_t> serverFileMap(filemap_t& filemap);
 
     const eckit::net::Endpoint& serverForURI(const eckit::URI& uri) const;
+    const ConfigOptions options_;
 };
 
 }  // namespace gribjump

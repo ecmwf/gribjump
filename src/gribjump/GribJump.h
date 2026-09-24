@@ -21,6 +21,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/api/ExtractionIterator.h"
@@ -36,7 +37,14 @@ typedef std::pair<size_t, size_t> Range;
 class GribJump {
 public:
 
+    /// Construct using a snapshot of the process-default configuration.
     GribJump();
+
+    /// Snapshot per-object options and establish/check shared process settings.
+    /// Process settings are fixed by the first constructor or process service;
+    /// later conflicting values throw BadValue. Environment/resource overrides
+    /// retain precedence. See ConfigOptions and ProcessOptions for the scopes.
+    explicit GribJump(const Config& cfg);
 
     ~GribJump();
 

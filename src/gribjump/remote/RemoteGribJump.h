@@ -20,11 +20,14 @@
 
 namespace gribjump {
 
+class ConfigOptions;
+
 class RemoteGribJump : public GribJumpBase {
 
 public:  // methods
 
     RemoteGribJump();
+    explicit RemoteGribJump(const ConfigOptions&);
     RemoteGribJump(eckit::net::Endpoint endpoint);
     ~RemoteGribJump();
 
