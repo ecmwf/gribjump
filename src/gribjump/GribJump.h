@@ -21,6 +21,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/api/ExtractionIterator.h"
@@ -37,6 +38,8 @@ class GribJump {
 public:
 
     GribJump();
+
+    explicit GribJump(const Config& cfg);
 
     ~GribJump();
 
