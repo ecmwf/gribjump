@@ -180,8 +180,10 @@ Alternatively, establish process settings before creating clients:
     gribjump::GribJump a(clientConfigA);
     gribjump::GribJump b(clientConfigB);
 
-These configuration constructors are currently C++ APIs. The C and Python
-interfaces use the process/file defaults.
+The pybind11 Python interface supports the same configuration scopes through
+``GribJump(config=dict)`` and ``configure_process(dict)``; see
+:doc:`../pygribjump/index`. The C and deprecated cffi interfaces use the
+process/file defaults.
 
 API reference
 -------------

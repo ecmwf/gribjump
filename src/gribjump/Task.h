@@ -165,7 +165,7 @@ private:
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
 
     const ConfigOptions options_;  //< owned snapshot used by worker tasks
-    const LogContext ctx_;  //< owned snapshot for propagating context in forwarding tasks.
+    const LogContext ctx_;         //< owned snapshot for propagating context in forwarding tasks.
 };
 
 //----------------------------------------------------------------------------------------------------------------------
