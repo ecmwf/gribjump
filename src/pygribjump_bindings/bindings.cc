@@ -51,6 +51,70 @@ namespace {
 // @brief Helpers
 //--------------------------------------------------------------------------------------------------
 
+// Convert while holding the GIL. The resulting configuration owns all its data.
+// Lists of dictionaries represent configuration sections such as servermap.
+eckit::LocalConfiguration config_from_dict(const py::dict& values, const std::string& path = "config",
+                                           size_t depth = 0) {
+    if (depth > 64) {
+        throw py::value_error("Configuration nesting exceeds 64 levels (possibly a cyclic dictionary)");
+    }
+    eckit::LocalConfiguration result;
+    for (const auto& item : values) {
+        if (!py::isinstance<py::str>(item.first)) {
+            throw py::type_error(path + " keys must be strings");
+        }
+        const auto key = item.first.cast<std::string>();
+        if (key.empty()) {
+            throw py::value_error(path + " keys must not be empty");
+        }
+        const auto location = path + "." + key;
+        const auto value    = item.second;
+        if (py::isinstance<py::bool_>(value)) {
+            result.set(key, value.cast<bool>());
+        }
+        else if (py::isinstance<py::int_>(value)) {
+            const long long number = PyLong_AsLongLong(value.ptr());
+            if (PyErr_Occurred()) {
+                throw py::error_already_set();
+            }
+            result.set(key, number);
+        }
+        else if (py::isinstance<py::float_>(value)) {
+            result.set(key, value.cast<double>());
+        }
+        else if (py::isinstance<py::str>(value)) {
+            result.set(key, value.cast<std::string>());
+        }
+        else if (py::isinstance<py::dict>(value)) {
+            result.set(key, config_from_dict(py::reinterpret_borrow<py::dict>(value), location, depth + 1));
+        }
+        else if (py::isinstance<py::list>(value)) {
+            std::vector<eckit::LocalConfiguration> sections;
+            for (const auto& section : py::reinterpret_borrow<py::list>(value)) {
+                if (!py::isinstance<py::dict>(section)) {
+                    throw py::type_error(location + " must contain dictionaries");
+                }
+                sections.push_back(config_from_dict(py::reinterpret_borrow<py::dict>(section),
+                                                    location + "[" + std::to_string(sections.size()) + "]", depth + 1));
+            }
+            result.set(key, sections);
+        }
+        else {
+            throw py::type_error(location + " must be a bool, int, float, str, dict or list of dicts");
+        }
+    }
+    return result;
+}
+
+gj::Config config_from_python(const py::object& value) {
+    if (!py::isinstance<py::dict>(value)) {
+        throw py::type_error("config must be a dictionary");
+    }
+    gj::Config result;
+    result.set(config_from_dict(py::reinterpret_borrow<py::dict>(value)));
+    return result;
+}
+
 metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
     std::istringstream in(request);
     metkit::mars::MarsParser parser(in);
@@ -121,6 +185,15 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
 
         return dependencyInformation;
     });
+
+    m.def(
+        "configure_process",
+        [](const py::object& config) {
+            const auto options = config_from_python(config);
+            py::gil_scoped_release gil;
+            gj::ProcessOptions::configure(options);
+        },
+        py::arg("config"));
 
     // Compile-time gribjump version
     m.attr("__gribjump_build_version__") = gribjump_VERSION_STR;
@@ -236,7 +309,16 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
     //--------------------------------------------------
 
     py::class_<gj::GribJump, py::smart_holder>(m, "GribJump", py::release_gil_before_calling_cpp_dtor())
-        .def(py::init(), py::call_guard<py::gil_scoped_release>())
+        .def(py::init([](const py::object& config) {
+                 if (config.is_none()) {
+                     py::gil_scoped_release gil;
+                     return std::make_unique<gj::GribJump>();
+                 }
+                 const auto options = config_from_python(config);
+                 py::gil_scoped_release gil;
+                 return std::make_unique<gj::GribJump>(options);
+             }),
+             py::arg("config") = py::none())
         .def(
             "extract",
             [](gj::GribJump& gribjump, std::vector<gj::ExtractionRequest> requests, const std::string& ctx) {
