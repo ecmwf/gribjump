@@ -86,6 +86,19 @@ is unchanged.
 
 See the [configuration guide](https://sites.ecmwf.int/docs/gribjump/gribjump/list_of_configuration_options.html)
 for the options grouped by scope.
+## Interrupting local extraction with Ctrl+C
+
+With the pybind11 interface, a local extraction or scan on Python's main thread
+checks Python signals every 100 ms while waiting for native tasks. Ctrl+C cancels
+tasks that have not started, waits for already-running tasks to finish normally,
+and then raises `KeyboardInterrupt`. The Python process stays alive and the same
+`GribJump` instance can be used again. No signal handlers are changed.
+
+Cancellation is deliberately at task boundaries, not inside extraction or decoding.
+A task can process an entire file, so interruption may take time; blocking I/O must
+also return before an active task can finish. Cancelled tasks are skipped as workers
+drain the queue. This does not cancel work on remote servers. Python signal polling
+is not provided by the legacy CFFI interface.
 
 ## Migrating from the cffi based pygribjump (<= 0.13)
 

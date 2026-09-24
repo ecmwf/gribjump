@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <functional>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <utility>
@@ -31,6 +32,7 @@
 #include "eckit/testing/Test.h"
 
 #include "gribjump/Task.h"
+#include "gribjump/TaskWait.h"
 
 using namespace eckit::testing;
 
@@ -141,6 +143,24 @@ private:
     std::condition_variable cv_;
     bool started_ = false;
     bool release_ = false;
+};
+
+// Exposes the existing task status to synchronise the cancellation test.
+class PendingProbe : public DummyTask {
+public:
+
+    PendingProbe(TaskGroup& g, size_t id, DispatchLog& log, PendingProbe*& self) :
+        DummyTask(g, id, "pending", 0, log) { self = this; }
+
+    bool cancelled() const { return status_.load() == Status::CANCELLED; }
+};
+
+class ThrowingTask : public Task {
+public:
+
+    using Task::Task;
+    void executeImpl() override { throw std::runtime_error("task failure"); }
+    void info() const override {}
 };
 
 //-----------------------------------------------------------------------------
@@ -314,6 +334,105 @@ CASE("group_drains_and_is_readmitted") {
         EXPECT_EQUAL(log.entries[i].first, expected[i].first);
         EXPECT_EQUAL(log.entries[i].second, expected[i].second);
     }
+}
+
+CASE("interrupted_wait_skips_pending_work_but_drains_active_work") {
+    DispatchLog log;
+    std::mutex m;
+    std::condition_variable cv;
+    bool started = false, release = false;
+    TaskGroup group;
+    TaskGroup other;
+    group.enqueueTask<BlockerTask>(std::ref(m), std::ref(cv), std::ref(started), std::ref(release));
+    {
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait(lock, [&] { return started; });
+    }
+    PendingProbe* pending = nullptr;
+    group.enqueueTask<PendingProbe>(std::ref(log), std::ref(pending));
+    other.enqueueTask<DummyTask>(std::string("other"), 0, std::ref(log));
+
+    // The active task finishes normally only after cancellation has happened.
+    // The deadline also lets a broken implementation fail rather than hang here.
+    std::thread finisher([&] {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+        while (!pending->cancelled() && std::chrono::steady_clock::now() < deadline) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        {
+            std::lock_guard<std::mutex> lock(m);
+            release = true;
+        }
+        cv.notify_all();
+    });
+
+    struct Interrupted {};
+    bool caught = false, drained = false;
+    size_t checks = 0;
+    {
+        TaskWaitScope interrupt([&] {
+            EXPECT_EQUAL(group.nTasks(), 2);  // check must run outside the group mutex
+            if (++checks == 2) {  // exercise the timed poll, not only the initial check
+                throw Interrupted{};
+            }
+        });
+        try {
+            group.waitForTasks();
+        }
+        catch (const Interrupted&) {
+            caught = true;
+            std::lock_guard<std::mutex> lock(m);
+            drained = release;
+        }
+    }
+    finisher.join();
+    EXPECT(caught);
+    EXPECT(drained);
+    EXPECT_EQUAL(checks, 2);  // no callbacks while draining; preserve the original exception
+    EXPECT_EQUAL(group.nErrors(), 0);
+    other.waitForTasks();
+    EXPECT_EQUAL(log.size(), 1);
+    EXPECT_EQUAL(log.entries[0].first, "other");
+
+    TaskGroup next;
+    next.enqueueTask<DummyTask>(std::string("next"), 0, std::ref(log));
+    next.waitForTasks();
+    EXPECT_EQUAL(log.size(), 2);
+}
+
+CASE("task_error_accounts_for_cancelled_siblings") {
+    DispatchLog log;
+    TaskGroup group;
+    {
+        WorkerGate gate;
+        group.enqueueTask<ThrowingTask>();
+        for (size_t i = 0; i < 20; ++i) {
+            group.enqueueTask<DummyTask>(std::string("pending"), i, std::ref(log));
+        }
+    }
+    group.waitForTasks();
+    EXPECT_EQUAL(group.nErrors(), 1);
+    EXPECT_EQUAL(log.size(), 0);
+}
+
+CASE("task_wait_hook_is_thread_local_and_scoped") {
+    size_t outerChecks = 0, innerChecks = 0;
+    EXPECT(!TaskWaitScope::active());
+    {
+        TaskWaitScope outer([&] { ++outerChecks; });
+        {
+            TaskWaitScope inner([&] { ++innerChecks; });
+            TaskWaitScope::check();
+        }
+        TaskWaitScope::check();
+        bool activeInWorker = true;
+        std::thread worker([&] { activeInWorker = TaskWaitScope::active(); });
+        worker.join();
+        EXPECT(!activeInWorker);
+    }
+    EXPECT(!TaskWaitScope::active());
+    EXPECT_EQUAL(outerChecks, 1);
+    EXPECT_EQUAL(innerChecks, 1);
 }
 
 }  // namespace test
