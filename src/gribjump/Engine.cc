@@ -28,9 +28,7 @@ namespace gribjump {
 
 // Stringify requests and keys alphabetically
 
-Engine::Engine() : Engine(std::make_shared<ExecutionContext>()) {}
-
-Engine::Engine(std::shared_ptr<ExecutionContext> context) : context_(std::move(context)) {}
+Engine::Engine(const ConfigOptions& options) : options_(options), lister_(options) {}
 
 Engine::~Engine() {}
 
@@ -39,7 +37,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     // We also canonicalise the requests such that their keys are in alphabetical order
     /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should
     /// look into merging into the minimum number of requests.
-    const bool ignoreYearMonth = context_->options().ignoreYearMonth();
+    const bool ignoreYearMonth = options_.ignoreYearMonth();
     std::map<std::string, std::set<std::string>> keyValues;
     bool dropYearMonth = false;
     for (auto& r : requests) {
@@ -142,26 +140,26 @@ void Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& ke
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
-    filemap_t filemap = context_->lister().fileMap(unionrequest, keyToExtractionItem);
+    filemap_t filemap = lister_.fileMap(unionrequest, keyToExtractionItem);
     return filemap;
 }
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
     // Map files to ExtractionItem
-    filemap_t filemap = context_->lister().fileMapfromPaths(keyToExtractionItem);
+    filemap_t filemap = lister_.fileMapfromPaths(keyToExtractionItem);
     return filemap;
 }
 
 TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
 
     if (forward) {
-        Forwarder forwarder(context_);
+        Forwarder forwarder(options_);
         return forwarder.extract(filemap);
     }
 
-    bool inefficientExtraction = context_->options().inefficientExtraction();
+    bool inefficientExtraction = options_.inefficientExtraction();
 
-    TaskGroup taskGroup(context_);
+    TaskGroup taskGroup(options_);
 
     for (auto& [fname, extractionItems] : filemap) {
         if (extractionItems[0]->isRemote()) {
@@ -193,7 +191,7 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     timer.reset("Gribjump Engine: Built file map");
 
     // Schedule tasks
-    bool forward      = context_->options().forwardExtraction();
+    bool forward      = options_.forwardExtraction();
     TaskReport report = scheduleExtractionTasks(filemap, forward);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
@@ -251,7 +249,7 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
 
 TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
 
-    std::vector<eckit::URI> uris = context_->lister().URIs(requests);
+    std::vector<eckit::URI> uris = lister_.URIs(requests);
 
     /// @todo do we explicitly need this?
     if (uris.empty()) {
@@ -260,12 +258,12 @@ TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
     }
 
     // forwarded scan requests
-    if (context_->options().forwardScan()) {
-        Forwarder forwarder(context_);
+    if (options_.forwardScan()) {
+        Forwarder forwarder(options_);
         return forwarder.scan(uris);
     }
 
-    std::map<eckit::PathName, eckit::OffsetList> filemap = context_->lister().filesOffsets(uris);
+    std::map<eckit::PathName, eckit::OffsetList> filemap = lister_.filesOffsets(uris);
 
     if (byfiles) {  // ignore offsets and scan entire file
         for (auto& [uri, offsets] : filemap) {
@@ -289,7 +287,7 @@ TaskOutcome<size_t> Engine::scan(std::vector<eckit::PathName> files) {
 TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 
     std::atomic<size_t> nfields(0);
-    TaskGroup taskGroup(context_);
+    TaskGroup taskGroup(options_);
     for (auto& [uri, offsets] : scanmap) {
         taskGroup.enqueueTask<FileScanTask>(uri.path(), offsets, nfields);
     }
@@ -301,7 +299,7 @@ TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 }
 
 std::map<std::string, std::unordered_set<std::string>> Engine::axes(const std::string& request, int level) {
-    return context_->lister().axes(request, level);
+    return lister_.axes(request, level);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -28,7 +28,7 @@ class InfoExtractor {
 
 public:
 
-    explicit InfoExtractor(const ConfigOptions& options = ConfigOptions::instance());
+    explicit InfoExtractor(const ConfigOptions& options = ConfigOptions::defaultOptions());
     ~InfoExtractor();
 
 

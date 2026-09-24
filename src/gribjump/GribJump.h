@@ -40,9 +40,10 @@ public:
     /// Construct using a snapshot of the process-default configuration.
     GribJump();
 
-    /// Snapshot object-specific settings without modifying process defaults.
-    /// Existing environment/resource overrides retain precedence. Process-wide
-    /// keys (threads, server, logging, plugin, requestParsing) are rejected.
+    /// Snapshot per-object options and establish/check shared process settings.
+    /// Process settings are fixed by the first constructor or process service;
+    /// later conflicting values throw BadValue. Environment/resource overrides
+    /// retain precedence. See ConfigOptions and ProcessOptions for the scopes.
     explicit GribJump(const Config& cfg);
 
     ~GribJump();

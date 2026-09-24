@@ -16,11 +16,11 @@
 #include "eckit/testing/Test.h"
 
 #include "gribjump/Config.h"
-#include "gribjump/ExecutionContext.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/Lister.h"
+#include "gribjump/LogRouter.h"
 #include "gribjump/info/InfoCache.h"
 
 using namespace eckit::testing;
@@ -28,9 +28,11 @@ using namespace eckit::testing;
 namespace gribjump::test {
 namespace {
 
+std::unique_ptr<eckit::TmpDir> cacheDirectory;
+
 struct Fixture {
     eckit::TmpDir data;
-    eckit::PathName path = data / "input.grib";
+    eckit::PathName path = data / (data.baseName() + ".grib");
 
     Fixture() {
         std::ifstream input("extract_ranges.grib", std::ios::binary);
@@ -41,15 +43,8 @@ struct Fixture {
     }
 };
 
-Config configFor(const eckit::PathName& directory, bool lazy = true) {
-    Config config;
-    config.set("cache.directory", directory.asString());
-    config.set("cache.lazy", lazy);
-    return config;
-}
-
-size_t extract(GribJump& gj, const eckit::PathName& path, const std::string& hash = "wrong-hash") {
-    PathExtractionRequests requests{PathExtractionRequest(path.asString(), "file", 0, "", 0, {{0, 5}}, hash)};
+size_t extract(GribJump& gj, const eckit::PathName& path) {
+    PathExtractionRequests requests{PathExtractionRequest(path.asString(), "file", 0, "", 0, {{0, 5}}, "wrong-hash")};
     auto results = gj.extract(requests).dumpVector();
     ASSERT(results.size() == 1);
     return results[0]->total_values();
@@ -72,29 +67,41 @@ CASE("resource overrides are resolved once per options object") {
     }
 }
 
-CASE("explicit configuration does not replace process defaults") {
+CASE("first object configures process settings without replacing object defaults") {
+    cacheDirectory = std::make_unique<eckit::TmpDir>();
     eckit::TmpFile file;
     {
         std::ofstream out(file.asString());
-        out << "type: local\ncache:\n  enabled: false\n";
+        out << "type: local\nignoreGridHash: false\nthreads: 1\ncache:\n  size: 31\n  directory: "
+            << cacheDirectory->asString() << "\n";
     }
     SetEnv env("GRIBJUMP_CONFIG_FILE", file.asString());
-    EXPECT(!ConfigOptions::instance().cacheEnabled());
+    EXPECT(!ConfigOptions::defaultOptions().ignoreGrid());  // Reading object defaults does not freeze process settings.
     Config config;
-    config.set("cache.enabled", true);
-    GribJump explicitObject(config);
-    GribJump defaultObject;
-    EXPECT(!ConfigOptions::instance().cacheEnabled());
-    EXPECT(!LibGribJump::instance().config().getBool("cache.enabled"));
+    config.set("threads", 2);
+    config.set("cache.size", 7);
+    config.set("ignoreGridHash", true);
+    config.set("logging.progress", "info");
+    GribJump first(config);
+    EXPECT_EQUAL(ProcessOptions::get().numThreads(), 2);
+    EXPECT_EQUAL(ProcessOptions::get().cacheSize(), 7);
+    EXPECT_EQUAL(ProcessOptions::get().cacheDirectory(), cacheDirectory->asString());
+    EXPECT(&LogRouter::instance().get("progress") == &eckit::Log::info());
+    EXPECT(!ConfigOptions::defaultOptions().ignoreGrid());
+    EXPECT_EQUAL(LibGribJump::instance().config().getInt("threads"), 1);
+    // Repeated and omitted settings are accepted; the caller's Config is independent.
+    EXPECT_NO_THROW(GribJump{config});
+    EXPECT_NO_THROW(GribJump{});
+    config.set("threads", 3);
+    EXPECT_THROWS_AS(GribJump{config}, eckit::BadValue);
+    EXPECT_EQUAL(ProcessOptions::get().numThreads(), 2);
 }
 
-CASE("options snapshot configuration including programmatic server maps") {
+CASE("all per-object options are snapshots including programmatic server maps") {
     Config config;
     config.set("ignoreGridHash", true);
     config.set("ignoreYearMonth", false);
     config.set("allowMissing", true);
-    config.set("cache.size", 7);
-    config.set("cache.lazy", false);
     config.set("scanCorrupted", true);
     config.set("forwardExtraction", true);
     config.set("forwardScan", true);
@@ -105,7 +112,7 @@ CASE("options snapshot configuration including programmatic server maps") {
     config.set("servermap", std::vector<eckit::LocalConfiguration>{server});
     ConfigOptions first(config);
     config.set("ignoreGridHash", false);
-    config.set("cache.size", 19);
+    config.set("forwardExtraction", false);
     server.set("gribjump", "localhost:9002");
     config.set("servermap", std::vector<eckit::LocalConfiguration>{server});
     ConfigOptions second(config);
@@ -113,97 +120,103 @@ CASE("options snapshot configuration including programmatic server maps") {
     EXPECT(!second.ignoreGrid());
     EXPECT(!first.ignoreYearMonth());
     EXPECT(first.allowMissing());
-    EXPECT_EQUAL(first.cacheSize(), 7);
-    EXPECT_EQUAL(second.cacheSize(), 19);
-    EXPECT(!first.cacheLazy());
     EXPECT(first.scanCorrupted());
     EXPECT(first.forwardExtraction());
+    EXPECT(!second.forwardExtraction());
     EXPECT(first.forwardScan());
     EXPECT(first.inefficientExtraction());
     EXPECT_EQUAL(first.serverMap().at(eckit::net::Endpoint("localhost:9000")).port(), 9001);
     EXPECT_EQUAL(second.serverMap().at(eckit::net::Endpoint("localhost:9000")).port(), 9002);
 }
 
-CASE("explicit configs reject process-wide settings and invalid cache sizes") {
-    for (const char* key : {"threads", "server.port", "logging.debug", "plugin.select", "requestParsing"}) {
-        Config config;
-        config.set(key, "1");
-        EXPECT_THROWS_AS(GribJump{config}, eckit::BadValue);
+CASE("conflicting process settings fail without altering established state") {
+    const auto& options = ProcessOptions::get();
+    for (const char* key : {"threads", "server.port", "cache.size"}) {
+        Config conflict;
+        conflict.set(key, 999);
+        EXPECT_THROWS_AS(GribJump{conflict}, eckit::BadValue);
+    }
+    for (const char* key : {"cache.enabled", "cache.shadowfdb", "cache.lazy", "requestParsing"}) {
+        Config conflict;
+        const bool current = std::string(key) == "cache.enabled" || std::string(key) == "cache.lazy";
+        conflict.set(key, !current);
+        EXPECT_THROWS_AS(GribJump{conflict}, eckit::BadValue);
+    }
+    for (const char* key : {"cache.directory", "plugin.select", "logging.progress"}) {
+        Config conflict;
+        conflict.set(key, "debug");
+        EXPECT_THROWS_AS(GribJump{conflict}, eckit::BadValue);
     }
     Config invalid;
     invalid.set("cache.size", 0);
     EXPECT_THROWS_AS(GribJump{invalid}, eckit::BadValue);
+    EXPECT_EQUAL(options.numThreads(), 2);
+    EXPECT_EQUAL(options.cacheSize(), 7);
+    EXPECT_EQUAL(options.cacheDirectory(), cacheDirectory->asString());
+    EXPECT(&LogRouter::instance().get("progress") == &eckit::Log::info());
 }
 
-CASE("factory selection uses the supplied config without changing defaults") {
+CASE("factory selection uses the supplied object config") {
     Config remote;
     remote.set("type", "remote");
-    EXPECT_THROWS_AS(GribJump{remote}, eckit::UserError);  // URI required
+    EXPECT_THROWS_AS(GribJump{remote}, eckit::UserError);
     remote.set("uri", "localhost:9001");
-    EXPECT_NO_THROW(GribJump{remote});  // construction does not connect
+    EXPECT_NO_THROW(GribJump{remote});
     Config invalid;
     invalid.set("type", "unknown-config-test-type");
     EXPECT_THROWS_AS(GribJump{invalid}, eckit::SeriousBug);
     EXPECT_NO_THROW(GribJump{});
-    EXPECT_EQUAL(ConfigOptions::instance().configType(), "local");
+    EXPECT_EQUAL(ConfigOptions::defaultOptions().configType(), "local");
 }
 
-CASE("loading a Config file does not configure process logging") {
+CASE("loading a Config file has no logging side effects") {
     eckit::TmpFile file;
     {
         std::ofstream out(file.asString());
-        out << "logging:\n  debug: not-a-log-channel\n";
+        out << "logging:\n  progress: not-a-log-channel\n";
     }
     EXPECT_NO_THROW(Config{file});
-    Config config(file);
-    EXPECT_THROWS_AS(GribJump{config}, eckit::BadValue);
+    EXPECT_THROWS_AS(GribJump{Config(file)}, eckit::BadValue);
+    EXPECT(&LogRouter::instance().get("progress") == &eckit::Log::info());
 }
 
-CASE("listing missing-field policy belongs to each context") {
-    // No worker threads have been started yet: safely configure a temporary FDB.
+CASE("listing missing-field policy belongs to each lister") {
     eckit::TmpDir directory;
     const std::string fdbConfig =
-        "type: local\nengine: toc\nschema: schema\nspaces:\n"
-        "- roots:\n  - path: " +
-        directory.asString() + "\n";
+        "type: local\nengine: toc\nschema: schema\nspaces:\n- roots:\n  - path: " + directory.asString() + "\n";
     SetEnv env("FDB5_CONFIG", fdbConfig);
     Config strictConfig;
     strictConfig.set("allowMissing", false);
     Config looseConfig;
     looseConfig.set("allowMissing", true);
-    ExecutionContext strict{ConfigOptions(strictConfig)};
-    ExecutionContext loose{ConfigOptions(looseConfig)};
+    FDBLister strict{ConfigOptions(strictConfig)};
+    FDBLister loose{ConfigOptions(looseConfig)};
     const std::string requestString =
-        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,"
-        "step=1,stream=oper,time=1200,type=fc";
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc";
     auto request = fdb5::FDBToolRequest::requestsFromString(requestString)[0].request();
     ExItemMap items;
     items.emplace(requestString, std::make_unique<ExtractionItem>(
                                      std::make_unique<ExtractionRequest>(requestString, Ranges{{0, 5}}, "unused")));
-    EXPECT_THROWS_AS(strict.lister().fileMap(request, items), DataNotFoundException);
-    EXPECT(loose.lister().fileMap(request, items).empty());
-    EXPECT_THROWS_AS(strict.lister().fileMap(request, items), DataNotFoundException);
+    EXPECT_THROWS_AS(strict.fileMap(request, items), DataNotFoundException);
+    EXPECT(loose.fileMap(request, items).empty());
+    EXPECT_THROWS_AS(strict.fileMap(request, items), DataNotFoundException);
 }
 
-CASE("grid validation remains isolated in either construction order and on workers") {
+CASE("grid validation is isolated in both construction orders and on workers") {
     Fixture fixture;
     for (bool strictFirst : {false, true}) {
         Config strictConfig;
-        strictConfig.set("cache.enabled", false);
         strictConfig.set("ignoreGridHash", false);
-        Config looseConfig(strictConfig);
+        Config looseConfig;
         looseConfig.set("ignoreGridHash", true);
         GribJump first(strictFirst ? strictConfig : looseConfig);
         GribJump second(strictFirst ? looseConfig : strictConfig);
         GribJump& strict = strictFirst ? first : second;
         GribJump& loose  = strictFirst ? second : first;
-        // Mutating the caller's configuration must not change either object.
         strictConfig.set("ignoreGridHash", true);
         looseConfig.set("ignoreGridHash", false);
         EXPECT_EQUAL(extract(loose, fixture.path), 5);
         EXPECT_THROWS_AS(extract(strict, fixture.path), eckit::SeriousBug);
-        EXPECT_EQUAL(extract(loose, fixture.path), 5);
-
         auto accepted = std::async(std::launch::async, [&] {
             for (int i = 0; i < 8; ++i) {
                 if (extract(loose, fixture.path) != 5)
@@ -226,26 +239,24 @@ CASE("grid validation remains isolated in either construction order and on worke
         EXPECT(accepted.get());
         EXPECT(rejected.get());
     }
-    EXPECT(!(fixture.path + ".gribjump").exists());
 }
 
-CASE("objects can be constructed concurrently with conflicting configs") {
+CASE("concurrent constructors accept compatible process settings and isolate object settings") {
     Fixture fixture;
     auto run = [&](bool ignoreGrid) {
         Config config;
-        config.set("cache.enabled", false);
+        config.set("threads", 2);
+        config.set("cache.size", 7);
         config.set("ignoreGridHash", ignoreGrid);
         for (int i = 0; i < 8; ++i) {
             GribJump gj(config);
             try {
-                if (extract(gj, fixture.path) != 5 || !ignoreGrid) {
+                if (extract(gj, fixture.path) != 5 || !ignoreGrid)
                     return false;
-                }
             }
             catch (const eckit::SeriousBug&) {
-                if (ignoreGrid) {
+                if (ignoreGrid)
                     return false;
-                }
             }
         }
         return true;
@@ -256,47 +267,23 @@ CASE("objects can be constructed concurrently with conflicting configs") {
     EXPECT(loose.get());
 }
 
-CASE("cache directory and lazy policy belong to each object") {
+CASE("objects share the process cache and reject changes after use") {
     Fixture fixture;
-    eckit::TmpDir firstDir;
-    eckit::TmpDir secondDir;
-    Config firstConfig = configFor(firstDir, false);
-    firstConfig.set("ignoreGridHash", true);
-    GribJump first(firstConfig);
-    // Initialize first's cache before constructing the second object.
-    EXPECT_THROWS_AS(extract(first, fixture.path), eckit::SeriousBug);
-    Config secondConfig = configFor(secondDir, true);
-    secondConfig.set("ignoreGridHash", true);
-    GribJump second(secondConfig);
-    EXPECT_EQUAL(extract(second, fixture.path), 5);
-    EXPECT_THROWS_AS(extract(first, fixture.path), eckit::SeriousBug);
+    Config config;
+    config.set("ignoreGridHash", true);
+    GribJump first(config);
     EXPECT_EQUAL(first.scan({fixture.path}), 3);
-    EXPECT((firstDir / "input.grib.gribjump").exists());
-    EXPECT(!(secondDir / "input.grib.gribjump").exists());
-    EXPECT_EQUAL(extract(first, fixture.path), 5);
-    EXPECT_EQUAL(second.scan({fixture.path}), 3);
-    EXPECT((secondDir / "input.grib.gribjump").exists());
-    EXPECT_EQUAL(first.scan({fixture.path}), 0);
+    GribJump second(config);
+    EXPECT_EQUAL(second.scan({fixture.path}), 0);
+    EXPECT((*cacheDirectory / (fixture.path.baseName() + ".gribjump")).exists());
     EXPECT(!(fixture.path + ".gribjump").exists());
-
-    // A disabled cache must neither use an existing disk cache nor write one.
-    Config disabledConfig(firstConfig);
-    disabledConfig.set("cache.enabled", false);
-    GribJump disabled(disabledConfig);
-    EXPECT_THROWS_AS(extract(disabled, fixture.path), eckit::SeriousBug);
-    EXPECT_EQUAL(disabled.scan({fixture.path}), 3);
     EXPECT_EQUAL(extract(first, fixture.path), 5);
-}
-
-CASE("context caches are distinct even when directories match") {
-    Fixture fixture;
-    eckit::TmpDir directory;
-    Config lazyConfig   = configFor(directory, true);
-    Config strictConfig = configFor(directory, false);
-    ExecutionContext lazy{ConfigOptions(lazyConfig)};
-    ExecutionContext strict{ConfigOptions(strictConfig)};
-    EXPECT(lazy.cache().get(fixture.path, eckit::Offset(0)) != nullptr);
-    EXPECT_THROWS_AS(strict.cache().get(fixture.path, eckit::Offset(0)), JumpInfoExtractionDisabled);
+    auto info = InfoCache::instance().get(fixture.path, eckit::Offset(0));
+    EXPECT_EQUAL(extract(second, fixture.path), 5);
+    EXPECT(InfoCache::instance().get(fixture.path, eckit::Offset(0)) == info);
+    config.set("cache.lazy", false);
+    EXPECT_THROWS_AS(GribJump{config}, eckit::BadValue);
+    EXPECT_EQUAL(extract(second, fixture.path), 5);
 }
 
 }  // namespace gribjump::test

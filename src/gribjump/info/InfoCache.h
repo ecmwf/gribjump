@@ -37,19 +37,19 @@ private:  // types
 
 public:
 
-    /// Process-default cache used by the FDB archive plugin and standalone tools.
+    /// Shared process cache used by extractors, the archive plugin and tools.
     static InfoCache& instance();
-    explicit InfoCache(const ConfigOptions& options = ConfigOptions::instance());
-    ~InfoCache();
 
     /// @brief Scans grib file at provided offsets and populates cache
     /// @param path full path to grib file
     /// @param offsets list of offsets to at which GribInfo should be extracted
-    size_t scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets);
+    size_t scan(const eckit::PathName& path, const std::vector<eckit::Offset>& offsets,
+                const ConfigOptions& options = ConfigOptions::defaultOptions());
 
     // if merge is true, we only generate jumpinfos for offsets that are not already in the cache file
     // if merge is false, we generate an entirely new cache file
-    size_t scan(const eckit::PathName& path, bool merge = true);  // < scan all fields in a file
+    size_t scan(const eckit::PathName& path, bool merge = true,
+                const ConfigOptions& options = ConfigOptions::defaultOptions());  // scan all fields
 
 
     /// Inserts a JumpInfo entry
@@ -72,6 +72,9 @@ public:
 
 private:  // methods
 
+    InfoCache();
+    ~InfoCache();
+
     std::shared_ptr<IndexFile> getIndexFile(const eckit::PathName& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
@@ -83,7 +86,6 @@ private:  // methods
 
 private:  // members
 
-    const ConfigOptions options_;
     const bool enabled_;
     eckit::PathName cacheDir_;
 
