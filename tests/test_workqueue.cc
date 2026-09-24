@@ -149,8 +149,9 @@ private:
 class PendingProbe : public DummyTask {
 public:
 
-    PendingProbe(TaskGroup& g, size_t id, DispatchLog& log, PendingProbe*& self) :
-        DummyTask(g, id, "pending", 0, log) { self = this; }
+    PendingProbe(TaskGroup& g, size_t id, DispatchLog& log, PendingProbe*& self) : DummyTask(g, id, "pending", 0, log) {
+        self = this;
+    }
 
     bool cancelled() const { return status_.load() == Status::CANCELLED; }
 };
@@ -372,7 +373,7 @@ CASE("interrupted_wait_skips_pending_work_but_drains_active_work") {
     {
         TaskWaitScope interrupt([&] {
             EXPECT_EQUAL(group.nTasks(), 2);  // check must run outside the group mutex
-            if (++checks == 2) {  // exercise the timed poll, not only the initial check
+            if (++checks == 2) {              // exercise the timed poll, not only the initial check
                 throw Interrupted{};
             }
         });
