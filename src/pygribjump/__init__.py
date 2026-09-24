@@ -18,6 +18,7 @@ from pygribjump.pygribjump_type import (
 )
 from pygribjump.pygribjump import (
     GribJump,
+    configure_process,
     dic_to_request,
     library_version,
     version,
@@ -30,6 +31,7 @@ from pygribjump.pygribjump_iterator import (
 
 __all__ = [
     "GribJump",
+    "configure_process",
     "GribJumpException",
     "ExtractionRequest",
     "PathExtractionRequest",

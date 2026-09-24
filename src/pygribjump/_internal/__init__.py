@@ -40,6 +40,9 @@ from pygribjump_bindings.pygribjump_bindings import (
     __gribjump_build_version__ as _gribjump_build_version,
 )
 from pygribjump_bindings.pygribjump_bindings import (
+    configure_process as _configure_process,
+)
+from pygribjump_bindings.pygribjump_bindings import (
     init_bindings,
     version_info,
 )
@@ -79,6 +82,7 @@ __all__ = [
     "_ExtractionResult",
     "_ExtractionIterator",
     "_GribJump",
+    "_configure_process",
     "ContextMapper",
     "RequestMapper",
     "deprecated_aliases",
