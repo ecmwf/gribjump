@@ -11,6 +11,7 @@
 /// @author Caragh Bradley
 
 #include "gribjump/LibGribJump.h"
+#include "gribjump/LogRouter.h"
 
 #include "eckit/config/LibEcKit.h"
 #include "eckit/config/YAMLConfiguration.h"
@@ -56,15 +57,10 @@ const Config& LibGribJump::config() {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!configLoaded_) {
         config_       = loadConfig();
+        LogRouter::instance().configure(config_);
         configLoaded_ = true;
     }
     return config_;
-}
-
-void LibGribJump::setConfig(Config cfg) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    config_       = std::move(cfg);
-    configLoaded_ = true;
 }
 
 std::string LibGribJump::version() const {

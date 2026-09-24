@@ -29,7 +29,7 @@ public:
     Config();
     Config(const eckit::PathName);
 
-    const ServerMap& serverMap() const { return serverMap_; }
+    ServerMap serverMap() const { return loadServerMap(); }
 
     ///@note : Will be empty if default config is used
     const std::string& path() const { return path_; }
@@ -40,23 +40,28 @@ private:
 
 private:
 
-    ServerMap serverMap_;
     std::string path_;
 };
 
-/// @brief Centralised definition of all eckit::Resource-based configuration options.
+/// @brief Immutable object options and centralised process-wide resource definitions.
 ///
-/// All environment variables and eckit resource names used by gribjump are defined here,
-/// providing a single place for developers to discover and manage the full set of
-/// configuration options. The underlying eckit::Resource mechanism is unchanged.
+/// Object settings are copied and environment/resource overrides resolved at construction.
+/// serverPort(), numThreads(), requestParsing(), fdbEnableGribjump(), fdbDisableGribjump()
+/// and pluginSelect() remain process-wide, independent of the supplied Config.
 ///
-/// @note Some options (e.g. FDB_ENABLE_GRIBJUMP) can only be read after eckit::main
-///       has finished initialising. Accessors that depend on the YAML config file
-///       require LibGribJump::instance().config() to be available.
+/// @note Construct only after eckit::Main has finished initialising.
 class ConfigOptions {
 public:
 
+    /// Process-default options. Explicit GribJump objects never modify these.
     static ConfigOptions& instance();
+
+    /// Snapshot configuration and resolve environment/resource overrides once.
+    explicit ConfigOptions(const Config&);
+    const Config::ServerMap& serverMap() const { return serverMap_; }
+
+    /// Reject process-wide keys in an explicitly supplied object configuration.
+    static void validateInstanceConfig(const Config&);
 
     // -- General options --
 
@@ -82,7 +87,8 @@ public:
     /// Default: false.
     bool ignoreGrid() const;
 
-    /// If true, ignore year/month keys when date is present. Env: GRIBJUMP_IGNORE_YEARMONTH. Default: true.
+    /// If true, ignore year/month keys when date is present. Env: GRIBJUMP_IGNORE_YEARMONTH.
+    /// YAML: ignoreYearMonth. Default: true.
     bool ignoreYearMonth() const;
 
     /// If true, enable request parsing. Env: GRIBJUMP_REQUEST_PARSING (takes precedence).
@@ -128,7 +134,8 @@ public:
 
     // -- Scan options --
 
-    /// If true, attempt to scan corrupted GRIB files. Env: GRIBJUMP_SCAN_CORRUPTED. Default: false.
+    /// If true, attempt to scan corrupted GRIB files. Env: GRIBJUMP_SCAN_CORRUPTED.
+    /// YAML: scanCorrupted. Default: false.
     bool scanCorrupted() const;
 
     // -- FDB Plugin options --
@@ -147,7 +154,14 @@ public:
 
 private:
 
-    ConfigOptions() = default;
+    const Config config_;
+    const Config::ServerMap serverMap_;
+    const bool ignoreGrid_;
+    const bool ignoreYearMonth_;
+    const bool allowMissing_;
+    const int cacheSize_;
+    const bool cacheLazy_;
+    const bool scanCorrupted_;
 };
 
 }  // namespace gribjump

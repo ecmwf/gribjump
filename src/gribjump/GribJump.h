@@ -37,8 +37,12 @@ typedef std::pair<size_t, size_t> Range;
 class GribJump {
 public:
 
+    /// Construct using a snapshot of the process-default configuration.
     GribJump();
 
+    /// Snapshot object-specific settings without modifying process defaults.
+    /// Existing environment/resource overrides retain precedence. Process-wide
+    /// keys (threads, server, logging, plugin, requestParsing) are rejected.
     explicit GribJump(const Config& cfg);
 
     ~GribJump();

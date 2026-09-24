@@ -37,7 +37,10 @@ private:  // types
 
 public:
 
+    /// Process-default cache used by the FDB archive plugin and standalone tools.
     static InfoCache& instance();
+    explicit InfoCache(const ConfigOptions& options = ConfigOptions::instance());
+    ~InfoCache();
 
     /// @brief Scans grib file at provided offsets and populates cache
     /// @param path full path to grib file
@@ -69,10 +72,6 @@ public:
 
 private:  // methods
 
-    InfoCache();
-
-    ~InfoCache();
-
     std::shared_ptr<IndexFile> getIndexFile(const eckit::PathName& f);
 
     eckit::PathName cacheFilePath(const eckit::PathName& path) const;
@@ -84,6 +83,8 @@ private:  // methods
 
 private:  // members
 
+    const ConfigOptions options_;
+    const bool enabled_;
     eckit::PathName cacheDir_;
 
     mutable std::mutex stageMutex_;  //< mutex for stagedFiles_

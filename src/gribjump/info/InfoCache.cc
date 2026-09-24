@@ -45,19 +45,20 @@ InfoCache& InfoCache::instance() {
 
 InfoCache::~InfoCache() {}
 
-InfoCache::InfoCache() :
+InfoCache::InfoCache(const ConfigOptions& options) :
+    options_(options),
+    enabled_(options.cacheEnabled()),
     cacheDir_(eckit::PathName()),
-    infocache_(ConfigOptions::instance().cacheSize()),
-    lazy_(ConfigOptions::instance().cacheLazy()) {
+    infocache_(options.cacheSize()),
+    lazy_(options.cacheLazy()) {
 
-    bool enabled = ConfigOptions::instance().cacheEnabled();
-    if (!enabled) {
+    if (!enabled_) {
         LOG_DEBUG_LIB(LibGribJump) << "Cache disabled" << std::endl;
         return;
     }
 
-    std::string cache_str = ConfigOptions::instance().cacheDirectory();
-    shadowCache_          = ConfigOptions::instance().cacheShadowFdb();
+    std::string cache_str = options.cacheDirectory();
+    shadowCache_          = options.cacheShadowFdb();
     if (shadowCache_) {
         LOG_DEBUG_LIB(LibGribJump) << "Shadow FDB cache enabled" << std::endl;
         return;
@@ -127,7 +128,10 @@ void InfoCache::putCache(const eckit::PathName& path, const eckit::OffsetList& o
 
 std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& path, const eckit::OffsetList& offsets) {
 
-    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> result = getCached(path, offsets);
+    std::map<eckit::Offset, std::shared_ptr<JumpInfo>> result;
+    if (enabled_) {
+        result = getCached(path, offsets);
+    }
 
     if (result.size() != offsets.size()) {
 
@@ -140,8 +144,10 @@ std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& pat
         }
 
         // Open the index file and find the missing offsets
-        std::shared_ptr<IndexFile> indexFile                         = getIndexFile(path);
-        std::map<eckit::Offset, std::shared_ptr<JumpInfo>> fileinfos = indexFile->get(fileOffsets);
+        std::map<eckit::Offset, std::shared_ptr<JumpInfo>> fileinfos;
+        if (enabled_) {
+            fileinfos = getIndexFile(path)->get(fileOffsets);
+        }
 
         std::vector<eckit::Offset> missingOffsets;
         for (const auto& offset : fileOffsets) {
@@ -159,7 +165,7 @@ std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& pat
                 ss << "Missing JumpInfo for " << eckit::Plural(missingOffsets.size(), "offset") << " in " << path;
                 throw JumpInfoExtractionDisabled(ss.str());
             }
-            InfoExtractor extractor;
+            InfoExtractor extractor(options_);
             std::vector<std::unique_ptr<JumpInfo>> uinfos = extractor.extract(path, missingOffsets);
             for (size_t i = 0; i < uinfos.size(); i++) {
                 std::shared_ptr<JumpInfo> info = std::move(uinfos[i]);
@@ -177,11 +183,16 @@ std::vector<std::shared_ptr<JumpInfo>> InfoCache::get(const eckit::PathName& pat
         vec.push_back(result[offset]);
     }
 
-    putCache(path, offsets, vec);
+    if (enabled_) {
+        putCache(path, offsets, vec);
+    }
     return vec;
 }
 
 void InfoCache::insert(const eckit::PathName& path, const eckit::Offset offset, std::shared_ptr<JumpInfo> info) {
+    if (!enabled_) {
+        return;
+    }
     LOG_DEBUG_LIB(LibGribJump) << "GribJumpCache inserting " << path << ":" << offset << std::endl;
     std::lock_guard<std::mutex> lock(stageMutex_);
 
@@ -210,6 +221,9 @@ void InfoCache::clear() {
 }
 
 size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::Offset>& offsets) {
+    if (!enabled_) {
+        return InfoExtractor(options_).extract(fdbpath, offsets).size();
+    }
 
     // this will be executed in parallel so we dont lock main mutex_ here
     // we will rely on each method to lock mutex when needed
@@ -239,7 +253,7 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::
 
     std::sort(newOffsets.begin(), newOffsets.end());
 
-    InfoExtractor extractor;
+    InfoExtractor extractor(options_);
     std::vector<std::unique_ptr<JumpInfo>> infos = extractor.extract(fdbpath, newOffsets);
 
     for (size_t i = 0; i < infos.size(); i++) {
@@ -252,7 +266,10 @@ size_t InfoCache::scan(const eckit::PathName& fdbpath, const std::vector<eckit::
 
 size_t InfoCache::scan(const eckit::PathName& fdbpath, bool mergeExisting) {
 
-    InfoExtractor extractor;
+    InfoExtractor extractor(options_);
+    if (!enabled_) {
+        return extractor.extract(fdbpath).size();
+    }
 
     if (mergeExisting) {
         return scan(fdbpath, extractor.offsets(fdbpath));

@@ -15,6 +15,7 @@
 #include <mutex>
 #include "eckit/serialisation/Stream.h"
 
+#include "gribjump/ExecutionContext.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJump.h"
 
@@ -97,7 +98,10 @@ private:
 class TaskGroup {
 public:
 
-    TaskGroup() : ctx_{ContextManager::instance().context()} {}
+    explicit TaskGroup(std::shared_ptr<ExecutionContext> execution = std::make_shared<ExecutionContext>()) :
+        execution_(std::move(execution)), ctx_{ContextManager::instance().context()} {}
+
+    ExecutionContext& executionContext() const { return *execution_; }
 
     /// Notify that a task has been completed
     void notify(size_t taskid);
@@ -160,7 +164,8 @@ private:
     std::vector<std::shared_ptr<Task>> tasks_;
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
 
-    const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
+    std::shared_ptr<ExecutionContext> execution_;
+    const LogContext ctx_;  //< owned snapshot for propagating context in forwarding tasks.
 };
 
 //----------------------------------------------------------------------------------------------------------------------
