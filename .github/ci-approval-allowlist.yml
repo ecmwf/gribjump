@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+---
+exempt:
+  - workflow: label-public-pr.yml
+  - workflow: pygribjump.yml
+  - workflow: ci_legacy.yml
+    reason: "legacy, retiring; gates downstream-ci with an if: rather than needs:"
+
+
