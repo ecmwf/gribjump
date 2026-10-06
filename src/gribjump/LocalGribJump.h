@@ -13,6 +13,7 @@
 
 #pragma once
 
+#include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/info/InfoAggregator.h"
@@ -26,6 +27,7 @@ class LocalGribJump : public GribJumpBase {
 public:
 
     LocalGribJump();
+    explicit LocalGribJump(const ConfigOptions&);
     ~LocalGribJump();
 
     /// @brief Scans the full grib file, looking for GRIB messages and populates cache
@@ -45,6 +47,8 @@ public:
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
 private:
+
+    Engine engine_;
 };
 
 }  // namespace gribjump

@@ -92,6 +92,76 @@ To find out which data is available, use ``axes``:
 
    gribjump.axes({"date": "20230508"}, level=3)
 
+Configuration
+-------------
+
+Pass a dictionary to configure a client:
+
+.. code-block:: python
+
+   import pygribjump
+
+   checked = pygribjump.GribJump(config={
+       "threads": 4,
+       "cache": {"directory": "/existing/cache"},
+       "ignoreGridHash": False,
+   })
+   unchecked = pygribjump.GribJump(config={"ignoreGridHash": True})
+
+``checked`` and ``unchecked`` retain independent grid-validation settings and
+share the process cache and worker pool. The configuration is copied at
+construction; later edits to the dictionary leave existing clients unchanged.
+Clients can also be used as context managers:
+
+.. code-block:: python
+
+   with pygribjump.GribJump(config={"ignoreGridHash": True}) as client:
+       # Use client here.
+       pass
+
+See :doc:`../gribjump/list_of_configuration_options` for the full list, grouped
+into **per-object** and **process-wide** options. Python uses the same names,
+defaults and environment/resource precedence as C++.
+
+* ``GribJump()`` and ``GribJump(config=None)`` use file defaults.
+* ``GribJump(config={})`` uses built-in per-object defaults. Omitted process
+  settings retain the established settings, or use file defaults on first use.
+* Nested dictionaries represent YAML sections. Dotted keys such as
+  ``"cache.size"`` are also accepted. Values can be ``bool``, ``int``, ``float``,
+  ``str``, dictionaries, or lists of dictionaries (for example, ``servermap``).
+  Dictionary keys must be non-empty strings. Unsupported Python value types
+  raise ``TypeError``.
+
+For example, forwarding endpoints can be supplied as:
+
+.. code-block:: python
+
+   client = pygribjump.GribJump(config={
+       "forwardExtraction": True,
+       "servermap": [
+           {"fdb": "store.example:9000", "gribjump": "store.example:9777"},
+       ],
+   })
+
+Establish process settings at startup, either in the first client constructor
+or explicitly with ``configure_process``:
+
+.. code-block:: python
+
+   pygribjump.configure_process({"threads": 4, "cache": {"size": 2048}})
+   client = pygribjump.GribJump(config={"allowMissing": True})
+
+The first configuration or process-service use fixes shared settings. Later
+matching values are accepted; conflicts raise ``GribJumpException`` identifying
+the option. ``configure_process`` applies only process-wide options. Call it
+before creating clients, using the FDB plugin, or constructing
+``ExtractionRequest`` objects: standalone request construction reads the
+process-wide ``requestParsing`` setting and can therefore fix the process
+configuration before any client exists.
+
+These configuration APIs are available in the pybind11 implementation.
+The deprecated cffi API is unchanged.
+
 Error handling
 --------------
 

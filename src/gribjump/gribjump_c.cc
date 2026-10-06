@@ -173,7 +173,7 @@ gribjump_error_t gribjump_new_request(gribjump_extraction_request_t** request, c
 
         std::string gridhash_str = gridhash ? std::string(gridhash) : "";
 
-        if (ConfigOptions::instance().requestParsing()) {
+        if (ProcessOptions::get().requestParsing()) {
             metkit::mars::MarsRequest req = parseMarsRequest(reqstr);
             *request                      = new gribjump_extraction_request_t(req.asString(), ranges, gridhash_str);
             return;

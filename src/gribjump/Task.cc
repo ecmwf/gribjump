@@ -185,7 +185,7 @@ FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, co
     Task(taskgroup, id),
     fname_(fname),
     extractionItems_(extractionItems),
-    ignoreGrid_(ConfigOptions::instance().ignoreGrid()) {}
+    ignoreGrid_(taskgroup.options().ignoreGrid()) {}
 
 void FileExtractionTask::executeImpl() {
 
@@ -341,11 +341,11 @@ void FileScanTask::executeImpl() {
 void FileScanTask::scan() {
 
     if (offsets_.size() == 0) {
-        nfields_ += InfoCache::instance().scan(fname_);
+        nfields_ += InfoCache::instance().scan(fname_, true, taskGroup_.options());
         return;
     }
 
-    nfields_ += InfoCache::instance().scan(fname_, offsets_);
+    nfields_ += InfoCache::instance().scan(fname_, offsets_, taskGroup_.options());
 }
 
 void FileScanTask::info() const {

@@ -13,6 +13,7 @@
 #pragma once
 
 #include "eckit/serialisation/Stream.h"
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/Lister.h"
 #include "gribjump/Metrics.h"
@@ -55,7 +56,8 @@ public:
 class Engine : public EngineIface {
 public:
 
-    Engine();
+    explicit Engine(const ConfigOptions& options = ConfigOptions::defaultOptions());
+    const ConfigOptions& options() const { return options_; }
     ~Engine();
 
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) override;
@@ -79,6 +81,9 @@ private:
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
+
+    const ConfigOptions options_;
+    FDBLister lister_;
 };
 
 
