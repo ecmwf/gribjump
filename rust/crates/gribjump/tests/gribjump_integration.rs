@@ -107,14 +107,14 @@ const GRID_HASH: &str = "33c7d6025995e1b4913811e77d38ec50";
 #[test]
 fn test_gribjump_version() {
     let version = gribjump::version();
-    assert!(!version.is_empty());
+    assert_ne!(version, "");
     println!("GribJump version: {version}");
 }
 
 #[test]
 fn test_gribjump_git_sha1() {
     let sha = gribjump::git_sha1();
-    assert!(!sha.is_empty());
+    assert_ne!(sha, "");
     println!("GribJump git SHA1: {sha}");
 }
 
@@ -158,7 +158,7 @@ fn test_extraction_request_creation() {
         GRID_HASH,
     );
 
-    assert!(!request.request_str.is_empty());
+    assert_ne!(request.request_str, "");
     assert_eq!(request.ranges.len(), 2);
     assert_eq!(request.grid_hash, GRID_HASH);
 }
