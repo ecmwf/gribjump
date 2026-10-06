@@ -29,6 +29,7 @@ on:
         default: false
 
 jobs:
+  # NOTE for now, don't remove this file -- we sadly rely on it to determine the location of the `wheel_directory`
   python-wrapper-wheel:
     name: Python Wrapper Wheel
     uses: ecmwf/reusable-workflows/.github/workflows/python-wrapper-wheel.yml@main
