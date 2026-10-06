@@ -14,6 +14,7 @@
 
 #include "eckit/filesystem/PathName.h"
 #include "eckit/message/Message.h"
+#include "gribjump/Config.h"
 #include "gribjump/info/JumpInfo.h"
 
 #include <memory>
@@ -27,7 +28,7 @@ class InfoExtractor {
 
 public:
 
-    InfoExtractor();
+    explicit InfoExtractor(const ConfigOptions& options = ConfigOptions::defaultOptions());
     ~InfoExtractor();
 
 
@@ -41,6 +42,10 @@ public:
     std::unique_ptr<JumpInfo> extract(const eckit::message::Message& msg) const;
 
     eckit::OffsetList offsets(const eckit::PathName& path) const;
+
+private:
+
+    const bool scanCorrupted_;
 };
 
 }  // namespace gribjump

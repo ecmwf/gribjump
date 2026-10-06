@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <memory>
 #include <unordered_map>
 
 #include "eckit/filesystem/PathName.h"
@@ -21,6 +22,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
@@ -30,8 +32,9 @@ class Lister {
 public:
 
     /// Returns the configured Lister implementation (FDBLister or MarsListerClient).
-    /// Determined by config key "lister" ("fdb" by default, or "marslister").
+    /// Determined by config key "lister.type" ("fdb" by default, or "mars").
     static Lister& instance();
+    static std::unique_ptr<Lister> create(const ConfigOptions&);
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests)                 = 0;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0;
@@ -55,7 +58,8 @@ protected:
 class FDBLister : public Lister {
 public:
 
-    static FDBLister& instance();
+    explicit FDBLister(const ConfigOptions& options = ConfigOptions::defaultOptions());
+    ~FDBLister();
 
     using Lister::fileMap;
 
@@ -75,12 +79,8 @@ public:
 
 private:
 
-    FDBLister();
-    ~FDBLister();
-
-private:
-
-    bool allowMissing_;
+    const bool allowMissing_;
+    const bool ignoreYearMonth_;
 };
 
 // ------------------------------------------------------------------

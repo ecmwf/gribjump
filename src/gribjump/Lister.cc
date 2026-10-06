@@ -24,27 +24,30 @@ namespace gribjump {
 
 //  ------------------------------------------------------------------
 
-// @todo: move this configure logic into ConfigOptions.
 Lister& Lister::instance() {
-    static std::string type = LibGribJump::instance().config().getString("lister.type", "fdb");
+    static auto lister = create(ConfigOptions::defaultOptions());
+    return *lister;
+}
+
+std::unique_ptr<Lister> Lister::create(const ConfigOptions& options) {
+    const std::string& type = options.listerType();
 
     if (type == "fdb") {
         // @todo
         // std::string config_path = LibGribJump::instance().config().getString("lister.config", "");
         // if it isnt set, or is empty, then FDB will use its default behaviour.
         // if it is set, but doesnt exist, it is an error.
-        return FDBLister::instance();
+        return std::make_unique<FDBLister>(options);
     }
     else if (type == "mars") {
-        std::string uri = LibGribJump::instance().config().getString("lister.uri", "");
+        const std::string& uri = options.listerURI();
         if (uri.empty()) {
             throw eckit::SeriousBug(
                 "Lister type is set to 'mars' but no URI provided in config. Please set 'lister.uri' to the host:port "
                 "of the MarsLister server.");
         }
         eckit::net::Endpoint endpoint(uri);
-        static MarsListerClient inst(endpoint.host(), endpoint.port());
-        return inst;
+        return std::make_unique<MarsListerClient>(endpoint.host(), endpoint.port());
     }
     else {
         throw eckit::SeriousBug("Unknown lister type: " + type);
@@ -69,12 +72,8 @@ filemap_t Lister::fileMap(const ExItemMap& reqToExtractionItem) {
 
 //  ------------------------------------------------------------------
 
-FDBLister& FDBLister::instance() {
-    static FDBLister instance;
-    return instance;
-}
-
-FDBLister::FDBLister() : allowMissing_(ConfigOptions::instance().allowMissing()) {}
+FDBLister::FDBLister(const ConfigOptions& options) :
+    allowMissing_(options.allowMissing()), ignoreYearMonth_(options.ignoreYearMonth()) {}
 
 FDBLister::~FDBLister() {}
 
@@ -97,13 +96,12 @@ std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequ
 }
 
 
-std::string fdbkeyToStr(const fdb5::Key& key) {
+static std::string fdbkeyToStr(const fdb5::Key& key, bool ignoreYearMonth) {
     std::stringstream ss;
     std::string separator      = "";
     std::set<std::string> keys = key.keys();
 
     // Special case: If date is present, ignore year and month as they are aliases.
-    static bool ignoreYearMonth = ConfigOptions::instance().ignoreYearMonth();
     if (ignoreYearMonth && keys.find("date") != keys.end()) {
         keys.erase("year");
         keys.erase("month");
@@ -162,7 +160,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     while (listIter.next(elem)) {
         fdb_count++;
 
-        std::string key = fdbkeyToStr(elem.combinedKey());
+        std::string key = fdbkeyToStr(elem.combinedKey(), ignoreYearMonth_);
 
         // If key not in map, not related to the request
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end())

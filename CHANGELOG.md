@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- No recorded changes.
+- Support passing of configuration options to the GribJump object (C++/pybind interfaces)
+- Port pygribjump to use pybind11-based bindings instead of cffi.
+- Fix sigint not interupting gribjump extraction from python.
 
 ## [0.13.1] - 2026-09-04
 

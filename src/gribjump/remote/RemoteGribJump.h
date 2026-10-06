@@ -21,12 +21,16 @@
 
 namespace gribjump {
 
+class ConfigOptions;
+
 class RemoteGribJump : public GribJumpBase {
 
 public:  // methods
 
     RemoteGribJump();
+    explicit RemoteGribJump(const ConfigOptions&);
     RemoteGribJump(eckit::net::Endpoint endpoint);
+    RemoteGribJump(eckit::net::Endpoint endpoint, const ConfigOptions&);
 
     /// Inject a transport and advertised protocol version directly. Useful for tests.
     RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint16_t protocolVersion);

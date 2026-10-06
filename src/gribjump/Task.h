@@ -18,6 +18,7 @@
 #include <optional>
 #include "eckit/serialisation/Stream.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJump.h"
 
@@ -109,7 +110,10 @@ private:
 class TaskGroup {
 public:
 
-    TaskGroup() : ctx_{ContextManager::instance().context()} {}
+    explicit TaskGroup(const ConfigOptions& options = ConfigOptions::defaultOptions()) :
+        options_(options), ctx_{ContextManager::instance().context()} {}
+
+    const ConfigOptions& options() const { return options_; }
 
     /// Notify that a task has been completed
     void notify(size_t taskid);
@@ -126,7 +130,8 @@ public:
         enqueueTask(new TaskType(*this, tasks_.size(), std::forward<Args>(args)...));
     }
 
-    /// Wait for all queued tasks to be executed
+    /// Wait for all tasks. A throwing TaskWaitScope check cancels pending tasks
+    /// and drains active tasks before rethrowing.
     void waitForTasks();
 
     /// Flag every remaining task as cancelled and purge from WorkQueue.
@@ -221,7 +226,8 @@ private:
     size_t peakOutstandingBytes_ = 0;          //< high-water mark of outstandingBytes_ (guarded by m_)
     size_t byteThreshold_        = std::numeric_limits<size_t>::max();  //< unlimited by default (no backpressure)
 
-    const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
+    const ConfigOptions options_;  //< owned snapshot used by worker tasks
+    const LogContext ctx_;         //< owned snapshot for propagating context in forwarding tasks.
 };
 
 //----------------------------------------------------------------------------------------------------------------------

@@ -11,7 +11,8 @@ The GribJump class
 
 :cpp:class:`gribjump::GribJump` is the high-level entry point to the library. It
 is the object you construct to scan data, extract subsets of GRIB fields and
-query their axes.
+query their axes. To construct independently configured objects, see
+:doc:`list_of_configuration_options`.
 
 .. doxygenclass:: gribjump::GribJump
    :members:

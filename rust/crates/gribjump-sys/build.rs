@@ -9,13 +9,19 @@
 use std::env;
 use std::path::PathBuf;
 
-const GRIBJUMP_VERSION: &str = "0.10.3";
-
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/lib.rs");
-    println!("cargo:rerun-if-changed=cpp/gribjump_bridge.h");
-    println!("cargo:rerun-if-changed=cpp/gribjump_bridge.cpp");
+    println!("cargo:rerun-if-changed=cpp/GribJumpBridge.h");
+    println!("cargo:rerun-if-changed=cpp/Types.h");
+    println!("cargo:rerun-if-changed=cpp/Library.h");
+    println!("cargo:rerun-if-changed=cpp/Library.cc");
+    println!("cargo:rerun-if-changed=cpp/GribJumpHandle.h");
+    println!("cargo:rerun-if-changed=cpp/GribJumpHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ExtractionIteratorHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ExtractionIteratorHandle.cc");
+    println!("cargo:rerun-if-changed=cpp/ExtractionResultHandle.h");
+    println!("cargo:rerun-if-changed=cpp/ExtractionResultHandle.cc");
     println!("cargo:rerun-if-env-changed=GRIBJUMP_DIR");
     println!("cargo:rerun-if-env-changed=CMAKE_PREFIX_PATH");
     println!("cargo:rerun-if-env-changed=DOCS_RS");
@@ -26,11 +32,28 @@ fn main() {
 
     bindman_utils::validate_build_mode(cfg!(feature = "system"), cfg!(feature = "vendored"));
 
+    generate_exceptions();
+
     if cfg!(feature = "system") {
         build_system();
     } else {
         build_vendored();
     }
+}
+
+/// Generate `gribjump_exceptions.{h,rs}` for gribjump-sys's cxx bridge,
+/// inheriting catch blocks from upstream `-sys` crates (eckit-sys / metkit-sys
+/// / fdb-sys).
+fn generate_exceptions() {
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+    let inherited = bindman_build::collect_dep_exception_sources();
+
+    bindman_build::generate_exception_bridge(&bindman_build::ExceptionBridgeConfig {
+        primary_namespace: "gribjump",
+        out_dir: &out_dir,
+        own: &[],
+        inherited: &inherited,
+    });
 }
 
 /// Build using system-installed gribjump via `CMake` `find_package`
@@ -40,28 +63,38 @@ fn build_system() {
         PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
 
     // Get dependency paths from -sys crates
-    let eckit_include = env::var("DEP_ECKIT_INCLUDE")
-        .expect("DEP_ECKIT_INCLUDE not set - eckit-sys must be a dependency");
-    let eckit_root = env::var("DEP_ECKIT_ROOT")
-        .expect("DEP_ECKIT_ROOT not set - eckit-sys must be a dependency");
-    let metkit_include = env::var("DEP_METKIT_INCLUDE")
-        .expect("DEP_METKIT_INCLUDE not set - metkit-sys must be a dependency");
-    let eccodes_include = env::var("DEP_ECCODES_INCLUDE")
-        .expect("DEP_ECCODES_INCLUDE not set - eccodes-sys must be a dependency");
+    let eckit_include = env::var("DEP_ECKIT_SYS_INCLUDE")
+        .expect("DEP_ECKIT_SYS_INCLUDE not set - eckit-sys must be a dependency");
+    let eckit_root = env::var("DEP_ECKIT_SYS_ROOT")
+        .expect("DEP_ECKIT_SYS_ROOT not set - eckit-sys must be a dependency");
+    let metkit_include = env::var("DEP_METKIT_SYS_INCLUDE")
+        .expect("DEP_METKIT_SYS_INCLUDE not set - metkit-sys must be a dependency");
+    let eccodes_include = env::var("DEP_ECCODES_SYS_INCLUDE")
+        .expect("DEP_ECCODES_SYS_INCLUDE not set - eccodes-sys must be a dependency");
     let fdb_include = env::var("DEP_FDB_SYS_INCLUDE")
         .expect("DEP_FDB_SYS_INCLUDE not set - fdb-sys must be a dependency");
 
+    // Minimum supported system version; the crate version tracks the vendored release.
     let (root, gribjump_include, lib_dir) =
-        bindman_utils::cmake_find_package("gribjump", GRIBJUMP_VERSION, Some("GRIBJUMP_DIR"));
+        bindman_utils::cmake_find_package("gribjump", "0.11.0", Some("GRIBJUMP_DIR"));
 
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=gribjump");
 
+    let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR")
+        .expect("DEP_ECKIT_SYS_CPP_DIR not set - eckit-sys must be a dependency");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/gribjump_bridge.cpp"))
+        .file(crate_dir.join("cpp/Library.cc"))
+        .file(crate_dir.join("cpp/GribJumpHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionResultHandle.cc"))
         .include(&gribjump_include)
         .include(&eckit_include)
+        .include(&out_dir) // for generated gribjump_exceptions.h
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(&metkit_include)
         .include(&eccodes_include)
         .include(&fdb_include)
@@ -82,10 +115,10 @@ fn build_system() {
     // The fdb5 entry is forwarded from `fdb-sys` (which does the same
     // re-publishing trick) so gribjump's binaries pick up every rpath
     // they need, not just the ones gribjump-sys knows about directly.
-    let metkit_root = env::var("DEP_METKIT_ROOT")
-        .expect("DEP_METKIT_ROOT not set - metkit-sys must be a dependency");
-    let eccodes_root = env::var("DEP_ECCODES_ROOT")
-        .expect("DEP_ECCODES_ROOT not set - eccodes-sys must be a dependency");
+    let metkit_root = env::var("DEP_METKIT_SYS_ROOT")
+        .expect("DEP_METKIT_SYS_ROOT not set - metkit-sys must be a dependency");
+    let eccodes_root = env::var("DEP_ECCODES_SYS_ROOT")
+        .expect("DEP_ECCODES_SYS_ROOT not set - eccodes-sys must be a dependency");
     let fdb5_lib = env::var("DEP_FDB_SYS_SYSTEM_FDB5_LIB").expect(
         "DEP_FDB_SYS_SYSTEM_FDB5_LIB not set - fdb-sys must be built with --features system",
     );
@@ -108,6 +141,49 @@ fn build_system() {
     unreachable!("build_system called without system feature");
 }
 
+/// Locate the gribjump C++ sources: prefer the in-tree checkout when the
+/// crate lives inside the gribjump repository (path or git dependency),
+/// falling back to cloning the release tag (packaged crates.io case).
+#[cfg(feature = "vendored")]
+fn resolve_gribjump_src(src_dir: &std::path::Path) -> PathBuf {
+    const GRIBJUMP_REPO: &str = "https://github.com/ecmwf/gribjump.git";
+    const GRIBJUMP_TAG: &str = env!("CARGO_PKG_VERSION");
+
+    let manifest_dir =
+        PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"));
+    if let Some(root) = manifest_dir.ancestors().nth(3)
+        && root.join("CMakeLists.txt").exists()
+        && root.join("VERSION").exists()
+        && root.join("src/gribjump").is_dir()
+    {
+        eprintln!(
+            "gribjump-sys: building in-tree sources at {}",
+            root.display()
+        );
+
+        // Retrigger on C++ source edits.
+        println!("cargo:rerun-if-changed={}", root.join("src").display());
+        println!(
+            "cargo:rerun-if-changed={}",
+            root.join("CMakeLists.txt").display()
+        );
+        println!("cargo:rerun-if-changed={}", root.join("VERSION").display());
+
+        // Diverging is fine mid-development, but should never go unnoticed.
+        let tree_version = std::fs::read_to_string(root.join("VERSION"))
+            .map(|s| s.trim().to_string())
+            .unwrap_or_default();
+        if tree_version != GRIBJUMP_TAG {
+            println!(
+                "cargo:warning=gribjump-sys {GRIBJUMP_TAG} is building in-tree gribjump {tree_version} (versions differ)"
+            );
+        }
+
+        return root.to_path_buf();
+    }
+    bindman_utils::git_clone(GRIBJUMP_REPO, GRIBJUMP_TAG, &src_dir.join("gribjump"))
+}
+
 /// Build gribjump from source using ecbuild
 #[cfg(feature = "vendored")]
 fn build_vendored() {
@@ -116,8 +192,6 @@ fn build_vendored() {
 
     const ECBUILD_REPO: &str = "https://github.com/ecmwf/ecbuild.git";
     const ECBUILD_TAG: &str = "3.13.1";
-
-    const GRIBJUMP_REPO: &str = "https://github.com/ecmwf/gribjump.git";
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
     let src_dir = out_dir.join("src");
@@ -128,21 +202,32 @@ fn build_vendored() {
     fs::create_dir_all(&build_dir).expect("Failed to create build directory");
 
     // Get dependency paths from -sys crates
-    let eckit_root = env::var("DEP_ECKIT_ROOT")
-        .expect("DEP_ECKIT_ROOT not set - eckit-sys must be a dependency");
-    let metkit_root = env::var("DEP_METKIT_ROOT")
-        .expect("DEP_METKIT_ROOT not set - metkit-sys must be a dependency");
-    let eccodes_root = env::var("DEP_ECCODES_ROOT")
-        .expect("DEP_ECCODES_ROOT not set - eccodes-sys must be a dependency");
-    let aec_root = env::var("DEP_ECCODES_AEC_ROOT")
-        .expect("DEP_ECCODES_AEC_ROOT not set - eccodes-sys must be a dependency");
+    let eckit_root = env::var("DEP_ECKIT_SYS_ROOT")
+        .expect("DEP_ECKIT_SYS_ROOT not set - eckit-sys must be a dependency");
+    let metkit_root = env::var("DEP_METKIT_SYS_ROOT")
+        .expect("DEP_METKIT_SYS_ROOT not set - metkit-sys must be a dependency");
+    let eccodes_root = env::var("DEP_ECCODES_SYS_ROOT")
+        .expect("DEP_ECCODES_SYS_ROOT not set - eccodes-sys must be a dependency");
+    let aec_root = env::var("DEP_ECCODES_SYS_AEC_ROOT")
+        .expect("DEP_ECCODES_SYS_AEC_ROOT not set - eccodes-sys must be a dependency");
     let fdb_root = env::var("DEP_FDB_SYS_ROOT")
         .expect("DEP_FDB_SYS_ROOT not set - fdb-sys must be a dependency");
 
-    // Clone sources
     let ecbuild_src = bindman_utils::git_clone(ECBUILD_REPO, ECBUILD_TAG, &src_dir.join("ecbuild"));
-    let gribjump_src =
-        bindman_utils::git_clone(GRIBJUMP_REPO, GRIBJUMP_VERSION, &src_dir.join("gribjump"));
+    let gribjump_src = resolve_gribjump_src(&src_dir);
+
+    // cmake hard-errors if the source path recorded in CMakeCache.txt changes
+    // (e.g. cloned <-> in-tree); wipe the build dir when it is stale.
+    if let Ok(cache) = fs::read_to_string(build_dir.join("CMakeCache.txt")) {
+        let cached_src = cache
+            .lines()
+            .find_map(|l| l.strip_prefix("CMAKE_HOME_DIRECTORY:INTERNAL="));
+        if cached_src != gribjump_src.to_str() {
+            fs::remove_dir_all(&build_dir)
+                .expect("Failed to remove stale gribjump build directory");
+            fs::create_dir_all(&build_dir).expect("Failed to create build directory");
+        }
+    }
 
     let ecbuild_bin = ecbuild_src.join("bin/ecbuild");
     let num_jobs = bindman_utils::build_parallelism();
@@ -168,6 +253,9 @@ fn build_vendored() {
         "-DENABLE_GRIBJUMP_LOCAL_EXTRACT={}",
         bindman_utils::on_off(cfg!(feature = "local-extract"))
     ));
+
+    #[cfg(target_os = "macos")]
+    cmd.arg("-DCMAKE_INSTALL_NAME_DIR=@rpath");
 
     bindman_utils::run_command(&mut cmd, "ecbuild configure gribjump");
 
@@ -195,12 +283,20 @@ fn build_vendored() {
     // gribjump source directory contains private headers like Types.h
     let gribjump_src_include = gribjump_src.join("src");
 
+    let eckit_cpp_dir = env::var("DEP_ECKIT_SYS_CPP_DIR").expect("DEP_ECKIT_SYS_CPP_DIR not set");
+    let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not set"));
+
     // Build the CXX bridge
     cxx_build::bridge("src/lib.rs")
-        .file(crate_dir.join("cpp/gribjump_bridge.cpp"))
+        .file(crate_dir.join("cpp/Library.cc"))
+        .file(crate_dir.join("cpp/GribJumpHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionIteratorHandle.cc"))
+        .file(crate_dir.join("cpp/ExtractionResultHandle.cc"))
         .include(&include_dir)
         .include(&gribjump_src_include)
         .include(format!("{eckit_root}/include"))
+        .include(&out_dir) // for generated gribjump_exceptions.h
+        .include(&eckit_cpp_dir) // for EckitBridge.h
         .include(format!("{metkit_root}/include"))
         .include(format!("{eccodes_root}/include"))
         .include(format!("{fdb_root}/include"))

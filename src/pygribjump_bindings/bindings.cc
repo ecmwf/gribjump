@@ -38,6 +38,7 @@
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJump.h"
 #include "gribjump/Metrics.h"
+#include "gribjump/TaskWait.h"
 #include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/gribjump_version.h"
@@ -51,13 +52,77 @@ namespace {
 // @brief Helpers
 //--------------------------------------------------------------------------------------------------
 
+// Convert while holding the GIL. The resulting configuration owns all its data.
+// Lists of dictionaries represent configuration sections such as servermap.
+eckit::LocalConfiguration config_from_dict(const py::dict& values, const std::string& path = "config",
+                                           size_t depth = 0) {
+    if (depth > 64) {
+        throw py::value_error("Configuration nesting exceeds 64 levels (possibly a cyclic dictionary)");
+    }
+    eckit::LocalConfiguration result;
+    for (const auto& item : values) {
+        if (!py::isinstance<py::str>(item.first)) {
+            throw py::type_error(path + " keys must be strings");
+        }
+        const auto key = item.first.cast<std::string>();
+        if (key.empty()) {
+            throw py::value_error(path + " keys must not be empty");
+        }
+        const auto location = path + "." + key;
+        const auto value    = item.second;
+        if (py::isinstance<py::bool_>(value)) {
+            result.set(key, value.cast<bool>());
+        }
+        else if (py::isinstance<py::int_>(value)) {
+            const long long number = PyLong_AsLongLong(value.ptr());
+            if (PyErr_Occurred()) {
+                throw py::error_already_set();
+            }
+            result.set(key, number);
+        }
+        else if (py::isinstance<py::float_>(value)) {
+            result.set(key, value.cast<double>());
+        }
+        else if (py::isinstance<py::str>(value)) {
+            result.set(key, value.cast<std::string>());
+        }
+        else if (py::isinstance<py::dict>(value)) {
+            result.set(key, config_from_dict(py::reinterpret_borrow<py::dict>(value), location, depth + 1));
+        }
+        else if (py::isinstance<py::list>(value)) {
+            std::vector<eckit::LocalConfiguration> sections;
+            for (const auto& section : py::reinterpret_borrow<py::list>(value)) {
+                if (!py::isinstance<py::dict>(section)) {
+                    throw py::type_error(location + " must contain dictionaries");
+                }
+                sections.push_back(config_from_dict(py::reinterpret_borrow<py::dict>(section),
+                                                    location + "[" + std::to_string(sections.size()) + "]", depth + 1));
+            }
+            result.set(key, sections);
+        }
+        else {
+            throw py::type_error(location + " must be a bool, int, float, str, dict or list of dicts");
+        }
+    }
+    return result;
+}
+
+gj::Config config_from_python(const py::object& value) {
+    if (!py::isinstance<py::dict>(value)) {
+        throw py::type_error("config must be a dictionary");
+    }
+    gj::Config result;
+    result.set(config_from_dict(py::reinterpret_borrow<py::dict>(value)));
+    return result;
+}
+
 metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
     std::istringstream in(request);
     metkit::mars::MarsParser parser(in);
 
     const bool inherit = false;
     const bool strict  = true;
-    metkit::mars::MarsExpansion expand(inherit, strict);
+    thread_local metkit::mars::MarsExpansion expand(inherit, strict);
 
     auto expanded = expand.expand(parser.parse());
     ASSERT(expanded.size() == 1);
@@ -66,14 +131,21 @@ metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
 
 /// The request string handed over by the python layer is only parsed and expanded if the
 /// library has been configured to do so. Parsing is a bottleneck for large numbers of
-/// requests, hence it stays configurable (see gribjump::ConfigOptions::requestParsing()).
+/// requests, hence it stays configurable (see gribjump::ProcessOptions::requestParsing()).
 gj::ExtractionRequest make_extraction_request(const std::string& request, const gj::Ranges& ranges,
                                               const std::string& grid_hash) {
-    if (gj::ConfigOptions::instance().requestParsing()) {
+    if (gj::ProcessOptions::get().requestParsing()) {
         const auto mars_request = mars_request_from_string(request);
         return gj::ExtractionRequest(mars_request.asString(), ranges, grid_hash);
     }
     return gj::ExtractionRequest(request, ranges, grid_hash);
+}
+
+void check_python_signals() {
+    py::gil_scoped_acquire gil;
+    if (PyErr_CheckSignals() != 0) {
+        throw py::error_already_set();
+    }
 }
 
 gj::LogContext log_context(const std::string& context) {
@@ -121,6 +193,15 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
 
         return dependencyInformation;
     });
+
+    m.def(
+        "configure_process",
+        [](const py::object& config) {
+            const auto options = config_from_python(config);
+            py::gil_scoped_release gil;
+            gj::ProcessOptions::configure(options);
+        },
+        py::arg("config"));
 
     // Compile-time gribjump version
     m.attr("__gribjump_build_version__") = gribjump_VERSION_STR;
@@ -236,16 +317,27 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
     //--------------------------------------------------
 
     py::class_<gj::GribJump, py::smart_holder>(m, "GribJump", py::release_gil_before_calling_cpp_dtor())
-        .def(py::init(), py::call_guard<py::gil_scoped_release>())
+        .def(py::init([](const py::object& config) {
+                 if (config.is_none()) {
+                     py::gil_scoped_release gil;
+                     return std::make_unique<gj::GribJump>();
+                 }
+                 const auto options = config_from_python(config);
+                 py::gil_scoped_release gil;
+                 return std::make_unique<gj::GribJump>(options);
+             }),
+             py::arg("config") = py::none())
         .def(
             "extract",
             [](gj::GribJump& gribjump, std::vector<gj::ExtractionRequest> requests, const std::string& ctx) {
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.extract(requests, log_context(ctx));
             },
             py::arg("requests"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
         .def(
             "extract_from_paths",
             [](gj::GribJump& gribjump, std::vector<gj::PathExtractionRequest> requests, const std::string& ctx) {
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.extract(requests, log_context(ctx));
             },
             py::arg("requests"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
@@ -255,6 +347,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                const std::string& grid_hash, const std::string& ctx) {
                 const auto mars_request = mars_request_from_string(request);
                 py::gil_scoped_release gil;
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.extract(mars_request, ranges, grid_hash, log_context(ctx));
             },
             py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{}, py::arg("ctx") = std::string{})
@@ -279,6 +372,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                 for (const auto& path : paths) {
                     path_names.emplace_back(path);
                 }
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.scan(path_names, log_context(ctx));
             },
             py::arg("paths"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
@@ -287,6 +381,7 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
             [](gj::GribJump& gribjump, const std::string& request, bool byfiles, const std::string& ctx) {
                 const auto mars_request = mars_request_from_string(request);
                 py::gil_scoped_release gil;
+                gj::TaskWaitScope interrupt(check_python_signals);
                 return gribjump.scan({mars_request}, byfiles, log_context(ctx));
             },
             py::arg("request"), py::arg("byfiles") = false, py::arg("ctx") = std::string{})

@@ -29,8 +29,8 @@ ProtocolVersion validatedProtocolVersion(uint16_t version) {
     return ProtocolVersion{version};
 }
 
-ProtocolVersion configuredClientVersion() {
-    return validatedProtocolVersion(static_cast<uint16_t>(ConfigOptions::instance().clientProtocolVersion()));
+ProtocolVersion configuredClientVersion(const ConfigOptions& options) {
+    return validatedProtocolVersion(static_cast<uint16_t>(options.clientProtocolVersion()));
 }
 
 class TCPConnection : public ClientConnection {
@@ -61,8 +61,10 @@ private:
 
 }  // namespace
 
-RemoteGribJump::RemoteGribJump() : protocolVersion_(configuredClientVersion()) {
-    std::string uri = ConfigOptions::instance().remoteURI();
+RemoteGribJump::RemoteGribJump() : RemoteGribJump(ConfigOptions::defaultOptions()) {}
+
+RemoteGribJump::RemoteGribJump(const ConfigOptions& options) : protocolVersion_(configuredClientVersion(options)) {
+    std::string uri = options.remoteURI();
 
     if (uri.empty())
         throw eckit::UserError("RemoteGribJump requires uri to be set in config (format host:port)", Here());
@@ -74,10 +76,13 @@ RemoteGribJump::RemoteGribJump() : protocolVersion_(configuredClientVersion()) {
 }
 
 RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint) :
+    RemoteGribJump(endpoint, ConfigOptions::defaultOptions()) {}
+
+RemoteGribJump::RemoteGribJump(eckit::net::Endpoint endpoint, const ConfigOptions& options) :
     host_(endpoint.host()),
     port_(endpoint.port()),
     transport_(std::make_unique<TCPTransport>(endpoint.host(), endpoint.port())),
-    protocolVersion_(configuredClientVersion()) {}
+    protocolVersion_(configuredClientVersion(options)) {}
 
 RemoteGribJump::RemoteGribJump(std::unique_ptr<ClientTransport> transport, uint16_t protocolVersion) :
     host_(""),

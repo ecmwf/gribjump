@@ -8,6 +8,8 @@
  * does it submit to any jurisdiction.
  */
 
+#include <chrono>
+
 #include "eckit/io/AutoCloser.h"
 #include "eckit/io/Length.h"
 #include "eckit/io/MemoryHandle.h"
@@ -22,6 +24,7 @@
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
 #include "gribjump/Task.h"
+#include "gribjump/TaskWait.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
 #include "gribjump/jumper/JumperFactory.h"
@@ -160,7 +163,35 @@ void TaskGroup::waitForTasks() {
         logincrement_ = 1;
     }
 
-    cv_.wait(lock, [&] { return nComplete_ == tasks_.size(); });
+    const auto complete = [&] { return nComplete_ == tasks_.size(); };
+    try {
+        if (TaskWaitScope::active()) {
+            for (;;) {
+                // Caller code may acquire other locks (e.g. the GIL) or throw.
+                lock.unlock();
+                TaskWaitScope::check();
+                lock.lock();
+                if (complete()) {
+                    break;
+                }
+                cv_.wait_for(lock, std::chrono::milliseconds(100), complete);
+            }
+        }
+        else {
+            cv_.wait(lock, complete);
+        }
+    }
+    catch (...) {
+        if (!lock.owns_lock()) {
+            lock.lock();
+        }
+        cancelTasks();
+        eckit::Log::info() << "Cancelling pending tasks; waiting for running tasks to finish..." << std::endl;
+        cv_.wait(lock, complete);
+        waiting_ = false;
+        done_    = true;
+        throw;
+    }
     waiting_ = false;
     done_    = true;
     LOG_DEBUG_LIB(LibGribJump) << "All tasks complete" << std::endl;
@@ -242,7 +273,7 @@ FileExtractionTask::FileExtractionTask(TaskGroup& taskgroup, const size_t id, co
     Task(taskgroup, id),
     fname_(fname),
     extractionItems_(extractionItems),
-    ignoreGrid_(ConfigOptions::instance().ignoreGrid()) {}
+    ignoreGrid_(taskgroup.options().ignoreGrid()) {}
 
 void FileExtractionTask::executeImpl() {
 
@@ -317,7 +348,7 @@ void ForwardExtractionTask::executeImpl() {
 
     ContextManager::instance().set(taskGroup_.context());
 
-    RemoteGribJump remoteGribJump(endpoint_);
+    RemoteGribJump remoteGribJump(endpoint_, taskGroup_.options());
     remoteGribJump.forwardExtract(filemap_);
 }
 
@@ -335,7 +366,7 @@ void ForwardScanTask::executeImpl() {
 
     ContextManager::instance().set(taskGroup_.context());
 
-    RemoteGribJump remoteGribJump(endpoint_);
+    RemoteGribJump remoteGribJump(endpoint_, taskGroup_.options());
     nfields_ += remoteGribJump.forwardScan(scanmap_);
 }
 
@@ -408,11 +439,11 @@ void FileScanTask::executeImpl() {
 void FileScanTask::scan() {
 
     if (offsets_.size() == 0) {
-        nfields_ += InfoCache::instance().scan(fname_);
+        nfields_ += InfoCache::instance().scan(fname_, true, taskGroup_.options());
         return;
     }
 
-    nfields_ += InfoCache::instance().scan(fname_, offsets_);
+    nfields_ += InfoCache::instance().scan(fname_, offsets_, taskGroup_.options());
 }
 
 void FileScanTask::info() const {

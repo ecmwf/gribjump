@@ -33,7 +33,7 @@ namespace gribjump {
 
 // Stringify requests and keys alphabetically
 
-Engine::Engine() {}
+Engine::Engine(const ConfigOptions& options) : options_(options), lister_(Lister::create(options)) {}
 
 Engine::~Engine() {}
 
@@ -42,7 +42,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     // We also canonicalise the requests such that their keys are in alphabetical order
     /// @todo: Note that it is not in general possible to arbitrary requests into a single request. In future, we should
     /// look into merging into the minimum number of requests.
-    static bool ignoreYearMonth = ConfigOptions::instance().ignoreYearMonth();
+    const bool ignoreYearMonth = options_.ignoreYearMonth();
     std::map<std::string, std::set<std::string>> keyValues;
     bool dropYearMonth = false;
     size_t streamIndex = 0;
@@ -146,28 +146,28 @@ void Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& ke
 }
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
-    return Lister::instance().fileMap(unionrequest, keyToExtractionItem);
+    return lister_->fileMap(unionrequest, keyToExtractionItem);
 }
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
-    return Lister::instance().fileMap(keyToExtractionItem);
+    return lister_->fileMap(keyToExtractionItem);
 }
 
 TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
 
     if (forward) {
-        Forwarder forwarder;
+        Forwarder forwarder(options_);
         return forwarder.extract(filemap);
     }
 
-    TaskGroup taskGroup;
+    TaskGroup taskGroup(options_);
     enqueueFileExtractionTasks(taskGroup, filemap);
     taskGroup.waitForTasks();
     return taskGroup.report();
 }
 
 void Engine::enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap) {
-    bool inefficientExtraction = ConfigOptions::instance().inefficientExtraction();
+    bool inefficientExtraction = options_.inefficientExtraction();
 
     for (auto& [fname, extractionItems] : filemap) {
         if (extractionItems[0]->isRemote()) {
@@ -197,7 +197,7 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     timer.reset("Gribjump Engine: Built file map");
 
     // Schedule tasks
-    bool forward      = ConfigOptions::instance().forwardExtraction();
+    bool forward      = options_.forwardExtraction();
     TaskReport report = scheduleExtractionTasks(filemap, forward);
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
@@ -231,7 +231,7 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
 
     // Forwarding aggregates remote buffered replies, so there is nothing to
     // stream incrementally.
-    if (ConfigOptions::instance().forwardExtraction()) {
+    if (options_.forwardExtraction()) {
         LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): forwarding enabled, aggregating buffered replies "
                                       "from "
                                    << filemap.size() << " files" << std::endl;
@@ -241,8 +241,8 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         return report;
     }
 
-    TaskGroup taskGroup;
-    taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
+    TaskGroup taskGroup(options_);
+    taskGroup.setByteThreshold(options_.streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
 
     // Each item carries its client request-vector position, stamped at build time,
@@ -269,8 +269,8 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
     LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (forwarded leaf): " << filemap.size() << " files, " << nItems
                                << " items" << std::endl;
 
-    TaskGroup taskGroup;
-    taskGroup.setByteThreshold(ConfigOptions::instance().streamingByteBudget());
+    TaskGroup taskGroup(options_);
+    taskGroup.setByteThreshold(options_.streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
 
     // Each item is stamped (at decode time) with the shared filemap enumeration
@@ -291,8 +291,8 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
 TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
                                  const std::function<size_t(ExtractionItem*)>& indexFor) {
 
-    const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
-    const size_t byteBudget = ConfigOptions::instance().streamingByteBudget();
+    const size_t flushBytes = options_.streamingFlushBytes();
+    const size_t byteBudget = options_.streamingByteBudget();
 
     /// @todo: could we centralise config sanity checks like this some place?
     if (flushBytes > byteBudget) {
@@ -381,7 +381,7 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
 }
 
 void Engine::streamBufferedResults(ResultsMap& results, ResultSink& sink) {
-    const size_t flushBytes = ConfigOptions::instance().streamingFlushBytes();
+    const size_t flushBytes = options_.streamingFlushBytes();
     std::vector<std::unique_ptr<ExtractionResult>> owned;
     std::vector<std::pair<size_t, const ExtractionResult*>> batch;
     size_t batchBytes = 0;
@@ -455,7 +455,9 @@ ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
 
 TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
 
-    std::vector<eckit::URI> uris = FDBLister::instance().URIs(requests);
+    // Scanning continues to use FDB, independently of the extraction lister.
+    FDBLister scanLister(options_);
+    std::vector<eckit::URI> uris = scanLister.URIs(requests);
 
     /// @todo do we explicitly need this?
     if (uris.empty()) {
@@ -464,12 +466,12 @@ TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
     }
 
     // forwarded scan requests
-    if (ConfigOptions::instance().forwardScan()) {
-        Forwarder forwarder;
+    if (options_.forwardScan()) {
+        Forwarder forwarder(options_);
         return forwarder.scan(uris);
     }
 
-    std::map<eckit::PathName, eckit::OffsetList> filemap = FDBLister::instance().filesOffsets(uris);
+    std::map<eckit::PathName, eckit::OffsetList> filemap = scanLister.filesOffsets(uris);
 
     if (byfiles) {  // ignore offsets and scan entire file
         for (auto& [uri, offsets] : filemap) {
@@ -493,7 +495,7 @@ TaskOutcome<size_t> Engine::scan(std::vector<eckit::PathName> files) {
 TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 
     std::atomic<size_t> nfields(0);
-    TaskGroup taskGroup;
+    TaskGroup taskGroup(options_);
     for (auto& [uri, offsets] : scanmap) {
         taskGroup.enqueueTask<FileScanTask>(uri.path(), offsets, nfields);
     }
@@ -505,7 +507,7 @@ TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 }
 
 std::map<std::string, std::unordered_set<std::string>> Engine::axes(const std::string& request, int level) {
-    return Lister::instance().axes(request, level);
+    return lister_->axes(request, level);
 }
 
 //----------------------------------------------------------------------------------------------------------------------

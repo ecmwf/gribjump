@@ -26,3 +26,4 @@ ignore/
 # Rust
 rust/target/
 rust/Cargo.lock
+rust/crates/gribjump/tests/fixtures/*.gribjump
