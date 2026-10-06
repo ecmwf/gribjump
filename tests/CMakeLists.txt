@@ -164,6 +164,8 @@ ecbuild_add_test(
     ENVIRONMENT "GRIBJUMP_THREADS=1;${gribjump_env}"
     NO_AS_NEEDED
     LIBS gribjump
+    # Broken cancellation accounting must not leave the test suite waiting forever.
+    TEST_PROPERTIES TIMEOUT 10
 )
 
 # Wire-format / codec regression tests for the remote protocol.
