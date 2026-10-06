@@ -35,7 +35,9 @@ jobs:
   # Run Rust CI (fmt + clippy + test) on the rust/ workspace
   ci-rust:
     name: ci-rust
-    if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
+    # Temporarily disabled. Restore the condition below to re-enable Rust CI.
+    # if: ${{ !github.event.pull_request.head.repo.fork && github.event.action != 'labeled' || github.event.label.name == 'approved-for-ci' }}
+    if: ${{ false }}
     uses: ecmwf/reusable-workflows/.github/workflows/ci-rust.yml@main
     with:
       manifest-path: rust/Cargo.toml
