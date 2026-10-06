@@ -43,8 +43,13 @@ GribJumpFactory::~GribJumpFactory() {
 }
 
 GribJumpBase* GribJumpFactory::build() {
+    return build(ConfigOptions::defaultOptions());
+}
 
-    std::string name = ConfigOptions::instance().configType();
+GribJumpBase* GribJumpFactory::build(const ConfigOptions& options) {
+    // Fix process settings and configure logging before objects start work.
+    ProcessOptions::get();
+    std::string name = options.configType();
     pthread_once(&once, init);
     eckit::AutoLock<eckit::Mutex> lock(local_mutex);
 
@@ -58,7 +63,7 @@ GribJumpBase* GribJumpFactory::build() {
         throw eckit::SeriousBug(std::string("No GribJumpFactory called ") + name);
     }
 
-    return (*j).second->make();
+    return (*j).second->make(options);
 }
 
 }  // namespace gribjump

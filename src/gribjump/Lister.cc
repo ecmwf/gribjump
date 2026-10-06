@@ -28,12 +28,8 @@ Lister::~Lister() {}
 
 //  ------------------------------------------------------------------
 
-FDBLister& FDBLister::instance() {
-    static FDBLister instance;
-    return instance;
-}
-
-FDBLister::FDBLister() : allowMissing_(ConfigOptions::instance().allowMissing()) {}
+FDBLister::FDBLister(const ConfigOptions& options) :
+    allowMissing_(options.allowMissing()), ignoreYearMonth_(options.ignoreYearMonth()) {}
 
 FDBLister::~FDBLister() {}
 
@@ -56,13 +52,12 @@ std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequ
 }
 
 
-std::string fdbkeyToStr(const fdb5::Key& key) {
+static std::string fdbkeyToStr(const fdb5::Key& key, bool ignoreYearMonth) {
     std::stringstream ss;
     std::string separator      = "";
     std::set<std::string> keys = key.keys();
 
     // Special case: If date is present, ignore year and month as they are aliases.
-    static bool ignoreYearMonth = ConfigOptions::instance().ignoreYearMonth();
     if (ignoreYearMonth && keys.find("date") != keys.end()) {
         keys.erase("year");
         keys.erase("month");
@@ -98,7 +93,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
     while (listIter.next(elem)) {
         fdb_count++;
 
-        std::string key = fdbkeyToStr(elem.combinedKey());
+        std::string key = fdbkeyToStr(elem.combinedKey(), ignoreYearMonth_);
 
         // If key not in map, not related to the request
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end())

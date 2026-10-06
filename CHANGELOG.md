@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- No recorded changes.
+- Support passing of configuration options to the GribJump object (C++/pybind interfaces)
 
 ## [0.13.1] - 2026-09-04
 
