@@ -129,7 +129,7 @@ std::vector<ListResult> FDBLister::list(const metkit::mars::MarsRequest& request
 
 static std::string fdbkeyToStr(const ListResult::Metadata& key, bool ignoreYearMonth) {
     std::stringstream ss;
-    std::string separator      = "";
+    std::string separator = "";
     std::set<std::string> keys;
     for (const auto& kv : key) {
         keys.insert(kv.first);
