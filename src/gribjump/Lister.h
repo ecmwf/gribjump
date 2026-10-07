@@ -32,9 +32,8 @@ namespace gribjump {
 class Lister {
 public:
 
-    /// Returns the configured Lister implementation (FDBLister or MarsListerClient).
-    /// Determined by lister.type: fdb (default), mars, or remote (reserved;
-    /// catalogue operations raise NotImplemented until forwarding is supported).
+    /// Returns the configured Lister implementation (e.g. FDBLister or MarsListerClient).
+    /// Determined by lister.type: fdb (default), mars, or remote.
     static Lister& instance();
     static std::unique_ptr<Lister> create(const ConfigOptions&);
 

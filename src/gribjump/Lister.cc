@@ -120,7 +120,6 @@ std::vector<eckit::URI> Lister::list(const std::vector<metkit::mars::MarsRequest
 std::vector<ListResult> FDBLister::list(const metkit::mars::MarsRequest& request) {
     std::vector<ListResult> results;
     fdb5::FDB fdb;
-    // FDB represents an unconstrained selection with its explicit 'all' flag.
     auto iterator = fdb.list(fdb5::FDBToolRequest(request, request.empty()), true);
     fdb5::ListElement element;
     while (iterator.next(element)) {

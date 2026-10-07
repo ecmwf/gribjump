@@ -275,20 +275,10 @@ class GribJump:
         request: MarsSelection | str,
         ctx: Optional[dict[str, Any]] = None,
     ) -> ListIterator:
-        """Discover fields without extracting values.
-
-        Accepts one MARS-like selection (mapping or string), not a list of
-        requests. No defaults, expansion or minimum-key restrictions are added;
-        the configured FDB/MARS backend determines request validity and matches.
-        Slash-separated values and collections represent multiple values.
-
+        """Discover fields in the configured lister (fdb/mars/remote).
+        Accepts one MARS-like selection (mapping or string). 
         Returns a buffered iterator of ListResult objects with complete URIs,
-        location components and MARS metadata. Ordering and duplicate selection
-        follow the backend. No matches yield an empty iterator.
-
-        The ``lister`` configuration is independent of extraction's ``type``,
-        ``uri`` and ``servermap`` settings. ``lister.type=remote`` is reserved
-        for future GribJump-server listing and currently raises an error.
+        location components and MARS metadata. No matches yield an empty iterator.
         """
         if isinstance(request, Mapping):
             selection = {}
