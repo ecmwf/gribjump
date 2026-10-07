@@ -11,19 +11,19 @@
 /// @author Christopher Bradley
 
 #include "gribjump/MarsListerClient.h"
-#include <iostream>
-#include <memory>
+#include <algorithm>
+#include <sstream>
 #include <string>
-#include <tuple>
 
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
-#include "eckit/parser/JSONParser.h"
-#include "eckit/value/Value.h"
 
+#include "gribjump/gribjump_config.h"
+#ifdef GRIBJUMP_HAVE_DHSKIT
 #include "dhskit/ListAggregation.h"
+#endif
 
 #include "gribjump/Types.h"
 #include "metkit/mars/MarsExpansion.h"
@@ -113,62 +113,44 @@ MarsListerClient::MarsListerClient(const std::string& host, int port) : host_(ho
 
 MarsListerClient::~MarsListerClient() {}
 
-std::vector<eckit::URI> MarsListerClient::list(const std::vector<metkit::mars::MarsRequest> requests) {
-    std::vector<eckit::URI> allURIs;
+std::vector<ListResult> MarsListerClient::list(const metkit::mars::MarsRequest& request) {
+#ifdef GRIBJUMP_HAVE_DHSKIT
+    eckit::net::TCPClient client;
+    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
+    stream << protocolVersion_;
+    stream << static_cast<uint16_t>(RequestType::LIST);
+    stream << request;
 
-    for (const auto& request : requests) {
-
-        eckit::net::TCPClient client;
-        eckit::net::InstantTCPStream stream(client.connect(host_, port_));
-
-        // Send header
-        stream << protocolVersion_;
-        stream << static_cast<uint16_t>(RequestType::LIST);
-
-        // Send single request
-        stream << request;
-
-        // Receive errors
-        size_t nErrors;
-        stream >> nErrors;
-        if (nErrors > 0) {
-            std::stringstream ss;
-            ss << "MarsListerClient received " << nErrors << " server-side error(s):" << std::endl;
-            for (size_t i = 0; i < nErrors; i++) {
-                std::string error;
-                stream >> error;
-                ss << error << std::endl;
-            }
-            throw eckit::RemoteException(ss.str(), Here());
+    size_t nErrors;
+    stream >> nErrors;
+    if (nErrors > 0) {
+        std::stringstream ss;
+        ss << "MarsListerClient received " << nErrors << " server-side error(s):" << std::endl;
+        for (size_t i = 0; i < nErrors; ++i) {
+            std::string error;
+            stream >> error;
+            ss << error << std::endl;
         }
-
-        // Receive JSON response
-        std::string json;
-        stream >> json;
-
-        eckit::Log::info() << "MarsListerClient: received JSON: " << json << std::endl;
-
-        // Parse JSON array of {path, offsets[], lengths[]}
-        eckit::Value parsed = eckit::JSONParser::decodeString(json);
-
-        for (size_t i = 0; i < parsed.size(); i++) {
-            const eckit::Value& entry = parsed[i];
-            std::string path          = entry["path"];
-            eckit::Value offsets      = entry["offsets"];
-            // eckit::Value lengths = entry["lengths"]; // TODO: use lengths when needed
-
-            for (size_t j = 0; j < offsets.size(); j++) {
-                long long offset = offsets[j];
-                eckit::URI uri("file", eckit::PathName(path));
-                uri.fragment(std::to_string(offset));
-                allURIs.push_back(uri);
-            }
-        }
-
-        eckit::Log::info() << "MarsListerClient: parsed " << parsed.size() << " URI(s) for request" << std::endl;
+        throw eckit::RemoteException(ss.str(), Here());
     }
 
-    return allURIs;
+    // Protocol v1 sends a binary aggregation, not JSON. dhskit reconstructs
+    // inherited metadata across fields and resets it at each shape boundary.
+    dhskit::ListAggregation aggregation(stream);
+    std::vector<ListResult> results;
+    for (const auto& field : aggregation) {
+        eckit::PathName path(field.file);
+        eckit::URI uri("file", path.path());
+        uri.host(path.node());
+        uri.port(0);
+        uri.fragment(std::to_string(static_cast<long long>(field.offset)));
+        uri.query("length", std::to_string(static_cast<long long>(field.length)));
+        results.emplace_back(std::move(uri), field.request, field.length);
+    }
+    return results;
+#else
+    throw eckit::UserError("MARS listing requires gribjump to be built with dhskit", Here());
+#endif
 }
 
 std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(const std::string& request, int level) {
@@ -177,54 +159,13 @@ std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(co
 
 filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest,
                                     const ExItemMap& reqToExtractionItem) {
-    // debug, print everything we have
-    if (LibGribJump::instance().debug()) {
-        std::cout << "XXX:" << "MarsListerClient::fileMap -- marsRequest: " << marsRequest << std::endl;
-        std::cout << "XXX:" << "MarsListerClient::fileMap -- reqToExtractionItem has " << reqToExtractionItem.size()
-                  << " items" << std::endl;
-        for (const auto& [key, extractionItemPtr] : reqToExtractionItem) {
-            std::cout << "XXX:" << "  key: " << key << std::endl;
-            std::cout << ">> ";
-            extractionItemPtr->debug_print();
-            std::cout << std::endl;
-        }
-    }
-
     filemap_t filemap;
-
-    eckit::net::TCPClient client;
-    eckit::net::InstantTCPStream stream(client.connect(host_, port_));
-
-    // Send header
-    stream << protocolVersion_;
-    stream << static_cast<uint16_t>(RequestType::LIST);
-
-    // Send single request
-    stream << marsRequest;
-
-    // Receive errors
-    size_t nErrors;
-    stream >> nErrors;
-    if (nErrors > 0) {
-        std::stringstream ss;
-        ss << "MarsListerClient received " << nErrors << " server-side error(s):" << std::endl;
-        for (size_t i = 0; i < nErrors; i++) {
-            std::string error;
-            stream >> error;
-            ss << error << std::endl;
-        }
-        throw eckit::RemoteException(ss.str(), Here());
-    }
-
-    // Receive the ListAggregation object directly off the wire.
-    dhskit::ListAggregation aggregation(stream);
-
-    // Lazily walk the flattened fields, matching each to its ExtractionItem by canonical key.
-
-    // Construct the MarsExpansion once and reuse it
+    const auto fields = list(marsRequest);
+    // Normalisation is needed only for matching extraction requests. Public
+    // listing preserves the metadata returned by MARS.
     metkit::mars::MarsExpansion expand(false, true);
-    for (const auto& field : aggregation) {
-        const std::string key = marsRequestToKey(field.request, expand);
+    for (const auto& field : fields) {
+        const std::string key = marsRequestToKey(field.metadata(), expand);
         LOG_DEBUG_LIB(LibGribJump) << "Searching for key: " << key << std::endl;
 
         auto it = reqToExtractionItem.find(key);
@@ -233,12 +174,7 @@ filemap_t MarsListerClient::fileMap(const metkit::mars::MarsRequest& marsRequest
             continue;
         }
 
-        // Build the URI from the (marsfs) file path and offset.
-        eckit::PathName p(field.file);
-        eckit::URI uri("file", p.path());
-        uri.host(p.node());
-        uri.port(0);
-        uri.fragment(std::to_string(static_cast<long long>(field.offset)));
+        const eckit::URI& uri = field.uri();
 
         ExtractionItem* extractionItem = it->second.get();
         extractionItem->URI(uri);

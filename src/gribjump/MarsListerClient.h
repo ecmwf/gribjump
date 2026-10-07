@@ -29,7 +29,8 @@ public:
 
     ~MarsListerClient();
 
-    std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
+    using Lister::list;
+    std::vector<ListResult> list(const metkit::mars::MarsRequest& request) override;
 
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 

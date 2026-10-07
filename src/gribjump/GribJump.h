@@ -25,6 +25,7 @@
 #include "gribjump/ExtractionData.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/ListIterator.h"
 
 namespace gribjump {
 
@@ -69,10 +70,16 @@ public:
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level = 3,
                                                                 const LogContext& ctx = LogContext());
 
+    /// Discover fields using lister.type (fdb/mars), independently of the
+    /// extraction backend. The request is passed through without expansion or
+    /// minimum-key checks. Results are buffered; ordering is backend-defined.
+    ListIterator list(const metkit::mars::MarsRequest& request, const LogContext& ctx = LogContext());
+
     void stats();
 
 private:
 
+    const ConfigOptions options_;
     std::unique_ptr<GribJumpBase> impl_;
 };
 

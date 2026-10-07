@@ -60,6 +60,26 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
+    TARGET "gribjump_test_api_list"
+    SOURCES "test_api_list.cc"
+    ENVIRONMENT "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+if (GRIBJUMP_HAVE_DHSKIT)
+    ecbuild_add_test(
+        TARGET "gribjump_test_mars_list"
+        SOURCES "test_mars_list.cc"
+        ENVIRONMENT "${gribjump_env}"
+        NO_AS_NEEDED
+        LIBS gribjump dhskit
+        TEST_PROPERTIES TIMEOUT 30
+    )
+endif()
+
+ecbuild_add_test(
     TARGET "gribjump_test_api_axes"
     SOURCES "test_api_axes.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"

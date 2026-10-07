@@ -24,6 +24,7 @@
 
 #include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
+#include "gribjump/api/ListResult.h"
 
 namespace gribjump {
 
@@ -32,11 +33,14 @@ class Lister {
 public:
 
     /// Returns the configured Lister implementation (FDBLister or MarsListerClient).
-    /// Determined by config key "lister.type" ("fdb" by default, or "mars").
+    /// Determined by lister.type: fdb (default), mars, or remote (reserved;
+    /// catalogue operations raise NotImplemented until forwarding is supported).
     static Lister& instance();
     static std::unique_ptr<Lister> create(const ConfigOptions&);
 
-    virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests)                 = 0;
+    /// Buffered discovery, shared by the public list API and extraction lookup.
+    virtual std::vector<ListResult> list(const metkit::mars::MarsRequest& request) = 0;
+    std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest>& requests);
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request, int level) = 0;
 
     virtual filemap_t fileMap(const metkit::mars::MarsRequest& unionRequest, const ExItemMap& reqToExtractionItem) = 0;
@@ -63,7 +67,8 @@ public:
 
     using Lister::fileMap;
 
-    virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
+    using Lister::list;
+    std::vector<ListResult> list(const metkit::mars::MarsRequest& request) override;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request,
                                                                          int level) override;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const fdb5::FDBToolRequest& request,

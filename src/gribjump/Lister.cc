@@ -24,6 +24,26 @@ namespace gribjump {
 
 //  ------------------------------------------------------------------
 
+namespace {
+
+// Reserved configuration for future GribJump-server listing. Construction is
+// allowed so path-based extraction does not depend on catalogue availability.
+class RemoteLister : public Lister {
+public:
+
+    std::vector<ListResult> list(const metkit::mars::MarsRequest&) override {
+        throw eckit::NotImplemented("Listing through a remote GribJump server is not implemented", Here());
+    }
+    filemap_t fileMap(const metkit::mars::MarsRequest&, const ExItemMap&) override {
+        throw eckit::NotImplemented("Listing through a remote GribJump server is not implemented", Here());
+    }
+    std::map<std::string, std::unordered_set<std::string>> axes(const std::string&, int) override {
+        throw eckit::NotImplemented("Axes through the remote listing backend are not implemented", Here());
+    }
+};
+
+}  // namespace
+
 Lister& Lister::instance() {
     static auto lister = create(ConfigOptions::defaultOptions());
     return *lister;
@@ -48,6 +68,9 @@ std::unique_ptr<Lister> Lister::create(const ConfigOptions& options) {
         }
         eckit::net::Endpoint endpoint(uri);
         return std::make_unique<MarsListerClient>(endpoint.host(), endpoint.port());
+    }
+    else if (type == "remote") {
+        return std::make_unique<RemoteLister>();
     }
     else {
         throw eckit::SeriousBug("Unknown lister type: " + type);
@@ -77,29 +100,40 @@ FDBLister::FDBLister(const ConfigOptions& options) :
 
 FDBLister::~FDBLister() {}
 
-std::vector<eckit::URI> FDBLister::list(const std::vector<metkit::mars::MarsRequest> requests) {
-
+std::vector<eckit::URI> Lister::list(const std::vector<metkit::mars::MarsRequest>& requests) {
     std::vector<eckit::URI> uris;
-    fdb5::FDB fdb;
-    for (auto& request : requests) {
-
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb.list(fdbreq, true);
-
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-            uris.push_back(elem.location().uri());
+    for (const auto& request : requests) {
+        for (const auto& field : list(request)) {
+            uris.push_back(field.uri());
         }
     }
-
     return uris;
 }
 
+std::vector<ListResult> FDBLister::list(const metkit::mars::MarsRequest& request) {
+    std::vector<ListResult> results;
+    fdb5::FDB fdb;
+    // FDB represents an unconstrained selection with its explicit 'all' flag.
+    auto iterator = fdb.list(fdb5::FDBToolRequest(request, request.empty()), true);
+    fdb5::ListElement element;
+    while (iterator.next(element)) {
+        ListResult::Metadata metadata;
+        const auto key = element.combinedKey();
+        for (const auto& name : key.keys()) {
+            metadata.emplace(name, key.get(name));
+        }
+        results.emplace_back(element.location().fullUri(), std::move(metadata), element.length());
+    }
+    return results;
+}
 
-static std::string fdbkeyToStr(const fdb5::Key& key, bool ignoreYearMonth) {
+static std::string fdbkeyToStr(const ListResult::Metadata& key, bool ignoreYearMonth) {
     std::stringstream ss;
     std::string separator      = "";
-    std::set<std::string> keys = key.keys();
+    std::set<std::string> keys;
+    for (const auto& kv : key) {
+        keys.insert(kv.first);
+    }
 
     // Special case: If date is present, ignore year and month as they are aliases.
     if (ignoreYearMonth && keys.find("date") != keys.end()) {
@@ -108,7 +142,7 @@ static std::string fdbkeyToStr(const fdb5::Key& key, bool ignoreYearMonth) {
     }
 
     for (const auto& k : keys) {
-        const std::string& value = key.get(k);
+        const std::string& value = key.at(k);
 
         if (value.empty()) {
             continue;
@@ -149,25 +183,17 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
 
     MetricsManager::instance().addRequest(unionRequest);
 
-    fdb5::FDBToolRequest fdbreq(unionRequest);
-
-    fdb5::FDB fdb;
-    auto listIter = fdb.list(fdbreq, true);
-
-    size_t fdb_count = 0;
-    size_t count     = 0;
-    fdb5::ListElement elem;
-    while (listIter.next(elem)) {
-        fdb_count++;
-
-        std::string key = fdbkeyToStr(elem.combinedKey(), ignoreYearMonth_);
+    const auto fields = list(unionRequest);
+    size_t count      = 0;
+    for (const auto& field : fields) {
+        std::string key = fdbkeyToStr(field.metadata(), ignoreYearMonth_);
 
         // If key not in map, not related to the request
         if (reqToExtractionItem.find(key) == reqToExtractionItem.end())
             continue;
 
         // Set the URI in the ExtractionItem
-        eckit::URI uri                 = elem.location().fullUri();
+        const eckit::URI& uri          = field.uri();
         ExtractionItem* extractionItem = reqToExtractionItem.at(key).get();
         extractionItem->URI(uri);
 
@@ -176,7 +202,7 @@ filemap_t FDBLister::fileMap(const metkit::mars::MarsRequest& unionRequest, cons
         count++;
     }
 
-    LOG_DEBUG_LIB(LibGribJump) << "FDB found " << fdb_count << " fields. Matched " << count << " fields in "
+    LOG_DEBUG_LIB(LibGribJump) << "FDB found " << fields.size() << " fields. Matched " << count << " fields in "
                                << filemap.size() << " files" << std::endl;
     if (count != reqToExtractionItem.size()) {
         eckit::Log::warning() << "Warning: Number of fields matched (" << count
@@ -220,17 +246,7 @@ std::map<eckit::PathName, eckit::OffsetList> FDBLister::filesOffsets(const std::
 }
 
 std::vector<eckit::URI> FDBLister::URIs(const std::vector<metkit::mars::MarsRequest>& requests) {
-    std::vector<eckit::URI> uris;
-    fdb5::FDB fdb;
-    for (auto& request : requests) {
-        fdb5::FDBToolRequest fdbreq(request);
-        auto listIter = fdb.list(fdbreq, true);
-        fdb5::ListElement elem;
-        while (listIter.next(elem)) {
-            uris.push_back(elem.location().fullUri());
-        }
-    }
-    return uris;
+    return Lister::list(requests);
 }
 
 std::map<std::string, std::unordered_set<std::string>> FDBLister::axes(const std::string& request, int level) {

@@ -6,9 +6,11 @@
 # granted to it by virtue of its status as an intergovernmental organisation nor
 # does it submit to any jurisdiction.
 
+from __future__ import annotations
+
 import logging
 import warnings
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from typing import Any, Optional
 
 import numpy as np
@@ -21,6 +23,7 @@ from pygribjump._internal import (
 )
 from pygribjump._internal.pygribjump_internal import ContextMapper, RequestMapper, deprecated_aliases
 from pygribjump.pygribjump_iterator import ExtractionIterator
+from pygribjump.pygribjump_list import ListIterator
 from pygribjump.pygribjump_type import (
     ExtractionRequest,
     MarsSelection,
@@ -265,6 +268,48 @@ class GribJump:
         return self.extract(
             [ExtractionRequest(request, ranges, grid_hash) for request in requests],
             ctx,
+        )
+
+    def list(
+        self,
+        request: MarsSelection | str,
+        ctx: Optional[dict[str, Any]] = None,
+    ) -> ListIterator:
+        """Discover fields without extracting values.
+
+        Accepts one MARS-like selection (mapping or string), not a list of
+        requests. No defaults, expansion or minimum-key restrictions are added;
+        the configured FDB/MARS backend determines request validity and matches.
+        Slash-separated values and collections represent multiple values.
+
+        Returns a buffered iterator of ListResult objects with complete URIs,
+        location components and MARS metadata. Ordering and duplicate selection
+        follow the backend. No matches yield an empty iterator.
+
+        The ``lister`` configuration is independent of extraction's ``type``,
+        ``uri`` and ``servermap`` settings. ``lister.type=remote`` is reserved
+        for future GribJump-server listing and currently raises an error.
+        """
+        if isinstance(request, Mapping):
+            selection = {}
+            for key, value in request.items():
+                if not isinstance(key, str):
+                    raise TypeError("MARS selection keys must be strings")
+                values = [value] if isinstance(value, (str, int, float)) else value
+                if not isinstance(values, Collection) or isinstance(values, (bytes, Mapping)):
+                    raise TypeError(f"Invalid MARS selection value for {key!r}")
+                parts = []
+                for item in values:
+                    if not isinstance(item, (str, int, float)):
+                        raise TypeError(f"Invalid MARS selection value for {key!r}")
+                    parts.extend(str(item).split("/"))
+                selection[key] = parts
+            request = selection
+        elif not isinstance(request, str):
+            raise TypeError("list expects one MARS selection mapping or string")
+        return ListIterator(
+            self.gribjump.list(request, self._context(ctx, "pygribjump_list")),
+            _internal=True,
         )
 
     @deprecated_aliases(req="request")

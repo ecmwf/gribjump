@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- GJ-68 Add buffered C++/pybind `list` APIs for FDB and MARS, returning full field locations and MARS metadata independently of the extraction backend.
+- Support path-based extraction through a configured remote GribJump server using the existing forwarding protocol.
+
 - Support passing of configuration options to the GribJump object (C++/pybind interfaces)
 - Port pygribjump to use pybind11-based bindings instead of cffi.
 - Fix sigint not interupting gribjump extraction from python.
