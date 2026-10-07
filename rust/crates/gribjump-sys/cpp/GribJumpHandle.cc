@@ -126,6 +126,10 @@ std::unique_ptr<ExtractionIteratorHandle> GribJumpHandle::extract_from_file(cons
 
 //----------------------------------------------------------------------------------------------------------------------
 
+void GribJumpHandle::list(rust::Str) {
+    throw eckit::NotImplemented("Listing is not implemented in the Rust bindings", Here());
+}
+
 rust::Vec<AxisEntry> GribJumpHandle::axes(rust::Str request, int32_t level) {
     std::string request_str(request);
     auto cpp_axes = impl_.axes(request_str, level);

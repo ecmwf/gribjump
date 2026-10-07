@@ -16,7 +16,10 @@
 #include "gribjump/Config.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/Lister.h"
+#include "gribjump/gribjump_config.h"
+#ifdef GRIBJUMP_HAVE_DHSKIT
 #include "gribjump/MarsListerClient.h"
+#endif
 #include "gribjump/Metrics.h"
 #include "gribjump/URIHelper.h"
 
@@ -66,8 +69,12 @@ std::unique_ptr<Lister> Lister::create(const ConfigOptions& options) {
                 "Lister type is set to 'mars' but no URI provided in config. Please set 'lister.uri' to the host:port "
                 "of the MarsLister server.");
         }
+#ifdef GRIBJUMP_HAVE_DHSKIT
         eckit::net::Endpoint endpoint(uri);
         return std::make_unique<MarsListerClient>(endpoint.host(), endpoint.port());
+#else
+        throw eckit::UserError("MARS listing requires gribjump to be built with dhskit", Here());
+#endif
     }
     else if (type == "remote") {
         return std::make_unique<RemoteLister>();

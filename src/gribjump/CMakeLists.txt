@@ -74,8 +74,6 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     Engine.h
     Lister.cc
     Lister.h
-    MarsListerClient.cc
-    MarsListerClient.h
     Task.cc
     Task.h
     ExtractionItem.cc
@@ -145,10 +143,11 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )
 
-endif()
+    if (GRIBJUMP_HAVE_DHSKIT)
+        list( APPEND gribjump_srcs MarsListerClient.cc MarsListerClient.h )
+        list( APPEND SERVER_LIBS dhskit )
+    endif()
 
-if (GRIBJUMP_HAVE_DHSKIT)
-list( APPEND SERVER_LIBS dhskit )
 endif()
 
 ecbuild_add_library(

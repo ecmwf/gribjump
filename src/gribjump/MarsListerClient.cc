@@ -20,10 +20,7 @@
 #include "eckit/filesystem/URI.h"
 #include "eckit/log/Log.h"
 
-#include "gribjump/gribjump_config.h"
-#ifdef GRIBJUMP_HAVE_DHSKIT
 #include "dhskit/ListAggregation.h"
-#endif
 
 #include "gribjump/Types.h"
 #include "metkit/mars/MarsExpansion.h"
@@ -114,7 +111,6 @@ MarsListerClient::MarsListerClient(const std::string& host, int port) : host_(ho
 MarsListerClient::~MarsListerClient() {}
 
 std::vector<ListResult> MarsListerClient::list(const metkit::mars::MarsRequest& request) {
-#ifdef GRIBJUMP_HAVE_DHSKIT
     eckit::net::TCPClient client;
     eckit::net::InstantTCPStream stream(client.connect(host_, port_));
     stream << protocolVersion_;
@@ -148,9 +144,6 @@ std::vector<ListResult> MarsListerClient::list(const metkit::mars::MarsRequest& 
         results.emplace_back(std::move(uri), field.request, field.length);
     }
     return results;
-#else
-    throw eckit::UserError("MARS listing requires gribjump to be built with dhskit", Here());
-#endif
 }
 
 std::map<std::string, std::unordered_set<std::string>> MarsListerClient::axes(const std::string& request, int level) {

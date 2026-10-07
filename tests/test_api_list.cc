@@ -15,7 +15,6 @@
 #include "fdb5/api/FDB.h"
 #include "fdb5/api/helpers/FDBToolRequest.h"
 #include "gribjump/GribJump.h"
-#include "gribjump/MarsListerClient.h"
 #include "gribjump/gribjump_config.h"
 
 using namespace eckit::testing;
@@ -121,6 +120,10 @@ CASE("MARS without dhskit fails explicitly instead of trying the network") {
     Config cfg;
     cfg.set("lister.type", "mars");
     cfg.set("lister.uri", "localhost:1");
+    EXPECT_THROWS_AS(GribJump{cfg}, eckit::UserError);
+    // Remote extraction does not construct a local lister until list() is used.
+    cfg.set("type", "remote");
+    cfg.set("uri", "localhost:1");
     GribJump client(cfg);
     EXPECT_THROWS_AS(client.list(metkit::mars::MarsRequest("list")), eckit::UserError);
 }
