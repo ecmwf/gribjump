@@ -41,6 +41,8 @@ public:
 
     // ============== Query ==============
 
+    /// Placeholder: always throws NotImplemented until Rust listing is supported.
+    void list(rust::Str request);
     rust::Vec<AxisEntry> axes(rust::Str request, int32_t level);
 
     // ============== Scan / diagnostics ==============

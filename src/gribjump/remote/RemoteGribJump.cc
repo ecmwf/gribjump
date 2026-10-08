@@ -177,7 +177,27 @@ std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vect
 }
 
 std::vector<std::unique_ptr<ExtractionResult>> RemoteGribJump::extract(std::vector<PathExtractionRequest>& requests) {
-    NOTIMP;
+    // The configured server is the extraction destination regardless of which
+    // catalogue supplied the locations. Reuse the existing path-based protocol.
+    std::vector<std::unique_ptr<ExtractionItem>> items;
+    filemap_t files;
+    for (const auto& request : requests) {
+        auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(request));
+        eckit::URI uri(request.scheme(), request.path());
+        uri.host(request.host());
+        uri.port(request.port());
+        uri.fragment(std::to_string(request.offset()));
+        item->URI(uri);
+        files[request.path()].push_back(item.get());
+        items.push_back(std::move(item));
+    }
+    forwardExtract(files);
+    std::vector<std::unique_ptr<ExtractionResult>> results;
+    results.reserve(items.size());
+    for (auto& item : items) {
+        results.push_back(item->result());
+    }
+    return results;
 }
 
 // Forward extraction request to another server

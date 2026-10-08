@@ -21,9 +21,12 @@
 #include "gribjump/LibGribJump.h"
 #include "gribjump/Lister.h"
 #include "gribjump/LogRouter.h"
+#include "gribjump/gribjump_config.h"
+#ifdef GRIBJUMP_HAVE_DHSKIT
 #include "gribjump/MarsListerClient.h"
-#include "gribjump/remote/RemoteGribJump.h"
+#endif
 #include "gribjump/info/InfoCache.h"
+#include "gribjump/remote/RemoteGribJump.h"
 
 using namespace eckit::testing;
 
@@ -169,9 +172,13 @@ CASE("lister selection preserves MARS support with per-object configuration") {
     ConfigOptions fdbOptions(config);
     EXPECT_EQUAL(marsOptions.listerType(), "mars");
     EXPECT_EQUAL(marsOptions.listerURI(), "localhost:9000");
+#ifdef GRIBJUMP_HAVE_DHSKIT
     auto mars = Lister::create(marsOptions);
-    auto fdb = Lister::create(fdbOptions);
     EXPECT(dynamic_cast<MarsListerClient*>(mars.get()) != nullptr);
+#else
+    EXPECT_THROWS_AS(Lister::create(marsOptions), eckit::UserError);
+#endif
+    auto fdb = Lister::create(fdbOptions);
     EXPECT(dynamic_cast<FDBLister*>(fdb.get()) != nullptr);
     EXPECT_NO_THROW(GribJump{Config()});
     Config missingURI;

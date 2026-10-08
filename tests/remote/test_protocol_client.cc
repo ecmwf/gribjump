@@ -139,6 +139,62 @@ CASE("Client: v3-pinned client gets the buffered reply end-to-end") {
     }
 }
 
+CASE("Client: path extraction reuses forwarding for v3 and v4") {
+    // Echo each decoded offset to verify both location transfer and result order.
+    struct PathEngine : MockEngine {
+        TaskReport scheduleExtractionTasks(filemap_t& files, bool forward) override {
+            auto report = MockEngine::scheduleExtractionTasks(files, forward);
+            for (auto& [path, items] : files) {
+                for (auto* item : items) {
+                    auto result                    = item->result();
+                    result->mutable_values()[0][0] = static_cast<long long>(item->offset());
+                    item->result(std::move(result));
+                }
+            }
+            return report;
+        }
+        TaskReport extractStreaming(filemap_t& files, ResultSink& sink) override {
+            auto report = scheduleExtractionTasks(files, false);
+            auto items  = flattenFilemap(files);
+            for (size_t i = items.size(); i-- > 0;) {
+                auto result = items[i]->result();
+                sink.writeResults({{i, result.get()}});
+            }
+            return report;
+        }
+    };
+    for (const auto version : {remoteProtocolVersion, streamingProtocolVersion}) {
+        PathEngine engine;
+        RemoteGribJump remote(std::make_unique<SocketpairTransport>(engine), version);
+        // Deliberately not in filemap order. Catalogue host/scheme are not the
+        // configured extraction destination and need no further discovery.
+        std::vector<PathExtractionRequest> requests = {
+            {"/z.grib", "fdb", 200, "fdb-store", 9000, {{0, 2}, {3, 4}}, "grid"},
+            {"/a.grib", "file", 0, "mars-node", 0, {{0, 2}, {3, 4}}, "grid"},
+            {"/z.grib", "fdb", 100, "fdb-store", 9000, {{0, 2}, {3, 4}}, "grid"},
+        };
+        auto results = remote.extract(requests);
+        EXPECT_EQUAL(engine.lastExtractRequests, 0);
+        EXPECT_EQUAL(engine.lastFilemapFiles, 2);
+        EXPECT_EQUAL(engine.lastFilemapItems, 3);
+        EXPECT_EQUAL(results.size(), requests.size());
+        for (size_t i = 0; i < results.size(); ++i) {
+            EXPECT_EQUAL(results[i]->values()[0][0], requests[i].offset());
+            EXPECT_EQUAL(results[i]->values()[1][0], 30.0);
+        }
+    }
+}
+
+CASE("Client: path extraction propagates remote errors") {
+    for (const auto version : {remoteProtocolVersion, streamingProtocolVersion}) {
+        MockEngine engine;
+        engine.errors = {"missing GRIB file"};
+        RemoteGribJump remote(std::make_unique<SocketpairTransport>(engine), version);
+        std::vector<PathExtractionRequest> requests = {{"/missing.grib", "file", 0, "", 0, {{0, 1}}, "grid"}};
+        EXPECT_THROWS_AS(remote.extract(requests), eckit::RemoteException);
+    }
+}
+
 CASE("Client: scan() round-trips end-to-end (non-EXTRACT verb over a real socket)") {
     MockEngine engine;
     engine.scanNFields = 7;

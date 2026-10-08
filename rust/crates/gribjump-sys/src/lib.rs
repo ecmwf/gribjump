@@ -154,6 +154,9 @@ mod ffi {
             data: &FileExtractionData,
         ) -> Result<UniquePtr<ExtractionIteratorHandle>>;
 
+        /// Placeholder: listing is not implemented in the Rust bindings.
+        fn list(self: Pin<&mut GribJumpHandle>, request: &str) -> Result<()>;
+
         /// Query available axes for a given request.
         fn axes(
             self: Pin<&mut GribJumpHandle>,

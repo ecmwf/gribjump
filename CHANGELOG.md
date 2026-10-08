@@ -4,9 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Support passing of configuration options to the GribJump object (C++/pybind interfaces)
-- Port pygribjump to use pybind11-based bindings instead of cffi.
-- Fix sigint not interupting gribjump extraction from python.
+- GJ-68 Add C++/pybind `list` APIs for FDB and MARS, returning full field locations and MARS
+  metadata independently of the extraction backend.
+- GJ-76 Port pygribjump to use pybind11-based bindings instead of cffi.
+- GJ-79 Fix sigint not interupting gribjump extraction from python.
+- GJ-80 Support passing of configuration options to the GribJump object (C++/pybind interfaces)
 
 ## [0.13.1] - 2026-09-04
 

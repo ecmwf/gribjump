@@ -76,8 +76,8 @@ include(find_python_module)
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
 include_directories(
-  ${AEC_INCLUDE_DIRS}
   ${gribjump_INCLUDE_DIRS}
+  ${AEC_INCLUDE_DIRS}
   ${eckit_INCLUDE_DIRS}
   )
 
