@@ -45,6 +45,16 @@ public:
     const std::string& configType() const { return type_; }
     const std::string& remoteURI() const { return uri_; }
     const Config::ServerMap& serverMap() const { return serverMap_; }
+    const std::string& listerType() const { return listerType_; }
+    const std::string& listerURI() const { return listerURI_; }
+    /// Env: GRIBJUMP_CLIENT_PROTOCOL_VERSION. YAML: clientProtocolVersion. Default: 4.
+    size_t clientProtocolVersion() const { return clientProtocolVersion_; }
+    /// Env: GRIBJUMP_STREAMING_FLUSH_BYTES. YAML: streaming.flushBytes. Default: 8 MiB.
+    /// Validated against streamingByteBudget() after resolving environment overrides.
+    size_t streamingFlushBytes() const { return streamingFlushBytes_; }
+    /// Env: GRIBJUMP_STREAMING_BYTE_BUDGET. YAML: streaming.byteBudget. Default: 128 MiB.
+    /// Soft completed-result dispatch threshold, not a hard memory limit.
+    size_t streamingByteBudget() const { return streamingByteBudget_; }
     bool ignoreGrid() const { return ignoreGrid_; }
     bool ignoreYearMonth() const { return ignoreYearMonth_; }
     bool allowMissing() const { return allowMissing_; }
@@ -58,6 +68,11 @@ private:
     const std::string type_;
     const std::string uri_;
     const Config::ServerMap serverMap_;
+    const std::string listerType_;
+    const std::string listerURI_;
+    const size_t clientProtocolVersion_;
+    const size_t streamingFlushBytes_;
+    const size_t streamingByteBudget_;
     const bool ignoreGrid_;
     const bool ignoreYearMonth_;
     const bool allowMissing_;

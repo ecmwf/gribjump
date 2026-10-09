@@ -21,7 +21,12 @@
 #include "gribjump/LibGribJump.h"
 #include "gribjump/Lister.h"
 #include "gribjump/LogRouter.h"
+#include "gribjump/gribjump_config.h"
+#ifdef GRIBJUMP_HAVE_DHSKIT
+#include "gribjump/MarsListerClient.h"
+#endif
 #include "gribjump/info/InfoCache.h"
+#include "gribjump/remote/RemoteGribJump.h"
 
 using namespace eckit::testing;
 
@@ -64,6 +69,23 @@ CASE("resource overrides are resolved once per options object") {
         ConfigOptions second(config);
         EXPECT(!second.ignoreGrid());
         EXPECT(first.ignoreGrid());
+    }
+}
+
+CASE("streaming limits are validated after environment overrides") {
+    Config config;
+    config.set("streaming.flushBytes", 2);
+    config.set("streaming.byteBudget", 1);
+    EXPECT_THROWS_AS(ConfigOptions{config}, eckit::BadValue);
+    config.set("streaming.flushBytes", 1);
+    EXPECT_NO_THROW(ConfigOptions{config});  // equality is valid
+    {
+        SetEnv flush("GRIBJUMP_STREAMING_FLUSH_BYTES", "2");
+        EXPECT_THROWS_AS(ConfigOptions{config}, eckit::BadValue);
+        SetEnv budget("GRIBJUMP_STREAMING_BYTE_BUDGET", "3");
+        ConfigOptions options(config);
+        EXPECT_EQUAL(options.streamingFlushBytes(), 2);
+        EXPECT_EQUAL(options.streamingByteBudget(), 3);
     }
 }
 
@@ -127,6 +149,60 @@ CASE("all per-object options are snapshots including programmatic server maps") 
     EXPECT(first.inefficientExtraction());
     EXPECT_EQUAL(first.serverMap().at(eckit::net::Endpoint("localhost:9000")).port(), 9001);
     EXPECT_EQUAL(second.serverMap().at(eckit::net::Endpoint("localhost:9000")).port(), 9002);
+}
+
+CASE("MARS server maps and streaming settings are per-object snapshots") {
+    Config config;
+    config.set("clientProtocolVersion", 3);
+    config.set("streaming.flushBytes", 1024);
+    config.set("streaming.byteBudget", 4096);
+    eckit::LocalConfiguration server;
+    server.set("mars", "localhost:9000");
+    server.set("gribjump", "localhost:9001");
+    config.set("servermap", std::vector<eckit::LocalConfiguration>{server});
+    ConfigOptions first(config);
+    config.set("clientProtocolVersion", 4);
+    config.set("streaming.flushBytes", 2048);
+    config.set("streaming.byteBudget", 8192);
+    ConfigOptions second(config);
+    EXPECT_EQUAL(first.clientProtocolVersion(), 3);
+    EXPECT_EQUAL(second.clientProtocolVersion(), 4);
+    EXPECT_EQUAL(first.streamingFlushBytes(), 1024);
+    EXPECT_EQUAL(second.streamingFlushBytes(), 2048);
+    EXPECT_EQUAL(first.streamingByteBudget(), 4096);
+    EXPECT_EQUAL(second.streamingByteBudget(), 8192);
+    EXPECT_EQUAL(first.serverMap().at(eckit::net::Endpoint("localhost:9000")).port(), 9001);
+
+    const eckit::net::Endpoint endpoint("localhost:9001");
+    EXPECT_NO_THROW((RemoteGribJump{endpoint, first}));
+    config.set("clientProtocolVersion", 2);
+    EXPECT_THROWS_AS((RemoteGribJump{endpoint, ConfigOptions(config)}), eckit::UserError);
+}
+
+CASE("lister selection preserves MARS support with per-object configuration") {
+    Config config;
+    config.set("lister.type", "mars");
+    config.set("lister.uri", "localhost:9000");
+    ConfigOptions marsOptions(config);
+    config.set("lister.type", "fdb");
+    config.set("lister.uri", "localhost:9002");
+    ConfigOptions fdbOptions(config);
+    EXPECT_EQUAL(marsOptions.listerType(), "mars");
+    EXPECT_EQUAL(marsOptions.listerURI(), "localhost:9000");
+#ifdef GRIBJUMP_HAVE_DHSKIT
+    auto mars = Lister::create(marsOptions);
+    EXPECT(dynamic_cast<MarsListerClient*>(mars.get()) != nullptr);
+#else
+    EXPECT_THROWS_AS(Lister::create(marsOptions), eckit::UserError);
+#endif
+    auto fdb = Lister::create(fdbOptions);
+    EXPECT(dynamic_cast<FDBLister*>(fdb.get()) != nullptr);
+    EXPECT_NO_THROW(GribJump{Config()});
+    Config missingURI;
+    missingURI.set("lister.type", "mars");
+    EXPECT_THROWS_AS(GribJump{missingURI}, eckit::SeriousBug);
+    missingURI.set("lister.type", "unknown-lister");
+    EXPECT_THROWS_AS(GribJump{missingURI}, eckit::SeriousBug);
 }
 
 CASE("conflicting process settings fail without altering established state") {

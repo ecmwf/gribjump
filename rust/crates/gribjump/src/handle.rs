@@ -149,6 +149,16 @@ impl GribJump {
         Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
+    /// Placeholder for listing; Rust listing support is out of scope for now.
+    ///
+    /// # Errors
+    ///
+    /// Always returns a not-implemented error.
+    pub fn list(&self, request: &str) -> Result<()> {
+        self.inner.lock().0.pin_mut().list(request)?;
+        Ok(())
+    }
+
     /// Get axes information for a request.
     ///
     /// Returns a map of axis names to their possible values.

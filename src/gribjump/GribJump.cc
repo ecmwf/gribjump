@@ -17,6 +17,10 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribJumpFactory.h"
+#include "gribjump/gribjump_config.h"
+#if GRIBJUMP_HAVE_FDB
+#include "gribjump/Lister.h"
+#endif
 #include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
 #include "gribjump/tools/ToolUtils.h"
@@ -24,14 +28,13 @@
 
 namespace gribjump {
 
-GribJump::GribJump() {
-    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build());
+GribJump::GribJump() : options_(ConfigOptions::defaultOptions()) {
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(options_));
 }
 
-GribJump::GribJump(const Config& cfg) {
-    const ConfigOptions options(cfg);
+GribJump::GribJump(const Config& cfg) : options_(cfg) {
     ProcessOptions::configure(cfg);
-    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(options));
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(options_));
 }
 
 GribJump::~GribJump() {}
@@ -123,6 +126,18 @@ std::map<std::string, std::unordered_set<std::string>> GribJump::axes(const std:
 
     auto out = impl_->axes(request, level);
     return out;
+}
+
+ListIterator GribJump::list(const metkit::mars::MarsRequest& request, const LogContext& ctx) {
+    ContextManager::instance().set(ctx);
+    if (options_.listerType() == "remote") {
+        throw eckit::NotImplemented("Listing through a remote GribJump server is not implemented", Here());
+    }
+#if GRIBJUMP_HAVE_FDB
+    return ListIterator(Lister::create(options_)->list(request));
+#else
+    throw eckit::UserError("FDB/MARS listing requires a build with GRIBJUMP_LOCAL_EXTRACT enabled", Here());
+#endif
 }
 
 void GribJump::stats() {

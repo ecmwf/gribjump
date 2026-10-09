@@ -19,7 +19,10 @@
 #include "gribjump/Metrics.h"
 #include "gribjump/Task.h"
 #include "gribjump/Types.h"
+#include "gribjump/remote/ResultSink.h"
 #include "metkit/mars/MarsRequest.h"
+
+#include <unordered_map>
 
 namespace gribjump {
 
@@ -40,6 +43,16 @@ public:
     virtual ~EngineIface() = default;
 
     virtual TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) = 0;
+
+    /// Streaming extraction: schedule the work and hand results to the sink in batches as tasks complete.
+    virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
+
+    /// Local streaming extraction from a prebuilt filemap; no catalogue lookup
+    /// or forwarding. The caller owns the items and must keep them alive until
+    /// this call finishes. Each item must have a streamIndex assigned by the
+    /// caller: an original request position or a FORWARD_EXTRACT wire index
+    /// (see ForwardExtractIndex.h). Results preserve those indices unchanged.
+    virtual TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) = 0;
 
     // byfiles: scan entire file, not just fields matching request
     virtual TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) = 0;
@@ -63,6 +76,9 @@ public:
     TaskOutcome<ResultsMap> extract(ExtractionRequests& requests) override;
     TaskOutcome<ResultsMap> extract(PathExtractionRequests& requests);
 
+    TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) override;
+    TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) override;
+
     // byfiles: scan entire file, not just fields matching request
     TaskOutcome<size_t> scan(const MarsRequests& requests, bool byfiles = false) override;
     TaskOutcome<size_t> scan(std::vector<eckit::PathName> files);
@@ -76,14 +92,16 @@ private:
 
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
-    ResultsMap collectResults(ExItemMap& keyToExtractionItem);
+    void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
+    TaskReport streamHarvest(filemap_t& filemap, ResultSink& sink);
+    void streamBufferedResults(ResultsMap& results, ResultSink& sink);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
 private:
 
     const ConfigOptions options_;
-    FDBLister lister_;
+    std::unique_ptr<Lister> lister_;
 };
 
 

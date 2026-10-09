@@ -27,6 +27,7 @@ from pygribjump.pygribjump_iterator import (
     ExtractionIterator,
     ExtractionResult,
 )
+from pygribjump.pygribjump_list import ListIterator, ListResult
 
 
 __all__ = [
@@ -37,6 +38,8 @@ __all__ = [
     "PathExtractionRequest",
     "ExtractionIterator",
     "ExtractionResult",
+    "ListIterator",
+    "ListResult",
     "MarsSelection",
     "Range",
     "version",

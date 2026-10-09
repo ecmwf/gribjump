@@ -11,6 +11,7 @@
 /// @author Caragh Bradley
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/URI.h"
+#include "eckit/io/Offset.h"
 #pragma once
 
 namespace gribjump {

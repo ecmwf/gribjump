@@ -11,6 +11,7 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
+#include <memory>
 #include <optional>
 
 #include "eckit/log/Timer.h"
@@ -20,7 +21,7 @@
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
-#include "gribjump/remote/Request.h"
+#include "gribjump/remote/RequestHandler.h"
 
 #include "gribjump/Engine.h"
 
@@ -62,27 +63,30 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     MetricsManager::instance().report();
 }
 
-template <typename RequestT>
-static void processRequest(eckit::Stream& s, EngineIface& engine) {
-    eckit::Timer timer("GribJumpUser::processRequest");
+namespace {
 
-    RequestT request(s, engine);
-    MetricsManager::instance().set("elapsed_receive", timer.elapsed());
-    timer.reset("Request received");
-    request.info();
-
-    request.execute();
-    MetricsManager::instance().set("elapsed_execute", timer.elapsed());
-    timer.reset("Request executed");
-
-    request.reportErrors();
-    request.replyToClient();
-    MetricsManager::instance().set("elapsed_reply", timer.elapsed());
-    timer.reset("Request replied");
+std::unique_ptr<RequestHandler> makeRequestHandler(RequestType type, eckit::Stream& s, EngineIface& engine,
+                                                   ProtocolVersion version) {
+    switch (type) {
+        case RequestType::EXTRACT:
+            return std::make_unique<ExtractHandler>(s, engine, version);
+        case RequestType::AXES:
+            return std::make_unique<AxesHandler>(s, engine, version);
+        case RequestType::SCAN:
+            return std::make_unique<ScanHandler>(s, engine, version);
+        case RequestType::FORWARD_EXTRACT:
+            return std::make_unique<ForwardedExtractHandler>(s, engine, version);
+        case RequestType::FORWARD_SCAN:
+            return std::make_unique<ForwardedScanHandler>(s, engine, version);
+        default:
+            throw eckit::SeriousBug("Unknown request type: " + std::to_string(static_cast<uint16_t>(type)));
+    }
 }
 
+}  // namespace
+
 void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
-    RequestType requestType = Protocol::readRequestHeader(s);
+    const Protocol::RequestHeader header = Protocol::readRequestHeader(s);
 
     // By default we create an engine, though tests are allowed to
     // inject one (e.g. a MockEngine) for unit testing.
@@ -92,25 +96,7 @@ void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     }
     EngineIface& engine = injectedEngine ? *injectedEngine : *ownedEngine;
 
-    switch (requestType) {
-        case RequestType::EXTRACT:
-            processRequest<ExtractRequest>(s, engine);
-            break;
-        case RequestType::AXES:
-            processRequest<AxesRequest>(s, engine);
-            break;
-        case RequestType::SCAN:
-            processRequest<ScanRequest>(s, engine);
-            break;
-        case RequestType::FORWARD_EXTRACT:
-            processRequest<ForwardedExtractRequest>(s, engine);
-            break;
-        case RequestType::FORWARD_SCAN:
-            processRequest<ForwardedScanRequest>(s, engine);
-            break;
-        default:
-            throw eckit::SeriousBug("Unknown request type: " + std::to_string(static_cast<uint16_t>(requestType)));
-    }
+    makeRequestHandler(header.type, s, engine, header.version)->process();
 }
 
 

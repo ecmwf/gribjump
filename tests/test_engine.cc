@@ -9,7 +9,11 @@
  */
 
 #include <cmath>
+#include <condition_variable>
 #include <fstream>
+#include <map>
+#include <memory>
+#include <mutex>
 
 #include "eckit/testing/Test.h"
 
@@ -76,17 +80,165 @@ const std::string setupFDB(const eckit::PathName& tmpdir) {
 }
 
 
-size_t expectedCount(std::vector<std::vector<Interval>> allIntervals) {
-    // count the number of values expected given the intervals
-    size_t count = 0;
-    for (auto& intervals : allIntervals) {
-        for (auto& interval : intervals) {
-            count += interval.second - interval.first;
+//-----------------------------------------------------------------------------
+// Sinks for exercising the streaming (v4) extraction path.
+
+// Records the streamed results by request index (deep-copying values) and how
+// many chunks were emitted.
+class RecordingSink : public ResultSink {
+public:
+
+    void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>& batch) override {
+        chunks++;
+        for (const auto& [index, result] : batch) {
+            EXPECT(received.emplace(index, result->values()).second);  // deep copy; reject duplicate indices
+            masks.emplace(index, result->mask());
         }
     }
 
-    return count;
+    size_t chunks = 0;
+    std::map<size_t, ExValues> received;
+    std::map<size_t, ExMask> masks;
+};
+
+// Fails on the first write, simulating a client disconnecting mid-stream. The
+// engine must still drain outstanding tasks (not destroy the TaskGroup out from
+// under running workers) and rethrow.
+class ThrowingSink : public ResultSink {
+public:
+
+    void writeResults(const std::vector<std::pair<size_t, const ExtractionResult*>>&) override {
+        writes++;
+        throw eckit::SeriousBug("sink write failed (simulated client disconnect)");
+    }
+
+    size_t writes = 0;
+};
+
+// Hold every worker so failed engine setup cannot race with task execution.
+// Destruction releases the workers and waits for the gate's own tasks to finish.
+class EngineWorkerGate {
+    class Blocker : public Task {
+    public:
+
+        Blocker(TaskGroup& group, size_t id, EngineWorkerGate& gate) : Task(group, id), gate_(gate) {}
+        void info() const override {}
+        void executeImpl() override {
+            std::unique_lock<std::mutex> lock(gate_.mutex_);
+            ++gate_.started_;
+            gate_.cv_.notify_all();
+            gate_.cv_.wait(lock, [&] { return gate_.released_; });
+        }
+
+    private:
+
+        EngineWorkerGate& gate_;
+    };
+
+public:
+
+    EngineWorkerGate() {
+        const size_t workers = ProcessOptions::get().numThreads();
+        for (size_t i = 0; i < workers; ++i) {
+            group_.enqueueTask<Blocker>(*this);
+        }
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait(lock, [&] { return started_ == workers; });
+    }
+    ~EngineWorkerGate() {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            released_ = true;
+        }
+        cv_.notify_all();
+        group_.waitForTasks();
+    }
+
+private:
+
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    size_t started_ = 0;
+    bool released_  = false;
+    TaskGroup group_;
+};
+
+// Exercise the real proxy-side request resolution and buffered-result emission.
+// Substitute only forwarding: extract the resolved fields locally to simulate
+// completed downstream replies without requiring a network server.
+class BufferedForwardingEngine : public Engine {
+public:
+
+    using Engine::Engine;
+
+    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward) override {
+        EXPECT(forward);
+        calls++;
+        return Engine::scheduleExtractionTasks(filemap, false);
+    }
+
+    size_t calls = 0;
+};
+
+void expectStreamed(const RecordingSink& sink, const std::map<size_t, ExValues>& expected) {
+    EXPECT_EQUAL(sink.received.size(), expected.size());
+    EXPECT_EQUAL(sink.masks.size(), expected.size());
+    // EXPECT_EQUAL captures its operands in a lambda; capturing structured
+    // bindings requires C++20, so use ordinary references in this C++17 test.
+    for (const auto& entry : expected) {
+        const auto& ranges = entry.second;
+        const auto& values = sink.received.at(entry.first);
+        const auto& masks  = sink.masks.at(entry.first);
+        EXPECT_EQUAL(values.size(), ranges.size());
+        EXPECT_EQUAL(masks.size(), ranges.size());
+        for (size_t r = 0; r < ranges.size(); ++r) {
+            EXPECT_EQUAL(values[r].size(), ranges[r].size());
+            EXPECT_EQUAL(masks[r].size(), ((ranges[r].size() + 63) / 64));
+            for (size_t i = 0; i < ranges[r].size(); ++i) {
+                const bool missing = ranges[r][i] == 9999;  // ecCodes reference missing value
+                EXPECT_EQUAL(masks[r][i / 64].test(i % 64), !missing);
+                if (missing) {
+                    EXPECT(std::isnan(values[r][i]));
+                }
+                else {
+                    EXPECT_EQUAL(values[r][i], ranges[r][i]);
+                }
+            }
+        }
+    }
 }
+
+// Owns both the files and items independently of the engine. Files contain two
+// copies of the GRIB fixture so callers can exercise distinct, nonzero offsets.
+// No FDB archive or catalogue lookup is needed to construct this filemap.
+struct StreamingFilemap {
+    eckit::TmpDir directory;
+    std::vector<std::unique_ptr<ExtractionItem>> owned;
+    filemap_t files;
+    std::map<size_t, ExValues> expected;
+
+    void add(const std::string& name, size_t index, long long offset, const Ranges& ranges) {
+        const eckit::PathName path = directory / name;
+        if (!path.exists()) {
+            std::ifstream input(gribName.asString(), std::ios::binary);
+            std::ofstream output(path.asString(), std::ios::binary);
+            ASSERT(input && output);
+            output << input.rdbuf();
+            input.clear();
+            input.seekg(0);
+            output << input.rdbuf();
+            ASSERT(output);
+        }
+        eckit::URI uri("file", path);
+        uri.fragment(std::to_string(offset));
+        auto item = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>("", ranges, gridHash));
+        item->URI(uri);
+        item->streamIndex(index);
+        files[path.asString()].push_back(item.get());
+        owned.push_back(std::move(item));
+        expected.emplace(index, eccodesExtract(path, {eckit::Offset(offset)}, ranges).front());
+    }
+};
 
 CASE("Engine: pre-test setup") {
     tmpdir = eckit::TmpDir(eckit::LocalPathName::cwd().c_str());
@@ -127,6 +279,10 @@ CASE("Engine: Basic extraction") {
 
     auto [results, report] = engine.extract(exRequests);
     EXPECT_NO_THROW(report.raiseErrors());
+    EXPECT(results.size() == exRequests.size());
+    for (const auto& entry : results) {
+        EXPECT_EQUAL(entry.first, entry.second->request());
+    }
 
     // print contents of map
     for (auto& [req, ex] : results) {
@@ -179,6 +335,10 @@ CASE("Engine: Basic extraction") {
 
     auto [results_path, report_path] = engine.extract(exPathRequests);
     EXPECT_NO_THROW(report_path.raiseErrors());
+    EXPECT(results_path.size() == exPathRequests.size());
+    for (const auto& entry : results_path) {
+        EXPECT_EQUAL(entry.first, entry.second->request());
+    }
 
     // Check correct values
     size_t count_path = 0;
@@ -262,6 +422,206 @@ CASE("Engine: Basic extraction") {
 
     /// @todo: request touching multiple files?
     /// @todo: request involving unsupported packingType?
+}
+
+//-----------------------------------------------------------------------------
+
+CASE("Engine: request streaming preserves original indices and values") {
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+
+    // Request order differs from canonical-key and file-offset order. Distinct
+    // ranges let the value assertions detect accidental reindexing on delegation.
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc"};
+
+    std::vector<Ranges> allIntervals = {{{0, 5}, {20, 30}}, {{10, 14}}, {{30, 33}, {50, 55}}};
+
+    Engine engine;
+    ExtractionRequests exRequests;
+    std::map<size_t, ExValues> expected;
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
+        const auto request = fdb5::FDBToolRequest::requestsFromString(requests[i])[0].request();
+        expected.emplace(i, eccodesExtract(request, allIntervals[i]).front());
+    }
+
+    RecordingSink sink;
+    TaskReport report = engine.extractStreaming(exRequests, sink);
+    EXPECT_NO_THROW(report.raiseErrors());
+
+    expectStreamed(sink, expected);
+}
+
+CASE("Engine: forwarded request streaming batches buffered results and propagates sink failures") {
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+
+    // The result map is ordered by MARS key, not by these original request indices.
+    const std::vector<std::string> selections = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc"};
+    const std::vector<Ranges> ranges = {{{10, 14}}, {{0, 50}}, {{30, 33}, {50, 55}}};
+    ExtractionRequests requests;
+    std::map<size_t, ExValues> expected;
+    for (size_t i = 0; i < selections.size(); ++i) {
+        requests.emplace_back(selections[i], ranges[i], gridHash);
+        const auto request = fdb5::FDBToolRequest::requestsFromString(selections[i])[0].request();
+        expected.emplace(i, eccodesExtract(request, ranges[i]).front());
+    }
+
+    // Cover per-result flushes (including an empty final flush), a full chunk
+    // followed by a partial final chunk, and all results in a final-only flush.
+    for (const size_t flushBytes : {size_t{1}, size_t{128}, size_t{1024 * 1024}}) {
+        Config config;
+        config.set("forwardExtraction", true);
+        config.set("streaming.flushBytes", flushBytes);
+        BufferedForwardingEngine engine{ConfigOptions(config)};
+        RecordingSink sink;
+        const auto report = engine.extractStreaming(requests, sink);
+        EXPECT_NO_THROW(report.raiseErrors());
+        EXPECT_EQUAL(engine.calls, 1);
+        expectStreamed(sink, expected);
+        const size_t expectedChunks = flushBytes == 1 ? 3 : (flushBytes == 128 ? 2 : 1);
+        EXPECT_EQUAL(sink.chunks, expectedChunks);
+
+        // No worker tasks remain when these buffered writes start. Sink errors
+        // must still propagate, whether raised in a threshold or final flush.
+        ThrowingSink throwing;
+        EXPECT_THROWS_AS(engine.extractStreaming(requests, throwing), eckit::SeriousBug);
+        EXPECT_EQUAL(engine.calls, 2);
+        EXPECT_EQUAL(throwing.writes, 1);
+
+        RecordingSink recovered;
+        const auto recoveredReport = engine.extractStreaming(requests, recovered);
+        EXPECT_NO_THROW(recoveredReport.raiseErrors());
+        EXPECT_EQUAL(engine.calls, 3);
+        expectStreamed(recovered, expected);
+    }
+}
+
+CASE("Engine: prebuilt filemap streams locally and preserves caller indices") {
+    for (const size_t flushBytes : {size_t{1}, size_t{1024 * 1024}}) {
+        StreamingFilemap fixture;
+        // Both file ordering and the task's offset sort differ from these indices.
+        fixture.add("b.grib", 42, static_cast<long long>(gribName.size()), {{0, 5}, {20, 30}});
+        fixture.add("b.grib", 7, 0, {{10, 14}});
+        fixture.add("a.grib", 99, 0, {{30, 33}, {50, 55}});
+
+        Config config;
+        config.set("lister.type", "remote");    // any catalogue lookup would fail
+        config.set("forwardExtraction", true);  // must not forward an already resolved filemap
+        config.set("streaming.flushBytes", flushBytes);
+        config.set("streaming.byteBudget", flushBytes);
+        Engine engine{ConfigOptions(config)};
+        RecordingSink sink;
+        const auto report = engine.extractStreaming(fixture.files, sink);
+        EXPECT_NO_THROW(report.raiseErrors());
+        expectStreamed(sink, fixture.expected);
+        EXPECT_EQUAL(sink.chunks, (flushBytes == 1 ? 3u : 1u));
+        for (const auto& item : fixture.owned) {
+            EXPECT(fixture.expected.count(item->streamIndex()) == 1);
+            EXPECT(!item->result());  // the sink consumed the result, not the caller's item
+        }
+    }
+}
+
+CASE("Engine: invalid streaming limits are rejected before work can be submitted") {
+    {
+        EngineWorkerGate gate;
+        Config config;
+        config.set("streaming.flushBytes", 2);
+        config.set("streaming.byteBudget", 1);
+        // Regression: validation used to run only after enqueueing, leaving
+        // workers with a dangling TaskGroup when the exception unwound it.
+        EXPECT_THROWS_AS((Engine{ConfigOptions(config)}), eckit::BadValue);
+    }
+    StreamingFilemap fixture;
+    fixture.add("after-invalid-config.grib", 17, 0, {{0, 5}});
+    Engine engine;
+    RecordingSink sink;
+    EXPECT_NO_THROW(engine.extractStreaming(fixture.files, sink).raiseErrors());
+    expectStreamed(sink, fixture.expected);
+}
+
+CASE("Engine: submission errors leave no work behind, including partial submission") {
+    Config config;
+    config.set("lister.type", "remote");
+    config.set("streaming.flushBytes", 1);
+    config.set("streaming.byteBudget", 1);
+    Engine engine{ConfigOptions(config)};
+    for (const bool failFirst : {true, false}) {
+        EngineWorkerGate gate;
+        StreamingFilemap fixture;
+        fixture.add(failFirst ? "z.grib" : "a.grib", 17, 0, {{0, 5}});
+        fixture.add(failFirst ? "a.grib" : "z.grib", 23, 0, {{0, 5}});
+        auto& remote = fixture.owned.back();
+        remote->URI(eckit::URI("fdb", remote->URI()));
+        // The normal task-selection check rejects this URI. In the second
+        // iteration, the first file's task has already been queued.
+        RecordingSink sink;
+        EXPECT_THROWS_AS(engine.extractStreaming(fixture.files, sink), eckit::SeriousBug);
+        EXPECT_EQUAL(sink.chunks, 0);
+        for (const auto& item : fixture.owned) {
+            EXPECT_EQUAL(item->resultBytes(), 0);
+        }
+        // The caller-owned items are destroyed before the gate releases workers.
+        // Failed submission must have removed every queued reference to them.
+    }
+    StreamingFilemap fixture;
+    fixture.add("after-submission-error.grib", 31, 0, {{0, 5}});
+    RecordingSink sink;
+    EXPECT_NO_THROW(engine.extractStreaming(fixture.files, sink).raiseErrors());
+    expectStreamed(sink, fixture.expected);
+}
+
+CASE("Engine: prebuilt filemap drains after a sink failure and the engine can be reused") {
+    Config config;
+    config.set("lister.type", "remote");
+    config.set("forwardExtraction", true);
+    config.set("streaming.flushBytes", 1);
+    config.set("streaming.byteBudget", 1);
+    Engine engine{ConfigOptions(config)};
+    {
+        StreamingFilemap fixture;
+        for (size_t i = 0; i < 12; ++i) {
+            fixture.add(std::to_string(i) + ".grib", 100 + i, 0, {{0, 100}});
+        }
+        ThrowingSink sink;
+        EXPECT_THROWS_AS(engine.extractStreaming(fixture.files, sink), eckit::SeriousBug);
+        EXPECT_EQUAL(sink.writes, 1);
+        // Destroy caller-owned items and files immediately: no task may still
+        // reference them after the exception has escaped the engine.
+    }
+    StreamingFilemap next;
+    next.add("next.grib", 51, 0, {{0, 5}, {20, 30}});
+    RecordingSink sink;
+    const auto report = engine.extractStreaming(next.files, sink);
+    EXPECT_NO_THROW(report.raiseErrors());
+    expectStreamed(sink, next.expected);
+}
+
+CASE("Engine: streaming survives a client disconnecting mid-stream") {
+    // The sink throws on write; extractStreaming must drain outstanding tasks
+    // and rethrow rather than hang or destroy the TaskGroup under live workers.
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+
+    std::vector<std::string> requests = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc"};
+
+    std::vector<std::vector<Interval>> allIntervals(requests.size(), {std::make_pair(0, 5), std::make_pair(20, 30)});
+
+    Engine engine;
+    ExtractionRequests exRequests;
+    for (size_t i = 0; i < requests.size(); i++) {
+        exRequests.push_back(ExtractionRequest(requests[i], allIntervals[i], gridHash));
+    }
+
+    ThrowingSink sink;
+    EXPECT_THROWS_AS(engine.extractStreaming(exRequests, sink), eckit::Exception);
 }
 
 //-----------------------------------------------------------------------------

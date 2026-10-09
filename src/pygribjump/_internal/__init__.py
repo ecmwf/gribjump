@@ -32,6 +32,8 @@ from pygribjump_bindings.pygribjump_bindings import (
 )
 from pygribjump_bindings.pygribjump_bindings import (
     GribJump as _GribJump,
+    ListIterator as _ListIterator,
+    ListResult as _ListResult,
 )
 from pygribjump_bindings.pygribjump_bindings import (
     PathExtractionRequest as _PathExtractionRequest,
@@ -81,6 +83,8 @@ __all__ = [
     "_PathExtractionRequest",
     "_ExtractionResult",
     "_ExtractionIterator",
+    "_ListIterator",
+    "_ListResult",
     "_GribJump",
     "_configure_process",
     "ContextMapper",

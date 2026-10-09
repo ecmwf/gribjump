@@ -39,9 +39,10 @@ list( APPEND gribjump_srcs
 
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
+    remote/ClientTransport.h
     remote/Protocol.cc
     remote/Protocol.h
-
+    remote/ForwardExtractIndex.h
     GribJump.cc
     GribJump.h
     GribJumpBase.h
@@ -51,12 +52,16 @@ list( APPEND gribjump_srcs
     GribJumpException.h 
     ExtractionData.cc
     ExtractionData.h
+    ExtractionItem.h
     Metrics.h
     Metrics.cc
     LogRouter.h
     LogRouter.cc
 
     api/ExtractionIterator.h
+    api/ListIterator.h
+    api/ListResult.h
+    URIHelper.h
 )
 
 if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
@@ -72,10 +77,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     Task.cc
     Task.h
     ExtractionItem.cc
-    ExtractionItem.h
     Forwarder.cc
     Forwarder.h
-    URIHelper.h
 
     tools/EccodesExtract.h
     tools/EccodesExtract.cc
@@ -107,8 +110,9 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     jumper/JumperFactory.h
     jumper/JumperFactory.cc
 
-    remote/Request.h
-    remote/Request.cc
+    remote/RequestHandler.h
+    remote/RequestHandler.cc
+    remote/ResultSink.h
     remote/GribJumpServer.h
     remote/GribJumpService.h
     remote/GribJumpUser.cc
@@ -139,10 +143,11 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
 
     set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )
 
-endif()
+    if (GRIBJUMP_HAVE_DHSKIT)
+        list( APPEND gribjump_srcs MarsListerClient.cc MarsListerClient.h )
+        list( APPEND SERVER_LIBS dhskit )
+    endif()
 
-if (GRIBJUMP_HAVE_DHSKIT)
-list( APPEND SERVER_LIBS dhskit )
 endif()
 
 ecbuild_add_library(

@@ -36,7 +36,12 @@ using ExValues = std::vector<std::vector<double>>;
 using ExMask   = std::vector<std::vector<std::bitset<64>>>;
 
 using ExtractionItems = std::vector<ExtractionItem*>;  // Non-owning pointers
-using ExItemMap       = std::map<std::string, std::unique_ptr<ExtractionItem>>;
+
+/// @todo: Although the ordered maps are useful from an indexing perspective, they are definitely slower
+/// for lookups than unordered maps. If listing continues to be a bottleneck I should consider switching to unordered
+/// maps and just storing an index in the ExtractionItem when ordering matters.
+
+using ExItemMap = std::map<std::string, std::unique_ptr<ExtractionItem>>;
 
 // filemap holds non-owning pointers to ExtractionItems
 using filemap_t = std::map<std::string, ExtractionItems>;        // filename -> ExtractionItems

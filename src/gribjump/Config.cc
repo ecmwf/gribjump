@@ -21,6 +21,7 @@
 #include "eckit/filesystem/PathName.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
+#include "gribjump/remote/Protocol.h"
 
 namespace gribjump {
 
@@ -31,7 +32,15 @@ Config::Config(const eckit::PathName path) : eckit::LocalConfiguration(eckit::YA
 Config::ServerMap Config::serverMap() const {
     ServerMap map;
     for (const auto& server : getSubConfiguration("servermap").getSubConfigurations()) {
-        map[server.getString("fdb")] = server.getString("gribjump");
+        // Both FDB and MARS locations can be mapped to gribjump endpoints.
+        auto src = server.getString("fdb", "");
+        if (src.empty()) {
+            src = server.getString("mars", "");
+        }
+        if (src.empty()) {
+            throw eckit::SeriousBug("Invalid servermap config: each entry must have either 'fdb' or 'mars' key");
+        }
+        map[src] = server.getString("gribjump");
     }
     return map;
 }
@@ -45,13 +54,28 @@ ConfigOptions::ConfigOptions(const Config& config) :
     type_(config.getString("type", "local")),
     uri_(config.getString("uri", "")),
     serverMap_(config.serverMap()),
+    listerType_(config.getString("lister.type", "fdb")),
+    listerURI_(config.getString("lister.uri", "")),
+    clientProtocolVersion_(eckit::Resource<size_t>("$GRIBJUMP_CLIENT_PROTOCOL_VERSION",
+                                                   config.getInt("clientProtocolVersion", streamingProtocolVersion))),
+    streamingFlushBytes_(eckit::Resource<size_t>("$GRIBJUMP_STREAMING_FLUSH_BYTES",
+                                                 config.getUnsigned("streaming.flushBytes", 8 * 1024 * 1024))),
+    streamingByteBudget_(eckit::Resource<size_t>("$GRIBJUMP_STREAMING_BYTE_BUDGET",
+                                                 config.getUnsigned("streaming.byteBudget", 128 * 1024 * 1024))),
     ignoreGrid_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_GRID", config.getBool("ignoreGridHash", false))),
     ignoreYearMonth_(eckit::Resource<bool>("$GRIBJUMP_IGNORE_YEARMONTH", config.getBool("ignoreYearMonth", true))),
     allowMissing_(eckit::Resource<bool>("allowMissing;$GRIBJUMP_ALLOW_MISSING", config.getBool("allowMissing", false))),
     inefficientExtraction_(config.getBool("inefficientExtraction", false)),
     forwardExtraction_(config.getBool("forwardExtraction", false)),
     forwardScan_(config.getBool("forwardScan", false)),
-    scanCorrupted_(eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", config.getBool("scanCorrupted", false))) {}
+    scanCorrupted_(eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", config.getBool("scanCorrupted", false))) {
+    // Validate resolved values (including environment overrides) before any
+    // engine can submit work using this immutable configuration snapshot.
+    if (streamingFlushBytes_ > streamingByteBudget_) {
+        throw eckit::BadValue("Configuration error: streaming.flushBytes (" + std::to_string(streamingFlushBytes_) +
+                              ") must not exceed streaming.byteBudget (" + std::to_string(streamingByteBudget_) + ")");
+    }
+}
 
 namespace {
 

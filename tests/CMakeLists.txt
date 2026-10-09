@@ -60,6 +60,26 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
+    TARGET "gribjump_test_api_list"
+    SOURCES "test_api_list.cc"
+    ENVIRONMENT "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+if (GRIBJUMP_HAVE_DHSKIT)
+    ecbuild_add_test(
+        TARGET "gribjump_test_mars_list"
+        SOURCES "test_mars_list.cc"
+        ENVIRONMENT "${gribjump_env}"
+        NO_AS_NEEDED
+        LIBS gribjump dhskit
+        TEST_PROPERTIES TIMEOUT 30
+    )
+endif()
+
+ecbuild_add_test(
     TARGET "gribjump_test_api_axes"
     SOURCES "test_api_axes.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
@@ -98,6 +118,8 @@ ecbuild_add_test(
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
     LIBS gribjump
+    # A regression in streaming cancellation must not hang the test suite.
+    TEST_PROPERTIES TIMEOUT 30
 )
 
 ecbuild_add_test(
@@ -203,11 +225,13 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
-# Socketpair smoke test: real client codec and real server dispatch exchanged
-# over a genuine kernel socket (AF_UNIX socketpair), mock engine (FDB-free).
+# Client test: drive the real RemoteGribJump client (version negotiation +
+# reply decode branch) over an injected socketpair transport against a mock
+# server. Exercises the production client code path directly, over a genuine
+# kernel socket.
 ecbuild_add_test(
-    TARGET "gribjump_test_protocol_socketpair"
-    SOURCES "remote/test_protocol_socketpair.cc"
+    TARGET "gribjump_test_protocol_client"
+    SOURCES "remote/test_protocol_client.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
     ENVIRONMENT "${gribjump_env}"
     NO_AS_NEEDED

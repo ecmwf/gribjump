@@ -55,6 +55,7 @@ set(test_files
     test_cffi_compat.py
     # Only run if pyfdb is built alongside, see PYGRIBJUMP_TEST_ENABLE_FDB above
     test_extract_fdb.py
+    test_list.py
 )
 
 foreach(test_file ${test_files})

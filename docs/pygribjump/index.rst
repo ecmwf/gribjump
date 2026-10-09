@@ -92,6 +92,69 @@ To find out which data is available, use ``axes``:
 
    gribjump.axes({"date": "20230508"}, level=3)
 
+Listing field locations
+-----------------------
+
+``list`` discovers fields without extracting values. It accepts a single MARS-like
+mapping or request string and returns a buffered, single-pass ``ListIterator``.
+Use the locations to construct ``PathExtractionRequest`` objects:
+
+.. code-block:: python
+
+   client = pygribjump.GribJump(config={
+       "type": "remote",
+       "uri": "extract.example:9777",
+       "lister": {"type": "fdb"},
+   })
+   fields = list(client.list({"date": "20230508", "param": "151130", "step": [1, 2]}))
+   requests = [
+       field.to_extraction_request([(0, 10)], grid_hash="<expected-grid-hash>")
+       for field in fields
+   ]
+   if requests:
+       for result in client.extract_from_paths(requests):
+           print(result.values_flat)
+
+Each ``ListResult`` provides:
+
+* ``uri``: the complete URI string, preserving query parameters and the offset.
+* ``scheme``, ``host``, ``port``, ``path``, ``offset``: components suitable for
+  ``PathExtractionRequest``. An unspecified port is exposed as zero.
+* ``length``: GRIB message length in bytes.
+* ``metadata``: a copy of the field's MARS key/value mapping.
+* ``mars_request``: a request-string representation of that metadata.
+
+``to_extraction_request`` is a convenience for passing those location components
+to ``PathExtractionRequest``. As with that class, it does not apply URI query
+options such as FDB metadata remapping. The original URI is still available.
+The extraction server must be able to access the returned file paths.
+
+To use MARS instead, replace only the listing configuration:
+
+.. code-block:: python
+
+   client = pygribjump.GribJump(config={
+       "type": "remote",
+       "uri": "extract.example:9777",
+       "lister": {"type": "mars", "uri": "mars-list.example:9000"},
+   })
+
+Request strings may include a ``list``/``retrieve`` verb or just the selection.
+Mappings support scalar or collection values; slash-separated strings represent
+multiple values. No expansion, retrieval defaults or minimum-key checks are
+added by GribJump. Range expressions, aliases and selection validity are left to
+the backend. Metadata is returned as supplied by that backend, not normalised
+into a common spelling or value format.
+
+No matches produce an empty iterator. Result order and duplicate handling follow
+the backend. Listing is **buffered, not streamed**: the backend query completes
+before ``list`` returns. Iteration and retained results remain valid after the
+client is destroyed. The GIL is released during the backend query.
+
+``lister.type: remote`` is reserved for future listing through a GribJump server
+and raises ``GribJumpException`` when used. It does not prevent path extraction.
+This API is available in C++ and the pybind11 Python interface, not cffi.
+
 Configuration
 -------------
 

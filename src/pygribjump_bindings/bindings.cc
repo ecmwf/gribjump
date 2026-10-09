@@ -13,6 +13,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/stl/filesystem.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -41,6 +42,7 @@
 #include "gribjump/TaskWait.h"
 #include "gribjump/Types.h"
 #include "gribjump/api/ExtractionIterator.h"
+#include "gribjump/api/ListIterator.h"
 #include "gribjump/gribjump_version.h"
 
 namespace py = pybind11;
@@ -114,6 +116,23 @@ gj::Config config_from_python(const py::object& value) {
     gj::Config result;
     result.set(config_from_dict(py::reinterpret_borrow<py::dict>(value)));
     return result;
+}
+
+// Listing is a pass-through selector, not a retrieval request: parse syntax
+// without MarsExpansion (defaults, aliases and validity belong to the backend).
+metkit::mars::MarsRequest list_request_from_string(const std::string& request) {
+    if (request.find_first_not_of(" \t\r\n") == std::string::npos) {
+        return metkit::mars::MarsRequest("list");
+    }
+    const auto first       = request.find_first_of("=,");
+    const std::string full = first != std::string::npos && request[first] == '=' ? "list," + request : request;
+    std::istringstream in(full);
+    metkit::mars::MarsParser parser(in);
+    const auto requests = parser.parse();
+    if (requests.size() != 1) {
+        throw eckit::UserError("list expects a single MARS request", Here());
+    }
+    return requests.front();
 }
 
 metkit::mars::MarsRequest mars_request_from_string(const std::string& request) {
@@ -312,6 +331,30 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
             py::call_guard<py::gil_scoped_release>())
         .def("has_next", &gj::ExtractionIterator::hasNext, py::call_guard<py::gil_scoped_release>());
 
+    py::class_<gj::ListResult>(m, "ListResult")
+        .def_property_readonly("uri", [](const gj::ListResult& r) { return r.uri().asRawString(); })
+        .def_property_readonly("scheme", [](const gj::ListResult& r) { return r.uri().scheme(); })
+        .def_property_readonly("path", [](const gj::ListResult& r) { return r.uri().path().asString(); })
+        .def_property_readonly("host", [](const gj::ListResult& r) { return r.uri().host(); })
+        .def_property_readonly("port", [](const gj::ListResult& r) { return std::max(0, r.uri().port()); })
+        .def_property_readonly("offset", [](const gj::ListResult& r) { return static_cast<long long>(r.offset()); })
+        .def_property_readonly("length", [](const gj::ListResult& r) { return static_cast<long long>(r.length()); })
+        .def_property_readonly("metadata", [](const gj::ListResult& r) { return r.metadata(); })
+        .def_property_readonly("mars_request", [](const gj::ListResult& r) { return r.marsRequest().asString(); })
+        .def("__repr__", [](const gj::ListResult& r) { return "ListResult(" + r.uri().asRawString() + ")"; });
+
+    py::class_<gj::ListIterator>(m, "ListIterator")
+        .def(
+            "__iter__", [](gj::ListIterator& self) -> gj::ListIterator& { return self; },
+            py::return_value_policy::reference_internal)
+        .def("__next__", [](gj::ListIterator& self) {
+            auto result = self.next();
+            if (!result) {
+                throw py::stop_iteration();
+            }
+            return result;
+        });
+
     //--------------------------------------------------
     // @brief GribJump class
     //--------------------------------------------------
@@ -351,6 +394,23 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                 return gribjump.extract(mars_request, ranges, grid_hash, log_context(ctx));
             },
             py::arg("request"), py::arg("ranges"), py::arg("grid_hash") = std::string{}, py::arg("ctx") = std::string{})
+        .def(
+            "list",
+            [](gj::GribJump& gribjump, const std::string& request, const std::string& ctx) {
+                return gribjump.list(list_request_from_string(request), log_context(ctx));
+            },
+            py::arg("request"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
+        .def(
+            "list",
+            [](gj::GribJump& gribjump, const std::map<std::string, std::vector<std::string>>& selection,
+               const std::string& ctx) {
+                metkit::mars::MarsRequest request("list");
+                for (const auto& [key, values] : selection) {
+                    request.values(key, values);
+                }
+                return gribjump.list(request, log_context(ctx));
+            },
+            py::arg("request"), py::arg("ctx") = std::string{}, py::call_guard<py::gil_scoped_release>())
         .def(
             "axes",
             [](gj::GribJump& gribjump, const std::string& request, int level, const std::string& ctx) {

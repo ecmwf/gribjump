@@ -12,10 +12,15 @@
 
 #include "eckit/utils/StringTools.h"
 
+#include "eckit/exception/Exceptions.h"
+#include "eckit/log/Log.h"
+#include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
 #include "metkit/mars/MarsParser.h"
 
+#include <optional>
 #include <sstream>
+#include <unordered_map>
 #include "gribjump/Config.h"
 #include "gribjump/Engine.h"
 #include "gribjump/ExtractionItem.h"
@@ -23,12 +28,58 @@
 
 
 namespace gribjump {
+namespace {
+
+// Own the current batch until its synchronous sink write completes. Returning
+// the flushed byte count lets the harvesting caller release backpressure;
+// buffered emission needs no task-group bookkeeping.
+class ResultBatch {
+public:
+
+    ResultBatch(ResultSink& sink, size_t threshold) : sink_(sink), threshold_(threshold) {}
+
+    size_t add(size_t index, std::unique_ptr<ExtractionResult> result) {
+        const size_t bytes = result->nbytes();
+        entries_.emplace_back(index, result.get());
+        owned_.push_back(std::move(result));
+        bytes_ += bytes;
+        return bytes_ >= threshold_ ? flush() : 0;
+    }
+
+    size_t flush() {
+        if (entries_.empty()) {
+            return 0;
+        }
+        LOG_DEBUG_LIB(LibGribJump) << "ResultBatch: flushing chunk " << chunks_ << " (" << entries_.size()
+                                   << " results, " << bytes_ << " bytes)" << std::endl;
+        sink_.writeResults(entries_);
+        const size_t sent = bytes_;
+        ++chunks_;
+        entries_.clear();
+        owned_.clear();
+        bytes_ = 0;
+        return sent;
+    }
+
+    size_t chunks() const { return chunks_; }
+
+private:
+
+    ResultSink& sink_;
+    const size_t threshold_;
+    std::vector<std::unique_ptr<ExtractionResult>> owned_;
+    std::vector<std::pair<size_t, const ExtractionResult*>> entries_;
+    size_t bytes_  = 0;
+    size_t chunks_ = 0;
+};
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
 // Stringify requests and keys alphabetically
 
-Engine::Engine(const ConfigOptions& options) : options_(options), lister_(options) {}
+Engine::Engine(const ConfigOptions& options) : options_(options), lister_(Lister::create(options)) {}
 
 Engine::~Engine() {}
 
@@ -40,6 +91,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
     const bool ignoreYearMonth = options_.ignoreYearMonth();
     std::map<std::string, std::set<std::string>> keyValues;
     bool dropYearMonth = false;
+    size_t streamIndex = 0;
     for (auto& r : requests) {
         const std::string& s = r.requestString();
 
@@ -86,6 +138,7 @@ metkit::mars::MarsRequest Engine::buildRequestMap(ExtractionRequests& requests, 
         r.requestString(canonicalised);
 
         auto extractionItem = std::make_unique<ExtractionItem>(std::make_unique<ExtractionRequest>(r));
+        extractionItem->streamIndex(streamIndex++);  // client's request-vector position (v4 streaming reply key)
         keyToExtractionItem.emplace(canonicalised, std::move(extractionItem));  // 1-to-1-map
     }
 
@@ -139,15 +192,11 @@ void Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& ke
 }
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
-    // Map files to ExtractionItem
-    filemap_t filemap = lister_.fileMap(unionrequest, keyToExtractionItem);
-    return filemap;
+    return lister_->fileMap(unionrequest, keyToExtractionItem);
 }
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
-    // Map files to ExtractionItem
-    filemap_t filemap = lister_.fileMapfromPaths(keyToExtractionItem);
-    return filemap;
+    return lister_->fileMap(keyToExtractionItem);
 }
 
 TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
@@ -157,9 +206,14 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
         return forwarder.extract(filemap);
     }
 
-    bool inefficientExtraction = options_.inefficientExtraction();
-
     TaskGroup taskGroup(options_);
+    enqueueFileExtractionTasks(taskGroup, filemap);
+    taskGroup.waitForTasks();
+    return taskGroup.report();
+}
+
+void Engine::enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap) {
+    bool inefficientExtraction = options_.inefficientExtraction();
 
     for (auto& [fname, extractionItems] : filemap) {
         if (extractionItems[0]->isRemote()) {
@@ -174,8 +228,6 @@ TaskReport Engine::scheduleExtractionTasks(filemap_t& filemap, bool forward) {
             taskGroup.enqueueTask<FileExtractionTask>(fname, extractionItems);
         }
     }
-    taskGroup.waitForTasks();
-    return taskGroup.report();
 }
 
 TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
@@ -196,12 +248,155 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
-    // Collect results
-    ResultsMap results = collectResults(keyToExtractionItem);
+    // Keys already match each item's request; transfer ownership without rebuilding the map.
+    ResultsMap results = std::move(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
-    timer.reset("Gribjump Engine: Repackaged results");
+    timer.reset("Gribjump Engine: Transferred results");
 
     return {std::move(results), std::move(report)};
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+// Streaming (v4) extraction.
+// Completed-task results are batched and freed after sending. Dispatch is throttled by completed-result bytes;
+// the budget does not bound memory allocated by file tasks already in flight.
+
+TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& sink) {
+
+    eckit::Timer timer("Engine::extractStreaming", LogRouter::instance().get("timer"));
+
+    LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): " << requests.size() << " requests" << std::endl;
+
+    ExItemMap keyToExtractionItem;
+    metkit::mars::MarsRequest unionreq = buildRequestMap(requests, keyToExtractionItem);
+
+    filemap_t filemap = buildFileMap(unionreq, keyToExtractionItem);
+    MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
+    timer.reset("Gribjump Engine: Built file map");
+
+    // Forwarded tasks gather their replies before returning, even when a leaf
+    // uses the streaming protocol. Batch those completed results to this sink.
+    if (options_.forwardExtraction()) {
+        LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): forwarding enabled, aggregating buffered replies "
+                                      "from "
+                                   << filemap.size() << " files" << std::endl;
+        TaskReport report = scheduleExtractionTasks(filemap, true);
+        streamBufferedResults(keyToExtractionItem, sink);
+        return report;
+    }
+
+    // Keep keyToExtractionItem alive while the common local path uses its items.
+    // Their streamIndex values retain the original client request positions.
+    return extractStreaming(filemap, sink);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Common local streaming execution, from either resolved requests or a forwarded filemap.
+
+TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
+
+    eckit::Timer timer("Engine::extractStreaming(filemap)", LogRouter::instance().get("timer"));
+
+    size_t nItems = 0;
+    for (const auto& [fname, items] : filemap) {
+        nItems += items.size();
+    }
+    LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (local filemap): " << filemap.size() << " files, " << nItems
+                               << " items" << std::endl;
+
+    // Preserve the caller's indices: original request positions for EXTRACT,
+    // or wire filemap enumeration indices for FORWARD_EXTRACT. Do not forward
+    // again here, even if forwardExtraction is enabled in this engine's config.
+    TaskReport report = streamHarvest(filemap, sink);
+
+    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
+    timer.reset("Gribjump Engine: All tasks streamed");
+
+    return report;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Submit and harvest local streaming tasks under one cleanup guard. Blocks on popCompleted(),
+// batches results and frees them after sending. Submission failures and sink failures both
+// cancel and drain all submitted work before the group or its caller-owned items are destroyed.
+
+TaskReport Engine::streamHarvest(filemap_t& filemap, ResultSink& sink) {
+
+    const size_t flushBytes = options_.streamingFlushBytes();
+    TaskGroup taskGroup(options_);
+    taskGroup.setByteThreshold(options_.streamingByteBudget());
+    ResultBatch batch(sink, flushBytes);
+    size_t totalBytes   = 0;  // running total of result bytes streamed (for metrics)
+    size_t totalResults = 0;  // running total of results streamed (for logging)
+    bool submitted      = false;
+
+    LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: begin (flush threshold " << flushBytes << " bytes)" << std::endl;
+
+    try {
+        enqueueFileExtractionTasks(taskGroup, filemap);
+        submitted = true;
+        while (std::optional<size_t> id = taskGroup.popCompleted()) {
+            const ExtractionItems* items = taskGroup.streamableItems(*id);
+            ASSERT(items);
+            LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: task " << *id << " completed with " << items->size()
+                                       << " results" << std::endl;
+            for (ExtractionItem* item : *items) {
+                std::unique_ptr<ExtractionResult> res = item->result();
+                totalBytes += res->nbytes();
+                totalResults++;
+                if (const size_t sent = batch.add(item->streamIndex(), std::move(res))) {
+                    taskGroup.releaseOutstanding(sent);
+                }
+            }
+        }
+        if (const size_t sent = batch.flush()) {
+            taskGroup.releaseOutstanding(sent);
+        }
+    }
+    catch (...) {
+        // Submission may have failed before the first task, or after some tasks
+        // started. Purge queued tasks and wait for running tasks before unwinding.
+        if (taskGroup.nTasks() != 0) {
+            taskGroup.cancel();
+            try {
+                while (taskGroup.popCompleted()) {}
+            }
+            catch (...) {
+                // Do not mask the original exception being unwound.
+            }
+        }
+
+        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: failure after " << totalResults << " results (" << totalBytes
+                                   << " bytes) in " << batch.chunks() << " chunks; drained, " << taskGroup.nCancelled()
+                                   << " tasks cancelled" << std::endl;
+
+        if (submitted) {
+            MetricsManager::instance().set("client_disconnected", true);
+        }
+        MetricsManager::instance().set("count_cancelled_tasks", taskGroup.nCancelled());
+        MetricsManager::instance().set("count_bytes_streamed", totalBytes);
+        MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
+
+        throw;
+    }
+
+    LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: complete, streamed " << totalResults << " results in "
+                               << batch.chunks() << " chunks (" << totalBytes << " bytes), peak outstanding "
+                               << taskGroup.peakOutstandingBytes() << " bytes" << std::endl;
+
+    MetricsManager::instance().set("count_bytes_streamed", totalBytes);
+    MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
+
+    return taskGroup.report();
+}
+
+void Engine::streamBufferedResults(ResultsMap& results, ResultSink& sink) {
+    ResultBatch batch(sink, options_.streamingFlushBytes());
+    for (auto& [request, item] : results) {
+        batch.add(item->streamIndex(), item->result());
+    }
+    batch.flush();
 }
 
 
@@ -219,6 +414,7 @@ TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
     timer.reset("Gribjump Engine: Built file map");
 
     // Schedule tasks: if there is no host and port, set forward to false, otherwise set to true
+    // We assume the first request is representative.
     bool forward = true;
     if (requests[0].host() == "" and requests[0].port() == 0) {
         forward = false;
@@ -227,29 +423,19 @@ TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
-    // Collect results
-    ResultsMap results = collectResults(keyToExtractionItem);
+    // Keys already match each item's request; transfer ownership without rebuilding the map.
+    ResultsMap results = std::move(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
-    timer.reset("Gribjump Engine: Repackaged results");
+    timer.reset("Gribjump Engine: Transferred results");
 
     return {std::move(results), std::move(report)};
 }
 
-ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
-
-    // Create map of base request to vector of extraction items. Takes ownership of the ExtractionItems
-    ResultsMap results;
-
-    for (auto& [key, ex] : keyToExtractionItem) {
-        results[ex->request()] = std::move(ex);
-    }
-
-    return results;
-}
-
 TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
 
-    std::vector<eckit::URI> uris = lister_.URIs(requests);
+    // Scanning continues to use FDB, independently of the extraction lister.
+    FDBLister scanLister(options_);
+    std::vector<eckit::URI> uris = scanLister.URIs(requests);
 
     /// @todo do we explicitly need this?
     if (uris.empty()) {
@@ -263,7 +449,7 @@ TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {
         return forwarder.scan(uris);
     }
 
-    std::map<eckit::PathName, eckit::OffsetList> filemap = lister_.filesOffsets(uris);
+    std::map<eckit::PathName, eckit::OffsetList> filemap = scanLister.filesOffsets(uris);
 
     if (byfiles) {  // ignore offsets and scan entire file
         for (auto& [uri, offsets] : filemap) {
@@ -299,7 +485,7 @@ TaskOutcome<size_t> Engine::scheduleScanTasks(const scanmap_t& scanmap) {
 }
 
 std::map<std::string, std::unordered_set<std::string>> Engine::axes(const std::string& request, int level) {
-    return lister_.axes(request, level);
+    return lister_->axes(request, level);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
