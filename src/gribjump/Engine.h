@@ -22,7 +22,6 @@
 #include "gribjump/remote/ResultSink.h"
 #include "metkit/mars/MarsRequest.h"
 
-#include <functional>
 #include <unordered_map>
 
 namespace gribjump {
@@ -48,11 +47,11 @@ public:
     /// Streaming extraction: schedule the work and hand results to the sink in batches as tasks complete.
     virtual TaskReport extractStreaming(ExtractionRequests& requests, ResultSink& sink) = 0;
 
-    /// Streaming extraction from a prebuilt filemap.
-    /// Results are keyed by the shared filemap enumeration index (see
-    /// ForwardExtractIndex.h) rather than a client request index.
-    /// @todo: is filemap_t not already ordered byt *string* value? Why the need for another index?
-    ///        unless its the order inside the vector of ExtractionItems, but aren't they always in the same batch?
+    /// Local streaming extraction from a prebuilt filemap; no catalogue lookup
+    /// or forwarding. The caller owns the items and must keep them alive until
+    /// this call finishes. Each item must have a streamIndex assigned by the
+    /// caller: an original request position or a FORWARD_EXTRACT wire index
+    /// (see ForwardExtractIndex.h). Results preserve those indices unchanged.
     virtual TaskReport extractStreaming(filemap_t& filemap, ResultSink& sink) = 0;
 
     // byfiles: scan entire file, not just fields matching request
@@ -94,8 +93,7 @@ private:
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
-    TaskReport streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
-                             const std::function<size_t(ExtractionItem*)>& indexFor);
+    TaskReport streamHarvest(TaskGroup& taskGroup, ResultSink& sink);
     void streamBufferedResults(ResultsMap& results, ResultSink& sink);
     ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);

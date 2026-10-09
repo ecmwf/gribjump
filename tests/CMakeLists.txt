@@ -118,6 +118,8 @@ ecbuild_add_test(
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
     LIBS gribjump
+    # A regression in streaming cancellation must not hang the test suite.
+    TEST_PROPERTIES TIMEOUT 30
 )
 
 ecbuild_add_test(

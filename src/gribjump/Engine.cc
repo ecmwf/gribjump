@@ -241,22 +241,13 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         return report;
     }
 
-    TaskGroup taskGroup(options_);
-    taskGroup.setByteThreshold(options_.streamingByteBudget());
-    enqueueFileExtractionTasks(taskGroup, filemap);
-
-    // Each item carries its client request-vector position, stamped at build time,
-    // which keys the v4 streaming reply chunk.
-    TaskReport report = streamHarvest(taskGroup, sink, [](ExtractionItem* item) { return item->streamIndex(); });
-
-    MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
-    timer.reset("Gribjump Engine: All tasks streamed");
-
-    return report;
+    // Keep keyToExtractionItem alive while the common local path uses its items.
+    // Their streamIndex values retain the original client request positions.
+    return extractStreaming(filemap, sink);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Streaming from a prebuilt filemap.
+// Common local streaming execution, from either resolved requests or a forwarded filemap.
 
 TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
 
@@ -266,16 +257,17 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
     for (const auto& [fname, items] : filemap) {
         nItems += items.size();
     }
-    LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (forwarded leaf): " << filemap.size() << " files, " << nItems
+    LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (local filemap): " << filemap.size() << " files, " << nItems
                                << " items" << std::endl;
 
     TaskGroup taskGroup(options_);
     taskGroup.setByteThreshold(options_.streamingByteBudget());
     enqueueFileExtractionTasks(taskGroup, filemap);
 
-    // Each item is stamped (at decode time) with the shared filemap enumeration
-    // index the wire chunk is keyed by.
-    TaskReport report = streamHarvest(taskGroup, sink, [](ExtractionItem* item) { return item->streamIndex(); });
+    // Preserve the caller's indices: original request positions for EXTRACT,
+    // or wire filemap enumeration indices for FORWARD_EXTRACT. Do not forward
+    // again here, even if forwardExtraction is enabled in this engine's config.
+    TaskReport report = streamHarvest(taskGroup, sink);
 
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks streamed");
@@ -284,12 +276,11 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Shared harvest loop for both streaming paths. Blocks on popCompleted(), batches results by byte budget, hands each
+// Local streaming harvest loop. Blocks on popCompleted(), batches results by byte budget, hands each
 // batch to the sink, and frees results after sending. On a mid-stream failure (e.g. client
 // disconnect) it cancels and drains the group, then rethrows.
 
-TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
-                                 const std::function<size_t(ExtractionItem*)>& indexFor) {
+TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
 
     const size_t flushBytes = options_.streamingFlushBytes();
     const size_t byteBudget = options_.streamingByteBudget();
@@ -332,7 +323,7 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink,
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();
                 size_t bytes                          = res->nbytes();
-                batch.emplace_back(indexFor(item), res.get());
+                batch.emplace_back(item->streamIndex(), res.get());
                 owned.push_back(std::move(res));
                 batchBytes += bytes;
                 totalBytes += bytes;
