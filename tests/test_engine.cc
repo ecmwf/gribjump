@@ -229,6 +229,10 @@ CASE("Engine: Basic extraction") {
 
     auto [results, report] = engine.extract(exRequests);
     EXPECT_NO_THROW(report.raiseErrors());
+    EXPECT(results.size() == exRequests.size());
+    for (const auto& entry : results) {
+        EXPECT_EQUAL(entry.first, entry.second->request());
+    }
 
     // print contents of map
     for (auto& [req, ex] : results) {
@@ -281,6 +285,10 @@ CASE("Engine: Basic extraction") {
 
     auto [results_path, report_path] = engine.extract(exPathRequests);
     EXPECT_NO_THROW(report_path.raiseErrors());
+    EXPECT(results_path.size() == exPathRequests.size());
+    for (const auto& entry : results_path) {
+        EXPECT_EQUAL(entry.first, entry.second->request());
+    }
 
     // Check correct values
     size_t count_path = 0;

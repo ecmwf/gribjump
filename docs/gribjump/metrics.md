@@ -81,7 +81,7 @@ metrics are streaming-only.
 | `count_extraction_requests` | uint | Number of extraction requests in the batch. | `ExtractHandler::receive()` | both |
 | `elapsed_build_filemap` | seconds | Time to build the file map. | `Engine` | both |
 | `elapsed_tasks` | seconds | Time for all extraction tasks to complete/stream. | `Engine` | both |
-| `elapsed_collect_results` | seconds | Time to repackage buffered results. | `Engine::extract()` | buffered only |
+| `elapsed_collect_results` | seconds | Time to transfer ownership of buffered results (the result map is no longer rebuilt). | `Engine::extract()` | buffered only |
 | `count_tasks` | uint | Number of tasks in the group. | `TaskGroup::report()` | both |
 | `count_failed_tasks` | uint | Number of tasks that errored. | `TaskGroup::report()` | both |
 | `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set in `Engine::extractStreaming()` on disconnect | both |

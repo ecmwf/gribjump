@@ -28,6 +28,52 @@
 
 
 namespace gribjump {
+namespace {
+
+// Own the current batch until its synchronous sink write completes. Returning
+// the flushed byte count lets the harvesting caller release backpressure;
+// buffered emission needs no task-group bookkeeping.
+class ResultBatch {
+public:
+
+    ResultBatch(ResultSink& sink, size_t threshold) : sink_(sink), threshold_(threshold) {}
+
+    size_t add(size_t index, std::unique_ptr<ExtractionResult> result) {
+        const size_t bytes = result->nbytes();
+        entries_.emplace_back(index, result.get());
+        owned_.push_back(std::move(result));
+        bytes_ += bytes;
+        return bytes_ >= threshold_ ? flush() : 0;
+    }
+
+    size_t flush() {
+        if (entries_.empty()) {
+            return 0;
+        }
+        LOG_DEBUG_LIB(LibGribJump) << "ResultBatch: flushing chunk " << chunks_ << " (" << entries_.size()
+                                   << " results, " << bytes_ << " bytes)" << std::endl;
+        sink_.writeResults(entries_);
+        const size_t sent = bytes_;
+        ++chunks_;
+        entries_.clear();
+        owned_.clear();
+        bytes_ = 0;
+        return sent;
+    }
+
+    size_t chunks() const { return chunks_; }
+
+private:
+
+    ResultSink& sink_;
+    const size_t threshold_;
+    std::vector<std::unique_ptr<ExtractionResult>> owned_;
+    std::vector<std::pair<size_t, const ExtractionResult*>> entries_;
+    size_t bytes_  = 0;
+    size_t chunks_ = 0;
+};
+
+}  // namespace
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -202,10 +248,10 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
-    // Collect results
-    ResultsMap results = collectResults(keyToExtractionItem);
+    // Keys already match each item's request; transfer ownership without rebuilding the map.
+    ResultsMap results = std::move(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
-    timer.reset("Gribjump Engine: Repackaged results");
+    timer.reset("Gribjump Engine: Transferred results");
 
     return {std::move(results), std::move(report)};
 }
@@ -235,9 +281,8 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
         LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): forwarding enabled, aggregating buffered replies "
                                       "from "
                                    << filemap.size() << " files" << std::endl;
-        TaskReport report  = scheduleExtractionTasks(filemap, true);
-        ResultsMap results = collectResults(keyToExtractionItem);
-        streamBufferedResults(results, sink);
+        TaskReport report = scheduleExtractionTasks(filemap, true);
+        streamBufferedResults(keyToExtractionItem, sink);
         return report;
     }
 
@@ -291,28 +336,11 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
                               ") must not exceed streaming.byteBudget (" + std::to_string(byteBudget) + ")");
     }
 
-    std::vector<std::unique_ptr<ExtractionResult>> owned;  // keeps batch results alive until flush
-    std::vector<std::pair<size_t, const ExtractionResult*>> batch;
-    size_t batchBytes    = 0;
-    size_t totalBytes    = 0;  // running total of result bytes streamed (for metrics)
-    size_t totalResults  = 0;  // running total of results streamed (for logging)
-    size_t chunksFlushed = 0;  // number of chunks handed to the sink (for logging)
+    ResultBatch batch(sink, flushBytes);
+    size_t totalBytes   = 0;  // running total of result bytes streamed (for metrics)
+    size_t totalResults = 0;  // running total of results streamed (for logging)
 
     LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: begin (flush threshold " << flushBytes << " bytes)" << std::endl;
-
-    const auto flush = [&]() {
-        if (batch.empty()) {
-            return;
-        }
-        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: flushing chunk " << chunksFlushed << " (" << batch.size()
-                                   << " results, " << batchBytes << " bytes)" << std::endl;
-        sink.writeResults(batch);
-        taskGroup.releaseOutstanding(batchBytes);
-        chunksFlushed++;
-        batch.clear();
-        owned.clear();
-        batchBytes = 0;
-    };
 
     try {
         while (std::optional<size_t> id = taskGroup.popCompleted()) {
@@ -322,23 +350,21 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
                                        << " results" << std::endl;
             for (ExtractionItem* item : *items) {
                 std::unique_ptr<ExtractionResult> res = item->result();
-                size_t bytes                          = res->nbytes();
-                batch.emplace_back(item->streamIndex(), res.get());
-                owned.push_back(std::move(res));
-                batchBytes += bytes;
-                totalBytes += bytes;
+                totalBytes += res->nbytes();
                 totalResults++;
-                if (batchBytes >= flushBytes) {
-                    flush();
+                if (const size_t sent = batch.add(item->streamIndex(), std::move(res))) {
+                    taskGroup.releaseOutstanding(sent);
                 }
             }
         }
-        flush();
+        if (const size_t sent = batch.flush()) {
+            taskGroup.releaseOutstanding(sent);
+        }
     }
     catch (...) {
         // A mid-stream failure (e.g. client disconnect). Cancel and drain the remaining tasks.
         LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: mid-stream failure after " << totalResults << " results ("
-                                   << totalBytes << " bytes) in " << chunksFlushed
+                                   << totalBytes << " bytes) in " << batch.chunks()
                                    << " chunks; cancelling and draining group" << std::endl;
         taskGroup.cancel();
 
@@ -362,7 +388,7 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
     }
 
     LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: complete, streamed " << totalResults << " results in "
-                               << chunksFlushed << " chunks (" << totalBytes << " bytes), peak outstanding "
+                               << batch.chunks() << " chunks (" << totalBytes << " bytes), peak outstanding "
                                << taskGroup.peakOutstandingBytes() << " bytes" << std::endl;
 
     MetricsManager::instance().set("count_bytes_streamed", totalBytes);
@@ -372,32 +398,11 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
 }
 
 void Engine::streamBufferedResults(ResultsMap& results, ResultSink& sink) {
-    const size_t flushBytes = options_.streamingFlushBytes();
-    std::vector<std::unique_ptr<ExtractionResult>> owned;
-    std::vector<std::pair<size_t, const ExtractionResult*>> batch;
-    size_t batchBytes = 0;
-
-    const auto flush = [&]() {
-        if (batch.empty()) {
-            return;
-        }
-        sink.writeResults(batch);
-        batch.clear();
-        owned.clear();
-        batchBytes = 0;
-    };
-
+    ResultBatch batch(sink, options_.streamingFlushBytes());
     for (auto& [request, item] : results) {
-        std::unique_ptr<ExtractionResult> res = item->result();
-        size_t bytes                          = res->nbytes();
-        batch.emplace_back(item->streamIndex(), res.get());
-        owned.push_back(std::move(res));
-        batchBytes += bytes;
-        if (batchBytes >= flushBytes) {
-            flush();
-        }
+        batch.add(item->streamIndex(), item->result());
     }
-    flush();
+    batch.flush();
 }
 
 
@@ -424,24 +429,12 @@ TaskOutcome<ResultsMap> Engine::extract(PathExtractionRequests& requests) {
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks finished");
 
-    // Collect results
-    ResultsMap results = collectResults(keyToExtractionItem);
+    // Keys already match each item's request; transfer ownership without rebuilding the map.
+    ResultsMap results = std::move(keyToExtractionItem);
     MetricsManager::instance().set("elapsed_collect_results", timer.elapsed());
-    timer.reset("Gribjump Engine: Repackaged results");
+    timer.reset("Gribjump Engine: Transferred results");
 
     return {std::move(results), std::move(report)};
-}
-
-ResultsMap Engine::collectResults(ExItemMap& keyToExtractionItem) {
-
-    // Create map of base request to vector of extraction items. Takes ownership of the ExtractionItems
-    ResultsMap results;
-
-    for (auto& [key, ex] : keyToExtractionItem) {
-        results[ex->request()] = std::move(ex);
-    }
-
-    return results;
 }
 
 TaskOutcome<size_t> Engine::scan(const MarsRequests& requests, bool byfiles) {

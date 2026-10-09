@@ -95,7 +95,6 @@ private:
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
     TaskReport streamHarvest(TaskGroup& taskGroup, ResultSink& sink);
     void streamBufferedResults(ResultsMap& results, ResultSink& sink);
-    ResultsMap collectResults(ExItemMap& keyToExtractionItem);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
 
