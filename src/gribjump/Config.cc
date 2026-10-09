@@ -68,7 +68,14 @@ ConfigOptions::ConfigOptions(const Config& config) :
     inefficientExtraction_(config.getBool("inefficientExtraction", false)),
     forwardExtraction_(config.getBool("forwardExtraction", false)),
     forwardScan_(config.getBool("forwardScan", false)),
-    scanCorrupted_(eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", config.getBool("scanCorrupted", false))) {}
+    scanCorrupted_(eckit::Resource<bool>("$GRIBJUMP_SCAN_CORRUPTED", config.getBool("scanCorrupted", false))) {
+    // Validate resolved values (including environment overrides) before any
+    // engine can submit work using this immutable configuration snapshot.
+    if (streamingFlushBytes_ > streamingByteBudget_) {
+        throw eckit::BadValue("Configuration error: streaming.flushBytes (" + std::to_string(streamingFlushBytes_) +
+                              ") must not exceed streaming.byteBudget (" + std::to_string(streamingByteBudget_) + ")");
+    }
+}
 
 namespace {
 

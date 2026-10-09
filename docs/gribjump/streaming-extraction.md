@@ -1,8 +1,9 @@
 # Streaming Extraction (Protocol v4)
 
 This note documents the GribJump **streaming** extract path: how a remote
-`extract` request is served by sending results back incrementally, in bounded
-memory, instead of buffering the entire reply on the server before sending it.
+`extract` request is served by sending completed-task results back incrementally,
+rather than retaining the entire reply on a local/leaf extraction server.
+Streaming reduces result retention, but does **not** impose a hard memory bound.
 
 It complements two sibling notes:
 
@@ -24,12 +25,14 @@ The streaming path (**protocol v4**) instead:
 
 - hands results to the wire *as each task completes*, in whatever order they
   finish, and frees them immediately after sending;
-- bounds the produced-but-not-yet-sent bytes with a per-request **byte budget**,
-  applying backpressure to task dispatch when a slow client can't keep up;
+- throttles new task dispatch when the accounted completed-result bytes exceed a
+  per-request **byte budget**, applying backpressure when a slow client can't keep up;
 - terminates the reply with a footer carrying any per-task errors.
 
-Peak memory becomes proportional to the byte budget plus one flush batch, not to
-the size of the whole reply.
+The byte budget is a **soft dispatch threshold**, not an allocation limit. Peak
+memory also depends on whole-file task sizes, work already in flight, caches and
+other buffers. A large file task can still retain a large fraction of the reply
+before anything can be sent.
 
 ## Version negotiation
 
@@ -147,42 +150,60 @@ class ResultSink {
 The heart of the path. After building the request/file maps (shared with the
 buffered path), it:
 
-1. Builds an `indexOf` map from each *canonicalised* request string back to its
-   original request index. (`buildRequestMap` canonicalises request strings in
-   place, so this is how a completed item is mapped to the client's index.)
-2. Creates a `TaskGroup`, sets its **byte budget**
-   (`streaming.byteBudget`), and enqueues the file-extraction tasks — the same
-   `FileExtractionTask`s the buffered path uses.
+1. Preserves the `streamIndex` stamped on each item during request preparation
+   (or decoding of a forwarded filemap). No renumbering is needed at completion.
+2. Creates a `TaskGroup`, sets its dispatch-throttling threshold
+   (`streaming.byteBudget`), and submits the file-extraction tasks under the same
+   cleanup guard as harvesting. The immutable `ConfigOptions` has already checked
+   `streaming.flushBytes <= streaming.byteBudget`, after environment overrides,
+   before the engine can submit any work.
 3. **Harvest loop:** repeatedly calls `taskGroup.popCompleted()`, which blocks
    until the next task finishes and returns its id (or `nullopt` once all tasks
    are accounted for). For each completed task it moves out the results, appends
    `(index, result*)` pairs to a batch, and tracks `batchBytes`.
-4. **Flush** when `batchBytes >= streaming.flushBytes`: hand the batch to
-   `sink.writeResults`, then `taskGroup.releaseOutstanding(batchBytes)` to
-   decrement the outstanding-byte counter (and possibly wake throttled workers),
-   and free the batch's results.
+4. **Flush** when the batch reaches `streaming.flushBytes`: `ResultBatch` hands
+   it to `sink.writeResults` and frees its results after the write succeeds. The
+   engine then releases those bytes from the task group's accounting, possibly
+   waking throttled workers.
 5. On normal completion, a final flush drains the last partial batch and the
    task report is returned for the footer.
 
-The **forwarding** case (`forwardExtraction`) can't stream incrementally — it
-aggregates buffered replies from downstream servers — so it runs the buffered
-schedule and then replays the collected results through the same sink via
-`streamBufferedResults`, preserving the v4 wire framing for the client.
+The **forwarding** case (`forwardExtraction`) gathers downstream replies before
+sending them upstream, even if the downstream servers use v4. It then replays the
+collected results through `streamBufferedResults`, preserving the v4 wire framing
+but retaining the full downstream result set at the proxy.
 
-## Backpressure and bounded memory
+## Backpressure and memory limitations
 
-The point of streaming is to bound peak memory even when the client (or network)
-drains slower than the workers produce. Two thresholds cooperate:
+Backpressure limits further dispatch when a client (or network) drains slower
+than workers produce completed results. Two thresholds cooperate:
 
 | Threshold | Config | Default | Role |
 |---|---|---|---|
 | Flush size | `streaming.flushBytes` | 8 MiB | How many result bytes accumulate before one `RESULTS` chunk is sent. Trades syscall/framing overhead against latency. |
-| Byte budget | `streaming.byteBudget` | 128 MiB | Ceiling on produced-but-not-yet-sent bytes per request. When exceeded, the group's task dispatch is throttled. |
+| Byte budget | `streaming.byteBudget` | 128 MiB | Soft threshold on accounted completed-result bytes awaiting send. When exceeded, further task dispatch for the group is throttled. |
+
+Neither threshold is a hard bound on memory or chunk size:
+
+- A file task extracts all of its requested fields before reporting their result
+  bytes. It can allocate more than the budget before dispatch is throttled.
+- Tasks already running continue to allocate and complete. Their unfinished
+  results and extraction workspace are not included in the byte counter.
+- Results are not split to meet the flush threshold. A single field larger than
+  `streaming.flushBytes` produces a larger chunk.
+- The threshold is per request, not per process. Concurrent requests, caches,
+  catalogue metadata and transport buffers add to memory use.
+- Forwarding proxies and the current client decoder buffer their complete result
+  sets. Server-side chunking is not end-to-end lazy iteration.
+
+In particular, a 128 MiB budget does not guarantee a 128 MiB (or budget-plus-one-
+batch) peak. Bounding task sizes or reserving memory before extraction would be
+needed for a stronger guarantee; neither is implemented here.
 
 ### Byte accounting on the `TaskGroup`
 
-The `TaskGroup` tracks `outstandingBytes_` — result bytes produced but not yet
-sent — against `byteThreshold_`:
+The `TaskGroup` tracks `outstandingBytes_` — accounted completed-task result
+payloads not yet sent — against `byteThreshold_`. This is not process memory/RSS:
 
 - When a `FileExtractionTask` finishes, `extract()` sums its produced result
   bytes and calls `TaskGroup::addOutstanding()` (which also updates the
@@ -197,10 +218,10 @@ sent — against `byteThreshold_`:
 
 `WorkQueue::popNext` walks the round-robin order and serves the first group that
 has queued tasks **and is not over budget** (`TaskGroup::overBudget()`). An
-over-budget group keeps its place in the rotation but is skipped, so its tasks
-don't run — and therefore don't produce more bytes — until the consumer catches
-up and `releaseOutstanding` brings it back under budget. Other groups continue
-to be served normally, so one slow client doesn't stall the whole server.
+over-budget group keeps its place in the rotation but is skipped, so its queued
+tasks do not start until the consumer catches up and `releaseOutstanding` brings
+it back under budget. Already-running tasks are not stopped. Other eligible
+groups continue to be served normally.
 
 The feedback loop:
 
@@ -227,19 +248,25 @@ If the client disconnects mid-stream, the next `sink.writeResults` throws (e.g.
 broken pipe). The engine must not simply return — its `TaskGroup` lives on the
 stack while worker threads still reference it — so it:
 
-1. **Catches** the exception in the harvest loop.
+1. **Catches** the exception in the guard covering both task submission and
+   harvesting.
 2. Calls `TaskGroup::cancel()`, which
    - flags every still-`PENDING` task `CANCELLED`, and
    - calls `WorkQueue::cancelGroup()` to purge the group's still-queued tasks so
      they never start.
-3. Calls `drainRemaining()`, which blocks on `popCompleted()` until the tasks
-   *already in flight* finish — guaranteeing no worker still references the
-   soon-to-be-destroyed `TaskGroup`.
+3. Drains `popCompleted()` until all submitted tasks, including those already in
+   flight, are accounted for. If submission failed before the first task, there
+   is no work to cancel or drain. No submitted work may outlive the stack-local
+   `TaskGroup` or caller-owned extraction items.
 4. Sets the disconnect metrics (`client_disconnected`, `count_cancelled_tasks`,
    `count_bytes_streamed`, `peak_outstanding_bytes`) directly, because the
    rethrow skips the normal `TaskGroup::report()` step.
 5. **Rethrows**, so `StreamingExtractReply` records the error into the END
    footer.
+
+Submission errors use the same cancellation/draining path but are not labelled
+as client disconnects. Invalid byte-limit configuration is rejected earlier,
+when `ConfigOptions` is constructed, before task submission is possible.
 
 Two correctness details make cancellation terminate cleanly:
 
@@ -280,6 +307,12 @@ version) to exercise the full client codec without a live TCP server.
 Pin the client to `3` to force the legacy buffered reply (e.g. against an older
 server, or for A/B comparison). The server accepts both versions regardless.
 
+Resolved options must satisfy `streaming.flushBytes <= streaming.byteBudget`.
+This is checked when constructing `ConfigOptions`, including environment/resource
+overrides, so invalid limits fail before any extraction tasks are submitted.
+The inequality prevents batching from waiting for more bytes while dispatch is
+throttled; it does not turn the byte budget into a memory ceiling.
+
 ## Metrics
 
 Streaming emits everything the buffered path does (via `TaskGroup::report()`)
@@ -294,7 +327,7 @@ sets some counters directly.
 |---|---|---|
 | Reply framing | error block + one in-order block | `RESULTS` chunks + `END` footer |
 | Result order | request order | completion order (index-tagged) |
-| Peak server memory | ∝ total reply size | ∝ byte budget + one batch |
+| Peak server memory | ∝ total reply size | Not hard-capped: depends on whole-file tasks, in-flight work and other buffers; proxies still buffer full replies |
 | Errors | lead the reply | trail in `END` chunk |
 | Backpressure | none | per-request byte budget throttles dispatch |
 | Harvest | `TaskGroup::waitForTasks()` | `TaskGroup::popCompleted()` |

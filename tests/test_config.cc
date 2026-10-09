@@ -72,6 +72,23 @@ CASE("resource overrides are resolved once per options object") {
     }
 }
 
+CASE("streaming limits are validated after environment overrides") {
+    Config config;
+    config.set("streaming.flushBytes", 2);
+    config.set("streaming.byteBudget", 1);
+    EXPECT_THROWS_AS(ConfigOptions{config}, eckit::BadValue);
+    config.set("streaming.flushBytes", 1);
+    EXPECT_NO_THROW(ConfigOptions{config});  // equality is valid
+    {
+        SetEnv flush("GRIBJUMP_STREAMING_FLUSH_BYTES", "2");
+        EXPECT_THROWS_AS(ConfigOptions{config}, eckit::BadValue);
+        SetEnv budget("GRIBJUMP_STREAMING_BYTE_BUDGET", "3");
+        ConfigOptions options(config);
+        EXPECT_EQUAL(options.streamingFlushBytes(), 2);
+        EXPECT_EQUAL(options.streamingByteBudget(), 3);
+    }
+}
+
 CASE("first object configures process settings without replacing object defaults") {
     cacheDirectory = std::make_unique<eckit::TmpDir>();
     eckit::TmpFile file;

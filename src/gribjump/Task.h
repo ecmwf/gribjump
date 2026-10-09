@@ -142,7 +142,7 @@ public:
     /// Used by Streaming path instead of waitForTasks().
     std::optional<size_t> popCompleted();
 
-    // -- Backpressure: bound produced-but-not-yet-sent result bytes ------------
+    // -- Backpressure: throttle dispatch using completed-result byte counts --
 
     void setByteThreshold(size_t bytes) { byteThreshold_ = bytes; }
 
@@ -155,7 +155,8 @@ public:
         }
     }
 
-    /// High-water mark of outstanding result bytes.
+    /// High-water mark of accounted result bytes, not total memory usage.
+    /// In-flight extraction results/workspace are not included.
     size_t peakOutstandingBytes() const {
         std::lock_guard<std::mutex> lock(m_);
         return peakOutstandingBytes_;

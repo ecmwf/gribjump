@@ -259,8 +259,8 @@ TaskOutcome<ResultsMap> Engine::extract(ExtractionRequests& requests) {
 
 //----------------------------------------------------------------------------------------------------------------------
 // Streaming (v4) extraction.
-// Peak memory is bounded: results are harvested as each task completes, handed to the sink in batches, and freed after
-// sending.
+// Completed-task results are batched and freed after sending. Dispatch is throttled by completed-result bytes;
+// the budget does not bound memory allocated by file tasks already in flight.
 
 TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& sink) {
 
@@ -305,14 +305,10 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
     LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (local filemap): " << filemap.size() << " files, " << nItems
                                << " items" << std::endl;
 
-    TaskGroup taskGroup(options_);
-    taskGroup.setByteThreshold(options_.streamingByteBudget());
-    enqueueFileExtractionTasks(taskGroup, filemap);
-
     // Preserve the caller's indices: original request positions for EXTRACT,
     // or wire filemap enumeration indices for FORWARD_EXTRACT. Do not forward
     // again here, even if forwardExtraction is enabled in this engine's config.
-    TaskReport report = streamHarvest(taskGroup, sink);
+    TaskReport report = streamHarvest(filemap, sink);
 
     MetricsManager::instance().set("elapsed_tasks", timer.elapsed());
     timer.reset("Gribjump Engine: All tasks streamed");
@@ -321,28 +317,25 @@ TaskReport Engine::extractStreaming(filemap_t& filemap, ResultSink& sink) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-// Local streaming harvest loop. Blocks on popCompleted(), batches results by byte budget, hands each
-// batch to the sink, and frees results after sending. On a mid-stream failure (e.g. client
-// disconnect) it cancels and drains the group, then rethrows.
+// Submit and harvest local streaming tasks under one cleanup guard. Blocks on popCompleted(),
+// batches results and frees them after sending. Submission failures and sink failures both
+// cancel and drain all submitted work before the group or its caller-owned items are destroyed.
 
-TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
+TaskReport Engine::streamHarvest(filemap_t& filemap, ResultSink& sink) {
 
     const size_t flushBytes = options_.streamingFlushBytes();
-    const size_t byteBudget = options_.streamingByteBudget();
-
-    /// @todo: could we centralise config sanity checks like this some place?
-    if (flushBytes > byteBudget) {
-        throw eckit::BadValue("Configuration error: streaming.flushBytes (" + std::to_string(flushBytes) +
-                              ") must not exceed streaming.byteBudget (" + std::to_string(byteBudget) + ")");
-    }
-
+    TaskGroup taskGroup(options_);
+    taskGroup.setByteThreshold(options_.streamingByteBudget());
     ResultBatch batch(sink, flushBytes);
     size_t totalBytes   = 0;  // running total of result bytes streamed (for metrics)
     size_t totalResults = 0;  // running total of results streamed (for logging)
+    bool submitted      = false;
 
     LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: begin (flush threshold " << flushBytes << " bytes)" << std::endl;
 
     try {
+        enqueueFileExtractionTasks(taskGroup, filemap);
+        submitted = true;
         while (std::optional<size_t> id = taskGroup.popCompleted()) {
             const ExtractionItems* items = taskGroup.streamableItems(*id);
             ASSERT(items);
@@ -362,24 +355,25 @@ TaskReport Engine::streamHarvest(TaskGroup& taskGroup, ResultSink& sink) {
         }
     }
     catch (...) {
-        // A mid-stream failure (e.g. client disconnect). Cancel and drain the remaining tasks.
-        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: mid-stream failure after " << totalResults << " results ("
-                                   << totalBytes << " bytes) in " << batch.chunks()
-                                   << " chunks; cancelling and draining group" << std::endl;
-        taskGroup.cancel();
-
-        try {
-            // drain...
-            while (taskGroup.popCompleted()) {}
-        }
-        catch (...) {
-            // Do not mask the original exception being unwound...
+        // Submission may have failed before the first task, or after some tasks
+        // started. Purge queued tasks and wait for running tasks before unwinding.
+        if (taskGroup.nTasks() != 0) {
+            taskGroup.cancel();
+            try {
+                while (taskGroup.popCompleted()) {}
+            }
+            catch (...) {
+                // Do not mask the original exception being unwound.
+            }
         }
 
-        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: drained; " << taskGroup.nCancelled()
-                                   << " tasks cancelled (wasted work avoided)" << std::endl;
+        LOG_DEBUG_LIB(LibGribJump) << "streamHarvest: failure after " << totalResults << " results (" << totalBytes
+                                   << " bytes) in " << batch.chunks() << " chunks; drained, " << taskGroup.nCancelled()
+                                   << " tasks cancelled" << std::endl;
 
-        MetricsManager::instance().set("client_disconnected", true);
+        if (submitted) {
+            MetricsManager::instance().set("client_disconnected", true);
+        }
         MetricsManager::instance().set("count_cancelled_tasks", taskGroup.nCancelled());
         MetricsManager::instance().set("count_bytes_streamed", totalBytes);
         MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());

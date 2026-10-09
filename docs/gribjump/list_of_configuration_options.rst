@@ -75,6 +75,26 @@ Extraction, listing and scanning
 * ``scanCorrupted``: Attempt to recover offsets when scanning corrupted GRIB
   files. Default: ``false``. Environment override: ``GRIBJUMP_SCAN_CORRUPTED``.
 
+Streaming extraction
+~~~~~~~~~~~~~~~~~~~~
+
+* ``streaming.flushBytes``: Result-byte threshold for sending a batch.
+  Default: 8 MiB. Environment override: ``GRIBJUMP_STREAMING_FLUSH_BYTES``.
+* ``streaming.byteBudget``: Soft threshold on accounted completed-result bytes
+  awaiting send, above which further task dispatch is throttled. Default: 128 MiB.
+  Environment override: ``GRIBJUMP_STREAMING_BYTE_BUDGET``.
+
+Resolved options must satisfy ``streaming.flushBytes <= streaming.byteBudget``.
+Invalid values are rejected when the per-object configuration is constructed,
+including when supplied through environment overrides, before tasks can start.
+
+The byte budget is **not a hard memory limit**. File tasks produce all their
+requested fields before accounting for their results, and already-running tasks
+continue allocating. In-flight results, extraction workspace, caches and other
+buffers are not included. A single result can also exceed the flush threshold.
+Forwarding proxies and the current client decoder still buffer complete replies.
+See :doc:`streaming-extraction` for details.
+
 Forwarding
 ~~~~~~~~~~
 

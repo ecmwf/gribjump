@@ -9,9 +9,11 @@
  */
 
 #include <cmath>
+#include <condition_variable>
 #include <fstream>
 #include <map>
 #include <memory>
+#include <mutex>
 
 #include "eckit/testing/Test.h"
 
@@ -111,6 +113,54 @@ public:
     }
 
     size_t writes = 0;
+};
+
+// Hold every worker so failed engine setup cannot race with task execution.
+// Destruction releases the workers and waits for the gate's own tasks to finish.
+class EngineWorkerGate {
+    class Blocker : public Task {
+    public:
+
+        Blocker(TaskGroup& group, size_t id, EngineWorkerGate& gate) : Task(group, id), gate_(gate) {}
+        void info() const override {}
+        void executeImpl() override {
+            std::unique_lock<std::mutex> lock(gate_.mutex_);
+            ++gate_.started_;
+            gate_.cv_.notify_all();
+            gate_.cv_.wait(lock, [&] { return gate_.released_; });
+        }
+
+    private:
+
+        EngineWorkerGate& gate_;
+    };
+
+public:
+
+    EngineWorkerGate() {
+        const size_t workers = ProcessOptions::get().numThreads();
+        for (size_t i = 0; i < workers; ++i) {
+            group_.enqueueTask<Blocker>(*this);
+        }
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait(lock, [&] { return started_ == workers; });
+    }
+    ~EngineWorkerGate() {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            released_ = true;
+        }
+        cv_.notify_all();
+        group_.waitForTasks();
+    }
+
+private:
+
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    size_t started_ = 0;
+    bool released_  = false;
+    TaskGroup group_;
 };
 
 // Exercise the real proxy-side request resolution and buffered-result emission.
@@ -475,6 +525,55 @@ CASE("Engine: prebuilt filemap streams locally and preserves caller indices") {
             EXPECT(!item->result());  // the sink consumed the result, not the caller's item
         }
     }
+}
+
+CASE("Engine: invalid streaming limits are rejected before work can be submitted") {
+    {
+        EngineWorkerGate gate;
+        Config config;
+        config.set("streaming.flushBytes", 2);
+        config.set("streaming.byteBudget", 1);
+        // Regression: validation used to run only after enqueueing, leaving
+        // workers with a dangling TaskGroup when the exception unwound it.
+        EXPECT_THROWS_AS((Engine{ConfigOptions(config)}), eckit::BadValue);
+    }
+    StreamingFilemap fixture;
+    fixture.add("after-invalid-config.grib", 17, 0, {{0, 5}});
+    Engine engine;
+    RecordingSink sink;
+    EXPECT_NO_THROW(engine.extractStreaming(fixture.files, sink).raiseErrors());
+    expectStreamed(sink, fixture.expected);
+}
+
+CASE("Engine: submission errors leave no work behind, including partial submission") {
+    Config config;
+    config.set("lister.type", "remote");
+    config.set("streaming.flushBytes", 1);
+    config.set("streaming.byteBudget", 1);
+    Engine engine{ConfigOptions(config)};
+    for (const bool failFirst : {true, false}) {
+        EngineWorkerGate gate;
+        StreamingFilemap fixture;
+        fixture.add(failFirst ? "z.grib" : "a.grib", 17, 0, {{0, 5}});
+        fixture.add(failFirst ? "a.grib" : "z.grib", 23, 0, {{0, 5}});
+        auto& remote = fixture.owned.back();
+        remote->URI(eckit::URI("fdb", remote->URI()));
+        // The normal task-selection check rejects this URI. In the second
+        // iteration, the first file's task has already been queued.
+        RecordingSink sink;
+        EXPECT_THROWS_AS(engine.extractStreaming(fixture.files, sink), eckit::SeriousBug);
+        EXPECT_EQUAL(sink.chunks, 0);
+        for (const auto& item : fixture.owned) {
+            EXPECT_EQUAL(item->resultBytes(), 0);
+        }
+        // The caller-owned items are destroyed before the gate releases workers.
+        // Failed submission must have removed every queued reference to them.
+    }
+    StreamingFilemap fixture;
+    fixture.add("after-submission-error.grib", 31, 0, {{0, 5}});
+    RecordingSink sink;
+    EXPECT_NO_THROW(engine.extractStreaming(fixture.files, sink).raiseErrors());
+    expectStreamed(sink, fixture.expected);
 }
 
 CASE("Engine: prebuilt filemap drains after a sink failure and the engine can be reused") {

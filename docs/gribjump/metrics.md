@@ -87,7 +87,7 @@ metrics are streaming-only.
 | `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set in `Engine::extractStreaming()` on disconnect | both |
 | `first_error` | string | First error message (only if any errors). | `TaskGroup::report()` | both |
 | `count_bytes_streamed` | uint | Total result bytes streamed to the client (partial on disconnect). | `Engine::extractStreaming()` | streaming only |
-| `peak_outstanding_bytes` | uint | High-water mark of produced-but-not-yet-sent bytes (the ceiling the byte budget enforces). | `Engine::extractStreaming()` | streaming only |
+| `peak_outstanding_bytes` | uint | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::extractStreaming()` | streaming only |
 | `client_disconnected` | bool | `true` if a mid-stream failure (e.g. client disconnect) aborted streaming. | `Engine::extractStreaming()` catch | streaming only |
 
 > On the streaming disconnect path the request rethrows before
@@ -95,6 +95,15 @@ metrics are streaming-only.
 > and `peak_outstanding_bytes` are set directly in the `catch` block instead,
 > alongside `client_disconnected`. This makes the *wasted work avoided* (the
 > cancelled count) observable even when the client goes away.
+>
+> Partial task-submission failures also cancel/drain submitted work and record
+> cancellation/byte metrics, but are not marked as client disconnects.
+
+`peak_outstanding_bytes` can exceed `streaming.byteBudget`: the budget throttles
+future dispatch only after a task has produced and accounted for all its results.
+The metric is not RSS and does not include extraction workspace, unfinished
+results, catalogue metadata or transport buffers. See
+[Backpressure and memory limitations](streaming-extraction.md#backpressure-and-memory-limitations).
 
 ## Forwarded extract (`action = forwarded-extract`)
 
@@ -111,7 +120,7 @@ a forwarding node. The leaf reads the actual files and replies either buffered
 | `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set on disconnect | streaming only |
 | `first_error` | string | First error message (only if any errors). | `TaskGroup::report()` | streaming only |
 | `count_bytes_streamed` | uint | Total result bytes streamed to the forwarding node (partial on disconnect). | `Engine::streamHarvest()` | streaming only |
-| `peak_outstanding_bytes` | uint | High-water mark of produced-but-not-yet-sent bytes (the ceiling the byte budget enforces). | `Engine::streamHarvest()` | streaming only |
+| `peak_outstanding_bytes` | uint | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::streamHarvest()` | streaming only |
 | `client_disconnected` | bool | `true` if a mid-stream failure (e.g. the forwarding node disconnects) aborted streaming. | `Engine::streamHarvest()` catch | streaming only |
 
 > The **v4 streaming** leaf reply shares `Engine::streamHarvest()` with the local

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Validate streaming byte limits before task submission and drain partially submitted
+  work when streaming setup fails.
 - GJ-68 Add C++/pybind `list` APIs for FDB and MARS, returning full field locations and MARS
   metadata independently of the extraction backend.
 - GJ-76 Port pygribjump to use pybind11-based bindings instead of cffi.

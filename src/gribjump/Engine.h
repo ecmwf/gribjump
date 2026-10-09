@@ -93,7 +93,7 @@ private:
     filemap_t buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem);
     filemap_t buildFileMapfromPaths(ExItemMap& keyToExtractionItem);
     void enqueueFileExtractionTasks(TaskGroup& taskGroup, filemap_t& filemap);
-    TaskReport streamHarvest(TaskGroup& taskGroup, ResultSink& sink);
+    TaskReport streamHarvest(filemap_t& filemap, ResultSink& sink);
     void streamBufferedResults(ResultsMap& results, ResultSink& sink);
     metkit::mars::MarsRequest buildRequestMap(ExtractionRequests& requests, ExItemMap& keyToExtractionItem);
     void buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& keyToExtractionItem);
