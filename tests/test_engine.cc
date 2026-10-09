@@ -113,6 +113,23 @@ public:
     size_t writes = 0;
 };
 
+// Exercise the real proxy-side request resolution and buffered-result emission.
+// Substitute only forwarding: extract the resolved fields locally to simulate
+// completed downstream replies without requiring a network server.
+class BufferedForwardingEngine : public Engine {
+public:
+
+    using Engine::Engine;
+
+    TaskReport scheduleExtractionTasks(filemap_t& filemap, bool forward) override {
+        EXPECT(forward);
+        calls++;
+        return Engine::scheduleExtractionTasks(filemap, false);
+    }
+
+    size_t calls = 0;
+};
+
 void expectStreamed(const RecordingSink& sink, const std::map<size_t, ExValues>& expected) {
     EXPECT_EQUAL(sink.received.size(), expected.size());
     EXPECT_EQUAL(sink.masks.size(), expected.size());
@@ -377,6 +394,53 @@ CASE("Engine: request streaming preserves original indices and values") {
     EXPECT_NO_THROW(report.raiseErrors());
 
     expectStreamed(sink, expected);
+}
+
+CASE("Engine: forwarded request streaming batches buffered results and propagates sink failures") {
+    eckit::testing::SetEnv fdbconfig("FDB5_CONFIG", fdbConfig(tmpdir).c_str());
+
+    // The result map is ordered by MARS key, not by these original request indices.
+    const std::vector<std::string> selections = {
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=3,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=1,stream=oper,time=1200,type=fc",
+        "class=rd,date=20230508,domain=g,expver=xxxx,levtype=sfc,param=151130,step=2,stream=oper,time=1200,type=fc"};
+    const std::vector<Ranges> ranges = {{{10, 14}}, {{0, 50}}, {{30, 33}, {50, 55}}};
+    ExtractionRequests requests;
+    std::map<size_t, ExValues> expected;
+    for (size_t i = 0; i < selections.size(); ++i) {
+        requests.emplace_back(selections[i], ranges[i], gridHash);
+        const auto request = fdb5::FDBToolRequest::requestsFromString(selections[i])[0].request();
+        expected.emplace(i, eccodesExtract(request, ranges[i]).front());
+    }
+
+    // Cover per-result flushes (including an empty final flush), a full chunk
+    // followed by a partial final chunk, and all results in a final-only flush.
+    for (const size_t flushBytes : {size_t{1}, size_t{128}, size_t{1024 * 1024}}) {
+        Config config;
+        config.set("forwardExtraction", true);
+        config.set("streaming.flushBytes", flushBytes);
+        BufferedForwardingEngine engine{ConfigOptions(config)};
+        RecordingSink sink;
+        const auto report = engine.extractStreaming(requests, sink);
+        EXPECT_NO_THROW(report.raiseErrors());
+        EXPECT_EQUAL(engine.calls, 1);
+        expectStreamed(sink, expected);
+        const size_t expectedChunks = flushBytes == 1 ? 3 : (flushBytes == 128 ? 2 : 1);
+        EXPECT_EQUAL(sink.chunks, expectedChunks);
+
+        // No worker tasks remain when these buffered writes start. Sink errors
+        // must still propagate, whether raised in a threshold or final flush.
+        ThrowingSink throwing;
+        EXPECT_THROWS_AS(engine.extractStreaming(requests, throwing), eckit::SeriousBug);
+        EXPECT_EQUAL(engine.calls, 2);
+        EXPECT_EQUAL(throwing.writes, 1);
+
+        RecordingSink recovered;
+        const auto recoveredReport = engine.extractStreaming(requests, recovered);
+        EXPECT_NO_THROW(recoveredReport.raiseErrors());
+        EXPECT_EQUAL(engine.calls, 3);
+        expectStreamed(recovered, expected);
+    }
 }
 
 CASE("Engine: prebuilt filemap streams locally and preserves caller indices") {

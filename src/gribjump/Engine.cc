@@ -229,8 +229,8 @@ TaskReport Engine::extractStreaming(ExtractionRequests& requests, ResultSink& si
     MetricsManager::instance().set("elapsed_build_filemap", timer.elapsed());
     timer.reset("Gribjump Engine: Built file map");
 
-    // Forwarding aggregates remote buffered replies, so there is nothing to
-    // stream incrementally.
+    // Forwarded tasks gather their replies before returning, even when a leaf
+    // uses the streaming protocol. Batch those completed results to this sink.
     if (options_.forwardExtraction()) {
         LOG_DEBUG_LIB(LibGribJump) << "extractStreaming (client): forwarding enabled, aggregating buffered replies "
                                       "from "
