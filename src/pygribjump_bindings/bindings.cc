@@ -445,5 +445,13 @@ PYBIND11_MODULE(pygribjump_bindings, m) {
                 return gribjump.scan({mars_request}, byfiles, log_context(ctx));
             },
             py::arg("request"), py::arg("byfiles") = false, py::arg("ctx") = std::string{})
+        .def(
+            "status",
+            [](gj::GribJump& gribjump, double timeout, const std::string& ctx) {
+                return gribjump.status(timeout, log_context(ctx));
+            },
+            py::arg("timeout") = 5.0, py::arg("ctx") = std::string{},
+            py::call_guard<py::gil_scoped_release>(),
+            "Return JSON status of configured remote servers, including per-server errors.")
         .def("__repr__", [](const gj::GribJump&) { return std::string("GribJump()"); });
 }

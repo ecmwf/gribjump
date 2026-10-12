@@ -19,6 +19,7 @@
 
 #include "gribjump/ExtractionData.h"
 #include "gribjump/remote/Protocol.h"
+#include "gribjump/remote/ServerStatus.h"
 
 namespace gribjump {
 
@@ -46,6 +47,7 @@ public:
         if (batch.empty()) {
             return;
         }
+        StatusPhase phase("sending_results");
         Protocol::encodeExtractResultChunk(stream_, batch);
     }
 
@@ -71,6 +73,7 @@ public:
         if (batch.empty()) {
             return;
         }
+        StatusPhase phase("sending_results");
         Protocol::encodeForwardExtractResultChunk(stream_, batch);
     }
 

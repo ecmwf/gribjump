@@ -17,6 +17,7 @@
 #include "gribjump/Engine.h"
 #include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/ResultSink.h"
+#include "gribjump/remote/ServerStatus.h"
 
 namespace {
 static std::atomic<uint64_t> requestid_{0};
@@ -32,7 +33,8 @@ namespace gribjump {
 
 RequestHandler::RequestHandler(eckit::Stream& stream, EngineIface& engine, ProtocolVersion version) :
     client_(stream), engine_(engine), protocolVersion_(version) {
-    id_ = requestid();
+    const auto status = ServerStatus::current();
+    id_ = status ? status->id : requestid();
     MetricsManager::instance().set("gribjump_request_id", id_);
     MetricsManager::instance().set("protocol_version", static_cast<size_t>(protocolVersion_.value));
 }
@@ -46,10 +48,14 @@ void RequestHandler::process() {
 
     info();
 
-    execute();
+    {
+        StatusPhase phase("executing");
+        execute();
+    }
     MetricsManager::instance().set("elapsed_execute", timer.elapsed());
     timer.reset("Request executed");
 
+    StatusPhase phase("sending_results");
     reportErrors();
     replyToClient();
     MetricsManager::instance().set("elapsed_reply", timer.elapsed());

@@ -22,6 +22,7 @@
 #include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
 #include "gribjump/remote/RequestHandler.h"
+#include "gribjump/remote/ServerStatus.h"
 
 #include "gribjump/Engine.h"
 
@@ -87,6 +88,20 @@ std::unique_ptr<RequestHandler> makeRequestHandler(RequestType type, eckit::Stre
 
 void dispatchRequest(eckit::Stream& s, EngineIface* injectedEngine) {
     const Protocol::RequestHeader header = Protocol::readRequestHeader(s);
+
+    // Status bypasses both engine construction and the worker queue. It must
+    // remain available while every extraction worker is occupied.
+    if (header.type == RequestType::STATUS) {
+        if (header.version.value < streamingProtocolVersion) {
+            Protocol::encodeErrors(s, {"gribjump.status unsupported: requires protocol version 4"});
+            return;
+        }
+        const auto status = ServerStatus::instance().json();
+        Protocol::encodeErrors(s, {});
+        Protocol::encodeStatusReply(s, status);
+        return;
+    }
+    StatusRequestScope status(header.type, ContextManager::instance().context());
 
     // By default we create an engine, though tests are allowed to
     // inject one (e.g. a MockEngine) for unit testing.

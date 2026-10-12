@@ -73,6 +73,12 @@ public:
     /// Discover fields using lister.type (fdb/mars/remote)
     ListIterator list(const metkit::mars::MarsRequest& request, const LogContext& ctx = LogContext());
 
+    /// Snapshot every unique configured GribJump uri/servermap destination.
+    /// Returns extensible JSON, including per-server errors; throws when no
+    /// remote servers are configured. Timeout covers connect + I/O per server
+    /// (system DNS resolution has its own timeout). Always uses protocol v4.
+    std::string status(double timeoutSeconds = 5.0, const LogContext& ctx = LogContext());
+
     void stats();
 
 private:

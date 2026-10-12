@@ -21,6 +21,7 @@
 #include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJump.h"
+#include "gribjump/remote/ServerStatus.h"
 
 namespace gribjump {
 
@@ -111,7 +112,9 @@ class TaskGroup {
 public:
 
     explicit TaskGroup(const ConfigOptions& options = ConfigOptions::defaultOptions()) :
-        options_(options), ctx_{ContextManager::instance().context()} {}
+        options_(options), ctx_{ContextManager::instance().context()}, status_(ServerStatus::current()) {}
+
+    const std::shared_ptr<RequestStatus>& requestStatus() const { return status_; }
 
     const ConfigOptions& options() const { return options_; }
 
@@ -229,6 +232,7 @@ private:
 
     const ConfigOptions options_;  //< owned snapshot used by worker tasks
     const LogContext ctx_;         //< owned snapshot for propagating context in forwarding tasks.
+    const std::shared_ptr<RequestStatus> status_;  //< null for local API calls; outlives task groups
 };
 
 //----------------------------------------------------------------------------------------------------------------------

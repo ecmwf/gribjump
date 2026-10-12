@@ -5,6 +5,12 @@ ecbuild_add_executable(
     LIBS      gribjump
 )
 
+ecbuild_add_executable(
+    TARGET    gribjump-status
+    SOURCES   gribjump-status.cc
+    LIBS      gribjump
+)
+
 if ( HAVE_GRIBJUMP_LOCAL_EXTRACT)
 
     ecbuild_add_executable(

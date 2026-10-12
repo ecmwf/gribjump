@@ -64,6 +64,13 @@ python3 -m pip install --upgrade git+ssh://git@github.com/ecmwf/gribjump.git@mas
 See the `docs/examples/` files for simple use cases.
 
 
+## Remote server status
+
+Use `GribJump::status()` (C++), `gj.status()` (pybind Python), or
+`gribjump-status [--config=client.yaml] [--timeout=5]` to get JSON diagnostics
+from every configured GribJump server. See [Server status](docs/status.md) for
+request progress, response contents, timeout and compatibility details.
+
 ## Acknowledgements
 
 Past and current funding and support is listed in the [Acknowledgements](./ACKNOWLEDGEMENTS.rst).

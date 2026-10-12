@@ -50,6 +50,7 @@ set(test_files
     test_extraction_request.py
     test_gribjump.py
     test_config.py
+    test_status.py
     test_extract_from_paths.py
     test_interrupt.py
     test_cffi_compat.py

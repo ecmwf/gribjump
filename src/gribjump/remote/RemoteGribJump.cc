@@ -17,6 +17,7 @@
 #include "gribjump/LogRouter.h"
 #include "gribjump/remote/Protocol.h"
 #include "gribjump/remote/RemoteGribJump.h"
+#include "gribjump/remote/StatusClient.h"
 
 namespace gribjump {
 
@@ -252,6 +253,28 @@ std::map<std::string, std::unordered_set<std::string>> RemoteGribJump::axes(cons
     timer.report("Axes received");
 
     return result;
+}
+
+std::string RemoteGribJump::status() {
+    auto connection = transport_->connect();
+    auto& stream = connection->stream();
+    try {
+        Protocol::writeRequestHeader(stream, RequestType::STATUS, ContextManager::instance().context(),
+                                     streamingProtocolVersion);
+        Protocol::decodeErrors(stream);
+        return Protocol::decodeStatusReply(stream);
+    }
+    catch (const eckit::RemoteException& e) {
+        // Older servers send an eckit exception when rejecting v4/the new
+        // opcode. Do not mislabel arbitrary server errors or lost connections.
+        const std::string reason = e.what();
+        if (reason.find("remote-protocol mismatch") != std::string::npos ||
+            reason.find("Unknown request type") != std::string::npos ||
+            reason.find("gribjump.status unsupported") != std::string::npos) {
+            throw StatusUnsupported(reason);
+        }
+        throw;
+    }
 }
 
 static GribJumpBuilder<RemoteGribJump> builder("remote");

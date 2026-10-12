@@ -53,6 +53,9 @@ public:  // methods
 
     void forwardExtract(filemap_t& filemap);
 
+    /// One server's opaque JSON document; STATUS always uses v4.
+    std::string status();
+
     std::map<std::string, std::unordered_set<std::string>> axes(const std::string& request, int level) override;
 
 private:  // methods

@@ -51,7 +51,8 @@ enum class RequestType : uint16_t {
     AXES,
     SCAN,
     FORWARD_EXTRACT,
-    FORWARD_SCAN
+    FORWARD_SCAN,
+    STATUS  // v4 only; empty request, error block followed by a JSON string
 };
 
 /// v4+: Streamed results are chunked, each chunk tagged with a type.
@@ -67,7 +68,7 @@ enum class ReplyChunkTag : uint16_t {
 /// the server accepts both, see supportedProtocolVersions.
 constexpr uint16_t remoteProtocolVersion = 3;
 
-/// Protocol version which introduced streaming.
+/// Protocol version which introduces streaming and STATUS (still in development).
 constexpr uint16_t streamingProtocolVersion = 4;
 
 /// Protocol versions the server accepts.
@@ -122,6 +123,11 @@ public:
     /// errors are present, either throws eckit::RemoteException (raise=true) or
     /// logs them (raise=false) and returns true.
     static bool decodeErrors(eckit::Stream& stream, bool raise = true);
+
+    // -- STATUS (v4) --------------------------------------------------------------------------------------------------
+    // Empty request body. Reply: standard leading error block, then one JSON string.
+    static void encodeStatusReply(eckit::Stream&, const std::string& json);
+    static std::string decodeStatusReply(eckit::Stream&);
 
     // -- EXTRACT ------------------------------------------------------------------------------------------------------
 

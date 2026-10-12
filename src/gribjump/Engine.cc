@@ -192,10 +192,12 @@ void Engine::buildRequestURIsMap(PathExtractionRequests& requests, ExItemMap& ke
 }
 
 filemap_t Engine::buildFileMap(const metkit::mars::MarsRequest& unionrequest, ExItemMap& keyToExtractionItem) {
+    StatusPhase phase("discovering_fields");
     return lister_->fileMap(unionrequest, keyToExtractionItem);
 }
 
 filemap_t Engine::buildFileMapfromPaths(ExItemMap& keyToExtractionItem) {
+    StatusPhase phase("discovering_fields");
     return lister_->fileMap(keyToExtractionItem);
 }
 

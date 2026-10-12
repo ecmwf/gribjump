@@ -17,6 +17,7 @@
 #include "gribjump/GribJump.h"
 #include "gribjump/GribJumpBase.h"
 #include "gribjump/GribJumpFactory.h"
+#include "gribjump/remote/StatusClient.h"
 #include "gribjump/gribjump_config.h"
 #if GRIBJUMP_HAVE_FDB
 #include "gribjump/Lister.h"
@@ -38,6 +39,10 @@ GribJump::GribJump(const Config& cfg) : options_(cfg) {
 }
 
 GribJump::~GribJump() {}
+
+std::string GribJump::status(double timeoutSeconds, const LogContext& ctx) {
+    return remoteStatus(options_, timeoutSeconds, ctx);
+}
 
 size_t GribJump::scan(const std::vector<eckit::PathName>& paths, const LogContext& ctx) {
     ContextManager::instance().set(ctx);

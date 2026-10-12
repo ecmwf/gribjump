@@ -108,6 +108,23 @@ CASE("Remote protocol version is pinned") {
     EXPECT(!isSupportedProtocolVersion(5));
 }
 
+CASE("STATUS v4 framing round-trips opaque JSON and matches golden") {
+    const std::string document = R"({"schema_version":1,"future":{"values":[1,true,null]}})";
+    eckit::Buffer buffer(4096);
+    auto hash = hashOfEncoded([&](eckit::Stream& stream) {
+        Protocol::writeRequestHeader(stream, RequestType::STATUS, LogContext("{}"), streamingProtocolVersion);
+        Protocol::encodeErrors(stream, {});
+        Protocol::encodeStatusReply(stream, document);
+    }, buffer);
+    eckit::ResizableMemoryStream in(buffer);
+    auto header = Protocol::readRequestHeader(in);
+    EXPECT_EQUAL(header.version.value, 4);
+    EXPECT_EQUAL(static_cast<uint16_t>(header.type), 5);
+    EXPECT(!Protocol::decodeErrors(in));
+    EXPECT_EQUAL(Protocol::decodeStatusReply(in), document);
+    expectGolden(hash, "a16068493d682125c404c4d84b064d49", "STATUS v4");
+}
+
 //-----------------------------------------------------------------------------
 // Payload-type codecs
 

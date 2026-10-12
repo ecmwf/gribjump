@@ -43,21 +43,25 @@ Task::Task(TaskGroup& taskGroup, size_t taskid) : taskGroup_(taskGroup), taskid_
 Task::~Task() {}
 
 void Task::notify() {
+    if (const auto& status = taskGroup_.requestStatus()) status->finished("completed", true);
     status_ = Status::DONE;
     taskGroup_.notify(id());
 }
 
 void Task::notifyError(const std::string& s) {
+    if (const auto& status = taskGroup_.requestStatus()) status->finished("failed", true);
     status_ = Status::FAILED;
     taskGroup_.notifyError(id(), s);
 }
 
 void Task::notifyCancelled() {
+    if (const auto& status = taskGroup_.requestStatus()) status->finished("cancelled", false);
     status_ = Status::CANCELLED;
     taskGroup_.notifyCancelled(id());
 }
 
 void Task::execute() {
+    ServerStatus::instance().workerTask(taskGroup_.requestStatus(), id());
     // atomically set status to executing, but only if it is currently pending (i.e. not cancelled)
     Status expected = Status::PENDING;
     if (!status_.compare_exchange_strong(expected, Status::EXECUTING)) {
@@ -66,6 +70,7 @@ void Task::execute() {
         }
         return;
     }
+    if (const auto& status = taskGroup_.requestStatus()) status->started();
     info();
     executeImpl();
     notify();
@@ -147,12 +152,14 @@ void TaskGroup::enqueueTask(Task* task) {
         tasks_.push_back(std::unique_ptr<Task>(task));  // TaskGroup takes ownership of its tasks
     }
 
+    if (status_) status_->enqueued();
     WorkQueue::instance().push(this, task);  // release TaskGroup lock before taking WorkQueue lock
 
     LOG_DEBUG_LIB(LibGribJump) << "Queued task " << tasks_.size() << std::endl;
 }
 
 void TaskGroup::waitForTasks() {
+    StatusPhase phase("waiting_for_tasks");
     std::unique_lock<std::mutex> lock(m_);
     ASSERT(tasks_.size() > 0);
     LOG_DEBUG_LIB(LibGribJump) << "Waiting for " << eckit::Plural(tasks_.size(), "task") << "..." << std::endl;
@@ -214,6 +221,7 @@ TaskReport TaskGroup::report() {
 /// @todo: Note, there is some overlap here with waitForTasks, though this is used for streaming.
 /// Perhaps we can refactor.
 std::optional<size_t> TaskGroup::popCompleted() {
+    StatusPhase phase("waiting_for_tasks");
     std::unique_lock<std::mutex> lock(m_);
     ASSERT(tasks_.size() > 0);
 

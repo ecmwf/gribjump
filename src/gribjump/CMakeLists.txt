@@ -40,6 +40,8 @@ list( APPEND gribjump_srcs
     remote/RemoteGribJump.cc
     remote/RemoteGribJump.h
     remote/ClientTransport.h
+    remote/StatusClient.h
+    remote/StatusClient.cc
     remote/Protocol.cc
     remote/Protocol.h
     remote/ForwardExtractIndex.h
@@ -110,6 +112,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     jumper/JumperFactory.h
     jumper/JumperFactory.cc
 
+    remote/ServerStatus.h
+    remote/ServerStatus.cc
     remote/RequestHandler.h
     remote/RequestHandler.cc
     remote/ResultSink.h

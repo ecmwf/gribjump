@@ -331,6 +331,20 @@ class GribJump:
             self._context(ctx, "pygribjump_axes"),
         )
 
+    def status(
+        self,
+        timeout: float = 5.0,
+        ctx: Optional[dict[str, Any]] = None,
+    ) -> str:
+        """Return extensible JSON status from all configured GribJump servers.
+
+        Includes per-server errors without discarding successful responses.
+        Raises GribJumpException if no remote servers are configured. Timeout
+        is connect + I/O seconds per server; DNS uses the system resolver timeout.
+        Use ``print(gj.status())`` or ``json.loads(gj.status())``.
+        """
+        return self.gribjump.status(timeout, self._context(ctx, "pygribjump_status"))
+
     def scan(
         self,
         paths: list[str],

@@ -40,6 +40,8 @@ WorkQueue::~WorkQueue() {
 }
 
 WorkQueue::WorkQueue() {
+    // Construct before the pool, so status remains alive until workers join.
+    ServerStatus::instance();
     int nthreads = ProcessOptions::get().numThreads();
     LOG_DEBUG_LIB(LibGribJump) << "Starting " << eckit::Plural(nthreads, "thread") << " (work queue)" << std::endl;
     for (int i = 0; i < nthreads; ++i) {
@@ -51,11 +53,13 @@ void WorkQueue::workerLoop() {
     LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " starting" << std::endl;
 
     for (;;) {
+        ServerStatus::instance().worker(true);  // idle until Task::execute installs its activity
         eckit::Log::status() << "Waiting for job" << std::endl;
         WorkItem item;
         if (!popNext(item)) {
             LOG_DEBUG_LIB(LibGribJump) << "Thread " << std::this_thread::get_id() << " stopping (queue closed)"
                                        << std::endl;
+            ServerStatus::instance().worker(false);
             break;
         }
 

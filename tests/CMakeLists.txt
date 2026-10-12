@@ -238,6 +238,15 @@ ecbuild_add_test(
     LIBS gribjump
 )
 
+ecbuild_add_test(
+    TARGET "gribjump_test_status"
+    SOURCES "remote/test_status.cc"
+    ENVIRONMENT "GRIBJUMP_THREADS=1;${gribjump_env}"
+    NO_AS_NEEDED
+    LIBS gribjump
+    TEST_PROPERTIES TIMEOUT 15
+)
+
 # c compiler test
 ecbuild_add_test(
     TARGET "gribjump_test_c_compile"

@@ -91,6 +91,19 @@ bool Protocol::decodeErrors(eckit::Stream& stream, bool raise) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+// STATUS
+
+void Protocol::encodeStatusReply(eckit::Stream& stream, const std::string& json) {
+    stream << json;
+}
+
+std::string Protocol::decodeStatusReply(eckit::Stream& stream) {
+    std::string json;
+    stream >> json;
+    return json;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // EXTRACT
 
 void Protocol::encodeExtractRequest(eckit::Stream& stream, const std::vector<ExtractionRequest>& requests) {
