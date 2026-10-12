@@ -39,6 +39,13 @@ ecbuild_get_test_multidata( TARGET gribjump_test_O1280_data_files
 #     NO_AS_NEEDED
 #     LIBS      gribjump)
 
+ecbuild_add_test(
+    TARGET "gribjump_test_read_stats"
+    SOURCES "test_read_stats.cc"
+    LIBS gribjump
+    TEST_PROPERTIES TIMEOUT 15
+)
+
 ecbuild_add_test( 
     TARGET "gribjump_test_compression"
     SOURCES "test_compression.cc"

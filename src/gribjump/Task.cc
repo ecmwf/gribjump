@@ -24,6 +24,7 @@
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
 #include "gribjump/Task.h"
+#include "gribjump/ReadStats.h"
 #include "gribjump/TaskWait.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
@@ -67,7 +68,10 @@ void Task::execute() {
         return;
     }
     info();
-    executeImpl();
+    {
+        TaskReadScope reads(taskGroup_.bytesRead_);
+        executeImpl();
+    }  // Merge before notify(); unwinding also accounts for failed-task reads.
     notify();
 }
 
@@ -201,6 +205,7 @@ TaskReport TaskGroup::report() {
     std::lock_guard<std::mutex> lock(m_);
     ASSERT(done_);
 
+    MetricsManager::instance().set("count_data_bytes_read", bytesRead());
     MetricsManager::instance().set("count_tasks", tasks_.size());
     MetricsManager::instance().set("count_failed_tasks", errors_.size());
     MetricsManager::instance().set("count_cancelled_tasks", nCancelledTasks_);
@@ -296,7 +301,7 @@ void FileExtractionTask::extract() {
     std::vector<std::shared_ptr<JumpInfo>> infos = InfoCache::instance().get(fname_, offsets);
 
     // Extract
-    eckit::FileHandle fh(fname_);
+    ReadCountingFileHandle fh(fname_);
 
     fh.openForRead();
     eckit::AutoCloser<eckit::FileHandle> closer(fh);
@@ -405,7 +410,13 @@ void InefficientFileExtractionTask::extract() {
             // eckit::AutoLock lock(taskGroup_.debugMutex_); // Force single-threaded execution
             long read   = 0;
             long toRead = length;
-            while ((read = remoteHandle->read(buffer, toRead)) != 0) {
+            const auto readSource = [&]() {
+                // Count the source transfer only, not the later MemoryHandle
+                // decoding of the same bytes.
+                TaskReadScope::requested(toRead);
+                return remoteHandle->read(buffer, toRead);
+            };
+            while ((read = readSource()) != 0) {
                 toRead -= read;
             }
         }

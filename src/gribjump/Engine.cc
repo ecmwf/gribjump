@@ -375,6 +375,7 @@ TaskReport Engine::streamHarvest(filemap_t& filemap, ResultSink& sink) {
             MetricsManager::instance().set("client_disconnected", true);
         }
         MetricsManager::instance().set("count_cancelled_tasks", taskGroup.nCancelled());
+        MetricsManager::instance().set("count_data_bytes_read", taskGroup.bytesRead());
         MetricsManager::instance().set("count_bytes_streamed", totalBytes);
         MetricsManager::instance().set("peak_outstanding_bytes", taskGroup.peakOutstandingBytes());
 

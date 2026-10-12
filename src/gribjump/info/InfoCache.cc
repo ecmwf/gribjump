@@ -22,6 +22,7 @@
 #include "eckit/log/TimeStamp.h"
 
 #include "gribjump/Config.h"
+#include "gribjump/ReadStats.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/info/InfoCache.h"
@@ -393,7 +394,7 @@ void IndexFile::appendToFile(const eckit::PathName& path) const {
 }
 
 void IndexFile::fromFile(const eckit::PathName& path) {
-    eckit::FileStream s(path, "r");
+    ReadCountingFileStream s(path, "r");
     decode(s);
     s.close();
 }

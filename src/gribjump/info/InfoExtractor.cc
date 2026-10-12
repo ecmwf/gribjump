@@ -19,7 +19,7 @@
 #include "eccodes.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "eckit/io/FileHandle.h"
+#include "gribjump/ReadStats.h"
 #include "eckit/io/Offset.h"
 #include "eckit/message/Message.h"
 
@@ -40,7 +40,7 @@ eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
     eckit::OffsetList offsets;
     std::vector<char> buffer(BUFFER_SIZE + OVERLAP);
     std::vector<char> carryover(OVERLAP, 0);
-    eckit::FileHandle file(filepath);
+    ReadCountingFileHandle file(filepath);
     file.openForRead();
 
     size_t filePos = 0;
@@ -104,7 +104,7 @@ std::vector<std::pair<eckit::Offset, std::unique_ptr<JumpInfo>>> InfoExtractor::
 std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathName& path,
                                                               const std::vector<eckit::Offset>& offsets) const {
 
-    eckit::FileHandle fh(path);
+    ReadCountingFileHandle fh(path);
     std::vector<std::unique_ptr<JumpInfo>> infos;
     infos.reserve(offsets.size());
 
@@ -122,7 +122,7 @@ std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathN
 
 std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, const eckit::Offset& offset) const {
 
-    eckit::FileHandle fh(path);
+    ReadCountingFileHandle fh(path);
 
     fh.openForRead();
 

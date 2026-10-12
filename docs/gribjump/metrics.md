@@ -86,13 +86,14 @@ metrics are streaming-only.
 | `count_failed_tasks` | uint | Number of tasks that errored. | `TaskGroup::report()` | both |
 | `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set in `Engine::extractStreaming()` on disconnect | both |
 | `first_error` | string | First error message (only if any errors). | `TaskGroup::report()` | both |
+| `count_data_bytes_read` | uint (bytes) | Sum of requested source-read lengths for this server's task group; see scope below. | `TaskGroup::report()`; also set after draining on streaming failure | both |
 | `count_bytes_streamed` | uint | Total result bytes streamed to the client (partial on disconnect). | `Engine::extractStreaming()` | streaming only |
 | `peak_outstanding_bytes` | uint | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::extractStreaming()` | streaming only |
 | `client_disconnected` | bool | `true` if a mid-stream failure (e.g. client disconnect) aborted streaming. | `Engine::extractStreaming()` catch | streaming only |
 
 > On the streaming disconnect path the request rethrows before
-> `TaskGroup::report()` runs, so `count_cancelled_tasks`, `count_bytes_streamed`
-> and `peak_outstanding_bytes` are set directly in the `catch` block instead,
+> `TaskGroup::report()` runs, so `count_cancelled_tasks`, `count_data_bytes_read`,
+> `count_bytes_streamed` and `peak_outstanding_bytes` are set directly in the `catch` block instead,
 > alongside `client_disconnected`. This makes the *wasted work avoided* (the
 > cancelled count) observable even when the client goes away.
 >
@@ -104,6 +105,43 @@ future dispatch only after a task has produced and accounted for all its results
 The metric is not RSS and does not include extraction workspace, unfinished
 results, catalogue metadata or transport buffers. See
 [Backpressure and memory limitations](streaming-extraction.md#backpressure-and-memory-limitations).
+
+## Logical source-read bytes (`count_data_bytes_read`)
+
+`TaskGroup::bytesRead()` is the sum of **requested lengths** passed to the
+instrumented source read APIs by its tasks, in bytes. It is not decoded output
+size, unique byte coverage, or physical device I/O. Repeated/overlapping reads
+count each time; a short read or a read that throws still counts its requested
+length. Zero-length reads add nothing. No cache-hit/miss detection is performed.
+
+Covered paths:
+
+- Local extraction's file handle: encoded data, bitmap and header reads,
+  including any block/restart-interval over-read performed by the decompressor.
+- Jump-info extraction file handles and `.gribjump` index-file streams accessed
+  while a task runs. In-memory jump-info lookups issue no source reads.
+- Inefficient FDB extraction: requested transfer lengths on the source handle;
+  subsequent decoding of its `MemoryHandle` is **not** counted again.
+
+This is scoped to GribJump's task-owned read calls. It does **not** include MARS
+listing/database reads in another service, socket protocol traffic, or reads
+hidden within a dependency opening its own files (notably ecCodes' whole-file
+`codes_extract_offsets_malloc` scan). Thus a whole-file scan's counter does not
+include its opaque offset-discovery pass. The direct, no-task-group file API is
+also outside this metric.
+
+For forwarded extraction, consult the **leaf server's** metrics: its task group
+performs the reads. A forwarding node does not count decoded replies as source
+bytes and does not aggregate the downstream counters through the wire protocol.
+
+`TaskReadScope` installs an ordinary task-local accumulator on the executing
+thread and merges it into the group's relaxed atomic exactly once on exit,
+including exception unwinding. This happens **before** completion/error
+notification, so reporting after draining tasks sees their final totals. A
+cancelled task that never executes contributes zero. `TaskGroup::report()` sets
+`count_data_bytes_read` in the reporting/request thread's `MetricsManager`; task
+worker threads do not write into their own unrelated metrics objects. Streaming
+failures also set the counter after cancelling/draining outstanding tasks.
 
 ## Forwarded extract (`action = forwarded-extract`)
 
