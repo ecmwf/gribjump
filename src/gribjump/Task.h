@@ -155,7 +155,7 @@ public:
         }
     }
 
-    /// High-water mark of accounted result bytes, not total memory usage.
+    /// High-water mark of accounted result bytes.
     /// In-flight extraction results/workspace are not included.
     size_t peakOutstandingBytes() const {
         std::lock_guard<std::mutex> lock(m_);
@@ -181,8 +181,7 @@ public:
     /// Calling code may use this to report to a client or raise an exception.
     TaskReport report();
 
-    /// Sum of requested source-read lengths on this server, not physical disk
-    /// traffic or decoded result size. Updated once per task, before notification.
+    /// Sum of requested byte reads. Updated once per task, before notification.
     size_t bytesRead() const { return bytesRead_.load(std::memory_order_relaxed); }
 
     size_t nTasks() const {

@@ -18,10 +18,11 @@ namespace gribjump {
 /// The scope must end BEFORE task completion is published.
 class TaskReadScope {
 public:
+
     explicit TaskReadScope(std::atomic<size_t>& groupBytes);
     ~TaskReadScope();
 
-    TaskReadScope(const TaskReadScope&) = delete;
+    TaskReadScope(const TaskReadScope&)            = delete;
     TaskReadScope& operator=(const TaskReadScope&) = delete;
 
     /// Add the requested length BEFORE the source read. Includes short/failed
@@ -29,6 +30,7 @@ public:
     static void requested(long length);
 
 private:
+
     static thread_local TaskReadScope* current_;
     TaskReadScope* previous_;
     std::atomic<size_t>& groupBytes_;
@@ -39,6 +41,7 @@ private:
 /// headers), but not reads from a MemoryHandle after a source was materialised.
 class ReadCountingFileHandle : public eckit::FileHandle {
 public:
+
     using eckit::FileHandle::FileHandle;
     long read(void* buffer, long length) override {
         TaskReadScope::requested(length);
@@ -49,6 +52,7 @@ public:
 /// Jump-info index-file reads use the serialisation API rather than DataHandle.
 class ReadCountingFileStream : public eckit::FileStream {
 public:
+
     using eckit::FileStream::FileStream;
     long read(void* buffer, long length) override {
         TaskReadScope::requested(length);

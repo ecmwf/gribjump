@@ -22,9 +22,9 @@
 #include "eckit/log/TimeStamp.h"
 
 #include "gribjump/Config.h"
-#include "gribjump/ReadStats.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/ReadStats.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/info/InfoFactory.h"

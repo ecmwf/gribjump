@@ -19,9 +19,9 @@
 #include "eccodes.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
-#include "gribjump/ReadStats.h"
 #include "eckit/io/Offset.h"
 #include "eckit/message/Message.h"
+#include "gribjump/ReadStats.h"
 
 #include <cstddef>
 #include <cstdlib>

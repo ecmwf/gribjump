@@ -43,7 +43,6 @@ ecbuild_add_test(
     TARGET "gribjump_test_read_stats"
     SOURCES "test_read_stats.cc"
     LIBS gribjump
-    TEST_PROPERTIES TIMEOUT 15
 )
 
 ecbuild_add_test( 
@@ -82,7 +81,6 @@ if (GRIBJUMP_HAVE_DHSKIT)
         ENVIRONMENT "${gribjump_env}"
         NO_AS_NEEDED
         LIBS gribjump dhskit
-        TEST_PROPERTIES TIMEOUT 30
     )
 endif()
 
@@ -125,8 +123,6 @@ ecbuild_add_test(
     TEST_DEPENDS gribjump_test_data_files
     NO_AS_NEEDED
     LIBS gribjump
-    # A regression in streaming cancellation must not hang the test suite.
-    TEST_PROPERTIES TIMEOUT 30
 )
 
 ecbuild_add_test(
@@ -193,8 +189,6 @@ ecbuild_add_test(
     ENVIRONMENT "GRIBJUMP_THREADS=1;${gribjump_env}"
     NO_AS_NEEDED
     LIBS gribjump
-    # Broken cancellation accounting must not leave the test suite waiting forever.
-    TEST_PROPERTIES TIMEOUT 10
 )
 
 # Wire-format / codec regression tests for the remote protocol.

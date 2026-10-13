@@ -23,8 +23,8 @@
 #include "gribjump/Config.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/LogRouter.h"
-#include "gribjump/Task.h"
 #include "gribjump/ReadStats.h"
+#include "gribjump/Task.h"
 #include "gribjump/TaskWait.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoFactory.h"
@@ -408,11 +408,10 @@ void InefficientFileExtractionTask::extract() {
 
         {
             // eckit::AutoLock lock(taskGroup_.debugMutex_); // Force single-threaded execution
-            long read   = 0;
-            long toRead = length;
+            long read             = 0;
+            long toRead           = length;
             const auto readSource = [&]() {
-                // Count the source transfer only, not the later MemoryHandle
-                // decoding of the same bytes.
+                // Count the source transfer only
                 TaskReadScope::requested(toRead);
                 return remoteHandle->read(buffer, toRead);
             };

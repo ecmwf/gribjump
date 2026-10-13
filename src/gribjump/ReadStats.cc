@@ -8,8 +8,7 @@ namespace gribjump {
 
 thread_local TaskReadScope* TaskReadScope::current_ = nullptr;
 
-TaskReadScope::TaskReadScope(std::atomic<size_t>& groupBytes) :
-    previous_(current_), groupBytes_(groupBytes) {
+TaskReadScope::TaskReadScope(std::atomic<size_t>& groupBytes) : previous_(current_), groupBytes_(groupBytes) {
     current_ = this;
 }
 

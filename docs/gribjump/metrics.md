@@ -1,8 +1,7 @@
 # Metrics
 
-This note catalogues the metrics GribJump collects for each request, and where
-they come from. It is a reference for anyone consuming the metrics log or adding
-new instrumentation.
+This note catalogues the metrics GribJump collects for each request, and where they come from. It is
+a reference for anyone consuming the metrics log or adding new instrumentation.
 
 ## How metrics are collected and emitted
 
@@ -15,169 +14,137 @@ MetricsManager::instance().addRequest(request);  // append a MARS request
 
 Key points:
 
-- **Thread-local.** `MetricsManager` wraps a `thread_local Metrics` object, so
-  each worker thread accumulates its own set independently. `set()` overwrites
-  any previous value for the same key.
+- **Thread-local.** `MetricsManager` wraps a `thread_local Metrics` object, so each worker thread
+  accumulates its own set independently. `set()` overwrites any previous value for the same key.
 - **Emitted by the remote server.** `GribJumpUser::serve()` calls
-  `MetricsManager::instance().report()` once, unconditionally, at the end of
-  serving a connection (including on the error path). `Metrics::report()` writes
-  a single JSON object to `eckit::Log::metrics()`.
-- **Sparse.** A metric only appears in the output if it was `set()` for that
-  request, so the exact key set depends on the `action` and which code paths ran.
-- **Values** are `eckit::Value`; in practice strings, unsigned integers, doubles
-  (elapsed times, in **seconds**), and booleans.
+  `MetricsManager::instance().report()` once, unconditionally, at the end of serving a connection
+  (including on the error path). `Metrics::report()` writes a single JSON object to
+  `eckit::Log::metrics()`.
+- **Sparse.** A metric only appears in the output if it was `set()` for that request, so the exact
+  key set depends on the `action` and which code paths ran.
+- **Values** are `eckit::Value`; in practice strings, unsigned integers, doubles (elapsed times, in
+  **seconds**), and booleans.
 
-The in-process library path (`LocalGribJump`) sets the same Engine/Task metrics,
-but nothing calls `report()`, so they are collected and never emitted. The
-catalogue below therefore describes the **remote server** path.
+The in-process library path (`LocalGribJump`) sets the same Engine/Task metrics, but nothing calls
+`report()`, so they are collected and never emitted. The catalogue below therefore describes the
+**remote server** path.
 
 ## Always present
 
 Emitted by `Metrics::report()` for every reported request.
 
-| Metric | Type | Description |
-|---|---|---|
-| `process` | string | Process name (`eckit::Main::instance().name()`). |
-| `start_time` | ISO-8601 | When the `Metrics` object was created. |
-| `end_time` | ISO-8601 | When the request was reported. |
-| `run_time` | seconds | Wall-clock elapsed since the `Metrics` object was created. |
-| `mars_requests` | list | MARS requests accumulated via `addRequest()` (see `Lister`). |
-| `context` | JSON | The `LogContext` (propagated for forwarded requests). |
+| Metric          | Type     | Description                                                  |
+| --------------- | -------- | ------------------------------------------------------------ |
+| `process`       | string   | Process name (`eckit::Main::instance().name()`).             |
+| `start_time`    | ISO-8601 | When the `Metrics` object was created.                       |
+| `end_time`      | ISO-8601 | When the request was reported.                               |
+| `run_time`      | seconds  | Wall-clock elapsed since the `Metrics` object was created.   |
+| `mars_requests` | list     | MARS requests accumulated via `addRequest()` (see `Lister`). |
+| `context`       | JSON     | The `LogContext` (propagated for forwarded requests).        |
 
 ## Per-request envelope
 
 Set by `RequestHandler` for every remote request, regardless of action.
 
-| Metric | Type | Description | Source |
-|---|---|---|---|
-| `gribjump_request_id` | uint | Unique id assigned to the request. | `RequestHandler` ctor |
-| `protocol_version` | uint | Negotiated remote protocol version in use (`3` = buffered, `4` = streaming). | `RequestHandler` ctor |
-| `action` | string | `scan`, `extract`, `forwarded-extract`, `forwarded-scan`, or `axes`. | each handler's `receive()` |
-| `elapsed_receive` | seconds | Time to decode/receive the request. | `RequestHandler::process()` |
-| `elapsed_execute` | seconds | Time to execute the request. | `RequestHandler::process()` |
-| `elapsed_reply` | seconds | Time to reply to the client. | `RequestHandler::process()` |
+| Metric                | Type    | Description                                                                  | Source                      |
+| --------------------- | ------- | ---------------------------------------------------------------------------- | --------------------------- |
+| `gribjump_request_id` | uint    | Unique id assigned to the request.                                           | `RequestHandler` ctor       |
+| `protocol_version`    | uint    | Negotiated remote protocol version in use (`3` = buffered, `4` = streaming). | `RequestHandler` ctor       |
+| `action`              | string  | `scan`, `extract`, `forwarded-extract`, `forwarded-scan`, or `axes`.         | each handler's `receive()`  |
+| `elapsed_receive`     | seconds | Time to decode/receive the request.                                          | `RequestHandler::process()` |
+| `elapsed_execute`     | seconds | Time to execute the request.                                                 | `RequestHandler::process()` |
+| `elapsed_reply`       | seconds | Time to reply to the client.                                                 | `RequestHandler::process()` |
 
 ## Error path
 
-| Metric | Type | Description | Source |
-|---|---|---|---|
+| Metric  | Type   | Description                                   | Source                        |
+| ------- | ------ | --------------------------------------------- | ----------------------------- |
 | `error` | string | Exception message, or `"Uncaught exception"`. | `GribJumpUser::serve()` catch |
 
 ## Scan (`action = scan`)
 
-| Metric | Type | Description | Source |
-|---|---|---|---|
-| `count_scan_requests` | uint | Number of scan requests in the batch. | `ScanHandler::receive()` |
-| `count_scanned_fields` | uint | Number of fields scanned (`0` if none). | `Engine::scan()` |
+| Metric                 | Type | Description                             | Source                   |
+| ---------------------- | ---- | --------------------------------------- | ------------------------ |
+| `count_scan_requests`  | uint | Number of scan requests in the batch.   | `ScanHandler::receive()` |
+| `count_scanned_fields` | uint | Number of fields scanned (`0` if none). | `Engine::scan()`         |
 
 ## Extract (`action = extract`)
 
 Covers both the **buffered** (v3) and **streaming** (v4) local extraction paths.
-`elapsed_collect_results` is buffered-only; the streaming byte/peak/disconnect
-metrics are streaming-only.
+`elapsed_collect_results` is buffered-only; the streaming byte/peak/disconnect metrics are
+streaming-only.
 
-| Metric | Type | Description | Source | Path |
-|---|---|---|---|---|
-| `count_extraction_requests` | uint | Number of extraction requests in the batch. | `ExtractHandler::receive()` | both |
-| `elapsed_build_filemap` | seconds | Time to build the file map. | `Engine` | both |
-| `elapsed_tasks` | seconds | Time for all extraction tasks to complete/stream. | `Engine` | both |
-| `elapsed_collect_results` | seconds | Time to transfer ownership of buffered results (the result map is no longer rebuilt). | `Engine::extract()` | buffered only |
-| `count_tasks` | uint | Number of tasks in the group. | `TaskGroup::report()` | both |
-| `count_failed_tasks` | uint | Number of tasks that errored. | `TaskGroup::report()` | both |
-| `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set in `Engine::extractStreaming()` on disconnect | both |
-| `first_error` | string | First error message (only if any errors). | `TaskGroup::report()` | both |
-| `count_data_bytes_read` | uint (bytes) | Sum of requested source-read lengths for this server's task group; see scope below. | `TaskGroup::report()`; also set after draining on streaming failure | both |
-| `count_bytes_streamed` | uint | Total result bytes streamed to the client (partial on disconnect). | `Engine::extractStreaming()` | streaming only |
-| `peak_outstanding_bytes` | uint | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::extractStreaming()` | streaming only |
-| `client_disconnected` | bool | `true` if a mid-stream failure (e.g. client disconnect) aborted streaming. | `Engine::extractStreaming()` catch | streaming only |
+| Metric                      | Type         | Description                                                                                                                                        | Source                                                                        | Path           |
+| --------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------- |
+| `count_extraction_requests` | uint         | Number of extraction requests in the batch.                                                                                                        | `ExtractHandler::receive()`                                                   | both           |
+| `elapsed_build_filemap`     | seconds      | Time to build the file map.                                                                                                                        | `Engine`                                                                      | both           |
+| `elapsed_tasks`             | seconds      | Time for all extraction tasks to complete/stream.                                                                                                  | `Engine`                                                                      | both           |
+| `elapsed_collect_results`   | seconds      | Time to transfer ownership of buffered results (the result map is no longer rebuilt).                                                              | `Engine::extract()`                                                           | buffered only  |
+| `count_tasks`               | uint         | Number of tasks in the group.                                                                                                                      | `TaskGroup::report()`                                                         | both           |
+| `count_failed_tasks`        | uint         | Number of tasks that errored.                                                                                                                      | `TaskGroup::report()`                                                         | both           |
+| `count_cancelled_tasks`     | uint         | Number of tasks cancelled (never ran).                                                                                                             | `TaskGroup::report()`; also set in `Engine::extractStreaming()` on disconnect | both           |
+| `first_error`               | string       | First error message (only if any errors).                                                                                                          | `TaskGroup::report()`                                                         | both           |
+| `count_data_bytes_read`     | uint (bytes) | Sum of requested source-read lengths for this requests's task group.                                                                               | `TaskGroup::report()`; also set after draining on streaming failure           | both           |
+| `count_bytes_streamed`      | uint         | Total result bytes streamed to the client (partial on disconnect).                                                                                 | `Engine::extractStreaming()`                                                  | streaming only |
+| `peak_outstanding_bytes`    | uint         | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::extractStreaming()`                                                  | streaming only |
+| `client_disconnected`       | bool         | `true` if a mid-stream failure (e.g. client disconnect) aborted streaming.                                                                         | `Engine::extractStreaming()` catch                                            | streaming only |
 
-> On the streaming disconnect path the request rethrows before
-> `TaskGroup::report()` runs, so `count_cancelled_tasks`, `count_data_bytes_read`,
-> `count_bytes_streamed` and `peak_outstanding_bytes` are set directly in the `catch` block instead,
-> alongside `client_disconnected`. This makes the *wasted work avoided* (the
-> cancelled count) observable even when the client goes away.
+> On the streaming disconnect path the request rethrows before `TaskGroup::report()` runs, so
+> `count_cancelled_tasks`, `count_data_bytes_read`, `count_bytes_streamed` and
+> `peak_outstanding_bytes` are set directly in the `catch` block instead, alongside
+> `client_disconnected`. This makes the _wasted work avoided_ (the cancelled count) observable even
+> when the client goes away.
 >
-> Partial task-submission failures also cancel/drain submitted work and record
-> cancellation/byte metrics, but are not marked as client disconnects.
+> Partial task-submission failures also cancel/drain submitted work and record cancellation/byte
+> metrics, but are not marked as client disconnects.
 
-`peak_outstanding_bytes` can exceed `streaming.byteBudget`: the budget throttles
-future dispatch only after a task has produced and accounted for all its results.
-The metric is not RSS and does not include extraction workspace, unfinished
-results, catalogue metadata or transport buffers. See
+`peak_outstanding_bytes` can exceed `streaming.byteBudget`: the budget throttles future dispatch
+only after a task has produced and accounted for all its results. The metric is not RSS and does not
+include extraction workspace, unfinished results, catalogue metadata or transport buffers. See
 [Backpressure and memory limitations](streaming-extraction.md#backpressure-and-memory-limitations).
 
 ## Logical source-read bytes (`count_data_bytes_read`)
 
-`TaskGroup::bytesRead()` is the sum of **requested lengths** passed to the
-instrumented source read APIs by its tasks, in bytes. It is not decoded output
-size, unique byte coverage, or physical device I/O. Repeated/overlapping reads
-count each time; a short read or a read that throws still counts its requested
-length. Zero-length reads add nothing. No cache-hit/miss detection is performed.
+`TaskGroup::bytesRead()` is the sum of requested reads by Tasks. This covers:
 
-Covered paths:
+- Local extraction's file handle: encoded data, bitmap and header reads.
+- Jump-info extraction file handles and `.gribjump` index-file streams accessed while a task runs.
+- Inefficient FDB extraction: requested transfer lengths on the source handle.
 
-- Local extraction's file handle: encoded data, bitmap and header reads,
-  including any block/restart-interval over-read performed by the decompressor.
-- Jump-info extraction file handles and `.gribjump` index-file streams accessed
-  while a task runs. In-memory jump-info lookups issue no source reads.
-- Inefficient FDB extraction: requested transfer lengths on the source handle;
-  subsequent decoding of its `MemoryHandle` is **not** counted again.
-
-This is scoped to GribJump's task-owned read calls. It does **not** include MARS
-listing/database reads in another service, socket protocol traffic, or reads
-hidden within a dependency opening its own files (notably ecCodes' whole-file
-`codes_extract_offsets_malloc` scan). Thus a whole-file scan's counter does not
-include its opaque offset-discovery pass. The direct, no-task-group file API is
-also outside this metric.
-
-For forwarded extraction, consult the **leaf server's** metrics: its task group
-performs the reads. A forwarding node does not count decoded replies as source
-bytes and does not aggregate the downstream counters through the wire protocol.
-
-`TaskReadScope` installs an ordinary task-local accumulator on the executing
-thread and merges it into the group's relaxed atomic exactly once on exit,
-including exception unwinding. This happens **before** completion/error
-notification, so reporting after draining tasks sees their final totals. A
-cancelled task that never executes contributes zero. `TaskGroup::report()` sets
-`count_data_bytes_read` in the reporting/request thread's `MetricsManager`; task
-worker threads do not write into their own unrelated metrics objects. Streaming
-failures also set the counter after cancelling/draining outstanding tasks.
+For forwarded extraction, consult the leaf server's metrics.
 
 ## Forwarded extract (`action = forwarded-extract`)
 
-Emitted by a **downstream (leaf) node** serving a `FORWARD_EXTRACT` request from
-a forwarding node. The leaf reads the actual files and replies either buffered
-(v3) or streaming (v4).
+Emitted by a **downstream (leaf) node** serving a `FORWARD_EXTRACT` request from a forwarding node.
+The leaf reads the actual files and replies either buffered (v3) or streaming (v4).
 
-| Metric | Type | Description | Source | Path |
-|---|---|---|---|---|
-| `count_extraction_requests` | uint | Number of extraction requests forwarded to this leaf. | `ForwardedExtractHandler::receive()` | both |
-| `elapsed_tasks` | seconds | Time for all extraction tasks to complete/stream. | `Engine::extractStreaming(filemap)` | streaming only |
-| `count_tasks` | uint | Number of tasks in the group. | `TaskGroup::report()` | streaming only |
-| `count_failed_tasks` | uint | Number of tasks that errored. | `TaskGroup::report()` | streaming only |
-| `count_cancelled_tasks` | uint | Number of tasks cancelled (never ran). | `TaskGroup::report()`; also set on disconnect | streaming only |
-| `first_error` | string | First error message (only if any errors). | `TaskGroup::report()` | streaming only |
-| `count_bytes_streamed` | uint | Total result bytes streamed to the forwarding node (partial on disconnect). | `Engine::streamHarvest()` | streaming only |
-| `peak_outstanding_bytes` | uint | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::streamHarvest()` | streaming only |
-| `client_disconnected` | bool | `true` if a mid-stream failure (e.g. the forwarding node disconnects) aborted streaming. | `Engine::streamHarvest()` catch | streaming only |
+| Metric                      | Type    | Description                                                                                                                                        | Source                                        | Path           |
+| --------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------- |
+| `count_extraction_requests` | uint    | Number of extraction requests forwarded to this leaf.                                                                                              | `ForwardedExtractHandler::receive()`          | both           |
+| `elapsed_tasks`             | seconds | Time for all extraction tasks to complete/stream.                                                                                                  | `Engine::extractStreaming(filemap)`           | streaming only |
+| `count_tasks`               | uint    | Number of tasks in the group.                                                                                                                      | `TaskGroup::report()`                         | streaming only |
+| `count_failed_tasks`        | uint    | Number of tasks that errored.                                                                                                                      | `TaskGroup::report()`                         | streaming only |
+| `count_cancelled_tasks`     | uint    | Number of tasks cancelled (never ran).                                                                                                             | `TaskGroup::report()`; also set on disconnect | streaming only |
+| `first_error`               | string  | First error message (only if any errors).                                                                                                          | `TaskGroup::report()`                         | streaming only |
+| `count_bytes_streamed`      | uint    | Total result bytes streamed to the forwarding node (partial on disconnect).                                                                        | `Engine::streamHarvest()`                     | streaming only |
+| `peak_outstanding_bytes`    | uint    | High-water mark of accounted completed-task result payloads awaiting send; excludes in-flight results and other allocations. Not a memory ceiling. | `Engine::streamHarvest()`                     | streaming only |
+| `client_disconnected`       | bool    | `true` if a mid-stream failure (e.g. the forwarding node disconnects) aborted streaming.                                                           | `Engine::streamHarvest()` catch               | streaming only |
 
-> The **v4 streaming** leaf reply shares `Engine::streamHarvest()` with the local
-> streaming extract path, so it emits the same task/byte/disconnect metrics as a
-> direct `extract`. The **v3 buffered** leaf reply
-> (`BufferedForwardExtractReply`) does not harvest a `TaskGroup` incrementally
-> and emits only `count_extraction_requests`.
+> The **v4 streaming** leaf reply shares `Engine::streamHarvest()` with the local streaming extract
+> path, so it emits the same task/byte/disconnect metrics as a direct `extract`. The **v3 buffered**
+> leaf reply (`BufferedForwardExtractReply`) does not harvest a `TaskGroup` incrementally and emits
+> only `count_extraction_requests`.
 >
-> Note: a **forwarding node** (the one aggregating leaf replies) serves the
-> client under `action = extract` with `forwardExtraction` enabled. That path
-> streams to its client via `streamBufferedResults()` and currently records only
-> `elapsed_build_filemap` for the streaming leg (no `count_bytes_streamed` /
-> `peak_outstanding_bytes`), because it aggregates buffered downstream replies
-> rather than harvesting a `TaskGroup`.
+> Note: a **forwarding node** (the one aggregating leaf replies) serves the client under
+> `action = extract` with `forwardExtraction` enabled. That path streams to its client via
+> `streamBufferedResults()` and currently records only `elapsed_build_filemap` for the streaming leg
+> (no `count_bytes_streamed` / `peak_outstanding_bytes`), because it aggregates buffered downstream
+> replies rather than harvesting a `TaskGroup`.
 
 ## Forwarded scan (`action = forwarded-scan`)
 
-| Metric | Type | Description | Source |
-|---|---|---|---|
+| Metric                   | Type | Description                                        | Source                            |
+| ------------------------ | ---- | -------------------------------------------------- | --------------------------------- |
 | `count_received_offsets` | uint | Number of offsets received for the forwarded scan. | `ForwardedScanHandler::receive()` |
 
 ## Axes (`action = axes`)
@@ -186,9 +153,8 @@ No action-specific metrics beyond the per-request envelope.
 
 ## Buffered vs. streaming parity
 
-The four task-count metrics (`count_tasks`, `count_failed_tasks`,
-`count_cancelled_tasks`, `first_error`) are emitted from `TaskGroup::report()`,
-which is the terminal step of **both** extraction paths. This is deliberate: the
-streaming path harvests via `popCompleted()` rather than `waitForTasks()`, so
-placing the metrics in `report()` (rather than `waitForTasks()`) ensures both
+The four task-count metrics (`count_tasks`, `count_failed_tasks`, `count_cancelled_tasks`,
+`first_error`) are emitted from `TaskGroup::report()`, which is the terminal step of **both**
+extraction paths. This is deliberate: the streaming path harvests via `popCompleted()` rather than
+`waitForTasks()`, so placing the metrics in `report()` (rather than `waitForTasks()`) ensures both
 paths report the same task-level figures.

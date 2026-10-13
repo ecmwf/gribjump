@@ -4,15 +4,15 @@
  */
 #include <atomic>
 #include <fstream>
-#include <stdexcept>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 #include <vector>
 
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/testing/Test.h"
-#include "gribjump/ReadStats.h"
 #include "gribjump/GribJumpDataAccessor.h"
+#include "gribjump/ReadStats.h"
 #include "gribjump/Task.h"
 
 using namespace eckit::testing;
@@ -35,7 +35,8 @@ CASE("read counters are task-local and merge once, including on exceptions") {
         TaskReadScope::requested(5);
         throw std::runtime_error("read failed");
     }
-    catch (const std::runtime_error&) {}
+    catch (const std::runtime_error&) {
+    }
     EXPECT(bytes.load() == 23);
 }
 
@@ -60,7 +61,10 @@ CASE("concurrent task groups have independent exact read totals") {
 CASE("source reads count requested lengths, rereads and short reads; not seeks") {
     eckit::TmpDir dir;
     const auto path = dir / "bytes";
-    { std::ofstream f(path.asString()); f << "0123456789"; }
+    {
+        std::ofstream f(path.asString());
+        f << "0123456789";
+    }
     std::atomic<size_t> bytes{0};
     {
         TaskReadScope scope(bytes);
@@ -69,8 +73,8 @@ CASE("source reads count requested lengths, rereads and short reads; not seeks")
         char buf[20];
         EXPECT(file.read(buf, 4) == 4);
         file.seek(0);
-        EXPECT(file.read(buf, 4) == 4);  // reread counts again
-        EXPECT(file.read(buf, 20) == 6); // count requested 20, not returned 6
+        EXPECT(file.read(buf, 4) == 4);   // reread counts again
+        EXPECT(file.read(buf, 20) == 6);  // count requested 20, not returned 6
         file.close();
     }
     EXPECT(bytes.load() == 28);
@@ -87,9 +91,12 @@ CASE("source reads count requested lengths, rereads and short reads; not seeks")
 namespace {
 class ReadTask : public Task {
 public:
+
     ReadTask(TaskGroup& group, size_t id, bool fail = false) : Task(group, id), fail_(fail) {}
     void info() const override {}
+
 private:
+
     void executeImpl() override {
         TaskReadScope::requested(123);
         if (fail_)
@@ -97,12 +104,15 @@ private:
     }
     bool fail_;
 };
-}
+}  // namespace
 
 CASE("data accessor counts encoded source reads, without double counting") {
     eckit::TmpDir dir;
     const auto path = dir / "encoded";
-    { std::ofstream f(path.asString()); f << "01234567890123456789"; }
+    {
+        std::ofstream f(path.asString());
+        f << "01234567890123456789";
+    }
     ReadCountingFileHandle file(path.asString());
     file.openForRead();
     std::atomic<size_t> bytes{0};
@@ -110,8 +120,8 @@ CASE("data accessor counts encoded source reads, without double counting") {
         TaskReadScope scope(bytes);
         GribJumpDataAccessor accessor(file, {5, 10});
         accessor.read({0, 4});
-        accessor.read({2, 4}); // overlapping reads both count
-        accessor.read();      // whole data section
+        accessor.read({2, 4});  // overlapping reads both count
+        accessor.read();        // whole data section
     }
     file.close();
     EXPECT(bytes.load() == 18);
@@ -122,7 +132,11 @@ CASE("TaskGroup counters include failures and exclude cancelled tasks") {
     ReadTask success(a, 0), failed(a, 1, true), cancelled(a, 2), other(b, 0);
     success.execute();
     EXPECT(a.bytesRead() == 123);  // already merged before completion notification
-    try { failed.execute(); } catch (const std::runtime_error&) {}
+    try {
+        failed.execute();
+    }
+    catch (const std::runtime_error&) {
+    }
     EXPECT(a.bytesRead() == 246);
     cancelled.cancel();
     cancelled.execute();
