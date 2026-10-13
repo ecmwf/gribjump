@@ -3,6 +3,7 @@ resolver = "2"
 members = ["crates/gribjump-sys", "crates/gribjump"]
 
 [workspace.package]
+version = "0.13.1"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/ecmwf/gribjump"
@@ -13,8 +14,8 @@ categories = ["science", "parser-implementations"]
 
 [workspace.dependencies]
 # Internal
-gribjump-sys = { path = "crates/gribjump-sys" }
-gribjump = { path = "crates/gribjump" }
+gribjump-sys = { version = "0.13", path = "crates/gribjump-sys" }
+gribjump = { version = "0.13", path = "crates/gribjump" }
 
 # FDB dependency
 fdb = { git = "ssh://git@github.com/ecmwf/fdb.git", branch = "develop", default-features = false }
