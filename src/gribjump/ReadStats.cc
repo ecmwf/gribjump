@@ -4,16 +4,19 @@
  */
 #include "gribjump/ReadStats.h"
 
+#include "eckit/exception/Exceptions.h"
+
 namespace gribjump {
 
 thread_local TaskReadScope* TaskReadScope::current_ = nullptr;
 
-TaskReadScope::TaskReadScope(std::atomic<size_t>& groupBytes) : previous_(current_), groupBytes_(groupBytes) {
+TaskReadScope::TaskReadScope(std::atomic<size_t>& groupBytes) : groupBytes_(groupBytes) {
+    ASSERT(current_ == nullptr);
     current_ = this;
 }
 
 TaskReadScope::~TaskReadScope() {
-    current_ = previous_;
+    current_ = nullptr;
     groupBytes_.fetch_add(bytes_, std::memory_order_relaxed);
 }
 

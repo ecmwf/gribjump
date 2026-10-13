@@ -32,7 +32,6 @@ public:
 private:
 
     static thread_local TaskReadScope* current_;
-    TaskReadScope* previous_;
     std::atomic<size_t>& groupBytes_;
     size_t bytes_ = 0;
 };
