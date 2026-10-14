@@ -1,4 +1,4 @@
-name: ci_legacy
+name: ci_old
 
 on:
   # Trigger the workflow on push to master or develop, except tag creation

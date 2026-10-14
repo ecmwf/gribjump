@@ -9,9 +9,16 @@
       "cacheVariables": {
         "ENABLE_GRIB": "ON",
         "ENABLE_TESTS": "ON",
-        "ENABLE_PYTHON_METKIT_INTERFACE":"ON" 
+        "ENABLE_FDB_BUILD_TOOLS": "ON"
       },
       "name": "ci"
+    },
+    {
+      "cacheVariables": {
+        "ENABLE_PYTHON_GRIBJUMP_INTERFACE": "ON"
+      },
+      "inherits": "ci",
+      "name": "python"
     }
   ],
   "version": 3

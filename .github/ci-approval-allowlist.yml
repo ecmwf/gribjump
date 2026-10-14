@@ -5,7 +5,7 @@
 exempt:
   - workflow: label-public-pr.yml
   - workflow: pygribjump.yml
-  - workflow: ci_legacy.yml
+  - workflow: ci_old.yml
     reason: "legacy, retiring; gates downstream-ci with an if: rather than needs:"
 
 

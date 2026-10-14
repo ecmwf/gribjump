@@ -1,0 +1,12 @@
+{# SPDX-FileCopyrightText: 2005- European Centre for Medium-Range Weather Forecasts (ECMWF)
+   SPDX-License-Identifier: Apache-2.0 #}
+{% extends "ci-infrastructure/rust-bindings-runner.sh.j2" %}
+{% block cargo_features %}--no-default-features --features system{% endblock %}
+{% block cargo %}
+cargo fmt --all --check
+cargo clippy "${cargo_patches[@]}" --workspace --all-targets {{ self.cargo_features() }} -- -D warnings
+# Single-threaded: GribJump::new() reads FDB5_CONFIG from the environment,
+# so parallel tests clobber it and trip catalogue->open() assertions in FDB.
+cargo test "${cargo_patches[@]}" --workspace {{ self.cargo_features() }} -- --test-threads=1
+{{ self.cargo_doc() }}
+{% endblock %}
