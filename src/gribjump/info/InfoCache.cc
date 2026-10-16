@@ -24,6 +24,7 @@
 #include "gribjump/Config.h"
 #include "gribjump/GribJumpException.h"
 #include "gribjump/LibGribJump.h"
+#include "gribjump/ReadStats.h"
 #include "gribjump/info/InfoCache.h"
 #include "gribjump/info/InfoExtractor.h"
 #include "gribjump/info/InfoFactory.h"
@@ -393,7 +394,7 @@ void IndexFile::appendToFile(const eckit::PathName& path) const {
 }
 
 void IndexFile::fromFile(const eckit::PathName& path) {
-    eckit::FileStream s(path, "r");
+    ReadCountingFileStream s(path, "r");
     decode(s);
     s.close();
 }

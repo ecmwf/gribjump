@@ -74,6 +74,8 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     Engine.h
     Lister.cc
     Lister.h
+    ReadStats.cc
+    ReadStats.h
     Task.cc
     Task.h
     ExtractionItem.cc

@@ -155,7 +155,7 @@ public:
         }
     }
 
-    /// High-water mark of accounted result bytes, not total memory usage.
+    /// High-water mark of accounted result bytes.
     /// In-flight extraction results/workspace are not included.
     size_t peakOutstandingBytes() const {
         std::lock_guard<std::mutex> lock(m_);
@@ -180,6 +180,9 @@ public:
     /// Report on errors and other status information about executed tasks.
     /// Calling code may use this to report to a client or raise an exception.
     TaskReport report();
+
+    /// Sum of requested byte reads. Updated once per task, before notification.
+    size_t bytesRead() const { return bytesRead_.load(std::memory_order_relaxed); }
 
     size_t nTasks() const {
         std::lock_guard<std::mutex> lock(m_);
@@ -222,6 +225,9 @@ private:
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
 
     std::deque<size_t> completed_;  //< ids of DONE tasks awaiting harvest (guarded by m_)
+
+    friend class Task;  // installs task-local read accounting around executeImpl()
+    std::atomic<size_t> bytesRead_{0};
 
     std::atomic<size_t> outstandingBytes_{0};  //< produced-but-not-yet-sent bytes
     size_t peakOutstandingBytes_ = 0;          //< high-water mark of outstandingBytes_ (guarded by m_)
