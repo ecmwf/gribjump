@@ -50,6 +50,14 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
+    TARGET "gribjump_test_ccsds_scaling"
+    SOURCES "test_ccsds_scaling.cc"
+    INCLUDES "${ECKIT_INCLUDE_DIRS}"
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+ecbuild_add_test(
     TARGET "gribjump_test_api"
     SOURCES "test_api.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
