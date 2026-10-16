@@ -66,7 +66,7 @@ CcsdsParams::Offsets CcsdsDecompressor<ValueType>::decode_offsets(const eckit::B
 template <typename ValueType>
 typename CcsdsDecompressor<ValueType>::Values CcsdsDecompressor<ValueType>::decode(const eckit::Buffer& in_buf) {
     auto bscale = codes_power<double>(binary_scale_factor_, 2);
-    auto dscale = codes_power<double>(decimal_scale_factor_, -10);
+    auto dscale = codes_power<double>(-decimal_scale_factor_, 10);
     auto flags  = modify_aec_flags(flags_);
 
     Values values;
@@ -99,7 +99,7 @@ typename CcsdsDecompressor<ValueType>::Values CcsdsDecompressor<ValueType>::deco
     }
 
     auto bscale = codes_power<double>(binary_scale_factor_, 2);
-    auto dscale = codes_power<double>(decimal_scale_factor_, -10);
+    auto dscale = codes_power<double>(-decimal_scale_factor_, 10);
     Values values;
 
     switch (auto nbytes = sample_nbytes()) {
