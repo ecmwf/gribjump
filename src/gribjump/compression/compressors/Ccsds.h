@@ -29,8 +29,8 @@ public:
     size_t block_size() const { return block_size_; }
     size_t bits_per_sample() const { return bits_per_sample_; }
     double reference_value() const { return reference_value_; }
-    size_t decimal_scale_factor() const { return decimal_scale_factor_; }
-    size_t binary_scale_factor() const { return binary_scale_factor_; }
+    long decimal_scale_factor() const { return decimal_scale_factor_; }
+    long binary_scale_factor() const { return binary_scale_factor_; }
     std::optional<Offsets> offsets() const {
         return offsets_.size() > 0 ? std::optional<Offsets>(offsets_) : std::nullopt;
     }
@@ -55,11 +55,11 @@ public:
         reference_value_ = reference_value;
         return *this;
     }
-    CcsdsParams& decimal_scale_factor(size_t decimal_scale_factor) {
+    CcsdsParams& decimal_scale_factor(long decimal_scale_factor) {
         decimal_scale_factor_ = decimal_scale_factor;
         return *this;
     }
-    CcsdsParams& binary_scale_factor(size_t binary_scale_factor) {
+    CcsdsParams& binary_scale_factor(long binary_scale_factor) {
         binary_scale_factor_ = binary_scale_factor;
         return *this;
     }
@@ -76,8 +76,8 @@ protected:
     size_t block_size_;
     size_t bits_per_sample_;
     double reference_value_;
-    size_t decimal_scale_factor_;
-    size_t binary_scale_factor_;
+    long decimal_scale_factor_;
+    long binary_scale_factor_;
     std::vector<size_t> offsets_;
 };
 
