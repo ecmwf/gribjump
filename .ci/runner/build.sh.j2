@@ -1,0 +1,12 @@
+{# SPDX-FileCopyrightText: 2005- European Centre for Medium-Range Weather Forecasts (ECMWF)
+   SPDX-License-Identifier: Apache-2.0 #}
+{% extends "ci-infrastructure/cmake-runner.sh.j2" %}
+{% block test %}
+IFS=';:' read -ra dep_prefixes <<< "$CMAKE_PREFIX_PATH"
+  for prefix in "${dep_prefixes[@]}"; do
+    if [ -d "$prefix/bin" ]; then
+      PATH="$prefix/bin:$PATH"
+    fi
+done
+{{ super() }}
+{% endblock %}
