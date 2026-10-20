@@ -75,8 +75,8 @@ void Jumper::extract(eckit::DataHandle& dh, const eckit::Offset offset, const Ju
     ASSERT(checkIntervals(extractionItem.intervals()));
     ASSERT(!info.sphericalHarmonics());
 
-    if (info.bitsPerValue() == 0)
-        return extractConstant(info, extractionItem);
+    if (info.bitsPerValue() == 0 || (info.editionNumber() == 1 && info.binaryScaleFactor() == -32767))
+        return extractConstant(dh, offset, info, extractionItem);
 
     if (!info.offsetBeforeBitmap())
         return extractNoMask(dh, offset, info, extractionItem);
@@ -131,23 +131,26 @@ void Jumper::extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, co
 }
 
 // Constant fields
-void Jumper::extractConstant(const JumpInfo& info, ExtractionItem& extractionItem) {
+void Jumper::extractConstant(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
+                             ExtractionItem& extractionItem) {
+    // GRIB1 dummy fields are entirely missing, regardless of their stored bitmap.
+    const bool allMissing = info.editionNumber() == 1 && info.binaryScaleFactor() == -32767;
+    const auto bitmap = !allMissing && info.offsetBeforeBitmap() ? readBitmap(dh, offset, info) : Bitmap{};
+    auto res = std::make_unique<ExtractionResult>();
 
-    // ASSERT(!info.offsetBeforeBitmap()); /// @todo: handle constant fields with bitmaps <- It looks like eccodes
-    // ignores the bitmap?
-
-    const std::vector<Interval>& intervals = extractionItem.intervals();
-
-    auto res            = std::make_unique<ExtractionResult>();
-    auto referenceValue = info.referenceValue();
-
-    std::transform(intervals.begin(), intervals.end(), std::back_inserter(res->mutable_values()),
-                   [referenceValue](const Interval& interval) {
-                       return Values(interval.second - interval.first, referenceValue);
-                   });
-    std::transform(
-        intervals.begin(), intervals.end(), std::back_inserter(res->mutable_mask()),
-        [](const Interval& interval) { return toBitset(std::vector(interval.second - interval.first, true)); });
+    for (const auto& interval : extractionItem.intervals()) {
+        Bitmap mask(interval.second - interval.first, !allMissing);
+        if (!bitmap.empty()) {
+            mask.assign(bitmap.begin() + interval.first, bitmap.begin() + interval.second);
+        }
+        Values values;
+        values.reserve(mask.size());
+        for (bool valid : mask) {
+            values.push_back(valid ? info.referenceValue() : MISSING_VALUE);
+        }
+        res->mutable_values().push_back(std::move(values));
+        res->mutable_mask().push_back(toBitset(mask));
+    }
 
     extractionItem.result(std::move(res));
     return;
@@ -164,9 +167,6 @@ Bitmap Jumper::readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, con
 
     if (bitmapSize == 0)
         return Bitmap{};
-
-    if (info.bitsPerValue() == 0)
-        return Bitmap(info.numberOfDataPoints(), true);
 
     eckit::Buffer binaryBitmap(info.numberOfDataPoints());
 
