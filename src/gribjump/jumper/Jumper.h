@@ -44,7 +44,7 @@ private:
     }
     Bitmap readBitmap(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info) const;
 
-    void extractConstant(const JumpInfo& info, ExtractionItem& item);
+    void extractConstant(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem& item);
     void extractNoMask(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem&);
     void extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info, ExtractionItem&);
 
