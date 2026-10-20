@@ -243,6 +243,7 @@ ecbuild_add_test(
 )
 
 add_subdirectory(regressions/GJ-85)
+add_subdirectory(regressions/GJ-123)
 
 if (ENABLE_FDB_BUILD_TOOLS)
     add_subdirectory(tools)
