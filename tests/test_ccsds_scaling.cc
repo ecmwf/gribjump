@@ -8,6 +8,11 @@
  * does it submit to any jurisdiction.
  */
 
+// test_ccsds_scaling.cc:
+// Creates a small set of integers and compresses them using libaec.
+// Then we ask the CCSDS decompressor in GribJump to decompress them and apply different scale factors.
+// This is a regression test for a sign error in the handling of scale factors.
+
 #include <cmath>
 #include <cstdint>
 #include <memory>
@@ -25,8 +30,7 @@ using namespace eckit::testing;
 namespace gribjump::test {
 namespace {
 
-// Scale factors are signed GRIB metadata, not sizes. Do not let a conversion
-// back from size_t to long hide a regression on platforms where it wraps.
+// Scale factors are signed GRIB metadata.
 static_assert(std::is_same_v<decltype(std::declval<mc::CcsdsParams>().decimal_scale_factor()), long>);
 static_assert(std::is_same_v<decltype(std::declval<mc::CcsdsParams>().binary_scale_factor()), long>);
 
@@ -39,27 +43,27 @@ void test_scaling(unsigned int bits_per_sample) {
     }
 
     // Encode native-endian integers directly, independently of GRIB scaling.
-    // No external data files or downloads are needed by this regression test.
+    // No external data files are used by this regression test.
     aec_stream stream{};
-    stream.flags = AEC_DATA_PREPROCESS;
+    stream.flags               = AEC_DATA_PREPROCESS;
     const uint16_t endian_test = 1;
     if (reinterpret_cast<const unsigned char*>(&endian_test)[0] == 0) {
         stream.flags |= AEC_DATA_MSB;
     }
     stream.bits_per_sample = bits_per_sample;
-    stream.block_size = 8;
-    stream.rsi = 4;
-    stream.next_in = reinterpret_cast<const unsigned char*>(samples.data());
-    stream.avail_in = samples.size() * sizeof(Sample);
+    stream.block_size      = 8;
+    stream.rsi             = 4;
+    stream.next_in         = reinterpret_cast<const unsigned char*>(samples.data());
+    stream.avail_in        = samples.size() * sizeof(Sample);
     eckit::Buffer buffer(stream.avail_in * 2 + 1024);
-    stream.next_out = reinterpret_cast<unsigned char*>(buffer.data());
+    stream.next_out  = reinterpret_cast<unsigned char*>(buffer.data());
     stream.avail_out = buffer.size();
     ASSERT(aec_buffer_encode(&stream) == AEC_OK);
     eckit::Buffer encoded(buffer.data(), stream.total_out);
     auto accessor = std::make_shared<mc::MemoryAccessor>(encoded);
 
-    // Include the negative exponents from extremes.grib, positive exponents,
-    // odd/even decimal exponents, and the zero case which hid the original bug.
+    // Include negative exponents, positive exponents,
+    // odd/even decimal exponents, and the zero case,
     for (long binary_scale : {-38L, -18L, 0L, 3L}) {
         for (long decimal_scale : {-9L, -3L, -2L, 0L, 2L, 3L, 9L}) {
             mc::CcsdsDecompressor<double> decoder;
@@ -74,7 +78,7 @@ void test_scaling(unsigned int bits_per_sample) {
             EXPECT_EQUAL(decoder.binary_scale_factor(), binary_scale);
             EXPECT_EQUAL(decoder.decimal_scale_factor(), decimal_scale);
 
-            // The GRIB formula is (X * 2^E + R) * 10^-D, NOT (X * 2^E + R) * (-10)^D.
+            // The GRIB formula is (X * 2^E + R) * 10^-D
             auto expected = [&](size_t i) {
                 return (samples[i] * std::pow(2.0, binary_scale) + 1.25) * std::pow(10.0, -decimal_scale);
             };
