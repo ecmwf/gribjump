@@ -23,12 +23,20 @@ function(add_pygribjump_test scenario test)
         set(_pythonpath "${_pythonpath}:${CMAKE_BINARY_DIR}/pyfdb-python-package-staging")
         set(_enable_fdb_tests 1)
     endif()
+    if(PYGRIBJUMP_STANDALONE)
+        # Against an installed gribjump/fdb: <prefix>/lib/cmake/<pkg>/../../..
+        set(_gribjump_dir "${gribjump_DIR}/../../..")
+        set(_fdb5_dir "${fdb5_DIR}/../../..")
+    else()
+        set(_gribjump_dir "${CMAKE_BINARY_DIR}")
+        set(_fdb5_dir "${CMAKE_BINARY_DIR}")
+    endif()
     set(_env
         "PYTHONPATH=${_pythonpath}:$ENV{PYTHONPATH}"
-        "PATH=${CMAKE_BINARY_DIR}/bin:$ENV{PATH}"
+        "PATH=${_gribjump_dir}/bin:$ENV{PATH}"
         # prevent findlibs in pygribjump from picking up any globally installed gribjump
-        "GRIBJUMP_DIR=${CMAKE_BINARY_DIR}"
-        "FDB5_DIR=${CMAKE_BINARY_DIR}"
+        "GRIBJUMP_DIR=${_gribjump_dir}"
+        "FDB5_DIR=${_fdb5_dir}"
         "FINDLIBS_DISABLE_PACKAGE=yes"
         # prevent findlibs in eccodes-python from picking up any globally installed eccodes
         "ECCODES_PYTHON_USE_FINDLIBS=1"
