@@ -70,3 +70,8 @@ add_custom_command(
     COMMENT "Building Python wheel for pygribjump..."
 )
 add_custom_target(pygribjump-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pygribjump.wheel.stamp)
+
+install(CODE "
+    file(GLOB _whl \"${CMAKE_BINARY_DIR}/pygribjump-*.whl\")
+    file(INSTALL \${_whl} DESTINATION \"\${CMAKE_INSTALL_PREFIX}\")
+")
