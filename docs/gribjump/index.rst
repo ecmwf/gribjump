@@ -19,6 +19,12 @@ and the concepts behind its inner machinery.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Tutorials
+
+   basics
+
+.. toctree::
+   :maxdepth: 1
    :caption: Notes
 
    setup_gribjump_on_fdb
