@@ -3,6 +3,8 @@
 Low-level Rust bindings to ECMWF's [GribJump](https://github.com/ecmwf/gribjump) C++ library.
 
 This crate provides raw FFI bindings using [cxx](https://cxx.rs/). For a safe API, use the [`gribjump`](https://crates.io/crates/gribjump) crate instead.
+Both crates are described in the Rust interface section of the GribJump
+documentation (`docs/rust` in the repository).
 
 ## Cargo build features
 
