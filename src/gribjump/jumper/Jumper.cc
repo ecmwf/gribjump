@@ -135,8 +135,8 @@ void Jumper::extractConstant(eckit::DataHandle& dh, const eckit::Offset offset, 
                              ExtractionItem& extractionItem) {
     // GRIB1 dummy fields are entirely missing, regardless of their stored bitmap.
     const bool allMissing = info.isDummyField();
-    const auto bitmap = !allMissing && info.offsetBeforeBitmap() ? readBitmap(dh, offset, info) : Bitmap{};
-    auto res = std::make_unique<ExtractionResult>();
+    const auto bitmap     = !allMissing && info.offsetBeforeBitmap() ? readBitmap(dh, offset, info) : Bitmap{};
+    auto res              = std::make_unique<ExtractionResult>();
 
     for (const auto& interval : extractionItem.intervals()) {
         Bitmap mask(interval.second - interval.first, !allMissing);

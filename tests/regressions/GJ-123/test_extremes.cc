@@ -25,7 +25,7 @@ namespace gribjump::test {
 
 CASE("GJ-123: CCSDS extremes agree with ecCodes for both decimal scales") {
     const eckit::PathName path = eckit::PathName("extremes-100.grib2").fullName();
-    const auto closeFile = [](FILE* file) { std::fclose(file); };
+    const auto closeFile       = [](FILE* file) { std::fclose(file); };
     std::unique_ptr<FILE, decltype(closeFile)> file(std::fopen(path.asString().c_str(), "rb"), closeFile);
     ASSERT(file);
 
@@ -35,7 +35,7 @@ CASE("GJ-123: CCSDS extremes agree with ecCodes for both decimal scales") {
     GribJump gribjump(config);
 
     const long expectedDecimalScales[] = {-9, -3};
-    const long expectedBinaryScales[] = {-39, -19};
+    const long expectedBinaryScales[]  = {-39, -19};
     for (size_t field = 0; field < 2; ++field) {
         int error = CODES_SUCCESS;
         std::unique_ptr<codes_handle, decltype(&codes_handle_delete)> handle(
@@ -74,12 +74,11 @@ CASE("GJ-123: CCSDS extremes agree with ecCodes for both decimal scales") {
         // Each field is addressed in the original two-message fixture by offset.
         for (const std::vector<Interval>& ranges :
              {std::vector<Interval>{{0, 100}}, std::vector<Interval>{{0, 1}, {31, 36}, {63, 66}, {99, 100}}}) {
-            PathExtractionRequests requests{
-                PathExtractionRequest(path.asString(), "file", offset, "", 0, ranges)};
+            PathExtractionRequests requests{PathExtractionRequest(path.asString(), "file", offset, "", 0, ranges)};
             auto results = gribjump.extract(requests).dumpVector();
             ASSERT(results.size() == 1);
             const auto& values = results[0]->values();
-            const auto& masks = results[0]->mask();
+            const auto& masks  = results[0]->mask();
             ASSERT(values.size() == ranges.size());
             ASSERT(masks.size() == ranges.size());
             for (size_t range = 0; range < ranges.size(); ++range) {
