@@ -64,6 +64,12 @@ python3 -m pip install --upgrade git+ssh://git@github.com/ecmwf/gribjump.git@mas
 See the `docs/examples/` files for simple use cases.
 
 
+## Rust interface
+
+GribJump can be used from Rust through the `gribjump` crate, with `gribjump-sys`
+underneath it. Both live in [rust/](rust/) and are documented in the
+[Rust interface](docs/rust/index.rst) section of the documentation.
+
 ## Acknowledgements
 
 Past and current funding and support is listed in the [Acknowledgements](./ACKNOWLEDGEMENTS.rst).

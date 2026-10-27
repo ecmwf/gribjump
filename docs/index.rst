@@ -14,6 +14,7 @@ GribJump documentation
 
    gribjump/index
    pygribjump/index
+   rust/index
    indices
 
 :ref:`GribJump <GribJump_Introduction>` is part of `ECMWF
@@ -31,3 +32,6 @@ installed on your system.
 
    ``pygribjump`` is now built on pybind11. The previous cffi based
    implementation is deprecated; see the :ref:`PyGribJump_Migration`.
+
+:ref:`The Rust interface <Rust_Introduction>` is the ``gribjump`` crate, which
+calls the same client library from Rust, with ``gribjump-sys`` underneath it.
