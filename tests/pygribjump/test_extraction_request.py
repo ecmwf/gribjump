@@ -107,3 +107,38 @@ def test_path_extraction_request() -> None:
 def test_path_extraction_request_errors_for_invalid_ranges() -> None:
     with pytest.raises(ValueError, match="at least one"):
         PathExtractionRequest("/some/path.grib", "file", 0, "", 0, [])
+
+
+@pytest.mark.parametrize("endpoint", [{}, {"host": None, "port": None}, {"host": "", "port": 0}])
+def test_path_extraction_request_local_defaults(monkeypatch, endpoint) -> None:
+    from pygribjump import pygribjump_type
+
+    captured = []
+    monkeypatch.setattr(pygribjump_type, "_PathExtractionRequest", lambda *args: captured.append(args))
+
+    request = PathExtractionRequest("/some/path.grib", offset=1234, ranges=[(0, 10)], **endpoint)
+
+    assert captured == [("/some/path.grib", "file", 1234, "", 0, [(0, 10)], "")]
+    assert request.shape == [10]
+
+
+def test_path_extraction_request_preserves_explicit_endpoint(monkeypatch) -> None:
+    from pygribjump import pygribjump_type
+
+    captured = []
+    monkeypatch.setattr(pygribjump_type, "_PathExtractionRequest", lambda *args: captured.append(args))
+
+    PathExtractionRequest("/some/path.grib", "fdb", 1234, "store.example", 9000, [(0, 10)])
+
+    assert captured == [("/some/path.grib", "fdb", 1234, "store.example", 9000, [(0, 10)], "")]
+
+
+def test_path_extraction_request_default_offset(monkeypatch) -> None:
+    from pygribjump import pygribjump_type
+
+    captured = []
+    monkeypatch.setattr(pygribjump_type, "_PathExtractionRequest", lambda *args: captured.append(args))
+
+    PathExtractionRequest("/some/path.grib", ranges=[(0, 10)])
+
+    assert captured == [("/some/path.grib", "file", 0, "", 0, [(0, 10)], "")]

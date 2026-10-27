@@ -29,6 +29,7 @@ extensions = [
     "sphinx.ext.inheritance_diagram",
     "breathe",
     "myst_parser",
+    "sphinx_design",
 ]
 
 templates_path = ["_templates"]

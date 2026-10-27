@@ -149,16 +149,17 @@ class PathExtractionRequest:
     ----------
     `path`: `str`
         The path of the file containing the GRIB message.
-    `scheme`: `str`
-        The scheme of the URI, e.g. `file`.
+    `scheme`: `str`, optional
+        The scheme of the URI. Defaults to `file`.
     `offset`: `int`
-        The offset of the GRIB message inside the file.
-    `host`: `str`
-        The host serving the file. May be empty for local files.
-    `port`: `int`
-        The port of the host serving the file.
+        The offset of the GRIB message inside the file. Defaults to 0.
+    `host`: `str` | `None`, optional
+        The host serving the file. None (the default) is passed as an empty string.
+    `port`: `int` | `None`, optional
+        The port of the host serving the file. None (the default) is passed as 0.
     `ranges`: `list[tuple[int, int]]`
         The ranges to extract, each resembling the half-open interval [lo, hi).
+        At least one range must be supplied.
     `grid_hash`: `str`, *optional*
         Hash of the grid the values are expected to be defined on.
 
@@ -172,11 +173,11 @@ class PathExtractionRequest:
     def __init__(
         self,
         path: str,
-        scheme: str,
-        offset: int,
-        host: str,
-        port: int,
-        ranges: Collection[Range],
+        scheme: str = "file",
+        offset: int = 0,
+        host: str | None = None,
+        port: int | None = None,
+        ranges: Collection[Range] = (),
         grid_hash: str | None = None,
     ) -> None:
         self._ranges = RequestMapper.to_ranges(ranges)
@@ -185,8 +186,8 @@ class PathExtractionRequest:
             path,
             scheme,
             offset,
-            host,
-            port,
+            host if host is not None else "",
+            port if port is not None else 0,
             self._ranges,
             grid_hash if grid_hash is not None else "",
         )
