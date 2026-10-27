@@ -190,9 +190,13 @@ fn test_gribjump_api_extract_hash_validation() {
 
     // Test 1: Request with wrong hash should fail
     let request_wrong_hash = ExtractionRequest::new(request_str, ranges.clone(), "wronghash");
-    let result = gj.extract(&[request_wrong_hash]);
-    assert!(result.is_err(), "expected error with wrong hash");
-    println!("Extract with wrong hash: error (as expected)");
+    let Err(err) = gj.extract(&[request_wrong_hash]) else {
+        panic!("expected error with wrong hash");
+    };
+    assert!(
+        matches!(err, gribjump::Error::Eckit(eckit::Error::SeriousBug(_))),
+        "expected the typed eckit error, got {err:?}"
+    );
 
     // Test 2: Request with correct hash should succeed
     let request_correct_hash = ExtractionRequest::new(request_str, ranges.clone(), GRID_HASH);
