@@ -75,7 +75,7 @@ void Jumper::extract(eckit::DataHandle& dh, const eckit::Offset offset, const Ju
     ASSERT(checkIntervals(extractionItem.intervals()));
     ASSERT(!info.sphericalHarmonics());
 
-    if (info.bitsPerValue() == 0 || (info.editionNumber() == 1 && info.binaryScaleFactor() == -32767))
+    if (info.bitsPerValue() == 0 || info.isDummyField())
         return extractConstant(dh, offset, info, extractionItem);
 
     if (!info.offsetBeforeBitmap())
@@ -134,7 +134,7 @@ void Jumper::extractMasked(eckit::DataHandle& dh, const eckit::Offset offset, co
 void Jumper::extractConstant(eckit::DataHandle& dh, const eckit::Offset offset, const JumpInfo& info,
                              ExtractionItem& extractionItem) {
     // GRIB1 dummy fields are entirely missing, regardless of their stored bitmap.
-    const bool allMissing = info.editionNumber() == 1 && info.binaryScaleFactor() == -32767;
+    const bool allMissing = info.isDummyField();
     const auto bitmap = !allMissing && info.offsetBeforeBitmap() ? readBitmap(dh, offset, info) : Bitmap{};
     auto res = std::make_unique<ExtractionResult>();
 

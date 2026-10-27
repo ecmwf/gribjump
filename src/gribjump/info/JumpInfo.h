@@ -54,6 +54,9 @@ public:
     std::string md5GridSection() const { return md5GridSection_; }
     std::string packingType() const { return packingType_; }
 
+    // GRIB1 uses a binary scale factor of -32767 to mark an entirely missing dummy field.
+    bool isDummyField() const { return editionNumber_ == 1 && binaryScaleFactor_ == -32767; }
+
 protected:
 
     virtual bool equals(const JumpInfo& other) const;
