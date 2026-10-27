@@ -80,7 +80,8 @@ CASE("GJ-85: CCSDS extremes agree with ecCodes for both decimal scales") {
             ASSERT(values.size() == ranges.size());
             ASSERT(masks.size() == ranges.size());
             for (size_t range = 0; range < ranges.size(); ++range) {
-                const auto [begin, end] = ranges[range];
+                const auto begin = ranges[range].first;
+                const auto end   = ranges[range].second;
                 ASSERT(values[range].size() == end - begin);
                 ASSERT(masks[range].size() == (end - begin + 63) / 64);
                 for (size_t i = 0; i < values[range].size(); ++i) {

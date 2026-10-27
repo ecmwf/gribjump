@@ -97,7 +97,8 @@ void test_scaling(unsigned int bits_per_sample) {
             // Exercise the range overload, including RSI boundaries and the tail.
             // The full decode also computes the offsets used by range decoding.
             EXPECT(decoder.offsets().has_value());
-            for (const mc::Block& range : {mc::Block{0, 1}, {31, 5}, {63, 66}, {255, 2}}) {
+            const std::vector<mc::Block> ranges{{0, 1}, {31, 5}, {63, 66}, {255, 2}};
+            for (const auto& range : ranges) {
                 const auto part = decoder.decode(accessor, range);
                 EXPECT_EQUAL(part.size(), range.second);
                 check(part, range.first);
