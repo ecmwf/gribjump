@@ -204,6 +204,24 @@ modules = ["load prgenv/intel", "unload intel", "load intel/2023.2.0", "load cma
 c-compiler-binary = "icc"
 cxx-compiler-binary = "icpc"
 
+# Publishing the crates, only from publish-crates.yml: no patches and the default features, as a
+# crates.io user gets them, so gribjump-sys builds its C++ from the release tag.
+[packages.gribjump-crates]
+compiler-inputs = ["cxx-compiler", "rust-compiler"]
+
+[matrix.rust-publish]
+packages = ["gribjump-crates"]
+publishes = false
+
+[[matrix.rust-publish.include]]
+job-script = "./.ci/runner/rust-publish.sh.j2"
+runs-on = "arc-runner-very-large"
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+rust-compiler = "rust-1.90"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
+platform = "ubuntu-24.04"
+
 # [packages.gribjump-rust]
 # compiler-inputs = ["cxx-compiler"]
 #
