@@ -14,7 +14,6 @@ name = "gribjump"
 repo = "ecmwf/gribjump"
 visibility = "public"
 compiler-inputs = ["cxx-compiler"]
-git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground", "ecmwf/fdb", "ecmwf/eckit", "ecmwf/metkit"]
 
 [[deps]]
 repo = "ecmwf/ecbuild"
@@ -222,48 +221,48 @@ rust-compiler = "rust-1.90"
 container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
 platform = "ubuntu-24.04"
 
-# [packages.gribjump-rust]
-# compiler-inputs = ["cxx-compiler"]
-#
-# [[packages.gribjump-rust.deps]]
-# package = "gribjump"
-#
-# [[packages.gribjump-rust.deps]]
-# repo = "ecmwf/eckit"
-# package = "eckit"
-# ref = "develop"
-# compiler-inputs = ["cxx-compiler"]
-# crates = ["eckit", "eckit-sys"]
-#
-# [[packages.gribjump-rust.deps]]
-# repo = "ecmwf/metkit"
-# package = "metkit"
-# ref = "develop"
-# compiler-inputs = ["cxx-compiler"]
-# crates = ["metkit", "metkit-sys"]
-#
-# [[packages.gribjump-rust.deps]]
-# repo = "ecmwf/fdb"
-# package = "fdb"
-# ref = "develop"
-# compiler-inputs = ["cxx-compiler"]
-# crates = ["fdb", "fdb-sys"]
-#
-# [matrix.rust]
-# packages = ["gribjump-rust"]
-# publishes = false
-#
-# [matrix.rust.defaults]
-# job-script = "./.ci/runner/rust.sh.j2"
-# runs-on = "arc-runner-normal"
-# build-type = "RelWithDebInfo"
-# cxx-compiler = "g++-13"
-# c-compiler = "gcc-13"
-# container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
-# platform = "ubuntu-24.04"
-#
-# [[matrix.rust.include]]
-# rust-compiler = "rust-1.90"
+[packages.gribjump-rust]
+compiler-inputs = ["cxx-compiler", "rust-compiler"]
+
+[[packages.gribjump-rust.deps]]
+package = "gribjump"
+
+[[packages.gribjump-rust.deps]]
+repo = "ecmwf/eckit"
+package = "eckit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+crates = ["eckit", "eckit-sys"]
+
+[[packages.gribjump-rust.deps]]
+repo = "ecmwf/metkit"
+package = "metkit"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+crates = ["metkit", "metkit-sys"]
+
+[[packages.gribjump-rust.deps]]
+repo = "ecmwf/fdb"
+package = "fdb"
+ref = "develop"
+compiler-inputs = ["cxx-compiler"]
+crates = ["fdb", "fdb-sys"]
+
+[matrix.rust]
+packages = ["gribjump-rust"]
+publishes = false
+
+[matrix.rust.defaults]
+job-script = "./.ci/runner/rust.sh.j2"
+runs-on = "arc-runner-normal"
+build-type = "RelWithDebInfo"
+cxx-compiler = "g++-13"
+c-compiler = "gcc-13"
+container = "eccr.ecmwf.int/public-ci-images/ubuntu24.04-gcc13-gfortran13-boost-qt6-rust1.90"
+platform = "ubuntu-24.04"
+
+[[matrix.rust.include]]
+rust-compiler = "rust-1.90"
 
 [[trigger-downstream]]
 repo = "ecmwf/zfdb"
