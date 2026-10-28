@@ -26,7 +26,7 @@ eckit-sys = { version = "2.5", default-features = false }
 eckit = "2.5"
 metkit-sys = { version = "1.22", default-features = false }
 metkit = "1.22"
-eccodes-sys = { version = "2.49", default-features = false, features = ["vendored", "eccodes-threads", "aec"] }
+eccodes-sys = { version = "2.50", default-features = false, features = ["vendored", "eccodes-threads", "aec"] }
 
 # Build tools
 bindman = "0.2"
