@@ -23,12 +23,6 @@ ref = "develop"
 compiler-inputs = []
 
 [[deps]]
-repo = "ecmwf/eccodes"
-package = "eccodes"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-
-[[deps]]
 repo = "ecmwf/eckit"
 package = "eckit"
 ref = "develop"
@@ -116,12 +110,6 @@ compiler-inputs = ["cxx-compiler"]
 package = "gribjump"
 
 [[packages.pygribjump.deps]]
-repo = "ecmwf/eccodes"
-package = "eccodes"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-
-[[packages.pygribjump.deps]]
 repo = "ecmwf/eckit"
 package = "eckit"
 ref = "develop"
@@ -193,7 +181,6 @@ time = "00:40:00"
 #
 # [[packages.gribjump-rust.deps]]
 # package = "gribjump"
-# options-input = "options"
 #
 # [[packages.gribjump-rust.deps]]
 # repo = "ecmwf/eckit"
