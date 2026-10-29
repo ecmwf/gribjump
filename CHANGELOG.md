@@ -4,12 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Support passing of configuration options to the GribJump object (C++/pybind interfaces)
+No unreleased changes at the moment.
+
+## [0.14.0] - 2026-10-29
+
 - Port pygribjump to use pybind11-based bindings instead of cffi.
+- Support passing of configuration options to the GribJump object (C++/pybind interfaces)
 - Fix sigint not interupting gribjump extraction from python.
 - GJ-85 Fix incorrect decoding caused by misuse of the decimal scale factor.
 - Reuse a thread-local Metkit MARS expansion object when parsing pybind request strings.
-
 
 ## [0.13.1] - 2026-09-04
 
@@ -149,7 +152,8 @@ All notable changes to this project will be documented in this file.
 
 - Migrate GribJump from Metkit.
 
-[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.13.1...HEAD
+[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/ecmwf/gribjump/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/ecmwf/gribjump/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/ecmwf/gribjump/compare/0.12.0...0.13.0
 [0.12.0]: https://github.com/ecmwf/gribjump/compare/0.11.1...0.12.0
