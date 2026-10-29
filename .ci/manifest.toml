@@ -218,3 +218,7 @@ time = "00:40:00"
 #
 # [[matrix.rust.include]]
 # rust-compiler = "rust-1.90"
+
+[[trigger-downstream]]
+repo = "ecmwf/zfdb"
+ref = "develop"
