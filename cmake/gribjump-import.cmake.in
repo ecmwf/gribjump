@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 1996- European Centre for Medium-Range Weather Forecasts (ECMWF)
+# SPDX-License-Identifier: Apache-2.0
+
+# The exported gribjump target links libaec::aec, so consumers must find libaec
+# before the targets file is included.
+include( CMakeFindDependencyMacro )
+
+if( "@HAVE_GRIBJUMP_LOCAL_EXTRACT@" )
+  find_dependency( libaec HINTS ${CMAKE_CURRENT_LIST_DIR}/../libaec @libaec_DIR@ )
+endif()

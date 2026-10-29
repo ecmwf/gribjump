@@ -28,18 +28,14 @@ if (HAVE_GRIBJUMP_LOCAL_EXTRACT)
   ecbuild_find_package( NAME eccodes VERSION 2.32.1 REQUIRED )
 
   ### AEC
+  # Use libaec's own CMake package and link its imported target libaec::aec, so that the installed
+  # gribjump package refers to libaec by target and each consumer resolves it from its own prefix path
+  # instead of inheriting the absolute library path of the build that produced gribjump.
   # Override eccodes' aec with our own: we need a newer version.
-  unset(AEC_INCLUDE_DIRS CACHE)
-  unset(AEC_LIBRARIES CACHE)
-  ecbuild_find_package( NAME AEC VERSION 1.1.1 REQUIRED )
+  ecbuild_find_package( NAME libaec VERSION 1.1.1 REQUIRED )
 
-  # ecbuild_find_package's version checking does not work if the version is not specified in the package.
-  if (NOT AEC_VERSION)
-    message(FATAL_ERROR "AEC version is too old (version unspecified). Minimum supported version is 1.1.1.")
-  endif()
-  if (AEC_VERSION VERSION_LESS 1.1.1)
-    message(FATAL_ERROR "AEC version is too old. Minimum supported version is 1.1.1. Found version: ${AEC_VERSION}")
-  endif()
+  # Location of the library file, e.g. to LD_PRELOAD it in tests.
+  get_target_property( AEC_LIBRARY libaec::aec LOCATION )
 
   # Optional dependency: dhskit
   ecbuild_find_package( NAME dhskit VERSION 0.8.6 )
@@ -76,7 +72,6 @@ include(find_python_module)
 set( gribjump_INCLUDE_DIRS  ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/src )
 
 include_directories(
-  ${AEC_INCLUDE_DIRS}
   ${gribjump_INCLUDE_DIRS}
   ${eckit_INCLUDE_DIRS}
   )
