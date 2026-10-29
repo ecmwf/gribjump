@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-No unreleased changes at the moment.
+- Bump minimum version of libaec to 1.1.4 and rely on libaec's CMake package configuration.
 
 ## [0.14.0] - 2026-10-29
 

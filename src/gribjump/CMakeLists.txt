@@ -137,7 +137,7 @@ if( HAVE_GRIBJUMP_LOCAL_EXTRACT )
     FDBPlugin.h
     )
 
-    set( SERVER_LIBS fdb5 ${AEC_LIBRARIES} )
+    set( SERVER_LIBS fdb5 libaec::aec )
 
 endif()
 
