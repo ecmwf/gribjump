@@ -9,7 +9,8 @@ All notable changes to this project will be documented in this file.
 - Fix sigint not interupting gribjump extraction from python.
 - GJ-85 Fix incorrect decoding caused by misuse of the decimal scale factor.
 - Reuse a thread-local Metkit MARS expansion object when parsing pybind request strings.
-
+- Find libaec through its CMake package and link `libaec::aec`, so the installed gribjump package no longer carries the absolute libaec path of the build that produced it.
+- Add `gribjump-import.cmake` so that `find_package(gribjump)` finds libaec for its exported `libaec::aec` link dependency.
 
 ## [0.13.1] - 2026-09-04
 
