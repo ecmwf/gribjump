@@ -23,12 +23,6 @@ ref = "develop"
 compiler-inputs = []
 
 [[deps]]
-repo = "ecmwf/eccodes"
-package = "eccodes"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-
-[[deps]]
 repo = "ecmwf/eckit"
 package = "eckit"
 ref = "develop"
@@ -116,12 +110,6 @@ compiler-inputs = ["cxx-compiler"]
 package = "gribjump"
 
 [[packages.pygribjump.deps]]
-repo = "ecmwf/eccodes"
-package = "eccodes"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-
-[[packages.pygribjump.deps]]
 repo = "ecmwf/eckit"
 package = "eckit"
 ref = "develop"
@@ -173,8 +161,6 @@ triggers = ["upstream-change", "rebuild-request"]
 
 [matrix.build-hpc.defaults]
 job-script = "./.ci/hpc/build.sh.j2"
-
-[[matrix.build-hpc.include]]
 cxx-compiler = "g++-8"
 build-type = "RelWithDebInfo"
 runs-on = "hpc-submit"
@@ -184,16 +170,45 @@ platform = "hpc-atos-gnu"
 # gcc/old, not a version number: as of now gives you 8.5.0
 # `module avail gcc` lists no 8.5.0 to pin directly.
 modules = ["load prgenv/gnu", "unload gcc", "load gcc/old", "load cmake", "load ninja", "load uv", "load python3/3.11.8-01"]
-c_compiler_binary = "gcc"
-cxx_compiler_binary = "g++"
+c-compiler-binary = "gcc"
+cxx-compiler-binary = "g++"
 time = "00:40:00"
+
+[[matrix.build-hpc.include]]
+
+[[matrix.build-hpc.include]]
+cxx-compiler = "g++-15"
+platform = "hpc-atos-gnu"
+modules = ["load prgenv/gnu", "unload gcc", "load gcc/15.2.0", "load cmake", "load ninja"]
+c-compiler-binary = "gcc"
+cxx-compiler-binary = "g++"
+
+[[matrix.build-hpc.include]]
+cxx-compiler = "icpx-2025.3.1"
+platform = "hpc-atos-intel"
+modules = ["load prgenv/intel-llvm", "unload intel", "load intel/2025.3.1", "load cmake", "load ninja"]
+c-compiler-binary = "icx"
+cxx-compiler-binary = "icpx"
+
+[[matrix.build-hpc.include]]
+cxx-compiler = "nvc++-26.1"
+platform = "hpc-atos-nvidia"
+modules = ["load prgenv/nvidia", "unload nvidia", "load nvidia/26.1", "load cmake", "load ninja"]
+c-compiler-binary = "nvc"
+cxx-compiler-binary = "nvc++"
+
+[[matrix.build-hpc.include]]
+cxx-compiler = "icpc-2023.2.0"
+platform = "hpc-atos-intel"
+modules = ["load prgenv/intel", "unload intel", "load intel/2023.2.0", "load cmake", "load ninja"]
+c-compiler-binary = "icc"
+cxx-compiler-binary = "icpc"
 
 # [packages.gribjump-rust]
 # compiler-inputs = ["cxx-compiler"]
 #
 # [[packages.gribjump-rust.deps]]
 # package = "gribjump"
-# options-input = "options"
 #
 # [[packages.gribjump-rust.deps]]
 # repo = "ecmwf/eckit"
@@ -231,3 +246,7 @@ time = "00:40:00"
 #
 # [[matrix.rust.include]]
 # rust-compiler = "rust-1.90"
+
+[[trigger-downstream]]
+repo = "ecmwf/zfdb"
+ref = "develop"
