@@ -12,8 +12,10 @@ jobs:
   wheel-wrapper:
     uses: ./.github/workflows/build-wheel-wrapper.yml
     secrets: inherit
-  wheel-python:
-    uses: ecmwf/reusable-workflows/.github/workflows/cd-pypi.yml@v2
-    secrets: inherit
-    needs:
-      - wheel-wrapper
+  # Legacy CFFI publisher. The central bundle release now publishes the
+  # CMake-generated pybind11 wheel alongside gribjumplib.
+  # wheel-python:
+  #   uses: ecmwf/reusable-workflows/.github/workflows/cd-pypi.yml@v2
+  #   secrets: inherit
+  #   needs:
+  #     - wheel-wrapper
