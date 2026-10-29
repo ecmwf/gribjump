@@ -21,7 +21,8 @@ jobs:
     with:
       ci_group: only-self
       gribjump: ecmwf/gribjump@${{ github.event.workflow_run.head_sha || github.sha }}
-      pygribjump: pygribjump:ecmwf/gribjump@${{ github.event.workflow_run.head_sha || github.sha }}
+      # Legacy CFFI CI; pybind11 is covered by the pygribjump package matrix.
+      # pygribjump: pygribjump:ecmwf/gribjump@${{ github.event.workflow_run.head_sha || github.sha }}
       codecov_upload: true
       clang_format: true
     secrets: inherit
@@ -49,5 +50,6 @@ jobs:
     with:
       ci_group: only-self
       gribjump: ecmwf/gribjump@${{ github.event.workflow_run.head_sha || github.sha }}
-      pygribjump: pygribjump:ecmwf/gribjump@${{ github.event.workflow_run.head_sha || github.sha }}
+      # Legacy CFFI CI; pybind11 is covered by the pygribjump package matrix.
+      # pygribjump: pygribjump:ecmwf/gribjump@${{ github.event.workflow_run.head_sha || github.sha }}
     secrets: inherit

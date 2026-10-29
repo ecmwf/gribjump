@@ -8,9 +8,10 @@ Up to and including GribJump 0.13, ``pygribjump`` was implemented with `cffi
 </gribjump/c_api>`. From GribJump 0.14 onwards it is implemented with `pybind11
 <https://pybind11.readthedocs.io>`__ directly on top of the GribJump C++ API.
 
-The legacy cffi interface still ships, but it is deprecated and emits a
-``FutureWarning`` on import. It will be removed in a future release. Please
-migrate.
+Published ``pygribjump`` packages now contain the pybind11 interface and require
+Python 3.11 or newer. The legacy cffi sources are retained in the repository,
+but are no longer published. Their packaging configuration is archived as
+``pyproject-cffi.toml`` so release automation does not build it. Please migrate.
 
 .. note::
 
@@ -130,8 +131,8 @@ Iterate the results, or use ``dump_values()``:
    # or, for the values of every field
    values_per_field = gribjump.extract(requests).dump_values()
 
-If you cannot migrate yet, ``dump_legacy()`` is still available in the legacy
-cffi interface for as long as that ships.
+If you cannot migrate yet, ``dump_legacy()`` remains available in previously
+published cffi releases.
 
 The polyrequest tuple syntax is deprecated
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
