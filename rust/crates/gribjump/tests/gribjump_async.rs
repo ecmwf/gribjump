@@ -43,7 +43,11 @@ spaces:
     );
 
     // Archive test data
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
 
     // Archive multiple steps for concurrent extraction tests
@@ -75,7 +79,7 @@ async fn test_gribjump_concurrent_extract() {
         env::set_var("FDB5_CONFIG", &config);
     }
 
-    // With thread-safe feature, GribJump is Clone (shares internal Arc<Mutex>)
+    // GribJump is Clone: clones share the internal Arc<Mutex>
     let gj = GribJump::new().expect("failed to create GribJump");
 
     let mut tasks = JoinSet::new();
@@ -92,7 +96,7 @@ async fn test_gribjump_concurrent_extract() {
 
             let request = ExtractionRequest::new(&request_str, ranges, GRID_HASH);
 
-            // With thread-safe feature, extract takes &self and uses internal locking
+            // extract takes &self and uses internal locking
             let results: Vec<_> = gj.extract(&[request]).expect("extract failed").collect();
 
             let total_values: usize = results

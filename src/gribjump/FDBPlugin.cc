@@ -37,8 +37,8 @@ FDBPlugin& FDBPlugin::instance() {
 FDBPlugin::FDBPlugin() {
     // NB: Can't access eckit::Resource outside the callback because eckit::main has not finished initialising
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::CallbackRegistry& fdb) {
-        static bool enableGribjump  = ConfigOptions::instance().fdbEnableGribjump();
-        static bool disableGribjump = ConfigOptions::instance().fdbDisableGribjump();
+        static bool enableGribjump  = ProcessOptions::get().fdbEnableGribjump();
+        static bool disableGribjump = ProcessOptions::get().fdbDisableGribjump();
         if (enableGribjump && !disableGribjump) {
             LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin has been enabled" << std::endl;
             FDBPlugin::instance().addFDB(fdb);
@@ -89,7 +89,7 @@ void FDBPlugin::parseConfig() {
         return;
     configParsed_ = true;
 
-    std::string select = ConfigOptions::instance().pluginSelect();
+    std::string select = ProcessOptions::get().pluginSelect();
 
     std::vector<std::string> select_key_values;
     eckit::Tokenizer(',')(select, select_key_values);

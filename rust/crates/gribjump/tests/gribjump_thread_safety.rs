@@ -41,7 +41,11 @@ spaces:
     );
 
     // Archive test data
-    let fdb = Fdb::open(Some(config.as_str()), None).expect("failed to create FDB");
+    let fdb = Fdb::open(
+        Some(&config.parse::<eckit::Config>().expect("parse config")),
+        None,
+    )
+    .expect("failed to create FDB");
     let grib_data = fs::read(fixtures_dir().join("synth11.grib")).expect("failed to read GRIB");
 
     // Archive multiple steps for concurrent extraction tests
@@ -82,7 +86,7 @@ fn test_gribjump_is_sync() {
     assert_sync::<GribJump>();
 }
 
-/// Test: `GribJump` is Clone (with thread-safe feature)
+/// Test: `GribJump` is Clone
 #[test]
 fn test_gribjump_is_clone() {
     fn assert_clone<T: Clone>() {}
@@ -102,6 +106,9 @@ fn test_result_is_send() {
     fn assert_send<T: Send>() {}
     assert_send::<ExtractionResult>();
 }
+
+// `ExtractionResult` must not be Sync: mask conversion is cached behind `&self`.
+static_assertions::assert_not_impl_any!(ExtractionResult: Sync);
 
 /// Test: `ExtractionRequest` is Send + Sync
 #[test]

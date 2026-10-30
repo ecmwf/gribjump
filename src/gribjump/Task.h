@@ -15,6 +15,7 @@
 #include <mutex>
 #include "eckit/serialisation/Stream.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
 #include "gribjump/GribJump.h"
 
@@ -97,7 +98,10 @@ private:
 class TaskGroup {
 public:
 
-    TaskGroup() : ctx_{ContextManager::instance().context()} {}
+    explicit TaskGroup(const ConfigOptions& options = ConfigOptions::defaultOptions()) :
+        options_(options), ctx_{ContextManager::instance().context()} {}
+
+    const ConfigOptions& options() const { return options_; }
 
     /// Notify that a task has been completed
     void notify(size_t taskid);
@@ -114,7 +118,8 @@ public:
         enqueueTask(new TaskType(*this, tasks_.size(), std::forward<Args>(args)...));
     }
 
-    /// Wait for all queued tasks to be executed
+    /// Wait for all tasks. A throwing TaskWaitScope check cancels pending tasks
+    /// and drains active tasks before rethrowing.
     void waitForTasks();
 
     /// Report on errors and other status information about executed tasks.
@@ -160,7 +165,8 @@ private:
     std::vector<std::shared_ptr<Task>> tasks_;
     std::vector<std::string> errors_;  //< stores error messages, empty if no errors
 
-    const LogContext& ctx_;  //< required for propagating context in forwarding tasks.
+    const ConfigOptions options_;  //< owned snapshot used by worker tasks
+    const LogContext ctx_;         //< owned snapshot for propagating context in forwarding tasks.
 };
 
 //----------------------------------------------------------------------------------------------------------------------

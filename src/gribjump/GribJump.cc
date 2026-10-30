@@ -28,6 +28,12 @@ GribJump::GribJump() {
     impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build());
 }
 
+GribJump::GribJump(const Config& cfg) {
+    const ConfigOptions options(cfg);
+    ProcessOptions::configure(cfg);
+    impl_ = std::unique_ptr<GribJumpBase>(GribJumpFactory::build(options));
+}
+
 GribJump::~GribJump() {}
 
 size_t GribJump::scan(const std::vector<eckit::PathName>& paths, const LogContext& ctx) {

@@ -11,7 +11,7 @@ use crate::iterator::ExtractionIterator;
 use crate::request::{ExtractionRequest, FileExtraction, PathExtractionRequest, Range};
 
 // Private wrapper to make UniquePtr Send-safe for use with Arc<Mutex<...>>
-struct HandleInner(UniquePtr<gribjump_sys::GribJumpHandle>);
+pub struct HandleInner(UniquePtr<gribjump_sys::GribJumpHandle>);
 
 // SAFETY: HandleInner is only accessed through Mutex which provides synchronization.
 // The underlying C++ GribJump handle is protected by the Mutex.
@@ -58,7 +58,8 @@ impl GribJump {
     ///
     /// Returns an error if handle creation fails.
     pub fn new() -> Result<Self> {
-        let handle = gribjump_sys::new_gribjump()?;
+        gribjump_sys::Library::initialise();
+        let handle = gribjump_sys::GribJumpHandle::create()?;
         Ok(Self {
             inner: Arc::new(Mutex::new(HandleInner(handle))),
         })
@@ -76,9 +77,9 @@ impl GribJump {
     pub fn extract(&self, requests: &[ExtractionRequest]) -> Result<ExtractionIterator> {
         let cxx_requests: Vec<_> = requests.iter().map(ExtractionRequest::to_cxx).collect();
         let mut guard = self.inner.lock();
-        let it = gribjump_sys::extract(guard.0.pin_mut(), &cxx_requests)?;
+        let it = guard.0.pin_mut().extract(&cxx_requests)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Extract data from file paths.
@@ -96,9 +97,9 @@ impl GribJump {
     ) -> Result<ExtractionIterator> {
         let cxx_requests: Vec<_> = requests.iter().map(PathExtractionRequest::to_cxx).collect();
         let mut guard = self.inner.lock();
-        let it = gribjump_sys::extract_from_paths(guard.0.pin_mut(), &cxx_requests)?;
+        let it = guard.0.pin_mut().extract_from_paths(&cxx_requests)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Extract from a MARS request string.
@@ -123,9 +124,12 @@ impl GribJump {
     ) -> Result<ExtractionIterator> {
         let cxx_ranges: Vec<_> = ranges.iter().copied().map(Range::to_cxx).collect();
         let mut guard = self.inner.lock();
-        let it = gribjump_sys::extract_mars(guard.0.pin_mut(), request, &cxx_ranges, grid_hash)?;
+        let it = guard
+            .0
+            .pin_mut()
+            .extract_mars(request, &cxx_ranges, grid_hash)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Extract from a file with specific message offsets.
@@ -140,9 +144,9 @@ impl GribJump {
     pub fn extract_from_file(&self, extraction: &FileExtraction) -> Result<ExtractionIterator> {
         let cxx_data = extraction.to_cxx();
         let mut guard = self.inner.lock();
-        let it = gribjump_sys::extract_from_file(guard.0.pin_mut(), &cxx_data)?;
+        let it = guard.0.pin_mut().extract_from_file(&cxx_data)?;
         drop(guard);
-        Ok(ExtractionIterator::new(it))
+        Ok(ExtractionIterator::new(it, Arc::clone(&self.inner)))
     }
 
     /// Get axes information for a request.
@@ -172,7 +176,7 @@ impl GribJump {
     /// ```
     pub fn axes(&self, request: &str, level: i32) -> Result<HashMap<String, Vec<String>>> {
         let mut guard = self.inner.lock();
-        let entries = gribjump_sys::axes(guard.0.pin_mut(), request, level)?;
+        let entries = guard.0.pin_mut().axes(request, level)?;
         drop(guard);
         Ok(entries.into_iter().map(|e| (e.key, e.values)).collect())
     }
@@ -195,7 +199,7 @@ impl GribJump {
     pub fn scan_paths<S: AsRef<str>>(&self, paths: &[S]) -> Result<usize> {
         let cxx_paths: Vec<String> = paths.iter().map(|p| p.as_ref().to_string()).collect();
         let mut guard = self.inner.lock();
-        let count = gribjump_sys::scan_paths(guard.0.pin_mut(), &cxx_paths)?;
+        let count = guard.0.pin_mut().scan_paths(&cxx_paths)?;
         drop(guard);
         Ok(count)
     }
@@ -204,7 +208,8 @@ impl GribJump {
     ///
     /// # Arguments
     ///
-    /// * `requests` - MARS request strings to scan
+    /// * `requests` - MARS request strings to scan, each including the verb
+    ///   (e.g. `"retrieve,class=rd,expver=xxxx"`)
     /// * `by_files` - If true, scan by files rather than by messages
     ///
     /// # Returns
@@ -217,7 +222,7 @@ impl GribJump {
     pub fn scan_requests<S: AsRef<str>>(&self, requests: &[S], by_files: bool) -> Result<usize> {
         let cxx_requests: Vec<String> = requests.iter().map(|r| r.as_ref().to_string()).collect();
         let mut guard = self.inner.lock();
-        let count = gribjump_sys::scan_requests(guard.0.pin_mut(), &cxx_requests, by_files)?;
+        let count = guard.0.pin_mut().scan_requests(&cxx_requests, by_files)?;
         drop(guard);
         Ok(count)
     }
@@ -226,7 +231,7 @@ impl GribJump {
     ///
     /// This is primarily for debugging and diagnostics.
     pub fn print_stats(&self) -> Result<()> {
-        gribjump_sys::stats(self.inner.lock().0.pin_mut())?;
+        self.inner.lock().0.pin_mut().stats()?;
         Ok(())
     }
 }

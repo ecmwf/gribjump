@@ -21,6 +21,7 @@
 
 #include "metkit/mars/MarsRequest.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/ExtractionItem.h"
 
 namespace gribjump {
@@ -46,7 +47,8 @@ protected:
 class FDBLister : public Lister {
 public:
 
-    static FDBLister& instance();
+    explicit FDBLister(const ConfigOptions& options = ConfigOptions::defaultOptions());
+    ~FDBLister();
 
     virtual std::vector<eckit::URI> list(const std::vector<metkit::mars::MarsRequest> requests) override;
     virtual std::map<std::string, std::unordered_set<std::string> > axes(const std::string& request,
@@ -67,12 +69,8 @@ public:
 
 private:
 
-    FDBLister();
-    ~FDBLister();
-
-private:
-
-    bool allowMissing_;
+    const bool allowMissing_;
+    const bool ignoreYearMonth_;
 };
 
 // ------------------------------------------------------------------

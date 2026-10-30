@@ -11,7 +11,7 @@
 use bindman::track_cpp_api;
 
 #[track_cpp_api("gribjump/GribJump.h", class = "GribJump")]
-#[cxx::bridge(namespace = "gribjump::ffi")]
+#[cxx::bridge(namespace = "gribjump_bridge")]
 mod ffi {
     // =========================================================================
     // Shared structs (POD-like types that can cross the FFI boundary)
@@ -102,58 +102,47 @@ mod ffi {
     // =========================================================================
 
     unsafe extern "C++" {
-        include!("gribjump_bridge.h");
+        include!("GribJumpBridge.h");
 
-        // ---------------------------------------------------------------------
-        // Opaque handle types
-        // ---------------------------------------------------------------------
+        // =====================================================================
+        // Library — runtime initialisation and metadata
+        // =====================================================================
 
-        /// Wrapper around gribjump::GribJump
-        type GribJumpHandle;
+        type Library;
 
-        /// Wrapper around gribjump::ExtractionIterator
-        type ExtractionIteratorHandle;
-
-        /// Zero-copy wrapper around gribjump::ExtractionResult.
-        /// Keeps the C++ result alive and provides direct pointer access.
-        type ExtractionResultHandle;
-
-        // ---------------------------------------------------------------------
-        // Library metadata
-        // ---------------------------------------------------------------------
+        /// Initialise the gribjump library (sets up `eckit::Main`). Idempotent.
+        #[Self = "Library"]
+        fn initialise();
 
         /// Get the gribjump library version string.
-        fn gribjump_version() -> String;
+        #[Self = "Library"]
+        fn version() -> String;
 
         /// Get the gribjump git SHA1 hash.
-        fn gribjump_git_sha1() -> String;
+        #[Self = "Library"]
+        fn git_sha1() -> String;
 
-        // ---------------------------------------------------------------------
-        // Handle lifecycle
-        // ---------------------------------------------------------------------
+        // =====================================================================
+        // GribJumpHandle — main handle, factories + extraction + query
+        // =====================================================================
 
-        /// Create a new GribJump handle.
-        fn new_gribjump() -> Result<UniquePtr<GribJumpHandle>>;
-
-        // ---------------------------------------------------------------------
-        // Extraction
-        // ---------------------------------------------------------------------
+        type GribJumpHandle;
 
         /// Extract data using standard ExtractionRequests.
         fn extract(
-            handle: Pin<&mut GribJumpHandle>,
+            self: Pin<&mut GribJumpHandle>,
             requests: &Vec<ExtractionRequestData>,
         ) -> Result<UniquePtr<ExtractionIteratorHandle>>;
 
         /// Extract data using PathExtractionRequests (direct file access).
         fn extract_from_paths(
-            handle: Pin<&mut GribJumpHandle>,
+            self: Pin<&mut GribJumpHandle>,
             requests: &Vec<PathExtractionRequestData>,
         ) -> Result<UniquePtr<ExtractionIteratorHandle>>;
 
         /// Extract from a MARS request (expands to multiple ExtractionRequests internally).
         fn extract_mars(
-            handle: Pin<&mut GribJumpHandle>,
+            self: Pin<&mut GribJumpHandle>,
             request: &str,
             ranges: &Vec<Range>,
             grid_hash: &str,
@@ -161,105 +150,67 @@ mod ffi {
 
         /// Extract from a specific file with message offsets.
         fn extract_from_file(
-            handle: Pin<&mut GribJumpHandle>,
+            self: Pin<&mut GribJumpHandle>,
             data: &FileExtractionData,
         ) -> Result<UniquePtr<ExtractionIteratorHandle>>;
 
-        // ---------------------------------------------------------------------
-        // Iterator (methods on ExtractionIteratorHandle)
-        // ---------------------------------------------------------------------
-
-        /// Check if the iterator has more results.
-        fn hasNext(self: &ExtractionIteratorHandle) -> bool;
-
-        /// Get the next result from the iterator (zero-copy handle).
-        fn next(
-            self: Pin<&mut ExtractionIteratorHandle>,
-        ) -> Result<UniquePtr<ExtractionResultHandle>>;
-
-        // ---------------------------------------------------------------------
-        // Result handle (methods on ExtractionResultHandle)
-        // ---------------------------------------------------------------------
-
-        /// Get the number of ranges in this result.
-        fn num_ranges(self: &ExtractionResultHandle) -> usize;
-
-        /// Get raw pointer to values for a specific range (zero-copy).
-        ///
-        /// # Safety
-        ///
-        /// The returned pointer is valid for the lifetime of the handle.
-        /// Caller must ensure `range_idx < num_ranges()`.
-        unsafe fn values_ptr(self: &ExtractionResultHandle, range_idx: usize) -> *const f64;
-
-        /// Get the number of values in a specific range.
-        fn values_len(self: &ExtractionResultHandle, range_idx: usize) -> usize;
-
-        /// Get raw pointer to masks for a specific range.
-        ///
-        /// Each mask element is a u64 where each bit represents validity.
-        ///
-        /// # Safety
-        ///
-        /// The returned pointer is valid for the lifetime of the handle.
-        /// Caller must ensure `range_idx < num_ranges()`.
-        unsafe fn masks_ptr(self: &ExtractionResultHandle, range_idx: usize) -> *const u64;
-
-        /// Get the number of mask elements in a specific range.
-        fn masks_len(self: &ExtractionResultHandle, range_idx: usize) -> usize;
-
-        // ---------------------------------------------------------------------
-        // Axes query
-        // ---------------------------------------------------------------------
-
         /// Query available axes for a given request.
-        ///
-        /// Returns a vector of (key, values) pairs representing the axes.
         fn axes(
-            handle: Pin<&mut GribJumpHandle>,
+            self: Pin<&mut GribJumpHandle>,
             request: &str,
             level: i32,
         ) -> Result<Vec<AxisEntry>>;
 
-        // ---------------------------------------------------------------------
-        // Scanning
-        // ---------------------------------------------------------------------
-
         /// Scan GRIB files at the given paths.
-        fn scan_paths(handle: Pin<&mut GribJumpHandle>, paths: &Vec<String>) -> Result<usize>;
+        fn scan_paths(self: Pin<&mut GribJumpHandle>, paths: &Vec<String>) -> Result<usize>;
 
         /// Scan using MARS requests.
         fn scan_requests(
-            handle: Pin<&mut GribJumpHandle>,
+            self: Pin<&mut GribJumpHandle>,
             requests: &Vec<String>,
             by_files: bool,
         ) -> Result<usize>;
 
-        // ---------------------------------------------------------------------
-        // Diagnostics
-        // ---------------------------------------------------------------------
-
         /// Print statistics to stdout.
-        fn stats(handle: Pin<&mut GribJumpHandle>) -> Result<()>;
+        fn stats(self: Pin<&mut GribJumpHandle>) -> Result<()>;
 
-        // ---------------------------------------------------------------------
-        // Test functions (for verifying exception handling)
-        // ---------------------------------------------------------------------
+        /// Create a new GribJump handle.
+        #[Self = "GribJumpHandle"]
+        fn create() -> Result<UniquePtr<GribJumpHandle>>;
 
-        /// Test function that throws eckit::Exception
-        fn test_throw_eckit_exception() -> Result<()>;
+        // =====================================================================
+        // ExtractionIteratorHandle
+        // =====================================================================
 
-        /// Test function that throws eckit::SeriousBug
-        fn test_throw_eckit_serious_bug() -> Result<()>;
+        type ExtractionIteratorHandle;
 
-        /// Test function that throws eckit::UserError
-        fn test_throw_eckit_user_error() -> Result<()>;
+        fn hasNext(self: &ExtractionIteratorHandle) -> bool;
 
-        /// Test function that throws std::runtime_error
-        fn test_throw_std_exception() -> Result<()>;
+        fn next(
+            self: Pin<&mut ExtractionIteratorHandle>,
+        ) -> Result<UniquePtr<ExtractionResultHandle>>;
 
-        /// Test function that throws an int (non-std::exception type)
-        fn test_throw_int() -> Result<()>;
+        // =====================================================================
+        // ExtractionResultHandle — zero-copy result wrapper
+        // =====================================================================
+
+        type ExtractionResultHandle;
+
+        fn num_ranges(self: &ExtractionResultHandle) -> usize;
+
+        /// # Safety
+        /// The returned pointer is valid for the lifetime of the handle.
+        /// Caller must ensure `range_idx < num_ranges()`.
+        unsafe fn values_ptr(self: &ExtractionResultHandle, range_idx: usize) -> *const f64;
+
+        fn values_len(self: &ExtractionResultHandle, range_idx: usize) -> usize;
+
+        /// # Safety
+        /// The returned pointer is valid for the lifetime of the handle.
+        /// Caller must ensure `range_idx < num_ranges()`.
+        unsafe fn masks_ptr(self: &ExtractionResultHandle, range_idx: usize) -> *const u64;
+
+        fn masks_len(self: &ExtractionResultHandle, range_idx: usize) -> usize;
     }
 }
 
@@ -267,93 +218,3 @@ pub use ffi::*;
 
 // Re-export cxx types needed by downstream crates
 pub use cxx::{Exception, UniquePtr};
-
-#[cfg(test)]
-mod tests {
-    use super::ffi;
-
-    #[test]
-    fn test_eckit_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_exception();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // Generic eckit::Exception gets ECKIT: prefix
-        assert!(
-            err.what().starts_with("ECKIT: "),
-            "Expected ECKIT: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test eckit exception"),
-            "Expected eckit exception message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_eckit_serious_bug_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_serious_bug();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // SeriousBug gets specific prefix
-        assert!(
-            err.what().starts_with("ECKIT_SERIOUS_BUG: "),
-            "Expected ECKIT_SERIOUS_BUG: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test serious bug"),
-            "Expected serious bug message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_eckit_user_error_caught_by_trycatch() {
-        let result = ffi::test_throw_eckit_user_error();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // UserError gets specific prefix
-        assert!(
-            err.what().starts_with("ECKIT_USER_ERROR: "),
-            "Expected ECKIT_USER_ERROR: prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test user error"),
-            "Expected user error message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_std_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_std_exception();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // std::exception should NOT have any ECKIT prefix
-        assert!(
-            !err.what().starts_with("ECKIT"),
-            "std::exception should not have ECKIT prefix, got: {}",
-            err.what()
-        );
-        assert!(
-            err.what().contains("test std exception"),
-            "Expected std exception message, got: {}",
-            err.what()
-        );
-    }
-
-    #[test]
-    fn test_non_std_exception_caught_by_trycatch() {
-        let result = ffi::test_throw_int();
-        assert!(result.is_err());
-        let err = result.expect_err("expected error");
-        // Non-std exceptions get a generic message
-        assert!(
-            err.what().contains("unknown exception"),
-            "Expected unknown exception message, got: {}",
-            err.what()
-        );
-    }
-}

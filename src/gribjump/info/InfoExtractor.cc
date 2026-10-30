@@ -81,7 +81,7 @@ eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
 }  // namespace
 
 
-InfoExtractor::InfoExtractor() {}
+InfoExtractor::InfoExtractor(const ConfigOptions& options) : scanCorrupted_(options.scanCorrupted()) {}
 
 InfoExtractor::~InfoExtractor() {}
 
@@ -144,9 +144,7 @@ eckit::OffsetList InfoExtractor::offsets(const eckit::PathName& path) const {
     off_t* offsets_c = nullptr;
     int err          = codes_extract_offsets_malloc(c, path.asString().c_str(), PRODUCT_GRIB, &offsets_c, &n, 1);
 
-    bool scan_corrupted = ConfigOptions::instance().scanCorrupted();
-
-    if (err && scan_corrupted) {
+    if (err && scanCorrupted_) {
         eckit::Log::warning() << "Error extracting offsets from " << path
                               << ". Attempting workaround for corrupted files." << std::endl;
         free(offsets_c);
