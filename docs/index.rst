@@ -14,6 +14,7 @@ GribJump documentation
 
    gribjump/index
    pygribjump/index
+   changelog
    indices
 
 :ref:`GribJump <GribJump_Introduction>` is part of `ECMWF
