@@ -103,6 +103,7 @@ mod ffi {
 
     unsafe extern "C++" {
         include!("GribJumpBridge.h");
+        include!("gribjump_exceptions.h");
 
         // =====================================================================
         // Library — runtime initialisation and metadata
