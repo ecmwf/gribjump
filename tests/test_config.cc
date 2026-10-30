@@ -11,6 +11,7 @@
 #include <fstream>
 #include <future>
 
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/testing/Test.h"
@@ -31,7 +32,7 @@ namespace {
 std::unique_ptr<eckit::TmpDir> cacheDirectory;
 
 struct Fixture {
-    eckit::TmpDir data;
+    eckit::TmpDir data{eckit::LocalPathName::cwd().c_str()};
     eckit::PathName path = data / (data.baseName() + ".grib");
 
     Fixture() {
@@ -68,7 +69,7 @@ CASE("resource overrides are resolved once per options object") {
 }
 
 CASE("first object configures process settings without replacing object defaults") {
-    cacheDirectory = std::make_unique<eckit::TmpDir>();
+    cacheDirectory = std::make_unique<eckit::TmpDir>(eckit::LocalPathName::cwd().c_str());
     eckit::TmpFile file;
     {
         std::ofstream out(file.asString());
@@ -181,7 +182,7 @@ CASE("loading a Config file has no logging side effects") {
 }
 
 CASE("listing missing-field policy belongs to each lister") {
-    eckit::TmpDir directory;
+    eckit::TmpDir directory(eckit::LocalPathName::cwd().c_str());
     const std::string fdbConfig =
         "type: local\nengine: toc\nschema: schema\nspaces:\n- roots:\n  - path: " + directory.asString() + "\n";
     SetEnv env("FDB5_CONFIG", fdbConfig);

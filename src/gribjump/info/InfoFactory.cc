@@ -41,7 +41,6 @@ InfoFactory& InfoFactory::instance() {
 
 std::unique_ptr<JumpInfo> InfoFactory::build(eckit::DataHandle& h, const eckit::Offset& msgOffset) {
 
-    h.openForRead();
     h.seek(msgOffset);
 
     // Note: eccodes will read message into memory

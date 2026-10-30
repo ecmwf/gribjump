@@ -19,6 +19,7 @@
 #include "eccodes.h"
 #include "eckit/exception/Exceptions.h"
 #include "eckit/filesystem/PathName.h"
+#include "eckit/io/AutoCloser.h"
 #include "eckit/io/FileHandle.h"
 #include "eckit/io/Offset.h"
 #include "eckit/message/Message.h"
@@ -42,6 +43,7 @@ eckit::OffsetList findGRIBOffsets(const std::string& filepath) {
     std::vector<char> carryover(OVERLAP, 0);
     eckit::FileHandle file(filepath);
     file.openForRead();
+    eckit::AutoCloser<eckit::FileHandle> closer(file);
 
     size_t filePos = 0;
     while (true) {
@@ -110,12 +112,12 @@ std::vector<std::unique_ptr<JumpInfo>> InfoExtractor::extract(const eckit::PathN
 
     for (size_t i = 0; i < offsets.size(); i++) {
         fh.openForRead();
+        // Close after each field, including when metadata extraction throws.
+        eckit::AutoCloser<eckit::FileHandle> closer(fh);
 
         std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offsets[i]));
         ASSERT(info);
         infos.push_back(std::move(info));
-
-        fh.close();  // Required due to strange metkit/gribhandle behaviour.
     }
     return infos;
 }
@@ -125,11 +127,10 @@ std::unique_ptr<JumpInfo> InfoExtractor::extract(const eckit::PathName& path, co
     eckit::FileHandle fh(path);
 
     fh.openForRead();
+    eckit::AutoCloser<eckit::FileHandle> closer(fh);
 
     std::unique_ptr<JumpInfo> info(InfoFactory::instance().build(fh, offset));
     ASSERT(info);
-
-    fh.close();
 
     return info;
 }

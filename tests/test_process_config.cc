@@ -12,6 +12,7 @@
 #include <fstream>
 #include <future>
 
+#include "eckit/filesystem/LocalPathName.h"
 #include "eckit/filesystem/TmpDir.h"
 #include "eckit/filesystem/TmpFile.h"
 #include "eckit/testing/Test.h"
@@ -105,7 +106,7 @@ CASE("process configuration initialization") {
     EXPECT_EQUAL(ProcessOptions::get().numThreads(), 2);
     EXPECT_EQUAL(ProcessOptions::get().cacheSize(), 64);  // omitted key retains file default
 
-    eckit::TmpDir directory;
+    eckit::TmpDir directory(eckit::LocalPathName::cwd().c_str());
     const auto path = directory / "disabled.grib";
     {
         std::ifstream input("extract_ranges.grib", std::ios::binary);
