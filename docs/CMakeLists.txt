@@ -67,6 +67,7 @@ add_custom_command(
         "${SPHINX_OUTPUT_DIR}"
     DEPENDS ${DOXYGEN_INDEX_FILE} ${SPHINX_INPUT_FILES}
             ${PYGRIBJUMP_SRCS}
+            "${PROJECT_SOURCE_DIR}/CHANGELOG.md"
             "${CMAKE_CURRENT_SOURCE_DIR}/conf.py"
     COMMENT "Running Sphinx to build HTML documentation"
 )
