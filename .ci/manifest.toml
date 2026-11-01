@@ -18,24 +18,6 @@ allow-stale-deps = true
 git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground", "ecmwf/fdb", "ecmwf/eckit", "ecmwf/metkit"]
 
 [[deps]]
-repo = "ecmwf/ecbuild"
-package = "ecbuild"
-ref = "develop"
-compiler-inputs = []
-
-[[deps]]
-repo = "ecmwf/eckit"
-package = "eckit"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-
-[[deps]]
-repo = "ecmwf/metkit"
-package = "metkit"
-ref = "develop"
-compiler-inputs = ["cxx-compiler"]
-
-[[deps]]
 repo = "ecmwf/fdb"
 package = "fdb"
 ref = "develop"
