@@ -17,7 +17,7 @@ Add the safe wrapper to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-gribjump = "0.13"
+gribjump = "0.14"
 ```
 
 Building requires CMake and a C++17 compiler. To link against an existing
@@ -26,7 +26,7 @@ feature:
 
 ```toml
 [dependencies]
-gribjump = { version = "0.13", default-features = false, features = ["system"] }
+gribjump = { version = "0.14", default-features = false, features = ["system"] }
 ```
 
 ## Crates
