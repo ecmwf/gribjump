@@ -11,7 +11,7 @@ Add the crate to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-gribjump = "0.13"
+gribjump = "0.14"
 ```
 
 The default `vendored` feature builds GribJump and its dependencies (FDB,

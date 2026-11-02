@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/gribjump-sys", "crates/gribjump"]
 
 [workspace.package]
-version = "0.13.1"
+version = "0.14.0"
 edition = "2024"
 license = "Apache-2.0"
 repository = "https://github.com/ecmwf/gribjump"
@@ -14,8 +14,8 @@ categories = ["science", "parser-implementations"]
 
 [workspace.dependencies]
 # Internal
-gribjump-sys = { version = "0.13", path = "crates/gribjump-sys" }
-gribjump = { version = "0.13", path = "crates/gribjump" }
+gribjump-sys = { version = "0.14", path = "crates/gribjump-sys" }
+gribjump = { version = "0.14", path = "crates/gribjump" }
 
 # FDB dependency
 fdb = { version = "5.24", default-features = false }
