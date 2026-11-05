@@ -1,17 +1,7 @@
-[tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "-vv -s"
-testpaths = [
-    "./python/pygribjump/tests"
-]
-
-# pyproject.toml
-#
-# NOTE: This packages the cffi-based pygribjump implementation located in
-# python/pygribjump/src. The pybind11-based bindings (src/pygribjump,
-# src/pygribjump_bindings) are built via CMake using the templates in
-# cmake/pygribjump_setup.{cfg,py}.in. Both implementations are 
-# maintained in parallel for the time being.
+# Archived packaging configuration for the legacy CFFI interface.
+# Deliberately not named pyproject.toml: the central bundle release automatically
+# builds that filename. Published pygribjump wheels are built by CMake using
+# cmake/pygribjump.cmake and cmake/pygribjump_setup.{cfg,py}.in instead.
 
 [build-system]
 requires = ["setuptools>=77.0.3"]

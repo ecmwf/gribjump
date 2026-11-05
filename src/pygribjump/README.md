@@ -17,7 +17,7 @@ bitmasks are handed back as `numpy` arrays.
 
 ## Installation via PyPI
 
-Install the package from PyPI in your `venv`:
+Install the package from PyPI in your `venv` using Python 3.11 or newer:
 
 ```
 uv venv
