@@ -42,6 +42,7 @@ jobs:
       head-branch: ${{ steps.ctx.outputs.head-branch }}
       ci-conclusion: ${{ steps.ctx.outputs.ci-conclusion }}
       ci-url: ${{ steps.ctx.outputs.ci-url }}
+      ci-run-id: ${{ steps.ctx.outputs.ci-run-id }}
       ci-summary: ${{ steps.ctx.outputs.ci-summary }}
       pull-request: ${{ steps.ctx.outputs.pull-request }}
       hpc-only: ${{ steps.ctx.outputs.hpc-only }}
@@ -95,6 +96,36 @@ jobs:
     - ci-approval
     - context
     - label-gate
+  resolve:
+    if: ${{ (needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
+    needs:
+    - ci-approval
+    - context
+    - label-gate
+    - validate
+    runs-on: ubuntu-latest
+    env:
+      ARTIFACT_S3_ENDPOINT: ${{ secrets.ARTIFACT_S3_ENDPOINT }}
+      ARTIFACT_S3_BUCKET: ${{ secrets.ARTIFACT_S3_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    outputs:
+      pins: ${{ steps.pins.outputs.pins }}
+    steps:
+    - id: mint
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
+        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+    - name: Pin the commits the upstream's CI resolved
+      env:
+        GH_TOKEN: ${{ steps.mint.outputs.token }}
+        HEAD_SHA: ${{ needs.context.outputs.head-sha }}
+        CI_RUN_ID: ${{ needs.context.outputs.ci-run-id }}
+      run: "set -euo pipefail\npins=\"${GITHUB_REPOSITORY}@${HEAD_SHA}\"\ndir=\"${RUNNER_TEMP}/resolved-pins\"\nif [ -n \"${CI_RUN_ID}\" ] && gh run download \"${CI_RUN_ID}\" --repo \"${GITHUB_REPOSITORY}\" \\\n     --name resolved-pins --dir \"$dir\" 2>/dev/null; then\n  while read -r pin; do\n    if [[ \"$pin\" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$ ]] && [[ \"$pin\" != \"${GITHUB_REPOSITORY}@\"* ]]; then\n      pins=\"$pins $pin\"\n    fi\n  done < <(tr ' ' '\\n' < \"$dir/pins.txt\")\n  echo \"Starting from the commits run ${CI_RUN_ID} resolved: $pins\"\nelse\n  echo \"::notice::No resolved-pins artifact on CI run '${CI_RUN_ID}'; the other repos resolve at their branch tips.\"\nfi\necho \"PINS=$pins\" >> \"$GITHUB_ENV\"\necho \"EXPECTED=\" >> \"$GITHUB_ENV\"\n"
+    - id: pins
+      run: echo "pins=${PINS}" >> "$GITHUB_OUTPUT"
   report-start:
     if: ${{ (needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
@@ -142,6 +173,7 @@ jobs:
     - context
     - label-gate
     - validate
+    - resolve
     runs-on: ubuntu-latest
     steps:
     - id: mint
@@ -160,6 +192,7 @@ jobs:
         from-jobs: '["gribjump/build"]'
         branch: ${{ needs.context.outputs.head-branch }}
         fallback-ref: develop
+        pin: ${{ needs.resolve.outputs.pins }}
         token: ${{ steps.mint.outputs.token }}
         artifact-names: ''
         wait-for-run-conclusion: 'true'
