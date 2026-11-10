@@ -8,6 +8,7 @@
  * does it submit to any jurisdiction.
  */
 
+#include "eckit/config/Resource.h"
 #include "eckit/config/YAMLConfiguration.h"
 #include "eckit/io/MemoryHandle.h"
 #include "eckit/message/Message.h"
@@ -37,8 +38,9 @@ FDBPlugin& FDBPlugin::instance() {
 FDBPlugin::FDBPlugin() {
     // NB: Can't access eckit::Resource outside the callback because eckit::main has not finished initialising
     fdb5::LibFdb5::instance().registerConstructorCallback([](fdb5::CallbackRegistry& fdb) {
-        static bool enableGribjump  = ProcessOptions::get().fdbEnableGribjump();
-        static bool disableGribjump = ProcessOptions::get().fdbDisableGribjump();
+        // Check the resource-only switches before loading any GribJump configuration.
+        static const bool enableGribjump  = eckit::Resource<bool>("fdbEnableGribjump;$FDB_ENABLE_GRIBJUMP", false);
+        static const bool disableGribjump = eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false);
         if (enableGribjump && !disableGribjump) {
             LOG_DEBUG_LIB(LibGribJump) << "FDBPlugin has been enabled" << std::endl;
             FDBPlugin::instance().addFDB(fdb);
