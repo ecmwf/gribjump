@@ -129,6 +129,24 @@ ecbuild_add_test(
 )
 
 ecbuild_add_test(
+    TARGET "gribjump_test_plugin_missing_config"
+    SOURCES "test_plugin_missing_config.cc"
+    ENVIRONMENT "${gribjump_env}"
+    TEST_DEPENDS gribjump_test_data_files
+    NO_AS_NEEDED
+    LIBS gribjump
+)
+
+foreach(mode enabled override)
+    ecbuild_add_test(
+        TARGET "gribjump_test_plugin_missing_config_${mode}"
+        COMMAND gribjump_test_plugin_missing_config
+        ENVIRONMENT "GRIBJUMP_TEST_PLUGIN_MODE=${mode};${gribjump_env}"
+        TEST_DEPENDS gribjump_test_data_files
+    )
+endforeach()
+
+ecbuild_add_test(
     TARGET "gribjump_test_misc_units"
     SOURCES "test_misc_units.cc"
     INCLUDES "${ECKIT_INCLUDE_DIRS}"
