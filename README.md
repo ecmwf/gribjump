@@ -53,13 +53,25 @@ A clientside build (which cannot extract data but talks to a server which can) i
 
 ### Python Library
 
-The python interface, `pygribjump`, can be installed with pip:
+The pybind11-based Python interface, `pygribjump`, requires Python 3.11 or newer
+and can be installed from PyPI:
 
 ```bash
-python3 -m pip install --upgrade git+ssh://git@github.com/ecmwf/gribjump.git@master
+python3 -m pip install --upgrade pygribjump
 ```
 
 `pygribjump` uses [findlibs](https://github.com/ecmwf/findlibs) to find an installed `libgribjump` library. You can use `export GRIBJUMP_HOME=/path/to/gribjump/install` to help with finding the library.
+
+For a source build, install pybind11 >=3.0.1 and the Python `build` package, enable
+`-DENABLE_PYTHON_GRIBJUMP_INTERFACE=ON` when configuring GribJump, and build the
+`pygribjump-wheel` target. Install the resulting `pygribjump-*.whl` from the build
+directory with pip. The central bundle release builds this wheel alongside
+`gribjumplib` and pins it to the matching native-library release.
+
+The legacy CFFI sources are retained but are no longer published. Their packaging
+configuration is archived as `pyproject-cffi.toml` to exclude it from automatic
+release discovery. See the [migration guide](docs/pygribjump/migration.rst) for
+API differences.
 
 See the `docs/examples/` files for simple use cases.
 
