@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes at the moment.
 
+## [0.14.1] - 2026-11-10
+
+- Prevent loading of config file when being used as a plugin if the plugin is disabled
+
 ## [0.14.0] - 2026-10-29
 
 - Port pygribjump to use pybind11-based bindings instead of cffi.
@@ -152,7 +156,8 @@ No unreleased changes at the moment.
 
 - Migrate GribJump from Metkit.
 
-[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.14.0...HEAD
+[Unreleased]: https://github.com/ecmwf/gribjump/compare/0.14.1...HEAD
+[0.14.1]: https://github.com/ecmwf/gribjump/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/ecmwf/gribjump/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/ecmwf/gribjump/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/ecmwf/gribjump/compare/0.12.0...0.13.0
