@@ -18,8 +18,8 @@ gribjump-sys = { version = "0.14", path = "crates/gribjump-sys" }
 gribjump = { version = "0.14", path = "crates/gribjump" }
 
 # FDB dependency
-fdb = { version = "5.24", default-features = false }
-fdb-sys = { version = "5.24", default-features = false }
+fdb = { package = "ecmwf-fdb", version = "5.25", default-features = false }
+fdb-sys = { package = "ecmwf-fdb-sys", version = "5.25", default-features = false }
 
 # Foundation crates
 eckit-sys = { version = "2.5", default-features = false }
