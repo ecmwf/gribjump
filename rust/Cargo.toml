@@ -14,7 +14,7 @@ categories = ["science", "parser-implementations"]
 
 [workspace.dependencies]
 # Internal
-gribjump-sys = { version = "0.14", path = "crates/gribjump-sys" }
+gribjump-sys = { version = "0.14", path = "crates/gribjump-sys", default-features = false, features = ["local-extract"] }
 gribjump = { version = "0.14", path = "crates/gribjump" }
 
 # FDB dependency

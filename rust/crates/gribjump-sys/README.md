@@ -14,10 +14,8 @@ These flags control what the underlying C++ GribJump library is compiled with.
   ecCodes) from source.
 - `system` - Link against system-installed GribJump.
 
-Note: neither is enabled by default on `gribjump-sys` itself. End users should
-depend on the higher-level [`gribjump`](https://crates.io/crates/gribjump)
-crate, which defaults to `vendored`. If you depend on `gribjump-sys` directly
-you must select one explicitly.
+End users should depend on the higher-level [`gribjump`](https://crates.io/crates/gribjump)
+crate rather than on `gribjump-sys` directly.
 
 ### Core (enabled by default)
 

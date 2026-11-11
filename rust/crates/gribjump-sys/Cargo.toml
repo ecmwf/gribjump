@@ -14,7 +14,7 @@ build = "build.rs"
 
 [features]
 # Defaults match CMake defaults
-default = ["local-extract"]
+default = ["vendored", "local-extract"]
 
 # Build strategy (mutually exclusive)
 vendored = ["eckit-sys/vendored", "metkit-sys/vendored", "metkit-sys/grib", "eccodes-sys/vendored", "fdb-sys/vendored", "fdb-sys/grib", "fdb-sys/tocfdb", "fdb-sys/fdb-remote"]
