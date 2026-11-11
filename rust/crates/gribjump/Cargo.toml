@@ -14,8 +14,8 @@ build = "build.rs"
 
 [features]
 default = ["vendored"]
-vendored = ["gribjump-sys/vendored"]
-system = ["gribjump-sys/system"]
+vendored = ["gribjump-sys/vendored", "eckit/vendored"]
+system = ["gribjump-sys/system", "eckit/system"]
 
 [build-dependencies]
 bindman-utils.workspace = true
