@@ -31,9 +31,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    let request =
-        PathExtractionRequest::new(path.to_string_lossy(), ranges.clone(), common::GRID_HASH)
-            .with_offset(usize::try_from(offsets[1])?);
+    let request = PathExtractionRequest::new(path.to_string_lossy(), ranges, common::GRID_HASH)
+        .with_offset(usize::try_from(offsets[1])?);
     let fields: Vec<_> = gribjump
         .extract_from_paths(&[request])?
         .collect::<gribjump::Result<_>>()?;

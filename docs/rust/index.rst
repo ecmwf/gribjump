@@ -1,68 +1,90 @@
 .. _Rust_Introduction:
 
-Rust interface
+Rust Interface
 ==============
 
 :Version: |version|
 
-GribJump answers one question: give me these grid points from those fields,
-without decoding the fields. The ``gribjump`` crate asks it from Rust. A
-program hands over MARS requests with index ranges, and gets back the values
-and their validity bits for every matching field, read straight out of the
-FDB or out of GRIB files on disk by the same C++ library that ``gribjump-extract``
-and :ref:`pygribjump <PyGribJump_Introduction>` use.
+The Rust interface lives in the ``rust/`` directory of the gribjump
+repository and calls the same GribJump library as the ``gribjump-*`` tools
+and :ref:`pygribjump <PyGribJump_Introduction>`. This chapter is for
+developers writing applications against the crates.
 
-Two crates live in ``rust/``: ``gribjump`` is the API applications use, and
-``gribjump-sys`` is the `cxx <https://cxx.rs>`__ bridge underneath it, which
-also builds or locates the C++ library. Both carry the version of the GribJump
-release they wrap, and both pull in the eckit, metkit, ecCodes and FDB crates,
-since GribJump is built on all four.
+``gribjump`` is the crate applications depend on; it gives the C++ library a
+Rust API, with extraction requests as plain structs, results read in place
+from the library's memory and a handle that threads share. ``gribjump-sys``
+builds or links the C++ library underneath it.
 
-The crate exposes the public surface of ``gribjump::GribJump``: extraction
-from MARS requests, from a MARS request that is expanded first, from GRIB
-files by path and offset, the ``axes`` query, the two ``scan`` operations that
-build the GribJump index, and ``stats``. The ``LogContext`` argument the C++
-methods accept is not bridged, nor is the constructor that takes a ``Config``;
-a ``GribJump`` is configured through the environment, as described in
-:doc:`building`.
+.. note::
 
-Quick start
+   Use ``gribjump`` in your code. ``gribjump-sys`` is the crate that builds
+   the C++ library (:doc:`building`); calling it directly means handling
+   ``cxx`` pointers and raw exception strings yourself.
+
+Coverage
+--------
+
+.. list-table::
+   :widths: 32 33 35
+   :header-rows: 1
+
+   * - Rust
+     - C++
+     - Notes
+   * - ``gribjump::GribJump``
+     - ``gribjump::GribJump``
+     - ``extract``, ``extract_mars``, ``extract_from_file``,
+       ``extract_from_paths``, ``axes``, ``scan_paths``, ``scan_requests``
+       and ``print_stats``
+   * - ``gribjump::Range``, ``ExtractionRequest``,
+       ``PathExtractionRequest``, ``FileExtraction``
+     - The request types of ``gribjump::GribJump``
+     - Grid point ranges with an exclusive end, the MARS request or file that
+       names the field and its grid hash
+   * - ``gribjump::ExtractionIterator``, ``ExtractionResult``,
+       ``RangeView``, ``RangeResult``
+     - ``gribjump::ExtractionIterator``, ``gribjump::ExtractionResult``
+     - One result per field; values and validity bits per range, borrowed
+       from the result or copied out
+   * - ``gribjump::version``, ``gribjump::git_sha1``
+     - ``LibGribJump::version``, ``LibGribJump::gitsha1``
+     - Version of the linked library
+   * - ``gribjump::Error``
+     - The ``eckit::Exception`` classes
+     - ``Eckit`` for an exception thrown by the C++ libraries,
+       ``InvalidArgument`` and ``IteratorExhausted`` for failures in Rust
+       code
+
+Quick Start
 -----------
 
-.. code-block:: toml
-
-   [dependencies]
-   gribjump = "0.13"
-   eckit = "2.5"
-
-The default build compiles GribJump and the four libraries under it from
-source, so it needs a C++17 compiler, CMake, git and Python 3. The ``eckit``
-crate is there for ``eckit::init``.
-
-The FDB to read from is the one the environment describes, through
-``FDB5_CONFIG``, ``FDB5_CONFIG_FILE`` or ``FDB_HOME``. The request names one
-field, the ranges are grid point indices with an exclusive end, and the hash
-is the ``md5GridSection`` key of the field's GRIB message, which GribJump
-checks against the field before it extracts:
-
-.. literalinclude:: examples/quickstart.rs
-   :language: rust
-
-:doc:`usage` goes through each operation with a program that builds its own
-FDB, :doc:`approach` explains what the crate does differently from the C++
-API and why, and :doc:`building` covers the build and the run-time
-configuration. The per-item reference is rustdoc's:
+Add the crates:
 
 .. code-block:: bash
 
-   cd rust
-   cargo doc -p gribjump --no-deps --open
+   cargo add gribjump eckit
+
+The crate version is the version of the GribJump release it wraps. ``eckit``
+provides ``eckit::init``. :doc:`building` lists the requirements and the
+alternative of linking installed libraries.
+
+The program extracts two ranges of grid points from the first message of a
+GRIB file, the three-field fixture of the crate's tests:
+
+.. literalinclude:: ../../rust/crates/gribjump/examples/quickstart.rs
+   :language: rust
+   :start-after: // [main]
+   :end-before: // [end main]
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
    :hidden:
 
-   usage
    approach
+   usage
    building
+
+The per-item API reference is on docs.rs: `gribjump
+<https://docs.rs/gribjump>`_ and `gribjump-sys
+<https://docs.rs/gribjump-sys>`_.

@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     match gribjump.extract(&[request]) {
         Ok(_) => println!("extracted"),
-        Err(Error::Eckit(e)) => println!("{e}"),
+        Err(Error::Eckit(eckit::Error::SeriousBug(msg))) => println!("{msg}"),
         Err(other) => println!("{other}"),
     }
     // [end errors]

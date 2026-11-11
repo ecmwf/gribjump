@@ -1,71 +1,66 @@
 Approach
 ========
 
-The crate follows the pattern of the other ECMWF Rust interfaces, documented
-in the eckit repository under ``docs/content/rust``: a ``-sys`` crate that
-owns the C++ boundary and a safe crate on top, with errors, logging, requests
-and data handles coming from the eckit and metkit crates rather than being
-reinvented. What follows is where GribJump departs from that pattern, and why.
+This page gives the reasons behind the shape of the interface. How to use it
+is on :doc:`usage`. The FDB the library reads is configured as the FDB
+documentation describes; ``eckit::init`` and the eckit error classes are
+documented in the Rust Interface chapter of the eckit documentation.
 
-Results are views, not copies
------------------------------
-
-A C++ ``ExtractionResult`` holds a vector of value vectors and a vector of
-``std::bitset<64>`` vectors, one pair per range. GribJump exists to move
-less data, so the crate does not copy that out. ``ExtractionResult`` keeps
-the C++ object, and ``range(i)`` or ``iter()`` hand out a ``RangeView``: two
-borrowed slices, ``&[f64]`` for the values and ``&[u64]`` for the mask words,
-pointing into the C++ memory. The borrow is tied to the result, so the
-compiler stops a view from outliving the data it reads. ``to_owned`` and
-``to_owned_ranges`` copy when a program needs the values past the result's
-life, for example to send them to another thread.
-
-The mask words are built from the bitsets on first access and cached inside
-the C++ object. That cache is why ``ExtractionResult`` is ``Send`` but not
-``Sync``: two threads reading one result would race on it.
-
-One handle, cloned
-------------------
-
-``GribJump`` holds the C++ object behind an ``Arc<Mutex>``, and ``Clone``
-hands out another reference to the same one. Each extraction takes the lock
-only to start; the iterator it returns does not hold it, because the C++
-``GribJump::extract`` materialises every result before returning. The
-iterator keeps a reference to the handle so that the C++ object outlives the
-results it produced.
-
-The first ``GribJump`` created in a process fixes the process-wide settings,
-thread counts among them, from the environment and the configuration file.
-Later handles share them.
-
-Requests cross by value
------------------------
-
-``ExtractionRequest``, ``PathExtractionRequest`` and ``FileExtraction`` are
-plain Rust structs. The bridge copies them into their C++ counterparts on
-each call, so a request can be built, cloned and reused freely on the Rust
-side. ``Range`` is start-inclusive, end-exclusive, like ``std::ops::Range``,
-from which it converts; ``Range::new`` rejects an empty range, which the C++
-type would accept and later fail on.
-
-Errors
-------
-
-``gribjump-sys`` declares no exception classes of its own. Its handler is
-built from the headers that ``eckit-sys``, ``metkit-sys`` and ``fdb-sys``
-publish, so an eckit exception thrown inside GribJump keeps its class. The
-library's own ``GribJumpException``, ``DataNotFoundException`` and
-``JumpInfoExtractionDisabled`` are eckit exceptions without a variant of their
-own and arrive as ``eckit::Error::Other`` with their message. The crate adds
-``InvalidArgument``, for a range it rejects before any C++ runs, and
-``IteratorExhausted``, for ``next_result`` on a finished iterator.
-
-Downstream
+Two Crates
 ----------
 
-``gribjump-sys`` exports ``DEP_GRIBJUMP_SYS_ROOT`` and
-``DEP_GRIBJUMP_SYS_INCLUDE`` to the build scripts of crates that depend on it,
-and in ``system`` builds the library directories of GribJump and each of its
-dependencies, for their rpaths. The bridge is annotated with `bindman
-<https://github.com/ecmwf/bindman>`__ against ``gribjump/GribJump.h``, so a
-method added to the C++ class is reported when the crate builds.
+``gribjump-sys``
+   Unsafe bindings to the C++ library, built on `cxx <https://cxx.rs>`_.
+
+   * :ref:`Builds libgribjump from source or links an installed one <rust/building:Building the Rust Crates>`.
+   * Converts eckit exceptions into typed errors.
+
+``gribjump``
+   Safe Rust API over ``gribjump-sys``.
+
+   * :ref:`gribjump::Result and a matchable gribjump::Error <rust/usage:Errors>`.
+   * :ref:`One handle shared between threads <rust/approach:Handle>`.
+   * :ref:`Results read in place <rust/approach:Results>`.
+   * :ref:`Requests as plain structs <rust/approach:Requests>`.
+
+Results
+-------
+
+A result is read in place: ``range`` and ``iter`` return ``RangeView``,
+slices borrowed from the C++ result, so values are copied only when
+``to_owned`` or ``to_owned_ranges`` asks for it. The validity words are
+built on first access and cached inside the result, which is why
+``ExtractionResult`` is ``Send`` but not ``Sync``.
+
+Handle
+------
+
+``GribJump`` is one shared handle; ``extract`` returns after every
+requested field has been read, so iterating the result does no I/O and
+holds no lock. The first ``GribJump`` created in a process fixes the
+process-wide settings, thread counts among them, from the environment and
+the configuration file.
+
+Calls block the calling thread for the time the C++ library spends on I/O.
+In an async program, run them on a blocking thread, for example with
+``tokio::task::spawn_blocking``.
+
+Requests
+--------
+
+``ExtractionRequest``, ``PathExtractionRequest`` and ``FileExtraction`` are
+plain structs, to clone and reuse. ``Range`` is start-inclusive,
+end-exclusive, like ``std::ops::Range``, from which it converts.
+
+An FDB or path request carries the grid hash of the field, the
+``md5GridSection`` key of its GRIB message. GribJump refuses a field on
+another grid: the index ranges would mean other points.
+
+Error Type
+----------
+
+``gribjump::Error`` nests ``eckit::Error`` instead of copying its variants,
+so an eckit exception thrown inside GribJump is the same value it would be
+coming from eckit itself. GribJump's own exception classes, such as
+``DataNotFoundException``, have no variant and arrive as
+``eckit::Error::Other`` with their message.

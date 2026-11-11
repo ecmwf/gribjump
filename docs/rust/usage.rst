@@ -1,96 +1,104 @@
-Using the ``gribjump`` crate
+Using the ``gribjump`` Crate
 ============================
 
-The programs on this page are in ``docs/rust/examples``. They start by
-creating a local FDB in a temporary directory, archiving a three-field GRIB
-file into it and pointing ``FDB5_CONFIG`` at it, which is what
-``GribJump::new`` reads to find the FDB:
+The code on this page is quoted from the examples of the ``gribjump``
+crate; :ref:`rust/building:Running the Examples` says how to run them. The
+methods of each type are listed on `docs.rs <https://docs.rs/gribjump>`_.
 
-.. literalinclude:: examples/common/mod.rs
+Runtime Initialisation
+----------------------
+
+Call ``eckit::init()`` before any other call. Library messages then arrive
+through the ``log`` crate under the target ``eckit``; with
+``GRIBJUMP_DEBUG=1`` in the environment the debug channel arrives under the
+target ``gribjump``.
+
+Opening
+-------
+
+The FDB a ``GribJump`` reads comes from the environment, as for the FDB
+tools: ``FDB_CONFIG`` holding the YAML, else ``FDB_CONFIG_FILE`` naming a
+file, else ``etc/fdb/config.yaml`` under ``FDB_HOME``. The examples on this
+page create a local FDB in a temporary directory, archive a three-field GRIB
+file into it and set ``FDB_CONFIG`` before opening:
+
+.. literalinclude:: ../../rust/crates/gribjump/examples/common/mod.rs
    :language: rust
    :start-after: // [setup]
    :end-before: // [end setup]
-
-A real program skips this and sets the environment as the ``gribjump-*``
-tools expect; see :doc:`building`. Call ``eckit::init()`` first either way:
-it sets up the eckit runtime and sends the library's log output to the Rust
-``log`` crate.
 
 Extracting from an FDB
 ----------------------
 
 An ``ExtractionRequest`` is a MARS request that selects exactly one field,
-the ranges of grid point indices to read from it, and the grid hash. Several
-requests go into one ``extract`` call, which returns one result per request
-in the same order. A result has one ``RangeView`` per range, with the values
-and a validity bit per value; a bit is clear where the field has no data at
-that point.
+the ranges of grid point indices to read from it and the grid hash.
+``extract`` returns one result per request, in request order. A result has
+one ``RangeView`` per range, with the values and a validity bit per value;
+the bit is clear where the field has no data at that point:
 
-.. literalinclude:: examples/extract.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/extract.rs
    :language: rust
    :start-after: // [extract]
    :end-before: // [end extract]
    :dedent:
 
-The hash is the ``md5GridSection`` key of the GRIB message, and every field
-has to match it: GribJump refuses to return values from a field on a
-different grid, since the index ranges would mean different points. Setting
+The hash is the ``md5GridSection`` key of the GRIB message. Setting
 ``GRIBJUMP_IGNORE_GRID=1`` in the environment turns the check off for the
 whole process.
 
 ``extract_mars`` takes one request with several values per key, expands it
 and extracts the same ranges from every field it matches:
 
-.. literalinclude:: examples/extract.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/extract.rs
    :language: rust
    :start-after: // [mars]
    :end-before: // [end mars]
    :dedent:
 
-A ``RangeView`` borrows from its result. To keep values after the result is
-gone, or to move them to another thread, copy them out:
+To keep values after the result is gone or to move them to another thread,
+copy them out:
 
-.. literalinclude:: examples/extract.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/extract.rs
    :language: rust
    :start-after: // [owned]
    :end-before: // [end owned]
    :dedent:
 
-Extracting from files
+Extracting from Files
 ---------------------
 
 GribJump reads GRIB files directly, given the byte offset of each message.
-``eckit::MessageReader`` is one way to find the offsets:
+``eckit::MessageReader`` finds the offsets:
 
-.. literalinclude:: examples/file.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/file.rs
    :language: rust
    :start-after: // [offsets]
    :end-before: // [end offsets]
    :dedent:
 
-``extract_from_file`` takes one file with a list of offsets and the ranges to
-read at each; the grid is not checked. ``extract_from_paths`` takes one
-``PathExtractionRequest`` per message, each with its own path, offset and
-hash, which is the form an FDB listing produces:
+``extract_from_file`` does not check the grid. ``extract_from_paths`` takes
+one ``PathExtractionRequest`` per message, each with its own path, offset
+and hash, the form an FDB listing produces:
 
-.. literalinclude:: examples/file.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/file.rs
    :language: rust
    :start-after: // [file]
    :end-before: // [end paths]
    :dedent:
 
-Building the index
-------------------
+Scanning
+--------
 
 Extraction from an FDB is fast only where a GribJump index exists next to
-the data, either written by the FDB plugin at archive time or built
-afterwards by scanning. ``scan_requests`` scans the fields an FDB request
-matches and ``scan_paths`` scans GRIB files, writing a ``.gribjump`` file
-next to each ``.data`` or GRIB file; both return the number of messages
-scanned. ``axes`` lists the values present for each key of the fields a
-request matches, from the FDB index:
+the data, written by the FDB plugin at archive time or built afterwards by
+scanning. ``scan_requests`` scans the fields an FDB request matches, or
+with its flag set the whole files holding them; ``scan_paths`` scans GRIB
+files. Both write a ``.gribjump`` file next to each ``.data`` or GRIB file
+and return the number of messages scanned. ``axes`` lists the values
+present for each key of the fields a request matches, down to the index
+depth given:
 
-.. literalinclude:: examples/index.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/index.rs
    :language: rust
    :start-after: // [scan]
    :end-before: // [end axes]
@@ -99,27 +107,26 @@ request matches, from the FDB index:
 Threads
 -------
 
-``GribJump`` is ``Clone``, and a clone is a second reference to the same
-handle. Each thread takes one; the calls serialise on the handle's lock for
-the time it takes to start an extraction, and the iterators run without it:
+``GribJump`` is ``Send`` and ``Sync``; a clone is a second reference to the
+same handle:
 
-.. literalinclude:: examples/threads.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/threads.rs
    :language: rust
    :start-after: // [threads]
    :end-before: // [end threads]
    :dedent:
 
-A result can move to another thread but not be shared between two, and the
-calls block, so in an async program they belong on a blocking thread.
+``ExtractionIterator`` and ``ExtractionResult`` are ``Send`` but not
+``Sync``. ``RangeView``, ``RangeResult`` and the request structs are both.
 
 Errors
 ------
 
-``Range::new`` fails before any C++ runs; everything the library rejects,
-a grid hash that does not match among it, comes back as
-``Error::Eckit``:
+An empty range is ``InvalidArgument``. Everything the library rejects comes
+back as ``Error::Eckit``; a grid hash that does not match arrives as
+``eckit::Error::SeriousBug``:
 
-.. literalinclude:: examples/errors.rs
+.. literalinclude:: ../../rust/crates/gribjump/examples/errors.rs
    :language: rust
    :start-after: // [errors]
    :end-before: // [end errors]
