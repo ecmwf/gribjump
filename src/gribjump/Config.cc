@@ -56,7 +56,7 @@ ConfigOptions::ConfigOptions(const Config& config) :
 namespace {
 
 const char* const boolKeys[]   = {"cache.enabled", "cache.shadowfdb", "cache.lazy", "requestParsing"};
-const char* const intKeys[]    = {"threads", "server.port", "cache.size"};
+const char* const intKeys[]    = {"threads", "server.port", "server.firstByeTimeout", "cache.size"};
 const char* const stringKeys[] = {"cache.directory", "plugin.select"};
 
 // Copy leaves individually so omitted settings in a section retain their values.
@@ -83,6 +83,7 @@ Config resolveProcessConfig(const Config& source) {
     Config result;
     result.set("threads", int(eckit::Resource<int>("$GRIBJUMP_THREADS;gribjumpThreads", source.getInt("threads", 1))));
     result.set("server.port", int(eckit::Resource<int>("$GRIBJUMP_SERVER_PORT", source.getInt("server.port", 9777))));
+    result.set("server.firstByeTimeout", source.getInt("server.firstByeTimeout", 5000));
     result.set("requestParsing",
                bool(eckit::Resource<bool>("$GRIBJUMP_REQUEST_PARSING", source.getBool("requestParsing", false))));
     result.set("cache.enabled", source.getBool("cache.enabled", true));
@@ -96,6 +97,9 @@ Config resolveProcessConfig(const Config& source) {
     result.set("fdbDisableGribjump", bool(eckit::Resource<bool>("fdbDisableGribjump;$FDB_DISABLE_GRIBJUMP", false)));
     if (result.getInt("threads") <= 0 || result.getInt("cache.size") <= 0) {
         throw eckit::BadValue("threads and cache.size must be positive");
+    }
+    if (result.getInt("server.firstByeTimeout") < 0) {
+        throw eckit::BadValue("server.firstByeTimeout must be non-negative");
     }
     for (const auto& alias : source.getSubConfiguration("logging").keys()) {
         const std::string key = "logging." + alias;
