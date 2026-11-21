@@ -1,11 +1,11 @@
 [package]
 name = "gribjump-sys"
-version = "0.13.1"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-readme.workspace = true
+readme = "README.md"
 keywords.workspace = true
 categories.workspace = true
 description = "C++ bindings to ECMWF gribjump library using cxx"
@@ -14,7 +14,7 @@ build = "build.rs"
 
 [features]
 # Defaults match CMake defaults
-default = ["local-extract"]
+default = ["vendored", "local-extract"]
 
 # Build strategy (mutually exclusive)
 vendored = ["eckit-sys/vendored", "metkit-sys/vendored", "metkit-sys/grib", "eccodes-sys/vendored", "fdb-sys/vendored", "fdb-sys/grib", "fdb-sys/tocfdb", "fdb-sys/fdb-remote"]

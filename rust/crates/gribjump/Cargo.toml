@@ -1,11 +1,11 @@
 [package]
 name = "gribjump"
-version = "0.1.0"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-readme.workspace = true
+readme = "README.md"
 keywords.workspace = true
 categories.workspace = true
 description = "Safe Rust wrapper for ECMWF gribjump library"
@@ -14,8 +14,8 @@ build = "build.rs"
 
 [features]
 default = ["vendored"]
-vendored = ["gribjump-sys/vendored"]
-system = ["gribjump-sys/system"]
+vendored = ["gribjump-sys/vendored", "eckit/vendored"]
+system = ["gribjump-sys/system", "eckit/system"]
 
 [build-dependencies]
 bindman-utils.workspace = true
