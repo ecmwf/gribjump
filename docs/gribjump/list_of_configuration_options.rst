@@ -92,6 +92,9 @@ Worker pool and server listener
 * ``server.port``: Listening port for ``gribjump-server``. Default: ``9777``.
   Environment override: ``GRIBJUMP_SERVER_PORT``.
 
+The server closes connections that send no initial data within the deadline set by
+``server.firstByeTimeout``. Default: ``5000`` milliseconds.
+
 Logging, archive plugin and request parsing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
