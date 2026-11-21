@@ -1,3 +1,9 @@
 {# SPDX-FileCopyrightText: 2005- European Centre for Medium-Range Weather Forecasts (ECMWF)
    SPDX-License-Identifier: Apache-2.0 #}
 {% extends "ci-infrastructure/rust-bindings-runner.sh.j2" %}
+{% block set_environment %}
+# Single-threaded: GribJump::new() takes no config parameter and reads
+# FDB5_CONFIG from the environment, so parallel tests clobber it mid-flight
+# and trip catalogue->open() assertions inside FDB.
+export RUST_TEST_THREADS=1
+{% endblock %}
