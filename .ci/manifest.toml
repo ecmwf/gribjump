@@ -15,7 +15,6 @@ repo = "ecmwf/gribjump"
 visibility = "public"
 compiler-inputs = ["cxx-compiler"]
 allow-stale-deps = true
-git-read = ["ecmwf/bindman", "ecmwf/rust-wrappers-playground", "ecmwf/fdb", "ecmwf/eckit", "ecmwf/metkit"]
 
 [[deps]]
 repo = "ecmwf/fdb"
