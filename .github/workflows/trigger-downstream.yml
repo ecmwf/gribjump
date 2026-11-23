@@ -5,12 +5,11 @@
 # Regenerate via the ci-infrastructure-generate CLI.
 # Source of truth: each repo's .ci/manifest.toml.
 name: Downstream runner (gribjump)
+
 on:
   workflow_run:
-    workflows:
-    - CI
-    types:
-    - completed
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
     inputs:
       pull-request:
@@ -22,16 +21,19 @@ on:
         required: true
         default: '1'
         type: string
+
 concurrency:
   group: trigger-downstream-runner-${{ github.event.workflow_run.head_sha || inputs.pull-request }}
   cancel-in-progress: true
+
 jobs:
   ci-approval:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-    - uses: ecmwf/ci-infrastructure/actions/require-ci-approval@main
+      - uses: ecmwf/ci-infrastructure/actions/require-ci-approval@main
+
   context:
     runs-on: ubuntu-latest
     permissions:
@@ -47,13 +49,13 @@ jobs:
       pull-request: ${{ steps.ctx.outputs.pull-request }}
       hpc-only: ${{ steps.ctx.outputs.hpc-only }}
     steps:
-    - name: Resolve the commit under test
-      id: ctx
-      uses: ecmwf/ci-infrastructure/actions/resolve-dispatch-context@main
-      with:
-        pull-request: ${{ inputs.pull-request }}
-    needs:
-    - ci-approval
+      - name: Resolve the commit under test
+        id: ctx
+        uses: ecmwf/ci-infrastructure/actions/resolve-dispatch-context@main
+        with:
+          pull-request: ${{ inputs.pull-request }}
+    needs: [ci-approval]
+
   label-gate:
     if: needs.context.outputs.hpc-only != 'true'
     runs-on: ubuntu-latest
@@ -63,46 +65,40 @@ jobs:
       run: ${{ steps.gate.outputs.run }}
       depth: ${{ steps.gate.outputs.depth }}
     steps:
-    - name: Check the downstream-CI label
-      id: gate
-      uses: ecmwf/ci-infrastructure/actions/should-downstream-run@main
-      with:
-        sha: ${{ needs.context.outputs.head-sha }}
-        pull-request: ${{ needs.context.outputs.pull-request }}
-        level: ${{ inputs.level }}
-    needs:
-    - ci-approval
-    - context
+      - name: Check the downstream-CI label
+        id: gate
+        uses: ecmwf/ci-infrastructure/actions/should-downstream-run@main
+        with:
+          sha: ${{ needs.context.outputs.head-sha }}
+          pull-request: ${{ needs.context.outputs.pull-request }}
+          level: ${{ inputs.level }}
+    needs: [ci-approval, context]
+
   validate:
     if: ${{ (needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
     steps:
-    - id: mint
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-    - uses: actions/checkout@v6
-      with:
-        ref: ${{ needs.context.outputs.head-sha }}
-        token: ${{ steps.mint.outputs.token }}
-        persist-credentials: false
-        allow-unsafe-pr-checkout: true
-    - uses: ecmwf/ci-infrastructure/actions/validate-generated-workflows@main
-      with:
-        token: ${{ steps.mint.outputs.token }}
-    needs:
-    - ci-approval
-    - context
-    - label-gate
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
+          repositories: "*"
+          permissions: contents:read actions:read
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.context.outputs.head-sha }}
+          token: ${{ steps.mint.outputs.token }}
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
+      - uses: ecmwf/ci-infrastructure/actions/validate-generated-workflows@main
+        with:
+          token: ${{ steps.mint.outputs.token }}
+    needs: [ci-approval, context, label-gate]
+
   resolve:
     if: ${{ (needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
-    needs:
-    - ci-approval
-    - context
-    - label-gate
-    - validate
+    needs: [ci-approval, context, label-gate, validate]
     runs-on: ubuntu-latest
     env:
       ARTIFACT_S3_ENDPOINT: ${{ secrets.ARTIFACT_S3_ENDPOINT }}
@@ -111,120 +107,129 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     outputs:
       pins: ${{ steps.pins.outputs.pins }}
+      dispatch-plans: ${{ steps.plans.outputs.dispatch-plans }}
     steps:
-    - id: mint
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-    - name: Pin the commits the upstream's CI resolved
-      env:
-        GH_TOKEN: ${{ steps.mint.outputs.token }}
-        HEAD_SHA: ${{ needs.context.outputs.head-sha }}
-        CI_RUN_ID: ${{ needs.context.outputs.ci-run-id }}
-      run: "set -euo pipefail\npins=\"${GITHUB_REPOSITORY}@${HEAD_SHA}\"\ndir=\"${RUNNER_TEMP}/resolved-pins\"\nif [ -n \"${CI_RUN_ID}\" ] && gh run download \"${CI_RUN_ID}\" --repo \"${GITHUB_REPOSITORY}\" \\\n     --name resolved-pins --dir \"$dir\" 2>/dev/null; then\n  while read -r pin; do\n    if [[ \"$pin\" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$ ]] && [[ \"$pin\" != \"${GITHUB_REPOSITORY}@\"* ]]; then\n      pins=\"$pins $pin\"\n    fi\n  done < <(tr ' ' '\\n' < \"$dir/pins.txt\")\n  echo \"Starting from the commits run ${CI_RUN_ID} resolved: $pins\"\nelse\n  echo \"::notice::No resolved-pins artifact on CI run '${CI_RUN_ID}'; the other repos resolve at their branch tips.\"\nfi\necho \"PINS=$pins\" >> \"$GITHUB_ENV\"\necho \"EXPECTED=\" >> \"$GITHUB_ENV\"\n"
-    - id: pins
-      run: echo "pins=${PINS}" >> "$GITHUB_OUTPUT"
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ secrets.CI_READER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_READER_APP_PRIVATE_KEY }}
+          repositories: ecbuild,eccodes,eckit,fdb,gribjump,metkit,stack-dependencies
+          permissions: contents:read actions:read
+      - name: Pin the commits the upstream's CI resolved
+        env:
+          GH_TOKEN: ${{ steps.mint.outputs.token }}
+          HEAD_SHA: ${{ needs.context.outputs.head-sha }}
+          CI_RUN_ID: ${{ needs.context.outputs.ci-run-id }}
+        run: "set -euo pipefail\npins=\"${GITHUB_REPOSITORY}@${HEAD_SHA}\"\ndir=\"${RUNNER_TEMP}/resolved-pins\"\nif [ -n \"${CI_RUN_ID}\" ] && gh run download \"${CI_RUN_ID}\" --repo \"${GITHUB_REPOSITORY}\" \\\n     --name resolved-pins --dir \"$dir\" 2>/dev/null; then\n  while read -r pin; do\n    if [[ \"$pin\" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@[0-9a-f]{40}$ ]] && [[ \"$pin\" != \"${GITHUB_REPOSITORY}@\"* ]]; then\n      pins=\"$pins $pin\"\n    fi\n  done < <(tr ' ' '\\n' < \"$dir/pins.txt\")\n  echo \"Starting from the commits run ${CI_RUN_ID} resolved: $pins\"\nelse\n  echo \"::notice::No resolved-pins artifact on CI run '${CI_RUN_ID}'; the other repos resolve at their branch tips.\"\nfi\necho \"PINS=$pins\" >> \"$GITHUB_ENV\"\necho \"EXPECTED=\" >> \"$GITHUB_ENV\"\n"
+      - id: pins
+        run: echo "pins=${PINS}" >> "$GITHUB_OUTPUT"
+      - id: plans
+        env: {}
+        run: 'plans=$(printf ''%s\n''  | jq -cs ''add // []'')
+
+          echo "dispatch-plans=${plans}" >> "$GITHUB_OUTPUT"'
+
+  rebuild-producers:
+    needs: [ci-approval, context, label-gate, resolve]
+    runs-on: ubuntu-latest
+    steps:
+      - if: needs.resolve.outputs.dispatch-plans != '' && needs.resolve.outputs.dispatch-plans != '[]'
+        uses: ecmwf/ci-infrastructure/actions/dispatch-producers@main
+        with:
+          dispatch-plans: ${{ needs.resolve.outputs.dispatch-plans }}
+          repositories: ecbuild,eccodes,eckit,fdb,gribjump,metkit,stack-dependencies
+          client-id: ${{ secrets.CI_DISPATCHER_APP_CLIENT_ID }}
+          app-private-key: ${{ secrets.CI_DISPATCHER_APP_PRIVATE_KEY }}
+    if: ${{ needs['label-gate'].outputs.run == 'true' }}
+
   report-start:
     if: ${{ (needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       statuses: write
     steps:
-    - name: Post pending downstream status
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh api -X POST \
-          "/repos/${{ github.repository }}/statuses/${{ needs.context.outputs.head-sha }}" \
-          -f state=pending \
-          -f context='downstream/runner' \
-          -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-          -f description='Downstream runner tests running'
-    needs:
-    - ci-approval
-    - context
-    - label-gate
+      - name: Post pending downstream status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST \
+            "/repos/${{ github.repository }}/statuses/${{ needs.context.outputs.head-sha }}" \
+            -f state=pending \
+            -f context='downstream/runner' \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description='Downstream runner tests running'
+    needs: [ci-approval, context, label-gate]
+
   report-ci-failure:
     if: ${{ (needs.context.outputs.ci-conclusion != 'success' && needs.context.outputs.ci-conclusion != '') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       statuses: write
     steps:
-    - name: Post downstream failure status
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        gh api -X POST \
-          "/repos/${{ github.repository }}/statuses/${{ needs.context.outputs.head-sha }}" \
-          -f state=failure \
-          -f context='downstream/runner' \
-          -f target_url="${{ needs.context.outputs.ci-url }}" \
-          -f description="${{ needs.context.outputs.ci-summary }}; downstream runner not run"
-    needs:
-    - ci-approval
-    - context
-    - label-gate
+      - name: Post downstream failure status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST \
+            "/repos/${{ github.repository }}/statuses/${{ needs.context.outputs.head-sha }}" \
+            -f state=failure \
+            -f context='downstream/runner' \
+            -f target_url="${{ needs.context.outputs.ci-url }}" \
+            -f description="${{ needs.context.outputs.ci-summary }}; downstream runner not run"
+    needs: [ci-approval, context, label-gate]
+
   zfdb:
     name: zfdb
-    needs:
-    - ci-approval
-    - context
-    - label-gate
-    - validate
-    - resolve
+    needs: [ci-approval, context, label-gate, validate, resolve]
     runs-on: ubuntu-latest
     steps:
-    - id: mint
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.CI_PERMISSIONS_APP_CLIENT_ID }}
-        private-key: ${{ secrets.CI_PERMISSIONS_APP_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-    - name: Dispatch zfdb (private consumer)
-      uses: ecmwf/ci-infrastructure/actions/dispatch-and-wait@main
-      with:
-        consumer-repo: ecmwf/zfdb
-        ref: develop
-        from-repo: ${{ github.repository }}
-        from-sha: ${{ needs.context.outputs.head-sha }}
-        from-jobs: '["gribjump/build"]'
-        branch: ${{ needs.context.outputs.head-branch }}
-        fallback-ref: develop
-        pin: ${{ needs.resolve.outputs.pins }}
-        token: ${{ steps.mint.outputs.token }}
-        artifact-names: ''
-        wait-for-run-conclusion: 'true'
+      - id: mint
+        uses: ecmwf/ci-infrastructure/actions/mint-token@main
+        with:
+          client-id: ${{ secrets.CI_DISPATCHER_APP_CLIENT_ID }}
+          private-key: ${{ secrets.CI_DISPATCHER_APP_PRIVATE_KEY }}
+          repositories: zfdb
+          permissions: actions:write
+      - name: Dispatch zfdb (private consumer)
+        uses: ecmwf/ci-infrastructure/actions/dispatch-and-wait@main
+        with:
+          consumer-repo: ecmwf/zfdb
+          ref: develop
+          from-repo: ${{ github.repository }}
+          from-sha: ${{ needs.context.outputs.head-sha }}
+          from-jobs: '["gribjump/build"]'
+          branch: ${{ needs.context.outputs.head-branch }}
+          fallback-ref: develop
+          pin: ${{ needs.resolve.outputs.pins }}
+          token: ${{ steps.mint.outputs.token }}
+          artifact-names: ''
+          wait-for-run-conclusion: 'true'
     if: ${{ needs['label-gate'].outputs.run == 'true' && (needs['label-gate'].outputs.depth == 'all' || needs['label-gate'].outputs.depth >= 1) }}
+
   report-result:
-    needs:
-    - ci-approval
-    - context
-    - label-gate
-    - validate
-    - zfdb
+    needs: [ci-approval, context, label-gate, validate, zfdb]
     if: ${{ (always() && needs.context.outputs.ci-conclusion == 'success') && needs['label-gate'].outputs.run == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       statuses: write
     steps:
-    - name: Post final downstream status
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        state=success
-        for r in ${{ needs.validate.result }} ${{ needs.zfdb.result }}; do
-          if [ "$r" = failure ] || [ "$r" = cancelled ]; then
-            state=failure
-          fi
-        done
-        depth="${{ needs['label-gate'].outputs.depth }}"
-        scope=""
-        if [ "$depth" != all ]; then scope=" (up to level $depth)"; fi
-        gh api -X POST \
-          "/repos/${{ github.repository }}/statuses/${{ needs.context.outputs.head-sha }}" \
-          -f state="$state" \
-          -f context='downstream/runner' \
-          -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-          -f description="Downstream runner tests $state$scope"
+      - name: Post final downstream status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state=success
+          for r in ${{ needs.validate.result }} ${{ needs.zfdb.result }}; do
+            if [ "$r" = failure ] || [ "$r" = cancelled ]; then
+              state=failure
+            fi
+          done
+          depth="${{ needs['label-gate'].outputs.depth }}"
+          scope=""
+          if [ "$depth" != all ]; then scope=" (up to level $depth)"; fi
+          gh api -X POST \
+            "/repos/${{ github.repository }}/statuses/${{ needs.context.outputs.head-sha }}" \
+            -f state="$state" \
+            -f context='downstream/runner' \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            -f description="Downstream runner tests $state$scope"
