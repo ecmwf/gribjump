@@ -239,3 +239,7 @@ python-version = "3.14"
 [[trigger-downstream]]
 repo = "ecmwf/zfdb"
 ref = "develop"
+
+[[trigger-downstream]]
+repo = "ecmwf/polytope"
+ref = "develop"
