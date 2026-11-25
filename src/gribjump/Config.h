@@ -83,6 +83,7 @@ public:
     static void configure(const Config&);
 
     int serverPort() const { return config_.getInt("server.port"); }
+    int firstByeTimeout() const { return config_.getInt("server.firstByeTimeout"); }
     size_t numThreads() const { return config_.getUnsigned("threads"); }
     bool requestParsing() const { return config_.getBool("requestParsing"); }
     bool cacheEnabled() const { return config_.getBool("cache.enabled"); }

@@ -11,11 +11,13 @@
 /// @author Caragh Bradley
 /// @author Tiago Quintino
 
+#include <chrono>
 #include <optional>
 
 #include "eckit/log/Timer.h"
 #include "eckit/system/ResourceUsage.h"
 
+#include "gribjump/Config.h"
 #include "gribjump/LibGribJump.h"
 #include "gribjump/remote/GribJumpUser.h"
 #include "gribjump/remote/Protocol.h"
@@ -37,6 +39,21 @@ void GribJumpUser::serve(eckit::Stream& s, std::istream& in, std::ostream& out) 
     eckit::Log::info() << "Serving new connection" << std::endl;
 
     try {
+        // TCP health probes may connect and close without sending a request.
+        // Keep this policy here: other NetUser services may send a greeting first.
+        const auto timeout = std::chrono::milliseconds(ProcessOptions::get().firstByeTimeout());
+        using InputStatus  = eckit::net::TCPSocket::InputStatus;
+        switch (protocol_.waitForInput(timeout)) {
+            case InputStatus::Closed:
+                LOG_DEBUG_LIB(LibGribJump) << "Connection closed without a request" << std::endl;
+                return;
+            case InputStatus::Timeout:
+                eckit::Log::info() << "Closing connection: timed out waiting for initial data from peer" << std::endl;
+                return;
+            case InputStatus::Ready:
+                break;
+        }
+
         eckit::Timer timer("Connection served");
         dispatchRequest(s);
     }

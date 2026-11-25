@@ -72,7 +72,8 @@ CASE("first object configures process settings without replacing object defaults
     eckit::TmpFile file;
     {
         std::ofstream out(file.asString());
-        out << "type: local\nignoreGridHash: false\nthreads: 1\ncache:\n  size: 31\n  directory: "
+        out << "type: local\nignoreGridHash: false\nthreads: 1\nserver:\n  firstByeTimeout: 1200\ncache:\n  size: "
+               "31\n  directory: "
             << cacheDirectory->asString() << "\n";
     }
     SetEnv env("GRIBJUMP_CONFIG_FILE", file.asString());
@@ -80,15 +81,18 @@ CASE("first object configures process settings without replacing object defaults
     Config config;
     config.set("threads", 2);
     config.set("cache.size", 7);
+    config.set("server.firstByeTimeout", 250);
     config.set("ignoreGridHash", true);
     config.set("logging.progress", "info");
     GribJump first(config);
     EXPECT_EQUAL(ProcessOptions::get().numThreads(), 2);
     EXPECT_EQUAL(ProcessOptions::get().cacheSize(), 7);
+    EXPECT_EQUAL(ProcessOptions::get().firstByeTimeout(), 250);
     EXPECT_EQUAL(ProcessOptions::get().cacheDirectory(), cacheDirectory->asString());
     EXPECT(&LogRouter::instance().get("progress") == &eckit::Log::info());
     EXPECT(!ConfigOptions::defaultOptions().ignoreGrid());
     EXPECT_EQUAL(LibGribJump::instance().config().getInt("threads"), 1);
+    EXPECT_EQUAL(LibGribJump::instance().config().getInt("server.firstByeTimeout"), 1200);
     // Repeated and omitted settings are accepted; the caller's Config is independent.
     EXPECT_NO_THROW(GribJump{config});
     EXPECT_NO_THROW(GribJump{});
@@ -131,7 +135,7 @@ CASE("all per-object options are snapshots including programmatic server maps") 
 
 CASE("conflicting process settings fail without altering established state") {
     const auto& options = ProcessOptions::get();
-    for (const char* key : {"threads", "server.port", "cache.size"}) {
+    for (const char* key : {"threads", "server.port", "server.firstByeTimeout", "cache.size"}) {
         Config conflict;
         conflict.set(key, 999);
         EXPECT_THROWS_AS(GribJump{conflict}, eckit::BadValue);

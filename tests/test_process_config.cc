@@ -30,6 +30,9 @@ CASE("process configuration initialization") {
     {
         std::ofstream out(file.asString());
         out << "threads: 1\ncache:\n  enabled: true\n  size: 64\n";
+        if (mode != "defaults") {
+            out << "server:\n  firstByeTimeout: 1200\n";
+        }
     }
     // This executable has one test; establish its environment before starting threads.
     ASSERT(::setenv("GRIBJUMP_CONFIG_FILE", file.asString().c_str(), 1) == 0);
@@ -43,6 +46,7 @@ CASE("process configuration initialization") {
         matching.set("threads", 2);
         EXPECT_THROWS_AS(GribJump{matching}, eckit::BadValue);
         EXPECT_EQUAL(ProcessOptions::get().numThreads(), 1);
+        EXPECT_EQUAL(ProcessOptions::get().firstByeTimeout(), 5000);
         return;
     }
 
@@ -56,6 +60,7 @@ CASE("process configuration initialization") {
         GribJump first(config);
         EXPECT_EQUAL(ProcessOptions::get().numThreads(), 3);
         EXPECT(ProcessOptions::get().requestParsing());
+        EXPECT_EQUAL(ProcessOptions::get().firstByeTimeout(), 1200);
         // Compare effective settings after applying environment/resource overrides.
         config.set("threads", 4);
         EXPECT_NO_THROW(GribJump{config});
@@ -92,6 +97,9 @@ CASE("process configuration initialization") {
     invalid.set("threads", 0);
     EXPECT_THROWS_AS(GribJump{invalid}, eckit::BadValue);
     invalid = Config();
+    invalid.set("server.firstByeTimeout", -1);
+    EXPECT_THROWS_AS(GribJump{invalid}, eckit::BadValue);
+    invalid = Config();
     invalid.set("logging.progress", "not-a-channel");
     EXPECT_THROWS_AS(GribJump{invalid}, eckit::BadValue);
 
@@ -100,10 +108,12 @@ CASE("process configuration initialization") {
     config.set("threads", 2);
     config.set("cache.enabled", false);
     config.set("cache.lazy", lazy);
+    config.set("server.firstByeTimeout", 0);
     config.set("ignoreGridHash", true);
     GribJump gj(config);
     EXPECT_EQUAL(ProcessOptions::get().numThreads(), 2);
     EXPECT_EQUAL(ProcessOptions::get().cacheSize(), 64);  // omitted key retains file default
+    EXPECT_EQUAL(ProcessOptions::get().firstByeTimeout(), 0);
 
     eckit::TmpDir directory;
     const auto path = directory / "disabled.grib";
