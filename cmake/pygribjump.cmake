@@ -73,5 +73,5 @@ add_custom_target(pygribjump-wheel ALL DEPENDS ${CMAKE_BINARY_DIR}/pygribjump.wh
 
 install(CODE "
     file(GLOB _whl \"${CMAKE_BINARY_DIR}/pygribjump-*.whl\")
-    file(INSTALL \${_whl} DESTINATION \"\${CMAKE_INSTALL_PREFIX}\")
+    file(INSTALL \${_whl} DESTINATION \"\${CMAKE_INSTALL_PREFIX}/wheels\")
 ")
