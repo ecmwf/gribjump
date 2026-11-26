@@ -57,6 +57,7 @@ public:
 
     static InfoFactory& instance();
 
+    // The caller must open the handle for reading and is responsible for closing it.
     std::unique_ptr<JumpInfo> build(eckit::DataHandle& h, const eckit::Offset& offset);
     std::unique_ptr<JumpInfo> build(const eckit::message::Message& msg);
 
